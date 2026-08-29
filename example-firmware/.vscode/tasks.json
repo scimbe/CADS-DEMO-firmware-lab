@@ -1,0 +1,24 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build firmware",
+      "type": "shell",
+      "command": "make",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "Flash to board",
+      "type": "shell",
+      "command": "make flash",
+      "group": "build",
+      "dependsOn": "Build firmware"
+    },
+    {
+      "label": "Clean",
+      "type": "shell",
+      "command": "make clean"
+    }
+  ]
+}

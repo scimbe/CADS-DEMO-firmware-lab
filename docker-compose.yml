@@ -1,0 +1,23 @@
+services:
+  firmware-lab:
+    build: .
+    container_name: firmware-lab
+    restart: unless-stopped
+    environment:
+      # Set by the manifest installer at activation time -- never bake a real password into the image.
+      - PASSWORD=${FIRMWARE_LAB_PASSWORD:?set FIRMWARE_LAB_PASSWORD before starting}
+    ports:
+      # Loopback only -- this origin is reached through a ct-agent browser-plane tunnel, never a
+      # public host port, same convention as every other bunsenbrenner.org service.
+      - "127.0.0.1:8788:8080"
+    volumes:
+      - firmware-lab-workspace:/home/coder/workspace
+      # USB passthrough for ST-Link probes, robust to hot-plug/re-enumeration -- prefer this over a
+      # pinned --device=/dev/bus/usb/BBB/DDD (breaks on replug) or --privileged (unnecessary blast
+      # radius: this only needs the USB character-device major number, not full host access).
+      - /dev/bus/usb:/dev/bus/usb
+    device_cgroup_rules:
+      - "c 189:* rmw"
+
+volumes:
+  firmware-lab-workspace:
