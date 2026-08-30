@@ -56,6 +56,18 @@ example firmware's `delay()` loop, not stuck at reset. This sidesteps the USB-pa
 entirely (the host's own `st-link`/`st-flash` tools talk to the probe directly), at the cost of
 needing those tools installed on the host and Docker CLI access to `docker cp` from it.
 
+**A second, generally preferable alternative: `webusb-flash/`, a browser-native flash app.**
+Sidesteps the Docker-USB-passthrough gap entirely by not going through the container at all —
+your browser talks WebUSB directly to the ST-Link, no host toolchain, no `docker cp`. Built on
+[devanlai/webstlink](https://github.com/devanlai/webstlink) (MIT), vendored in
+`webusb-flash/vendor/webstlink-src/` with real, hardware-verified fixes (see that directory's
+files' own "CADS:" comments for exactly what was fixed and why — chip-reset-vs-halt on `unlock()`
+was the deepest one, root-caused by cads zero against a real CaDS Zero board's hardware watchdog).
+Open `webusb-flash/index.html` in Chrome/Edge (needs `https://` or `localhost`, not `file://`),
+click Connect, pick a built `.bin`, click Flash. Complements the container's OpenOCD path — it
+doesn't replace it, since a browser without WebUSB support (or on a locked-down machine) still
+needs the container path to work.
+
 ## Why code-server, not `linuxserver/docker-vscode`
 
 The operator's original reference point was `linuxserver/docker-vscode`. After a comparative
@@ -110,6 +122,8 @@ ATTRS{idVendor}=="0483", ATTRS{idProduct}=="3748", MODE="660", GROUP="plugdev", 
   [CADS-DEMO-codereview, branch `feature/firmware-tutor-mode`](https://github.com/scimbe/CADS-DEMO-codereview/tree/feature/firmware-tutor-mode).
   Rebuild with `npm run compile && npx @vscode/vsce package --no-dependencies -o vscode-extension/codereview-tutor.vsix`
   from that repo's `vscode-extension/` directory, then copy the output here.
+- `webusb-flash/` — the browser-native flash app described above: `index.html` + `app.js` (this
+  repo's own code), `vendor/webstlink-src/` (vendored, patched upstream library).
 
 ## Manifest / packaging
 
