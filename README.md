@@ -11,6 +11,12 @@ example firmware as a guided lesson with two hands-on exercises, logging every s
 every exercise attempt to `tutor-session.log`. The IDE is fully usable for free-form coding
 alongside the tutor — it's not a locked-down teaching mode.
 
+Each lesson step also has an optional **"Ask about this step"** panel backed by a real LLM
+(`LITELLM_BASE_URL`/`LITELLM_API_KEY`/`LITELLM_DEFAULT_MODEL` in `.env` — see `.env.example`).
+Fully optional: leave `.env` absent and the rest of the tutor works exactly the same, the Ask
+panel just reports itself unconfigured. **`LITELLM_BASE_URL` must be `https://`, not `http://`** —
+see the comment in `.env.example` for why (it silently 401s instead of failing loudly at startup).
+
 ## Status (2026-08-30)
 
 Verified with real hardware by Maintainer `cads zero` (Nucleo-F429ZI + onboard ST-Link/V2-1):
