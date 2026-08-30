@@ -17,7 +17,7 @@ Verified so far, without real hardware:
 - Container builds clean, code-server serves and password-authenticates.
 - Both extensions (cortex-debug, the codereview tutor mode) install and register correctly for
   the runtime user.
-- The bundled example firmware (a bare-register STM32F401RE GPIO blink, no vendor HAL — nothing
+- The bundled example firmware (a bare-register STM32F429ZI GPIO blink, no vendor HAL — nothing
   to license or vendor) compiles cleanly inside the container with the full toolchain (gcc, gdb,
   openocd) present.
 
@@ -25,7 +25,10 @@ Verified so far, without real hardware:
 `/dev/bus/usb` bind mount) actually reaching a plugged-in probe, and a real flash/debug session
 via OpenOCD + cortex-debug against real silicon. This is the genuinely unproven part of the
 design (see the research notes below) — everything else here is standard, known-working tooling.
-Maintainer `cads zero` has real ST-Link hardware and is the designated tester for this step.
+Maintainer `cads zero` has real ST-Link hardware (a Nucleo-F429ZI, not the originally-assumed
+F401RE) and is the designated tester for this step; `example-firmware/` was updated to their
+real board's specs (2MB flash across two contiguous 1MB banks, 192K main SRAM, LD1 on PB0) —
+see `main.c`/`linker.ld`/`openocd.cfg` for the per-field reasoning.
 
 ## Why code-server, not `linuxserver/docker-vscode`
 
@@ -51,9 +54,11 @@ terminates TLS at the edge, never a directly exposed host port.
 
 ### Using a different board
 
-The bundled example targets a Nucleo-F401RE (onboard ST-Link/V2-1, no external probe needed).
-For a different board, edit `example-firmware/openocd.cfg` (swap the `target/*.cfg` include) and
-adjust `linker.ld`'s memory sizes and `main.c`'s register addresses/LED pin for your MCU family.
+The bundled example targets a Nucleo-F429ZI (onboard ST-Link/V2-1, no external probe needed);
+`openocd.cfg`'s `target/stm32f4x.cfg` also covers other F4 boards (e.g. an F401RE) unchanged,
+since chip ID is auto-detected. For a non-F4 board, edit `example-firmware/openocd.cfg` (swap the
+`target/*.cfg` include) and adjust `linker.ld`'s memory sizes and `main.c`'s register
+addresses/LED pin for your MCU family.
 
 ### USB passthrough on the host
 
@@ -72,7 +77,7 @@ ATTRS{idVendor}=="0483", ATTRS{idProduct}=="3748", MODE="660", GROUP="plugdev", 
 - `Dockerfile` — code-server + OpenOCD + arm-none-eabi toolchain + cortex-debug + the codereview
   tutor-mode extension.
 - `docker-compose.yml` — runtime config: password from env, workspace volume, USB passthrough.
-- `example-firmware/` — the bundled STM32F401RE blink example: `main.c`/`startup.s`/`linker.ld`
+- `example-firmware/` — the bundled STM32F429ZI blink example: `main.c`/`startup.s`/`linker.ld`
   (no vendor SDK dependency), `Makefile`, `openocd.cfg`, and `.vscode/tasks.json`+`launch.json`
   wired for build/flash/debug.
 - `vscode-extension/codereview-tutor.vsix` — built from
