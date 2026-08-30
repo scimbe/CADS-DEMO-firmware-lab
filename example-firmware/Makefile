@@ -22,7 +22,7 @@ $(BUILD)/firmware.hex: $(BUILD)/firmware.elf
 	$(OBJCOPY) -O ihex $< $@
 
 flash: $(BUILD)/firmware.elf
-	openocd -f /workspace/openocd.cfg -c "program $(BUILD)/firmware.elf verify reset exit"
+	openocd -f openocd.cfg -c "program $(BUILD)/firmware.elf verify reset exit"
 
 clean:
 	rm -rf $(BUILD)
