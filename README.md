@@ -11,24 +11,28 @@ example firmware as a guided lesson with two hands-on exercises, logging every s
 every exercise attempt to `tutor-session.log`. The IDE is fully usable for free-form coding
 alongside the tutor — it's not a locked-down teaching mode.
 
-## Status (2026-08-29)
+## Status (2026-08-30)
 
-Verified so far, without real hardware:
+Verified with real hardware by Maintainer `cads zero` (Nucleo-F429ZI + onboard ST-Link/V2-1):
 - Container builds clean, code-server serves and password-authenticates.
 - Both extensions (cortex-debug, the codereview tutor mode) install and register correctly for
   the runtime user.
-- The bundled example firmware (a bare-register STM32F429ZI GPIO blink, no vendor HAL — nothing
-  to license or vendor) compiles cleanly inside the container with the full toolchain (gcc, gdb,
-  openocd) present.
+- `example-firmware/`'s register addresses and `linker.ld`'s memory map were cross-checked
+  against this board's actual RM0090-derived CMSIS header and confirmed correct (no changes
+  needed): `RCC_AHB1ENR`=0x40023830, GPIOB base=0x40020400 (MODER 0x00, ODR 0x14), `GPIOBEN`=bit 1,
+  2048K flash, 192K SRAM.
 
-**Not yet verified — needs a real ST-Link probe:** USB passthrough (`device_cgroup_rules` +
-`/dev/bus/usb` bind mount) actually reaching a plugged-in probe, and a real flash/debug session
-via OpenOCD + cortex-debug against real silicon. This is the genuinely unproven part of the
-design (see the research notes below) — everything else here is standard, known-working tooling.
-Maintainer `cads zero` has real ST-Link hardware (a Nucleo-F429ZI, not the originally-assumed
-F401RE) and is the designated tester for this step; `example-firmware/` was updated to their
-real board's specs (2MB flash across two contiguous 1MB banks, 192K main SRAM, LD1 on PB0) —
-see `main.c`/`linker.ld`/`openocd.cfg` for the per-field reasoning.
+**Known limitation, confirmed real (2026-08-30): USB passthrough does not work under Docker
+Desktop for Mac.** `openocd -f openocd.cfg -c "init; exit"` fails with `Error: open failed` —
+reproduced as the `coder` user, as root, and even with `--privileged` bypassing
+`device_cgroup_rules` entirely, which rules out a permissions/cgroup bug. `/dev/bus/usb` node
+timestamps inside the container predate the actual probe connection — Docker Desktop for Mac's
+LinuxKit VM does not forward live host USB through that path the way native Linux Docker does.
+Host-side `st-info --probe` worked fine throughout, confirming the board/probe/compose logic are
+all sound; this is specifically a Docker-Desktop-macOS gap. `device_cgroup_rules` +
+`/dev/bus/usb` remains the textbook-correct approach on a **native Linux Docker host** — if you're
+on macOS, either run this container on a Linux host/VM instead, or bridge with `usbip` (the
+standard macOS workaround; more setup, not yet attempted here).
 
 ## Why code-server, not `linuxserver/docker-vscode`
 
