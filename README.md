@@ -40,6 +40,22 @@ all sound; this is specifically a Docker-Desktop-macOS gap. `device_cgroup_rules
 on macOS, either run this container on a Linux host/VM instead, or bridge with `usbip` (the
 standard macOS workaround; more setup, not yet attempted here).
 
+**Verified workaround for build-in-browser + flash-from-host on macOS** (cads zero, 2026-08-30):
+build inside the container as normal, then copy the binary out and flash it with a host-side
+toolchain instead of OpenOCD-in-container:
+
+```sh
+docker cp firmware-lab:/home/coder/workspace/build/firmware.bin ./firmware.bin
+st-flash write ./firmware.bin 0x08000000
+```
+
+The `docker cp` step (not a direct host path) is required because `/home/coder/workspace` is a
+named Docker volume, not a bind mount — there's no host-side path to reach into directly.
+Confirmed working end to end: a live GDB attach after flashing showed real execution in the
+example firmware's `delay()` loop, not stuck at reset. This sidesteps the USB-passthrough gap
+entirely (the host's own `st-link`/`st-flash` tools talk to the probe directly), at the cost of
+needing those tools installed on the host and Docker CLI access to `docker cp` from it.
+
 ## Why code-server, not `linuxserver/docker-vscode`
 
 The operator's original reference point was `linuxserver/docker-vscode`. After a comparative

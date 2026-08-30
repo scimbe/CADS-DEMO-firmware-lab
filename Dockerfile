@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         gcc-arm-none-eabi \
         binutils-arm-none-eabi \
         gdb-multiarch \
+        binutils-multiarch \
         make \
         udev \
         ca-certificates \
