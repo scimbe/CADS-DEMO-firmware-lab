@@ -6,10 +6,19 @@ services:
     environment:
       # Set by the manifest installer at activation time -- never bake a real password into the image.
       - PASSWORD=${FIRMWARE_LAB_PASSWORD:?set FIRMWARE_LAB_PASSWORD before starting}
+      # Optional: powers the tutor mode's "Ask about this step" panel (same litellm-proxy
+      # convention as every other CADS-DEMO-* repo). Leave unset and the rest of the tutor still
+      # works fine -- the Ask panel just reports itself unconfigured. See .env.example.
+      - LITELLM_BASE_URL=${LITELLM_BASE_URL:-}
+      - LITELLM_API_KEY=${LITELLM_API_KEY:-}
+      - LITELLM_DEFAULT_MODEL=${LITELLM_DEFAULT_MODEL:-}
     ports:
       # Loopback only -- this origin is reached through a ct-agent browser-plane tunnel, never a
       # public host port, same convention as every other bunsenbrenner.org service.
-      - "127.0.0.1:8788:8080"
+      # Host port 8083 (not the container's own 8080): on cads-lambda, 127.0.0.1:8788 -- this
+      # compose file's original mapping -- is already bound by the unrelated, pre-existing
+      # harness-memory service (marketplace#39); found live via `ss -tln`, not assumed.
+      - "127.0.0.1:8083:8080"
     volumes:
       - firmware-lab-workspace:/home/coder/workspace
       # USB passthrough for ST-Link probes, robust to hot-plug/re-enumeration -- prefer this over a

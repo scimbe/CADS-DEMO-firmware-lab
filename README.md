@@ -51,7 +51,7 @@ export FIRMWARE_LAB_PASSWORD=choose-a-real-password
 docker compose up -d --build
 ```
 
-Then visit `http://127.0.0.1:8788` (or the tunneled hostname once deployed) and log in with
+Then visit `http://127.0.0.1:8083` (or the tunneled hostname once deployed) and log in with
 `FIRMWARE_LAB_PASSWORD`. Password auth only — there is no TLS termination in this container by
 design, same as every other origin in this system: it's reached through a ct-agent tunnel that
 terminates TLS at the edge, never a directly exposed host port.
