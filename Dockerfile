@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         make \
         udev \
         ca-certificates \
+        python3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Extensions must be installed as `coder` (the runtime user) -- code-server resolves its
@@ -30,6 +31,11 @@ USER coder
 RUN code-server --install-extension marus25.cortex-debug
 
 COPY --chown=coder:coder example-firmware /home/coder/workspace
+# Vendored into the workspace (not just left at the repo root) so it's visible in the Explorer and
+# reachable from a terminal here -- the tutor's "flash to real hardware" step (see tutor.ts's
+# FIRMWARE_TUTOR_CURRICULUM) walks the learner through serving it with `python3 -m http.server`
+# and reaching it via code-server's built-in `/proxy/<port>/` forwarding.
+COPY --chown=coder:coder webusb-flash /home/coder/workspace/webusb-flash
 COPY --chown=coder:coder vscode-extension/codereview-tutor.vsix /tmp/codereview-tutor.vsix
 RUN code-server --install-extension /tmp/codereview-tutor.vsix && rm /tmp/codereview-tutor.vsix
 

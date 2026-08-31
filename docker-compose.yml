@@ -6,7 +6,12 @@ services:
     # Rebrands the {{app}} placeholder in the title bar and login/welcome page (default
     # "code-server") -- the image's default CMD is `--bind-addr 0.0.0.0:8080 .` (see
     # /usr/bin/entrypoint.sh); this appends --app-name rather than replacing the whole CMD.
-    command: ["--bind-addr", "0.0.0.0:8080", "--app-name", "CaDS Development System", "."]
+    # --disable-workspace-trust: without it, a brand-new profile opens in VS Code's "Restricted
+    # Mode" (confirmed live) -- which silently disables ALL extensions (including this one, so
+    # the tutor never even activates) and skips every workspace .vscode/settings.json value until
+    # a human clicks through the trust dialog. This workspace's content is our own bundled example
+    # firmware, trusted by construction, so that prompt is pure friction for a first-time learner.
+    command: ["--bind-addr", "0.0.0.0:8080", "--app-name", "CaDS Development System", "--disable-workspace-trust", "."]
     environment:
       # Set by the manifest installer at activation time -- never bake a real password into the image.
       - PASSWORD=${FIRMWARE_LAB_PASSWORD:?set FIRMWARE_LAB_PASSWORD before starting}
