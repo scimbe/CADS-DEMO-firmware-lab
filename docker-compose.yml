@@ -3,6 +3,10 @@ services:
     build: .
     container_name: firmware-lab
     restart: unless-stopped
+    # Rebrands the {{app}} placeholder in the title bar and login/welcome page (default
+    # "code-server") -- the image's default CMD is `--bind-addr 0.0.0.0:8080 .` (see
+    # /usr/bin/entrypoint.sh); this appends --app-name rather than replacing the whole CMD.
+    command: ["--bind-addr", "0.0.0.0:8080", "--app-name", "CaDS Development System", "."]
     environment:
       # Set by the manifest installer at activation time -- never bake a real password into the image.
       - PASSWORD=${FIRMWARE_LAB_PASSWORD:?set FIRMWARE_LAB_PASSWORD before starting}
