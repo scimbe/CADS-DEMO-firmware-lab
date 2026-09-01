@@ -12,9 +12,9 @@ every exercise attempt to `tutor-session.log`. The IDE is fully usable for free-
 alongside the tutor — it's not a locked-down teaching mode.
 
 Each lesson step also has an optional **"Ask about this step"** panel backed by a real LLM
-(`LITELLM_BASE_URL`/`LITELLM_API_KEY`/`LITELLM_DEFAULT_MODEL` in `.env` — see `.env.example`).
+(`TUTOR_LLM_BASE_URL`/`TUTOR_LLM_API_KEY`/`TUTOR_LLM_MODEL` in `.env` — see `.env.example`).
 Fully optional: leave `.env` absent and the rest of the tutor works exactly the same, the Ask
-panel just reports itself unconfigured. **`LITELLM_BASE_URL` must be `https://`, not `http://`** —
+panel just reports itself unconfigured. **`TUTOR_LLM_BASE_URL` must be `https://`, not `http://`** —
 see the comment in `.env.example` for why (it silently 401s instead of failing loudly at startup).
 
 ## Status (2026-08-30)

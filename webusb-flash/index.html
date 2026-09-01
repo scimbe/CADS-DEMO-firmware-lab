@@ -4,16 +4,36 @@
 <meta charset="utf-8" />
 <title>firmware-lab — WebUSB flash</title>
 <style>
-  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 3rem auto; padding: 0 1.5rem; color: #1a1a1a; }
-  button { font-size: 1rem; padding: 0.5rem 1rem; margin-right: 0.5rem; cursor: pointer; }
+  :root {
+    --bg:#0c111d; --panel:#141b2c; --panel2:#1a2338; --line:#2a3450; --line-soft:#212a41;
+    --text:#eef1f7; --muted:#8a93ad; --muted2:#c3c9db;
+    --accent:#d98a4f; --accent-soft:#a8683a; --accent2:#5fb8ab;
+    --ok:#5fb8ab; --bad:#e0716b;
+    --font-body: system-ui,-apple-system,"Segoe UI",sans-serif;
+    --font-mono: ui-monospace,SFMono-Regular,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg:#f5f7fb; --panel:#ffffff; --panel2:#eef1f8; --line:#d7deec; --line-soft:#e3e8f3;
+      --text:#131a2c; --muted:#5b6478; --muted2:#333d54;
+      --accent:#b8672f; --accent-soft:#8f4f24; --accent2:#2f8a7d;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { font-family: var(--font-body); max-width: 640px; margin: 3rem auto; padding: 0 1.5rem; background: var(--bg); color: var(--text); }
+  a { color: var(--accent2); }
+  code { font-family: var(--font-mono); }
+  button { font-family: inherit; font-size: 1rem; padding: 0.5rem 1rem; margin-right: 0.5rem; cursor: pointer; background: var(--accent); color: #1a1206; border: none; border-radius: 6px; }
   button:disabled { cursor: not-allowed; opacity: 0.5; }
-  #log { background: #111; color: #ddd; font-family: monospace; font-size: 0.85rem; padding: 1rem; border-radius: 6px; height: 220px; overflow-y: auto; margin-top: 1rem; white-space: pre-wrap; }
-  #log .error { color: #ff6b6b; }
-  #log .warning { color: #ffd166; }
+  input[type="text"] { font-family: var(--font-mono); background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 0.35rem 0.5rem; }
+  input[type="file"] { color: var(--text); }
+  #log { background: var(--panel); color: var(--muted2); font-family: var(--font-mono); font-size: 0.85rem; padding: 1rem; border: 1px solid var(--line); border-radius: 6px; height: 220px; overflow-y: auto; margin-top: 1rem; white-space: pre-wrap; }
+  #log .error { color: var(--bad); }
+  #log .warning { color: var(--accent); }
   .row { margin: 1rem 0; }
   .badge { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
-  .badge.off { background: #eee; color: #555; }
-  .badge.on { background: #e8f5e9; color: #1b5e20; }
+  .badge.off { background: var(--panel2); color: var(--muted); }
+  .badge.on { background: color-mix(in srgb, var(--ok) 18%, var(--panel2)); color: var(--ok); }
 </style>
 </head>
 <body>

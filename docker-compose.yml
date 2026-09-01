@@ -18,9 +18,16 @@ services:
       # Optional: powers the tutor mode's "Ask about this step" panel (same litellm-proxy
       # convention as every other CADS-DEMO-* repo). Leave unset and the rest of the tutor still
       # works fine -- the Ask panel just reports itself unconfigured. See .env.example.
-      - LITELLM_BASE_URL=${LITELLM_BASE_URL:-}
-      - LITELLM_API_KEY=${LITELLM_API_KEY:-}
-      - LITELLM_DEFAULT_MODEL=${LITELLM_DEFAULT_MODEL:-}
+      #
+      # NOTE (found+fixed 2026-08-31): the bundled vscode-extension (codereview-tutor.vsix,
+      # from CADS-DEMO-codereview's vscode-extension/src/tutorPlatform.ts) reads
+      # TUTOR_LLM_BASE_URL / TUTOR_LLM_API_KEY / TUTOR_LLM_MODEL, NOT the LITELLM_* names this
+      # file used to pass through -- a real naming mismatch that meant the Ask panel was always
+      # unconfigured in this deployment regardless of .env. Renamed here to match what the
+      # extension actually reads; .env / .env.example follow the same convention now.
+      - TUTOR_LLM_BASE_URL=${TUTOR_LLM_BASE_URL:-}
+      - TUTOR_LLM_API_KEY=${TUTOR_LLM_API_KEY:-}
+      - TUTOR_LLM_MODEL=${TUTOR_LLM_MODEL:-}
     ports:
       # Loopback only -- this origin is reached through a ct-agent browser-plane tunnel, never a
       # public host port, same convention as every other bunsenbrenner.org service.
