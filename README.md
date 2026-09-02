@@ -73,7 +73,12 @@ Build args: `CADS_ZERO_REF` (commit to seed), `CADS_SKIP_HOST_BUILD=1`, `CADS_KE
 The build takes a while (toolchain download ≈150 MB, firmware and host builds); on the 2-CPU
 Docker Desktop VM used for development it is 20–40 minutes, on the lab host a few minutes.
 
-Lab deployment (`docker run`, no compose, port `127.0.0.1:8083`):
+CI: `.github/workflows/image.yml` builds amd64 and arm64 natively and pushes a multi-arch
+manifest to `ghcr.io/scimbe/cads-firmware-lab` (`<branch>-<shortsha>`, `<branch>`, `latest` on
+`main`). It needs the repository secret `CADS_ZERO_TOKEN` (see `docs/IMAGE-NOTES.md`).
+
+Lab deployment (`docker run`, no compose, port `127.0.0.1:8083`; add
+`-e CMAKE_BUILD_PARALLEL_LEVEL=<n>` on small hosts):
 
 ```sh
 docker run -d --name firmware-lab -p 127.0.0.1:8083:8080 \
