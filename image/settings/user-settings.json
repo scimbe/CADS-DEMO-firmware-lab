@@ -31,6 +31,11 @@
   "workbench.tips.enabled": false,
   "workbench.welcomePage.walkthroughs.openOnInstall": false,
   "workbench.enableExperiments": false,
+  // No Copilot chat UI in the lab (the tutor has its own views); the
+  // secondary side bar otherwise opens with an empty "Build with Agent" chat.
+  "chat.disableAIFeatures": true,
+  "chat.commandCenter.enabled": false,
+  "workbench.secondarySideBar.defaultVisibility": "hidden",
   "cmake.showOptionsMovedNotification": false,
   "cmake.options.statusBarVisibility": "visible",
   "terminal.integrated.defaultProfile.linux": "bash",

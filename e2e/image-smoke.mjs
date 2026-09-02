@@ -116,6 +116,28 @@ try {
   await page.screenshot({ path: join(OUT, "01-workbench.png") });
   ok(`workbench: title="${title}", no Restricted Mode, explorer shows cads-zero (${explorerRoot.length} entries)`);
 
+  // CMake Tools (cmake.configureOnOpen + presets) asks for a configure preset
+  // on first open. Answer it like a student would: pick "itsboard". This also
+  // checks that CMake Tools sees CMakePresets.json.
+  const presetPicker = page.locator('.quick-input-widget input[placeholder*="configure preset" i]');
+  try {
+    await presetPicker.waitFor({ state: "visible", timeout: 20_000 });
+    const presets = await page.evaluate(() =>
+      [...document.querySelectorAll(".quick-input-list .monaco-list-row")].map((r) => (r.getAttribute("aria-label") ?? "").split(",")[0])
+    );
+    await page.click('.quick-input-list .monaco-list-row[aria-label*="itsboard" i]');
+    ok(`CMake Tools preset picker appeared (${JSON.stringify(presets)}), selected itsboard`);
+    // CMake Tools now configures build/itsboard itself; let that finish before
+    // the task touches the same build tree (and before piling up memory).
+    for (let i = 0; i < 120; i++) {
+      await sleep(1000);
+      if (dexec("pgrep -x cmake | wc -l").trim() === "0" && i > 3) break;
+    }
+  } catch {
+    ok("no CMake preset picker within 20 s (already selected or not prompted)");
+  }
+  await page.keyboard.press("Escape");
+
   // 3. task "CaDS: Build" - force real work: drop the binary, touch a source
   dexec(`cd ${WS} && rm -f build/itsboard/cads-zero.bin && touch targets/itsboard/main.c`);
   await runCommand(page, "Tasks: Run Task");
@@ -149,7 +171,10 @@ try {
       break;
     }
   }
-  if (!built) fail("CaDS: Build did not produce build/itsboard/cads-zero.bin within 300 s");
+  if (!built) {
+    await page.screenshot({ path: join(OUT, "02-build-task-FAILED.png") });
+    fail("CaDS: Build did not produce build/itsboard/cads-zero.bin within 300 s (see 02-build-task-FAILED.png)");
+  }
   await sleep(3000);
   await page.screenshot({ path: join(OUT, "02-build-task.png") });
   const size = dexec(`stat -c %s ${WS}/build/itsboard/cads-zero.bin`).trim();
@@ -157,16 +182,14 @@ try {
 
   // 4. terminal + shim
   dexec("rm -f /tmp/e2e-st-info.txt");
+  const shells = () => Number(dexec("pgrep -u coder -x bash | wc -l").trim());
+  const shellsBefore = shells();
   await runCommand(page, "Terminal: Create New Terminal");
-  await page.waitForSelector(".terminal-wrapper .xterm");
-  // Wait for the shell inside the pty (a bash prompt) before typing, otherwise
-  // keystrokes are lost; the shell shows up as a child of the pty host.
-  for (let i = 0; i < 30; i++) {
-    await sleep(1000);
-    if (dexec("pgrep -u coder -x bash | wc -l").trim() !== "0") break;
-  }
+  // Wait for the new shell inside the pty before typing (keystrokes sent
+  // earlier are lost), then put the focus explicitly into the active terminal.
+  for (let i = 0; i < 30 && shells() <= shellsBefore; i++) await sleep(1000);
   await sleep(1500);
-  await page.click(".terminal-wrapper .xterm");
+  await page.focus(".terminal-wrapper.active .xterm-helper-textarea");
   await page.keyboard.type("st-info --probe > /tmp/e2e-st-info.txt 2>&1; echo exit=$? >> /tmp/e2e-st-info.txt; which st-flash >> /tmp/e2e-st-info.txt");
   await page.keyboard.press("Enter");
   let probe = "";
@@ -186,9 +209,13 @@ try {
 }
 
 async function runCommand(page, command) {
+  // Close whatever quick input might be open (e.g. a CMake preset prompt), then
+  // open the command palette.
+  await page.keyboard.press("Escape");
+  await sleep(300);
   await page.keyboard.press("F1");
-  const input = page.locator(".quick-input-widget input");
-  await input.waitFor();
+  const input = page.locator('.quick-input-widget input[placeholder*="command" i]');
+  await input.waitFor({ state: "visible" });
   // F1 may land in Quick Open on some builds - the ">" prefix forces the command palette.
   await input.fill(">" + command);
   // aria-label is "<command>" or "<command>, <keybinding>".
