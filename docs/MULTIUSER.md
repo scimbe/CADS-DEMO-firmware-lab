@@ -37,8 +37,18 @@ Browser ──TLS──► Edge (Browser-Plane, require_login=1) ──► ct-ag
   Inventur; Broker rekonstruiert seinen Zustand beim Start aus `docker ps -a --filter label`.
 - **Admin** `/admin` (Allowlist `FL_ADMIN_EMAILS`): Sessions, Stop, Wipe (Volume löschen), Image-Version, Rollout
   (Container mit altem Image werden beim nächsten Start ersetzt; laufende nicht abgeschossen).
-- **Secrets**: Broker erreicht Docker über `/var/run/docker.sock` (read-write, nur dieser eine Container; Alternative
-  `docker-socket-proxy` mit Allowlist POST containers/… – in v1 vorgesehen als optionaler Zwischenschritt).
+- **Broker = Host-Prozess** (Entscheidung mit Labor, 2026-09-02): kein docker.sock-Mount in einen Container. Der Broker
+  läuft wie ct-agent als watchdog-überwachter Host-Prozess (Python 3, nur Stdlib, spricht lokal mit `docker`), bindet
+  ausschließlich 127.0.0.1:3100 und bietet nur enge Operationen (Session sicherstellen, auflösen, stoppen, wipen) –
+  keinen generischen Docker-Pass-through. Container publizieren ihren Port nur auf Loopback (`127.0.0.1:0:8080`,
+  zugewiesenen Port liest der Broker per `docker port`), damit Host-Prozess und Gate sie erreichen (funktioniert auf
+  Linux und Docker Desktop gleichermaßen).
+- **Proxying macht Caddy, nicht der Broker**: `forward_auth 127.0.0.1:3100 { uri /_broker/resolve?slug=… ; copy_headers
+  X-FL-Upstream }`, danach `uri strip_prefix /s/<slug>` und `reverse_proxy {http.request.header.X-FL-Upstream}`
+  (dynamischer Upstream per Platzhalter, inkl. WebSocket-Upgrade). Der Broker prüft dabei `X-Gate-Email` ↔ slug,
+  startet einen gestoppten Container bei Bedarf und aktualisiert last-seen.
+- **Idle-Erkennung** über code-servers eigene Heartbeat-Datei (`~/.local/share/code-server/heartbeat`, mtime wird nur
+  bei aktiven Verbindungen erneuert) plus last-seen im Broker – nicht über Raten.
 - **LLM-Zugang** (`TUTOR_LLM_*`) wird vom Broker beim `docker create` in jeden Container injiziert (aus seiner
   eigenen Env), nie in Images.
 - **Migration**: Der heutige Ein-Container-Betrieb (Services-Host, `docker run`, Passwort) bleibt als
@@ -49,4 +59,4 @@ Browser ──TLS──► Edge (Browser-Plane, require_login=1) ──► ct-ag
 1. Wird der ct-agent für firmware-lab künftig auf Labor betrieben (heute Services)? Tunnel-Token muss dann wandern.
 2. Ist `require_login=1` + Access-List für diesen Tunnel im Portal gesetzt (Voraussetzung für `/gate/check`)?
    Studierende müssen auf die Access-List (Kursliste) – Prozess klären (Portal-API?).
-3. Docker-Socket-Zugriff für den Broker-Container auf cads-lambda: akzeptabel, oder socket-proxy verpflichtend?
+3. Kapazität: Labor schätzt 15–20 gleichzeitig aktive Sessions (CPU-Bursts beim Compile) – vor Festlegung Lasttest mit parallelen Builds.
