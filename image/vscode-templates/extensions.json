@@ -1,0 +1,17 @@
+{
+  // CaDS Firmware Lab - everything recommended here is already installed in
+  // the image (Open VSX); this replaces cads-zero's own list, which recommends
+  // ms-vscode.cpptools (not available on Open VSX) and un-recommends clangd.
+  "recommendations": [
+    "ms-vscode.cmake-tools",
+    "llvm-vs-code-extensions.vscode-clangd",
+    "marus25.cortex-debug",
+    "mcu-debug.peripheral-viewer",
+    "mcu-debug.memory-view",
+    "mcu-debug.rtos-views",
+    "ms-python.python"
+  ],
+  "unwantedRecommendations": [
+    "ms-vscode.cpptools"
+  ]
+}

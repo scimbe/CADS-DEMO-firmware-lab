@@ -1,0 +1,15 @@
+# CaDS Firmware Lab - clangd project config (written to <workspace>/.clangd by
+# /entrypoint.d/10-seed-workspace.sh). The ITSboard build tree is the source of
+# truth for IntelliSense: run "CaDS: Build" once and clangd picks up
+# build/itsboard/compile_commands.json (also set via --compile-commands-dir).
+CompileFlags:
+  CompilationDatabase: build/itsboard
+  # GCC-only flags clang would reject or misread.
+  Remove: [-fstack-usage, -fanalyzer, -Wno-psabi]
+Diagnostics:
+  UnusedIncludes: None
+  ClangTidy:
+    # cads-zero ships a curated .clang-tidy; clangd honours it. Nothing to add.
+    Add: []
+Index:
+  Background: Build
