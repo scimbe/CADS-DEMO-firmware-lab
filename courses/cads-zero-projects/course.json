@@ -1,0 +1,39 @@
+{
+  "id": "cads-zero-projects",
+  "version": "1.0.0",
+  "schema": 1,
+  "title": {
+    "de": "CaDS Zero – Projekte",
+    "en": "CaDS Zero – Projects"
+  },
+  "description": {
+    "de": "Der Wahlkurs: offene Projektaufgaben auf der Erschaffen- und Bewerten-Stufe. Jede Aufgabe verlangt eine eigene, verteidigte Erweiterung der echten Firmware – App, Netzwerk-Werkzeug, Konfiguration, Test, Treiber oder Messung – mit automatischen Abnahmekriterien und einer Reflexionsrubrik.",
+    "en": "The elective: open project tasks at the create and evaluate levels. Each one asks for your own defended extension of the real firmware – an app, a network tool, a configuration option, a test, a driver, or a measurement – with automatic acceptance checks and a reflection rubric."
+  },
+  "project": {
+    "root": "cads-zero",
+    "repo": "https://github.com/scimbe/cads-zero"
+  },
+  "prerequisites": ["cads-zero-foundations"],
+  "grounding": {
+    "pack": "firmware",
+    "threshold": 5.0
+  },
+  "modules": [
+    {
+      "id": "p",
+      "title": {
+        "de": "Projektaufgaben",
+        "en": "Project tasks"
+      },
+      "steps": [
+        "p1-widget-app",
+        "p2-net-tool",
+        "p3-config-option",
+        "p4-unit-test-golden",
+        "p5-driver-extension",
+        "p6-perf-measurement"
+      ]
+    }
+  ]
+}
