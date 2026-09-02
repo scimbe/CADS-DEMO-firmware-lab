@@ -1,0 +1,68 @@
+{
+  "name": "cads-probe",
+  "displayName": "CaDS Probe (WebUSB ST-Link / WebSerial)",
+  "description": "Runs in the browser's web-worker extension host: WebUSB ST-Link driver and WebSerial console for the CaDS Firmware Lab.",
+  "publisher": "cads",
+  "version": "0.1.1",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Debuggers",
+    "Other"
+  ],
+  "browser": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "cads.probe.ping",
+        "title": "CaDS Probe: Ping (host capabilities)"
+      },
+      {
+        "command": "cads.probe.requestDevices",
+        "title": "CaDS Probe: Request USB/Serial devices"
+      },
+      {
+        "command": "cads.probe.reconnect",
+        "title": "CaDS Probe: Reconnect granted devices"
+      },
+      {
+        "command": "cads.probe.disconnect",
+        "title": "CaDS Probe: Disconnect ST-Link"
+      },
+      {
+        "command": "cads.probe.getStatus",
+        "title": "CaDS Probe: Status"
+      },
+      {
+        "command": "cads.probe.op",
+        "title": "CaDS Probe: Operation (internal)"
+      },
+      {
+        "command": "cads.probe.diag",
+        "title": "CaDS Probe: Diagnose (getDevices/getPorts)"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p tsconfig.test.json",
+    "test": "node esbuild.mjs --tests && node --test out/test/*.test.js",
+    "package": "npm run typecheck && npm run build && vsce package --no-dependencies -o dist/"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.0",
+    "@types/vscode": "^1.90.0",
+    "@types/w3c-web-serial": "^1.0.8",
+    "@types/w3c-web-usb": "^1.0.14",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.28.1",
+    "typescript": "^6.0.3"
+  }
+}

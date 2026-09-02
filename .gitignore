@@ -2,3 +2,7 @@ build/
 .vscode-test/
 .env
 e2e/out/
+node_modules/
+extensions/*/dist/
+extensions/*/out/
+e2e/artifacts/
