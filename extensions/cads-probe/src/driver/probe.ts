@@ -136,6 +136,8 @@ export class ProbeService {
         this.core = core;
         this.bpu = new BreakpointUnit(core, this.log);
         await this.bpu.probe();
+        // stale DFSR bits from an earlier debugger session would mislabel the first halt reason
+        await core.writeWord(0xe000ed30, 0x1f);
         this.usbState = 'connected';
         this.lastError = undefined;
         await this.refreshCoreState();

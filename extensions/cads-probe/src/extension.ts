@@ -161,8 +161,28 @@ export function activate(context: vscode.ExtensionContext): void {
     return probe.status();
   }
 
+  async function diag(): Promise<unknown> {
+    const n = nav();
+    const g = globalThis as unknown as { origin?: string; isSecureContext?: boolean; constructor?: { name?: string } };
+    const report: Record<string, unknown> = { origin: g.origin, isSecureContext: g.isSecureContext, scope: g.constructor?.name, status: probe.status() };
+    try {
+      const devs = await n.usb!.getDevices();
+      report.usbDevices = devs.map((d) => ({ vendorId: d.vendorId, productId: d.productId, serialNumber: d.serialNumber, productName: d.productName, opened: d.opened }));
+    } catch (e) {
+      report.usbDevicesError = String(e);
+    }
+    try {
+      const ports = await n.serial!.getPorts();
+      report.serialPorts = ports.map((p) => p.getInfo());
+    } catch (e) {
+      report.serialPortsError = String(e);
+    }
+    return report;
+  }
+
   context.subscriptions.push(
     vscode.commands.registerCommand('cads.probe.ping', () => ping()),
+    vscode.commands.registerCommand('cads.probe.diag', () => diag()),
     vscode.commands.registerCommand('cads.probe.getStatus', () => probe.status()),
     vscode.commands.registerCommand('cads.probe.reconnect', () => reconnect()),
     vscode.commands.registerCommand('cads.probe.requestDevices', (opts?: { usb?: boolean; serial?: boolean }) => requestDevices(opts)),

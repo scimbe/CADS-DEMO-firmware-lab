@@ -3,7 +3,7 @@
   "displayName": "CaDS Board Bridge",
   "description": "GDB remote server, serial console and flash commands for the board attached to the student's browser (via cads-probe).",
   "publisher": "cads",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "MIT",
   "private": true,
   "engines": {
@@ -18,7 +18,8 @@
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onDebugResolve:cortex-debug"
   ],
   "contributes": {
     "commands": [
@@ -27,16 +28,112 @@
         "title": "CaDS Bridge: Ping probe (host capabilities)"
       },
       {
-        "command": "cads.bridge.requestDevices",
-        "title": "CaDS Bridge: Request devices via probe"
+        "command": "cads.board.connect",
+        "title": "CaDS Board: Verbinden (USB/Serial freigeben)",
+        "category": "CaDS"
+      },
+      {
+        "command": "cads.board.disconnect",
+        "title": "CaDS Board: Trennen",
+        "category": "CaDS"
+      },
+      {
+        "command": "cads.board.flash",
+        "title": "CaDS Board: Flash (build/itsboard/cads-zero.bin)",
+        "category": "CaDS"
+      },
+      {
+        "command": "cads.board.reset",
+        "title": "CaDS Board: Reset",
+        "category": "CaDS"
+      },
+      {
+        "command": "cads.board.halt",
+        "title": "CaDS Board: Anhalten",
+        "category": "CaDS"
+      },
+      {
+        "command": "cads.board.run",
+        "title": "CaDS Board: Weiterlaufen lassen",
+        "category": "CaDS"
+      },
+      {
+        "command": "cads.board.openConsole",
+        "title": "CaDS Board: Konsole öffnen",
+        "category": "CaDS"
+      },
+      {
+        "command": "cads.board.status",
+        "title": "CaDS Board: Status (JSON)",
+        "category": "CaDS"
+      },
+      {
+        "command": "cads.board.showPanel",
+        "title": "CaDS Board: Log anzeigen",
+        "category": "CaDS"
+      },
+      {
+        "command": "cads.board.showMenu",
+        "title": "CaDS Board: Menü",
+        "category": "CaDS"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "CaDS Board Bridge",
+      "properties": {
+        "cads.board.gdbPort": {
+          "type": "number",
+          "default": 3333,
+          "description": "GDB-RSP-Server-Port (127.0.0.1)"
+        },
+        "cads.board.serialPort": {
+          "type": "number",
+          "default": 3334,
+          "description": "Serial-TCP-Port (127.0.0.1)"
+        },
+        "cads.board.httpPort": {
+          "type": "number",
+          "default": 3335,
+          "description": "HTTP-Shim-API-Port (127.0.0.1)"
+        },
+        "cads.board.baud": {
+          "type": "number",
+          "default": 115200,
+          "description": "Baudrate der Board-Konsole"
+        },
+        "cads.board.consoleLink": {
+          "type": "string",
+          "default": "/home/coder/board-console",
+          "description": "PTY-Link für socat (nur wenn socat vorhanden)"
+        },
+        "cads.board.defaultImage": {
+          "type": "string",
+          "default": "build/itsboard/cads-zero.bin",
+          "description": "Standard-Image für cads.board.flash (relativ zum Workspace)"
+        },
+        "cads.board.gdbPath": {
+          "type": "string",
+          "default": "arm-none-eabi-gdb",
+          "description": "GDB für cortex-debug (arm-none-eabi-gdb oder gdb-multiarch)"
+        },
+        "cads.board.verbose": {
+          "type": "boolean",
+          "default": false,
+          "description": "Ausführliches Log (RSP-Pakete, serielle Zeilen)"
+        },
+        "cads.board.httpCommandsEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "POST /command auf dem HTTP-Shim-Port erlauben (nur 127.0.0.1; für Tests/Tooling)"
+        }
+      }
+    }
   },
   "scripts": {
     "build": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
-    "typecheck": "tsc --noEmit -p .",
-    "test": "node --test --experimental-strip-types test/*.test.ts",
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p tsconfig.test.json",
+    "test": "node esbuild.mjs --tests && node --test out/test/*.test.js",
     "package": "npm run typecheck && npm run build && vsce package --no-dependencies -o dist/"
   },
   "devDependencies": {

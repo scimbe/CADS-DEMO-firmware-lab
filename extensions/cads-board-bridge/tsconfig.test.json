@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": [
+      "node"
+    ],
+    "rootDir": "../.."
+  },
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts",
+    "../cads-probe/src/driver/**/*.ts",
+    "../cads-probe/test/mock-stlink.ts"
+  ]
+}
