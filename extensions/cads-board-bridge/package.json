@@ -6,14 +6,30 @@
   "version": "0.1.0",
   "license": "MIT",
   "private": true,
-  "engines": { "vscode": "^1.90.0" },
-  "categories": ["Debuggers", "Other"],
-  "extensionKind": ["workspace"],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Debuggers",
+    "Other"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
   "main": "./dist/extension.js",
-  "activationEvents": ["onStartupFinished"],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "contributes": {
     "commands": [
-      { "command": "cads.bridge.ping", "title": "CaDS Bridge: Ping probe (host capabilities)" }
+      {
+        "command": "cads.bridge.ping",
+        "title": "CaDS Bridge: Ping probe (host capabilities)"
+      },
+      {
+        "command": "cads.bridge.requestDevices",
+        "title": "CaDS Bridge: Request devices via probe"
+      }
     ]
   },
   "scripts": {

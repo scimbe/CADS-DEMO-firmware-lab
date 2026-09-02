@@ -6,13 +6,27 @@
   "version": "0.1.0",
   "license": "MIT",
   "private": true,
-  "engines": { "vscode": "^1.90.0" },
-  "categories": ["Debuggers", "Other"],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Debuggers",
+    "Other"
+  ],
   "browser": "./dist/extension.js",
-  "activationEvents": ["onStartupFinished"],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "contributes": {
     "commands": [
-      { "command": "cads.probe.ping", "title": "CaDS Probe: Ping (host capabilities)" }
+      {
+        "command": "cads.probe.ping",
+        "title": "CaDS Probe: Ping (host capabilities)"
+      },
+      {
+        "command": "cads.probe.requestDevices",
+        "title": "CaDS Probe: Request USB/Serial devices"
+      }
     ]
   },
   "scripts": {
