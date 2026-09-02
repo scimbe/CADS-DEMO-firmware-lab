@@ -42,6 +42,24 @@ if [ "$STOP" = 1 ]; then
     exit 0
 fi
 
+# --- extensions ----------------------------------------------------------------
+# dist/*.vsix is gitignored in every extension; package whatever has a
+# package.json and no VSIX yet (same as the CI "extensions" job). Tolerant:
+# no npm, no extensions, or a failing package step only prints a warning.
+if command -v npm >/dev/null 2>&1; then
+    for dir in "$REPO_ROOT"/extensions/*/; do
+        [ -f "$dir/package.json" ] || continue
+        if ls "$dir"/dist/*.vsix >/dev/null 2>&1 && [ "${CADS_REPACKAGE:-0}" != 1 ]; then
+            echo ">> $(basename "$dir"): dist/*.vsix present (CADS_REPACKAGE=1 to rebuild)"
+            continue
+        fi
+        echo ">> packaging $(basename "$dir")"
+        ( cd "$dir" && npm ci --no-audit --no-fund && npm run package ) \
+            || echo "warning: packaging $(basename "$dir") failed - image will be built without it" >&2
+    done
+fi
+ls "$REPO_ROOT"/extensions/*/dist/*.vsix 2>/dev/null || echo ">> no CaDS VSIX - image gets Open VSX extensions only"
+
 # --- build -------------------------------------------------------------------
 if [ -z "${GH_TOKEN:-}" ]; then
     if command -v gh >/dev/null 2>&1 && gh auth token >/dev/null 2>&1; then

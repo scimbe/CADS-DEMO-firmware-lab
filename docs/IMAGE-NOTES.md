@@ -88,16 +88,28 @@ local 2-GB VM tests). clangd is capped to 4 indexing workers with on-disk PCH st
   that execs the working gdb, so cads-zero's docs/scripts keep working by name. The rest of
   the toolchain (gcc, binutils, objcopy, nm, size) is unaffected – cortex-debug's
   `armToolchainPath` still points at `/opt/arm-gnu-toolchain/bin`.
+- **VSIX files are not in git.** Every `extensions/*/.gitignore` ignores `dist/` and `*.vsix`, so
+  a checkout has no VSIX; `scripts/run-local.sh` packages them (`npm ci && npm run package`) before
+  `docker build`, the CI `extensions` job does the same. A Docker build straight from a fresh
+  checkout yields "CaDS extensions installed: 0" – by design, not an error.
+- **CMake Tools does not configure on open** (`cmake.configureOnOpen=false`,
+  `cmake.automaticReconfigure=false`, lead decision 2026-09-02): the preset prompt on first open was
+  a hurdle. IntelliSense uses the seeded `build/itsboard/compile_commands.json` via clangd, the CaDS
+  tasks run cmake themselves. Students who want CMake Tools pick a preset in the status bar.
+- **Copilot chat hidden** (`chat.disableAIFeatures=true`, `workbench.secondarySideBar.defaultVisibility=hidden`).
+  `chat.commandCenter.enabled` does not exist in Code 1.135 (grep against
+  `workbench.web.main.internal.js`) and is therefore not set.
 - **Golden-image tests excluded from the image smoke test.** `ctest` in the host build
   passes 35/37; `golden_splash` and `golden_boot_desktop` differ by +1 on anti-aliased edge
   pixels (18866 and 14273 of 153600), which cads-zero's own ROADMAP (2026-09-01) root-caused
   to SDL's RGB565→24bpp conversion rounding differently per SDL build – the goldens were
   regenerated with the maintainer's SDL, Debian's SDL2 2.32 rounds differently. The image
   build runs `ctest -E '^golden_'` as the gate and the golden tests informationally. The
-  workspace task `CaDS: Host tests` runs the full suite, so students *will* see these two
-  failures. **Open for the courses stream / cads-zero maintainer:** either regenerate the
-  goldens inside the container (`update_golden` target) and commit them upstream, or teach
-  M8 (Qualität) to expect and explain the difference.
+  workspace task `CaDS: Host tests` runs `ctest -E '^golden_'` as well (lead decision
+  2026-09-02) and a separate task `CaDS: Golden images (informativ)` runs the two golden tests
+  with an explanatory note, so students see an honest green suite plus a labelled, expected
+  difference. Upstream fix would be regenerating the goldens inside the container
+  (`update_golden` target) – cads-zero maintainer's call.
 
 - **clangd binary installed from Debian (`clangd` 19).** The spec lists only the
   `llvm-vs-code-extensions.vscode-clangd` extension; without a binary it would try to download

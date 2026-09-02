@@ -5,7 +5,8 @@
   // build/itsboard/compile_commands.json; the ARM sysroot comes from
   // --query-driver against the real cross compiler.
   "cmake.useCMakePresets": "always",
-  "cmake.configureOnOpen": true,
+  "cmake.configureOnOpen": false,
+  "cmake.automaticReconfigure": false,
   "cmake.buildBeforeRun": false,
 
   "clangd.path": "/usr/bin/clangd",

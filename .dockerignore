@@ -10,9 +10,9 @@ e2e
 README.md
 .github
 # courses/: course packs go to /opt/cads-tutor/courses, minus test fixtures.
-courses/_example*
-courses/*/_example*
+courses/**/_example*
 courses/**/node_modules
+courses/**/*.test.*
 webusb-flash
 example-firmware
 vscode-extension
