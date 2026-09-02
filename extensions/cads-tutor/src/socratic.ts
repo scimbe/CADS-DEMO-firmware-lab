@@ -15,6 +15,29 @@ export function findSocratic(meta: StepFrontMatter, trigger: string): SocraticHi
   return meta.socratic.find((s) => s.trigger === trigger) ?? meta.socratic.find((s) => s.trigger === "*");
 }
 
+/** Triggers to try, in order, when a task needs a hint: failed → weak (question) → stuck → any. */
+export function triggersForTask(taskId: string, checkType: string, reason: "failed" | "stuck" | "weak"): string[] {
+  const order: string[] = [];
+  if (reason === "weak" || checkType === "question") order.push(`question:${taskId}:weak`);
+  if (reason !== "weak") order.unshift(`task:${taskId}:failed`);
+  order.push(`task:${taskId}:stuck`, "*");
+  if (reason === "weak") order.push(`task:${taskId}:failed`);
+  return [...new Set(order)];
+}
+
+/** First authored hint along the trigger chain. */
+export function selectTaskHint(meta: StepFrontMatter, taskId: string, checkType: string, reason: "failed" | "stuck" | "weak", failures: number, lang: Lang): SelectedHint | undefined {
+  for (const trigger of triggersForTask(taskId, checkType, reason)) {
+    const entry = meta.socratic.find((s) => s.trigger === trigger);
+    if (!entry) continue;
+    const tier = hintTierForFailures(failures);
+    const idx = Math.min(tier, entry.hints.length) - 1;
+    if (idx < 0) continue;
+    return { tier, question: loc(entry.question, lang), hint: loc(entry.hints[idx], lang), authored: true };
+  }
+  return undefined;
+}
+
 export interface SelectedHint {
   tier: number;
   question: string;

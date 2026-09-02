@@ -242,11 +242,13 @@ function task(v: unknown, path: string): TaskSpec {
   return { id: tid, title, check, description };
 }
 
+export const KNOWN_TRIGGER_RE = /^(\*|task:[^:\s]+:(failed|stuck)|question:[^:\s]+:weak|event:[a-z-]+)$/;
+
 function socratic(v: unknown, path: string): SocraticHint {
   if (!isRecord(v)) fail(path, "must be an object");
   const trigger = str(v.trigger, `${path}.trigger`);
-  if (!/^(\*|task:[^:]+:failed|event:[a-z-]+)$/.test(trigger)) {
-    fail(`${path}.trigger`, `"${trigger}" is not a known trigger (task:<taskId>:failed, event:<name>, *)`);
+  if (!KNOWN_TRIGGER_RE.test(trigger)) {
+    fail(`${path}.trigger`, `"${trigger}" is not a known trigger (task:<taskId>:failed|stuck, question:<taskId>:weak, event:<name>, *)`);
   }
   const question = localized(v.question, `${path}.question`);
   if (!Array.isArray(v.hints) || v.hints.length === 0) fail(`${path}.hints`, "must be a non-empty array (max 3 tiers)");
@@ -273,14 +275,16 @@ export function validateStepFrontMatter(raw: unknown, expectedId?: string): Vali
       seen.add(t.id);
     }
     const socraticHints: SocraticHint[] = raw.socratic === undefined ? [] : Array.isArray(raw.socratic) ? raw.socratic.map((s: unknown, i: number) => socratic(s, `socratic[${i}]`)) : fail("socratic", "must be an array");
+    const creates = strArray(raw.creates, "creates");
+    const sources = strArray(raw.sources, "sources");
     for (const s of socraticHints) {
-      const m = /^task:([^:]+):failed$/.exec(s.trigger);
+      const m = /^(?:task|question):([^:]+):(?:failed|stuck|weak)$/.exec(s.trigger);
       if (m && !seen.has(m[1])) warnings.push(`socratic trigger "${s.trigger}" references unknown task "${m[1]}"`);
       if (s.hints.length > 3) warnings.push(`socratic trigger "${s.trigger}" has ${s.hints.length} hints; only the first 3 tiers are used`);
     }
     if (objectives.length === 0) warnings.push(`step "${sid}" has no objectives – mastery tracking and check-ins are disabled for it`);
 
-    return { value: { id: sid, title, bloom, objectives, requires, estimatedMinutes, links, tasks, socratic: socraticHints }, errors: [], warnings };
+    return { value: { id: sid, title, bloom, objectives, requires, estimatedMinutes, links, tasks, socratic: socraticHints, creates, sources }, errors: [], warnings };
   } catch (err) {
     return { errors: [err instanceof Error ? err.message : String(err)], warnings };
   }

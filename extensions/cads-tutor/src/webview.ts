@@ -53,6 +53,8 @@ export interface StepView {
   bloom: BloomLevel;
   estimatedMinutes?: number;
   objectives: string[];
+  /** Symbols the student creates in this step (front matter `creates`). */
+  creates: string[];
   status: StepStatus;
   lockedBy: StepRef[];
   bodyHtml: string;
@@ -118,7 +120,7 @@ function renderTask(t: TaskView, lang: Lang): string {
   const buttons: string[] = [];
   if (canCheck && !t.needsAnswer) buttons.push(`<button class="btn primary run-check" data-task="${escapeHtml(t.id)}">${s.check}</button>`);
   if (t.manual) buttons.push(`<button class="btn confirm" data-task="${escapeHtml(t.id)}">${s.markDone}</button>`);
-  if (t.status === "failed") buttons.push(`<button class="btn hint-btn" data-task="${escapeHtml(t.id)}">${s.showHint}</button>`);
+  buttons.push(`<button class="btn hint-btn" data-task="${escapeHtml(t.id)}">${s.showHint}</button>`);
   const hint = t.hint
     ? `<div class="hint"><div class="hint-tier">${escapeHtml(s.hintTier(t.hint.tier))}</div><div class="hint-q">${escapeHtml(t.hint.question)}</div><div class="hint-h">${escapeHtml(t.hint.hint)}</div></div>`
     : "";
@@ -159,6 +161,7 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
     ? `<div class="links"><span class="links-title">${s.links}:</span> ${view.links.map((l) => `<a ${tutorLinkAttrs(l.link)} class="tutor-link tutor-link-${l.link.kind}">${escapeHtml(l.label)}</a>`).join(" · ")}</div>`
     : "";
   const objectives = view.objectives.length ? `<span class="meta-item" title="${s.objectives}">${view.objectives.map(escapeHtml).join(", ")}</span>` : "";
+  const creates = view.creates.length ? `<span class="meta-item" title="${s.creates}">${s.creates}: <code>${view.creates.map(escapeHtml).join("</code>, <code>")}</code></span>` : "";
 
   return `<!DOCTYPE html>
 <html lang="${view.lang}">
@@ -223,6 +226,7 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
     <span class="meta-item bloom" title="${s.bloom}">${escapeHtml(s.bloom)}: ${escapeHtml(s.bloomLabel[view.bloom])}</span>
     ${view.estimatedMinutes ? `<span class="meta-item">${escapeHtml(s.minutes(view.estimatedMinutes))}</span>` : ""}
     ${objectives}
+    ${creates}
     <span class="meta-item" id="step-status">${escapeHtml(s.status[view.status])}</span>
   </div>
   ${lockedBanner}
@@ -330,9 +334,6 @@ function clientScript(view: StepView): string {
       li.querySelector(".task-icon").title = S.statusText[t.status];
       li.querySelector(".task-msg").textContent = t.message || S.statusText[t.status];
       const actions = li.querySelector(".task-actions");
-      const existing = actions.querySelector(".hint-btn");
-      if (t.status === "failed" && !existing) { const b = document.createElement("button"); b.className = "btn hint-btn"; b.setAttribute("data-task", t.id); b.textContent = ${JSON.stringify(ui(view.lang).showHint)}; actions.appendChild(b); }
-      if (t.status !== "failed" && existing) existing.remove();
       if (t.status === "passed") li.querySelector(".task-hint").innerHTML = "";
       if (t.hint) li.querySelector(".task-hint").innerHTML = '<div class="hint"><div class="hint-tier">' + esc(S.hintTier.replace("{n}", t.hint.tier)) + '</div><div class="hint-q">' + esc(t.hint.question) + '</div><div class="hint-h">' + esc(t.hint.hint) + '</div></div>';
     } else if (m.type === "ask") {

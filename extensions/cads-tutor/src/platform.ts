@@ -81,6 +81,8 @@ export interface PlatformOptions {
   eventStore?: EventStoreLike;
   /** Where dialog memory (JSONL) is written. */
   memoryDir: string;
+  /** Absolute project root (workspace/<project.root>); step `sources:` and objective sourceDocIds are indexed from here. */
+  projectRoot?: string;
   llm: LlmConfig | null;
   log?: (msg: string) => void;
   /** Injectable LLM (tests). */
@@ -109,14 +111,17 @@ export class TutorPlatform {
     const sources: Source[] = [];
     const chunks: Chunk[] = [];
     let threshold = course.manifest.grounding?.threshold;
+    /** Project docs already covered by the content pack – not indexed a second time. */
+    const packDocs = new Set<string>();
 
     if (this.packName) {
       const packDir = path.join(opts.packsDir, this.packName);
       try {
         sources.push(...(JSON.parse(fs.readFileSync(path.join(packDir, "sources.json"), "utf8")) as Source[]));
         chunks.push(...(JSON.parse(fs.readFileSync(path.join(packDir, "index.json"), "utf8")) as Chunk[]));
-        const manifest = JSON.parse(fs.readFileSync(path.join(packDir, "manifest.json"), "utf8")) as { relevanceThreshold?: number };
+        const manifest = JSON.parse(fs.readFileSync(path.join(packDir, "manifest.json"), "utf8")) as { relevanceThreshold?: number; chapters?: { file?: string }[] };
         if (threshold === undefined && typeof manifest.relevanceThreshold === "number") threshold = manifest.relevanceThreshold;
+        for (const ch of manifest.chapters ?? []) if (ch.file) packDocs.add(`docs/${ch.file}`);
       } catch (err) {
         this.log(`content pack "${this.packName}" not loadable from ${packDir}: ${err instanceof Error ? err.message : String(err)}`);
       }
@@ -134,6 +139,42 @@ export class TutorPlatform {
         } catch (err) {
           this.log(`cannot chunk ${file}: ${err instanceof Error ? err.message : String(err)}`);
         }
+      }
+    }
+
+    // Project files named by the steps (`sources:`) and by the pack's objectives (sourceDocIds like
+    // "cads-zero/docs/reference/hal.md") are indexed from the project root. The first chunk of a
+    // file gets the id "<project.root>/<rel>" so an objective's sourceDocIds resolve for check-ins.
+    if (opts.projectRoot) {
+      const rootName = course.manifest.project?.root ?? path.basename(opts.projectRoot);
+      const files = new Set<string>();
+      for (const step of course.steps.values()) for (const f of step.variants.en?.meta.sources ?? []) files.add(f);
+      for (const o of course.curriculum) {
+        const docIds = (o as { sourceDocIds?: unknown }).sourceDocIds;
+        for (const id of Array.isArray(docIds) ? (docIds as unknown[]) : []) {
+          if (typeof id === "string" && id.startsWith(`${rootName}/`)) files.add(id.slice(rootName.length + 1));
+        }
+      }
+      const sourceId = `project:${course.manifest.id}`;
+      let indexed = 0;
+      for (const rel of [...files].sort()) {
+        const abs = path.resolve(opts.projectRoot, rel);
+        if (packDocs.has(rel) || !abs.startsWith(opts.projectRoot) || !fs.existsSync(abs) || !fs.statSync(abs).isFile()) continue;
+        try {
+          const text = fs.readFileSync(abs, "utf8");
+          const baseId = `${rootName}/${rel}`;
+          const url = `file:${rel}`;
+          const pieces = /\.md$/i.test(rel) ? chunkMarkdown(sourceId, url, text).map((c) => ({ section: c.section, text: c.text })) : chunkPlainText(rel, text);
+          pieces.forEach((c, i) => chunks.push({ id: i === 0 ? baseId : `${baseId}#${i}`, sourceId, section: c.section, url, text: c.text }));
+          indexed++;
+        } catch (err) {
+          this.log(`cannot index ${rel}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }
+      if (indexed > 0) {
+        const repo = course.manifest.project?.repo;
+        sources.push({ id: sourceId, title: `${rootName} (project files)`, license: "project", url: repo ?? opts.projectRoot });
+        this.log(`indexed ${indexed} project file(s) from ${opts.projectRoot}`);
       }
     }
 
@@ -316,6 +357,29 @@ function normalizeObjective(raw: unknown, track: string): CurriculumObjective {
     sourceDocIds: Array.isArray(o.sourceDocIds) ? o.sourceDocIds : [],
     prerequisiteObjectiveIds: Array.isArray(o.prerequisiteObjectiveIds) ? o.prerequisiteObjectiveIds : [],
   };
+}
+
+/** Splits source/config files into ~1200-char chunks on line boundaries; section = file name + line range. */
+function chunkPlainText(rel: string, text: string, maxChars = 1200): { section: string; text: string }[] {
+  const lines = text.split("\n");
+  const out: { section: string; text: string }[] = [];
+  let buf: string[] = [];
+  let size = 0;
+  let start = 1;
+  const flush = (end: number) => {
+    if (buf.length === 0) return;
+    out.push({ section: `${rel}:${start}-${end}`, text: buf.join("\n") });
+    buf = [];
+    size = 0;
+    start = end + 1;
+  };
+  lines.forEach((line, i) => {
+    if (size + line.length > maxChars && buf.length > 0) flush(i);
+    buf.push(line);
+    size += line.length + 1;
+  });
+  flush(lines.length);
+  return out;
 }
 
 function walkMarkdown(dir: string): string[] {
