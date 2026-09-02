@@ -164,7 +164,7 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
 <html lang="${view.lang}">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${cspSource} https: data:; style-src ${cspSource} 'nonce-${scriptNonce}'; script-src 'nonce-${scriptNonce}'; font-src ${cspSource};">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${cspSource} https: data:; style-src ${cspSource} 'unsafe-inline'; script-src 'nonce-${scriptNonce}'; font-src ${cspSource};">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${escapeHtml(view.title)}</title>
 <style nonce="${scriptNonce}">
@@ -333,6 +333,7 @@ function clientScript(view: StepView): string {
       const existing = actions.querySelector(".hint-btn");
       if (t.status === "failed" && !existing) { const b = document.createElement("button"); b.className = "btn hint-btn"; b.setAttribute("data-task", t.id); b.textContent = ${JSON.stringify(ui(view.lang).showHint)}; actions.appendChild(b); }
       if (t.status !== "failed" && existing) existing.remove();
+      if (t.status === "passed") li.querySelector(".task-hint").innerHTML = "";
       if (t.hint) li.querySelector(".task-hint").innerHTML = '<div class="hint"><div class="hint-tier">' + esc(S.hintTier.replace("{n}", t.hint.tier)) + '</div><div class="hint-q">' + esc(t.hint.question) + '</div><div class="hint-h">' + esc(t.hint.hint) + '</div></div>';
     } else if (m.type === "ask") {
       const box = document.getElementById("answer");

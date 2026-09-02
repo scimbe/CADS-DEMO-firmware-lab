@@ -49,6 +49,14 @@ export class StepPanel implements vscode.Disposable {
     return this.panel.webview.asWebviewUri(vscode.Uri.file(found)).toString();
   }
 
+  /** Adopts a panel VS Code restored after a reload (WebviewPanelSerializer). */
+  adopt(panel: vscode.WebviewPanel): void {
+    if (this.panel && this.panel !== panel) this.panel.dispose();
+    this.panel = panel;
+    panel.webview.options = { enableScripts: true, localResourceRoots: [this.extensionUri, ...this.courseRoots()] };
+    this.wire();
+  }
+
   /** Needs a panel to compute asWebviewUri – create it lazily before rendering. */
   ensurePanel(preserveFocus: boolean): void {
     if (this.panel) return;
@@ -58,6 +66,11 @@ export class StepPanel implements vscode.Disposable {
       enableFindWidget: true,
       localResourceRoots: [this.extensionUri, ...this.courseRoots()],
     });
+    this.wire();
+  }
+
+  private wire(): void {
+    if (!this.panel) return;
     this.panel.iconPath = vscode.Uri.joinPath(this.extensionUri, "media", "tutor.svg");
     this.panel.webview.onDidReceiveMessage((m: FromWebview) => this.messageEmitter.fire(m));
     this.panel.onDidChangeViewState(() => this.visibilityEmitter.fire(this.panel?.visible ?? false));

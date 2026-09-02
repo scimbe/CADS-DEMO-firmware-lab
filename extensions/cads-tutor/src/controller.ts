@@ -12,7 +12,7 @@ import { openEventStore, type OpenedEventStore } from "./events";
 import { normalizeLang, ui } from "./i18n";
 import { loadCourses, orderedSteps, resolveProjectRoot, type ExtensionCourseContribution } from "./loader";
 import { createRenderer, type TutorLink } from "./markdown";
-import { StepPanel } from "./panel";
+import { PANEL_VIEW_TYPE, StepPanel } from "./panel";
 import { readLlmConfig, TutorPlatform, type AskOutcome } from "./platform";
 import { ProgressTreeProvider } from "./progressView";
 import {
@@ -80,6 +80,15 @@ export class TutorController implements vscode.Disposable {
     this.statusBar.command = "cads.tutor.open";
     this.disposables.push(this.output, this.panel, this.statusBar, this.debugTracker);
     this.disposables.push(this.panel.onMessage((m) => void this.handleWebviewMessage(m)));
+    // After a browser reload VS Code restores the panel; re-render the current step into it.
+    this.disposables.push(
+      vscode.window.registerWebviewPanelSerializer(PANEL_VIEW_TYPE, {
+        deserializeWebviewPanel: async (panel) => {
+          this.panel.adopt(panel);
+          this.renderCurrent(false, true);
+        },
+      })
+    );
   }
 
   // ------------------------------------------------------------------------------------------

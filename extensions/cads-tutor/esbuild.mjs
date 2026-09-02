@@ -10,7 +10,11 @@ const watch = process.argv.includes("--watch");
 const platformShims = {
   name: "cads-tutor-platform-shims",
   setup(build) {
-    build.onResolve({ filter: /^node:sqlite$/ }, () => ({ path: path.join(here, "shims", "node-sqlite.cjs") }));
+    build.onResolve({ filter: /^node:sqlite$/ }, (args) => {
+      // The shim itself must reach the real built-in (external), everything else gets the shim.
+      if (args.importer.endsWith("node-sqlite.cjs")) return { path: "node:sqlite", external: true };
+      return { path: path.join(here, "shims", "node-sqlite.cjs") };
+    });
     build.onResolve({ filter: /(^|\/)stt(-race)?\.js$/ }, (args) => {
       if (args.importer.includes("tutor-platform")) {
         return { path: path.join(here, "shims", "empty.cjs") };
