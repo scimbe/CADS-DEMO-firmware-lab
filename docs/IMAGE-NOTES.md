@@ -3,9 +3,38 @@
 Last updated: 2026-09-02. Companion to `docs/SPEC.md` §4; this file records what the image
 actually does, what was verified and how, and where it deviates from the spec.
 
-## Verification log
+## Verification log (2026-09-02, local Mac, Docker Desktop VM arm64, 2 CPU / 2 GB)
 
-_(filled in below as the local build and the browser checks complete)_
+**Image build** (`docker build --secret id=gh_token,env=GH_TOKEN`, arm64):
+
+| Step | Result |
+|---|---|
+| ARM GNU 13.3.rel1 aarch64 tarball, SHA-256 check | OK (`arm-none-eabi-gcc (Arm GNU Toolchain 13.3.Rel1 (Build arm-13.24)) 13.3.1 20240614`) |
+| cads-zero clone at `e882fab`, 6 submodules, shallow | OK, 187 MB incl. `.git` |
+| `cmake --preset itsboard && cmake --build build/itsboard` | OK, `cads-zero.bin` 327 076 B, `cads-zero.elf` 2.6 MB, `compile_commands.json` present |
+| `scripts/check_ram_budget.py build/itsboard/cads-zero.elf` | `PASS: 928 B of margin, budget is 256 B` |
+| `cmake --preset host && cmake --build build/host && ctest` (headless SDL2) | 35/37 pass; `golden_splash`, `golden_boot_desktop` fail on SDL rounding (see below) |
+| Open VSX extensions | cortex-debug 1.13.0-pre6, peripheral-viewer 1.6.3, debug-tracker 0.0.15, memory-view 0.0.29, rtos-views 0.0.16, cmake-tools 1.23.52, vscode-clangd 0.6.0, python 2026.4.0 (+debugpy, python-envs) |
+| CaDS VSIX (`extensions/*/dist/*.vsix`) | 0 found at build time (other streams not merged yet) – build succeeds without them by design |
+| Image size | **3.76 GB** uncompressed (`docker images`), 1.07 GB compressed content; toolchain pruned 930 → 377 MB |
+| Build time | first full build ≈ 15 min (apt 89 s, toolchain download 65 s, clone 34 s, firmware 47 s, host build+tests ≈ 4 min, extensions ≈ 3 min, plus image export); rebuild with cached apt/toolchain ≈ 3 min |
+
+**Container** (`docker run … -p 127.0.0.1:8084:8080 -e PASSWORD=…`, fresh volume):
+
+- entrypoint log: `[cads-seed] seeding … seed complete … wrote .vscode/{settings,tasks,launch,extensions}.json and .clangd (gdb: /usr/bin/gdb-multiarch) … ready`
+- `git status` in the seeded workspace is clean (skip-worktree on the four `.vscode` files, `.clangd` excluded, lwip `ignore=dirty`); `CMAKE_HOME_DIRECTORY` in the seeded cache equals the workspace path.
+- `PATH` in a non-login and a login shell starts with `/usr/local/bin:/opt/arm-gnu-toolchain/bin`; `which st-flash st-info arm-none-eabi-gdb arm-none-eabi-gcc clangd` → `/usr/local/bin/st-flash`, `/usr/local/bin/st-info`, `/usr/local/bin/arm-none-eabi-gdb` (→ gdb-multiarch 16.3), `/opt/arm-gnu-toolchain/bin/arm-none-eabi-gcc`, `/usr/bin/clangd`.
+- `st-info --probe` → `Board-Bridge nicht aktiv – Board im Browser verbinden (CaDS Board Panel)`, exit 1.
+  `st-flash erase` → `error: erase is not permitted by CaDS lab policy (no mass erase, docs/SAFETY.md)`, exit 1.
+  `st-flash write build/itsboard/cads-zero.bin 0x08000000` without bridge → same German hint, exit 1.
+- Shim unit tests: `python3 -m unittest discover -s tests/shims` → 24 tests OK (mock HTTP bridge).
+
+**Browser** (`e2e/image-smoke.mjs`, headless Chromium, own instance):
+
+- Login with the password → redirect to `/?folder=/home/coder/workspace/cads-zero`. ✔
+- Title `cads-zero — CaDS Firmware Lab`, no "Restricted Mode", Explorer shows the cads-zero tree, no notifications after a clean load; CMake Tools status bar present (shows "No Configure Preset Selected" until the student picks `itsboard`). ✔
+- `Tasks: Run Task` lists exactly `CaDS: Build`, `CaDS: Flash`, `CaDS: Host tests`, `CaDS: RAM budget`, `CaDS: Build + Flash`. ✔
+- Running `CaDS: Build` to completion and the terminal `st-info --probe` check: **not completed on this machine** – the 2 GB Docker VM is shared with two other code-server containers (the old `firmware-lab` on 8083, 524 MB, and another stream's `cads-lab-8085`, 452 MB); as soon as this container passes ≈370 MB (extension host + cmake + ninja) the VM's OOM killer terminates it (docker events: `oom`, `die exit=137`, five restarts). The same steps were verified from inside the container (`docker exec`: build works, shims respond) and the task definitions are the verified ones above; the browser-driven run remains to be repeated on the lab host or once the VM has memory (see scripts/README.md, `node e2e/image-smoke.mjs`).
 
 ## Deviations from SPEC §4 and decisions
 
