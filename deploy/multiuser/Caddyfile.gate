@@ -24,7 +24,7 @@
 #   FL_GATE_LISTEN   127.0.0.1:3000 with network_mode: host (Linux)  |  :3000 in a bridged container
 #   FL_BROKER_ADDR   127.0.0.1:3100 (host network)  |  host.docker.internal:3100 (Docker Desktop/Colima)
 #   The broker's FL_UPSTREAM_HOST must match the same choice.
-# CT_GATE_SCHEME is only for the local stub gate (http); production keeps the https default.
+# CT_GATE_SCHEME / CT_GATE_PUBLIC_URL only matter for the local stub gate (http, 127.0.0.1:3900).
 {
 	auto_https off
 }
@@ -38,8 +38,11 @@
 	}
 
 	# Real logout = end the gate session at the edge. Not gated, so it works from a broken session.
+	# CT_GATE_PUBLIC_URL is the BROWSER-facing address of the gate (defaults to the production
+	# edge); it differs from CT_GATE_UPSTREAM_HOST only in the local stub setup, where Caddy
+	# reaches the stub via host.docker.internal but the browser via 127.0.0.1.
 	handle /logout* {
-		redir {$CT_GATE_SCHEME:https}://{$CT_GATE_UPSTREAM_HOST}/gate/logout 302
+		redir {$CT_GATE_PUBLIC_URL:https://bunsenbrenner.org}/gate/logout 302
 	}
 
 	handle {

@@ -589,6 +589,10 @@ def main() -> int:
         broker.reconcile()
     except BrokerError as exc:
         log("startup-reconcile-failed", msg=exc.message)
+    if cfg.idle_stop_min < 3:
+        # code-server touches its heartbeat file only about once a minute while a connection is
+        # active, so a limit below that granularity would stop sessions that are in use.
+        log("warning", msg="FL_IDLE_STOP_MIN below 3 minutes will reap active sessions")
     threading.Thread(target=broker.reaper_loop, name="reaper", daemon=True).start()
     srv = make_server(broker, cfg.bind_host, cfg.bind_port)
     log("listening", addr=f"{cfg.bind_host}:{cfg.bind_port}", image=cfg.image,

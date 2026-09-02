@@ -15,3 +15,4 @@ services:
       - FL_BROKER_ADDR=host.docker.internal:3100
       - CT_GATE_UPSTREAM_HOST=${CT_GATE_UPSTREAM_HOST:-host.docker.internal:3900}
       - CT_GATE_SCHEME=${CT_GATE_SCHEME:-http}
+      - CT_GATE_PUBLIC_URL=${CT_GATE_PUBLIC_URL:-http://127.0.0.1:3900}

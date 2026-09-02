@@ -42,7 +42,9 @@ class H(BaseHTTPRequestHandler):
         return c[COOKIE].value if COOKIE in c else ""
 
     def _public_base(self):
-        return f"http://{self.headers.get('Host', '127.0.0.1')}"
+        # Caddy forwards the ORIGINAL Host (the gate's), so the browser-facing address of this
+        # stub must be configured, not derived from the request.
+        return os.environ.get("STUB_PUBLIC", f"http://127.0.0.1:{os.environ.get('STUB_PORT', '3900')}")
 
     def do_GET(self):
         u = urllib.parse.urlsplit(self.path)
@@ -58,7 +60,7 @@ class H(BaseHTTPRequestHandler):
             rd = urllib.parse.quote(f"{proto}://{host}{uri}", safe="")
             self._send(302, b"", [("Location", f"{self._public_base()}/gate/start?rd={rd}")])
         elif u.path == "/gate/start":
-            rd = html.escape((q.get("rd") or ["/"])[0])
+            rd = html.escape((q.get("rd") or [os.environ.get("STUB_RETURN", "http://127.0.0.1:3000/")])[0])
             page = f"""<!doctype html><title>Stub gate</title>
 <h1>Stub gate (local test)</h1>
 <form action="/gate/login" method="get">

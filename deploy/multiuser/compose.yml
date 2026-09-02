@@ -27,6 +27,7 @@ services:
     environment:
       - CT_GATE_UPSTREAM_HOST=${CT_GATE_UPSTREAM_HOST:-bunsenbrenner.org}
       - CT_GATE_SCHEME=${CT_GATE_SCHEME:-https}
+      - CT_GATE_PUBLIC_URL=${CT_GATE_PUBLIC_URL:-https://bunsenbrenner.org}
       - FL_GATE_LISTEN=${FL_GATE_LISTEN:-127.0.0.1:3000}
       - FL_BROKER_ADDR=${FL_BROKER_ADDR:-127.0.0.1:3100}
     volumes:
