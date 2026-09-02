@@ -1,0 +1,33 @@
+{
+  "name": "cads-probe",
+  "displayName": "CaDS Probe (WebUSB ST-Link / WebSerial)",
+  "description": "Runs in the browser's web-worker extension host: WebUSB ST-Link driver and WebSerial console for the CaDS Firmware Lab.",
+  "publisher": "cads",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Debuggers", "Other"],
+  "browser": "./dist/extension.js",
+  "activationEvents": ["onStartupFinished"],
+  "contributes": {
+    "commands": [
+      { "command": "cads.probe.ping", "title": "CaDS Probe: Ping (host capabilities)" }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "node --test --experimental-strip-types test/*.test.ts",
+    "package": "npm run typecheck && npm run build && vsce package --no-dependencies -o dist/"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.90.0",
+    "@types/w3c-web-serial": "^1.0.8",
+    "@types/w3c-web-usb": "^1.0.14",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.28.1",
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "cads-board-bridge",
+  "displayName": "CaDS Board Bridge",
+  "description": "GDB remote server, serial console and flash commands for the board attached to the student's browser (via cads-probe).",
+  "publisher": "cads",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Debuggers", "Other"],
+  "extensionKind": ["workspace"],
+  "main": "./dist/extension.js",
+  "activationEvents": ["onStartupFinished"],
+  "contributes": {
+    "commands": [
+      { "command": "cads.bridge.ping", "title": "CaDS Bridge: Ping probe (host capabilities)" }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "node --test --experimental-strip-types test/*.test.ts",
+    "package": "npm run typecheck && npm run build && vsce package --no-dependencies -o dist/"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.28.1",
+    "typescript": "^6.0.3"
+  }
+}
