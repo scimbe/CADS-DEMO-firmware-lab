@@ -34,8 +34,46 @@ actually does, what was verified and how, and where it deviates from the spec.
 - Login with the password → redirect to `/?folder=/home/coder/workspace/cads-zero`. ✔
 - Title `cads-zero — CaDS Firmware Lab`, no "Restricted Mode", Explorer shows the cads-zero tree, no notifications after a clean load; CMake Tools status bar present (shows "No Configure Preset Selected" until the student picks `itsboard`). ✔
 - `Tasks: Run Task` lists exactly `CaDS: Build`, `CaDS: Flash`, `CaDS: Host tests`, `CaDS: RAM budget`, `CaDS: Build + Flash`. ✔
-- `CaDS: Build` started from the task picker: `ok - CaDS: Build produced cads-zero.bin (327076 bytes) in 14 s` (binary deleted and `targets/itsboard/main.c` touched beforehand, so the task really compiled and linked). ✔ (one successful run while the VM had memory, see below)
-- Terminal check `st-info --probe` inside the integrated terminal: **not completed in the browser on this machine**. The 2 GB Docker VM is shared with other streams' code-server containers (`cads-lab-8085` ≈430 MB, `cads-tutor-e2e` ≈610–675 MB, the old `firmware-lab` on 8083 ≈520 MB until it was stopped); whenever this container passes ≈370–850 MB (extension host + clangd + ninja) the VM's OOM killer terminates it (docker events: `oom`, `die exit=137`; 9 restarts over the session). Retrying blindly risks the OOM killer picking another stream's container instead, so the run was stopped. The same check passes via `docker exec` (see above). Repeat with `node e2e/image-smoke.mjs` on the lab host or when the VM has ≈500 MB free.
+- CMake Tools prompts for a configure preset on first open (`cmake.configureOnOpen` + presets); the picker lists `ITSboard (STM32F429ZI)`, `Host (sim + unit tests)`; the script selects `itsboard` like a student would and CMake Tools configures `build/itsboard`. ✔
+- `CaDS: Build` started from the task picker: `ok - CaDS: Build produced cads-zero.bin (327076 bytes) in 14 s` (binary deleted and `targets/itsboard/main.c` touched beforehand, so the task really compiled and linked; three successful runs in total, one of them screenshot-documented with `Executing task: cmake --preset itsboard && cmake --build build/itsboard` in the task terminal). ✔
+- Terminal check `st-info --probe` inside the integrated terminal: **not completed in the browser on this machine**. The 2 GB Docker VM is shared with other streams' containers (`cads-lab-8085` 400–600 MB, `cads-tutor-e2e`, `fl-gate`, the old `firmware-lab` on 8083 ≈520 MB until the lead stopped it); whenever this container passes ≈600–850 MB (extension host + CMake Tools + clangd + ninja) the VM's OOM killer terminates it (docker events: `oom`, `die exit=137`; 12 restarts over the session, every browser run after the build step died this way). The same check passes via `docker exec` (see above). Repeat `node e2e/image-smoke.mjs` on the lab host; it is written to run end to end there.
+
+## Image size (Services host has ≈4.8 GB free disk)
+
+| Measure | Value |
+|---|---|
+| `docker images` (uncompressed, arm64) | 3.76 GB |
+| `docker save cads-firmware-lab:dev \| gzip -1 \| wc -c` | **0.94 GB** |
+| registry content size (`docker system df`) | 1.07 GB |
+
+Largest layers (`docker history`): Debian packages 906 MB (build-essential, libsdl2-dev with its
+X11/Mesa dev deps, clangd, gdb-multiarch, python), code-server base 737 MB, ARM toolchain
+395 MB (after multilib prune, docs/man removed, archive deleted in the same layer), base image
+apt 261 MB, cads-zero seed 226 MB (object files removed, `.git` 50 MB, submodules 83 MB),
+extensions 125 MB. Further trims if ever needed: `libsdl2-dev` → runtime `libsdl2-2.0-0` plus
+headers only (≈-300 MB, host build would need the dev package), drop `ms-python.python`
+(≈-60 MB).
+
+## CI: `.github/workflows/image.yml`
+
+Native builds per architecture (`ubuntu-latest` = amd64, `ubuntu-24.04-arm` = arm64) push by
+digest to `ghcr.io/scimbe/cads-firmware-lab`; a manifest job tags `<branch>-<shortsha>`,
+`<branch>` and, on `main`, `latest`. The `extensions` job runs `npm ci && npm run package` in
+every `extensions/*` that has a `package.json` and hands the VSIX to the build (missing
+directories are skipped). Course packs under `courses/` (minus `_example*` fixtures) land in
+`/opt/cads-tutor/courses`.
+
+**Required repository secret (not created by this stream):** `CADS_ZERO_TOKEN`, a read-only
+token for the private `scimbe/cads-zero` repo, set by the owner with
+`gh secret set CADS_ZERO_TOKEN`. The workflow passes it to the Dockerfile as the BuildKit secret
+`gh_token` (same mechanism as `scripts/run-local.sh` uses with `gh auth token`); it never lands in
+a layer. The build job fails early with a clear message if the secret is missing. `GITHUB_TOKEN`
+with `packages: write` is used for the ghcr.io login. The workflow was written but not run in
+this stream (no push to `next`/`main` from a worktree); first run happens when the stream is merged.
+
+Weak hosts: the tasks inherit the container environment, so `-e CMAKE_BUILD_PARALLEL_LEVEL=1`
+on `docker run` makes `cmake --build` single-threaded without changing the image (used for the
+local 2-GB VM tests). clangd is capped to 4 indexing workers with on-disk PCH storage.
 
 ## Deviations from SPEC §4 and decisions
 

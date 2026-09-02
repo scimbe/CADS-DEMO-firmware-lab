@@ -179,6 +179,10 @@ RUN set -eu; cd /home/coder/workspace/cads-zero; \
     ctest --test-dir build/host --output-on-failure -E '^golden_'; \
     ctest --test-dir build/host -R '^golden_' || echo "note: golden-image tests differ on this SDL build (expected, see Dockerfile)"; \
     if [ "${CADS_KEEP_HOST_BUILD}" != "1" ]; then rm -rf build/host; fi; \
+    # Keep the configured tree (CMakeCache, compile_commands.json, ninja files,
+    # elf/bin/hex) but not the object files - the first "CaDS: Build" in the
+    # workspace recompiles them; the image stays smaller.
+    find build/itsboard \( -name '*.obj' -o -name '*.o' -o -name '*.su' -o -name '*.d' \) -type f -delete; \
     du -sh build/* 2>/dev/null || true
 
 ############################################################################
@@ -197,6 +201,12 @@ COPY --chmod=0644 image/shims/cads_shim_common.py /usr/local/bin/
 COPY --from=seed --chown=coder:coder /home/coder/workspace/cads-zero /opt/cads-seed/cads-zero
 COPY --chown=coder:coder image/vscode-templates/ /opt/cads-seed/vscode-templates/
 COPY --chmod=0755 image/entrypoint.d/ /entrypoint.d/
+
+# Course packs for cads-tutor (SPEC.md §3.3: /opt/cads-tutor/courses/*).
+# .dockerignore keeps the *_example* fixtures out; courses/.gitkeep keeps the
+# COPY valid on a checkout without courses yet.
+COPY --chown=coder:coder courses/ /opt/cads-tutor/courses/
+RUN rm -f /opt/cads-tutor/courses/.gitkeep && ls -d /opt/cads-tutor/courses/*/ 2>/dev/null || echo "no course packs in this image"
 
 RUN mkdir -p /home/coder/workspace && chown coder:coder /home/coder/workspace
 

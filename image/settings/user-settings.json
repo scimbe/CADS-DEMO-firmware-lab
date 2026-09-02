@@ -9,9 +9,14 @@
   "cadsTutor.autoOpen": true,
   "editor.formatOnSave": true,
   "clangd.path": "/usr/bin/clangd",
+  // -j/pch-storage: one container per student on a shared host - cap clangd's
+  // indexing workers and keep precompiled headers on disk instead of RAM.
   "clangd.arguments": [
     "--compile-commands-dir=build/itsboard",
-    "--query-driver=/opt/arm-gnu-toolchain/bin/arm-none-eabi-*"
+    "--query-driver=/opt/arm-gnu-toolchain/bin/arm-none-eabi-*",
+    "--background-index-priority=background",
+    "--pch-storage=disk",
+    "-j=4"
   ],
   "clangd.checkUpdates": false,
   "cortex-debug.armToolchainPath": "/opt/arm-gnu-toolchain/bin",
@@ -26,6 +31,11 @@
   "workbench.tips.enabled": false,
   "workbench.welcomePage.walkthroughs.openOnInstall": false,
   "workbench.enableExperiments": false,
+  // No Copilot chat UI in the lab (the tutor has its own views); the
+  // secondary side bar otherwise opens with an empty "Build with Agent" chat.
+  "chat.disableAIFeatures": true,
+  "chat.commandCenter.enabled": false,
+  "workbench.secondarySideBar.defaultVisibility": "hidden",
   "cmake.showOptionsMovedNotification": false,
   "cmake.options.statusBarVisibility": "visible",
   "terminal.integrated.defaultProfile.linux": "bash",

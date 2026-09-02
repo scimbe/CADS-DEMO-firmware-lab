@@ -13,7 +13,10 @@
     "--compile-commands-dir=build/itsboard",
     "--query-driver=__CADS_TOOLCHAIN_BIN__/arm-none-eabi-*",
     "--header-insertion=never",
-    "--background-index"
+    "--background-index",
+    "--background-index-priority=background",
+    "--pch-storage=disk",
+    "-j=4"
   ],
   "clangd.checkUpdates": false,
   "[c]": { "editor.formatOnSave": true, "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd" },
