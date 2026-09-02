@@ -1,0 +1,17 @@
+# Override for Docker Desktop / Colima (macOS dev + the local end-to-end test):
+#   docker compose -f compose.yml -f compose.desktop.yml up -d
+# The gate becomes a bridged container published on 127.0.0.1:3000 and reaches the host-side
+# broker and student containers through host.docker.internal.  The broker must then run with
+# FL_UPSTREAM_HOST=host.docker.internal (see .env.example).
+services:
+  fl-gate:
+    network_mode: bridge
+    ports:
+      - "127.0.0.1:3000:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - FL_GATE_LISTEN=:3000
+      - FL_BROKER_ADDR=host.docker.internal:3100
+      - CT_GATE_UPSTREAM_HOST=${CT_GATE_UPSTREAM_HOST:-host.docker.internal:3900}
+      - CT_GATE_SCHEME=${CT_GATE_SCHEME:-http}
