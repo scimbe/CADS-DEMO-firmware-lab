@@ -85,10 +85,12 @@ export function isStepUnlocked(session: SessionState, course: Course, step: Step
   return true;
 }
 
+/** done → locked → active → open: a locked step stays locked even while it is the session's current step. */
 export function stepStatus(session: SessionState, course: Course, step: Step, allCourses: Course[]): StepStatus {
   if (isStepDone(session, step)) return "done";
+  if (!isStepUnlocked(session, course, step, allCourses)) return "locked";
   if (session.courseId === course.manifest.id && session.stepId === step.id) return "active";
-  return isStepUnlocked(session, course, step, allCourses) ? "open" : "locked";
+  return "open";
 }
 
 export interface RecordResult {

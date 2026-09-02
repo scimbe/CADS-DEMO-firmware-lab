@@ -33,6 +33,10 @@ describe("session & progress", () => {
     assert.equal(stepStatus(s, course, build, all), "locked");
     setCurrentStep(s, course.manifest.id, welcome.id);
     assert.equal(stepStatus(s, course, welcome, all), "active");
+    // Navigating to a locked step does not unlock it (found in the container run: m0-02 showed "active").
+    setCurrentStep(s, course.manifest.id, build.id);
+    assert.equal(stepStatus(s, course, build, all), "locked");
+    setCurrentStep(s, course.manifest.id, welcome.id);
 
     const r1 = recordTaskResult(s, course, welcome, "readme", "passed", "ok", all);
     assert.equal(r1.stepCompleted, false);
