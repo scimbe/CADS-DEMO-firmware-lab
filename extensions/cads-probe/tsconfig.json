@@ -3,8 +3,15 @@
     "target": "ES2022",
     "module": "ES2022",
     "moduleResolution": "Bundler",
-    "lib": ["ES2022", "WebWorker"],
-    "types": ["@types/vscode", "@types/w3c-web-usb", "@types/w3c-web-serial"],
+    "lib": [
+      "ES2022",
+      "WebWorker"
+    ],
+    "types": [
+      "@types/vscode",
+      "@types/w3c-web-usb",
+      "@types/w3c-web-serial"
+    ],
     "strict": true,
     "noImplicitOverride": true,
     "noUncheckedIndexedAccess": true,
@@ -15,5 +22,7 @@
     "outDir": "out",
     "rootDir": "."
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"]
+  "include": [
+    "src/**/*.ts"
+  ]
 }
