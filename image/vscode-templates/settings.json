@@ -1,0 +1,32 @@
+{
+  // CaDS Firmware Lab - container variant of cads-zero's .vscode/settings.json
+  // (written by /entrypoint.d/10-seed-workspace.sh on every start).
+  // IntelliSense is clangd (Open VSX has no ms-vscode.cpptools), fed by
+  // build/itsboard/compile_commands.json; the ARM sysroot comes from
+  // --query-driver against the real cross compiler.
+  "cmake.useCMakePresets": "always",
+  "cmake.configureOnOpen": true,
+  "cmake.buildBeforeRun": false,
+
+  "clangd.path": "/usr/bin/clangd",
+  "clangd.arguments": [
+    "--compile-commands-dir=build/itsboard",
+    "--query-driver=__CADS_TOOLCHAIN_BIN__/arm-none-eabi-*",
+    "--header-insertion=never",
+    "--background-index"
+  ],
+  "clangd.checkUpdates": false,
+  "[c]": { "editor.formatOnSave": true, "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd" },
+  "[cpp]": { "editor.formatOnSave": true, "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd" },
+
+  "cortex-debug.armToolchainPath": "__CADS_TOOLCHAIN_BIN__",
+  "cortex-debug.gdbPath": "__CADS_GDB_PATH__",
+
+  "search.exclude": { "build/**": true, "lib/**": true, "site/**": true },
+  "files.exclude": { "**/*.o": true, "**/*.obj": true, "**/*.su": true },
+  "files.watcherExclude": { "**/build/**": true, "**/lib/**": true, "**/.git/**": true },
+  "search.useIgnoreFiles": true,
+
+  "python.analysis.typeCheckingMode": "basic",
+  "python.defaultInterpreterPath": "/usr/bin/python3"
+}

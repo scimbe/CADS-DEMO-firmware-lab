@@ -1,0 +1,34 @@
+{
+  // CaDS Firmware Lab - user settings baked into the image (SPEC.md §4),
+  // ~/.local/share/code-server/User/settings.json. Workspace settings in
+  // cads-zero/.vscode/settings.json (container variant) refine these.
+  "workbench.startupEditor": "none",
+  "security.workspace.trust.enabled": false,
+  "cmake.useCMakePresets": "always",
+  "cmake.configureOnOpen": true,
+  "cadsTutor.autoOpen": true,
+  "editor.formatOnSave": true,
+  "clangd.path": "/usr/bin/clangd",
+  "clangd.arguments": [
+    "--compile-commands-dir=build/itsboard",
+    "--query-driver=/opt/arm-gnu-toolchain/bin/arm-none-eabi-*"
+  ],
+  "clangd.checkUpdates": false,
+  "cortex-debug.armToolchainPath": "/opt/arm-gnu-toolchain/bin",
+
+  // No network-dependent noise for students: no update checks, no telemetry,
+  // no "install recommended extensions" prompts (they are all pre-installed).
+  "extensions.autoUpdate": false,
+  "extensions.autoCheckUpdates": false,
+  "extensions.ignoreRecommendations": true,
+  "telemetry.telemetryLevel": "off",
+  "update.mode": "none",
+  "workbench.tips.enabled": false,
+  "workbench.welcomePage.walkthroughs.openOnInstall": false,
+  "workbench.enableExperiments": false,
+  "cmake.showOptionsMovedNotification": false,
+  "cmake.options.statusBarVisibility": "visible",
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "git.openRepositoryInParentFolders": "never",
+  "files.autoSave": "off"
+}

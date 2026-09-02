@@ -1,0 +1,53 @@
+{
+  // CaDS Firmware Lab - container variant (written by /entrypoint.d/10-seed-workspace.sh
+  // on every start; edits here are overwritten, put personal tasks elsewhere).
+  // st-flash is the lab shim talking to the board connected in the browser.
+  "version": "2.0.0",
+  "options": {
+    "cwd": "${workspaceFolder}"
+  },
+  "tasks": [
+    {
+      "label": "CaDS: Build",
+      "detail": "cmake --preset itsboard && cmake --build build/itsboard  (ARM GNU 13.3.rel1)",
+      "type": "shell",
+      "command": "cmake --preset itsboard && cmake --build build/itsboard",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$gcc"],
+      "presentation": { "clear": true, "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "CaDS: Flash",
+      "detail": "st-flash write build/itsboard/cads-zero.bin 0x08000000 && st-flash reset  (board in the browser)",
+      "type": "shell",
+      "command": "st-flash write build/itsboard/cads-zero.bin 0x08000000 && st-flash reset",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "CaDS: Build + Flash",
+      "detail": "Build, then flash and reset the board",
+      "dependsOn": ["CaDS: Build", "CaDS: Flash"],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    },
+    {
+      "label": "CaDS: Host tests",
+      "detail": "cmake --preset host && cmake --build build/host && ctest  (simulator + unit/golden-image tests, headless SDL2)",
+      "type": "shell",
+      "command": "cmake --preset host && cmake --build build/host && ctest --test-dir build/host --output-on-failure",
+      "options": { "env": { "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy" } },
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": ["$gcc"],
+      "presentation": { "clear": true, "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "CaDS: RAM budget",
+      "detail": "python3 scripts/check_ram_budget.py build/itsboard/cads-zero.elf",
+      "type": "shell",
+      "command": "python3 scripts/check_ram_budget.py build/itsboard/cads-zero.elf",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    }
+  ]
+}
