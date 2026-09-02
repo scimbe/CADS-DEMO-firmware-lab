@@ -1,133 +1,111 @@
-# firmware-lab
+# CaDS Firmware Lab
 
-A browser-based IDE for hardware/firmware work: [code-server](https://github.com/coder/code-server)
-(VS Code, served over HTTP) plus OpenOCD and the `arm-none-eabi` toolchain, with an ST-Link USB
-debug probe passed through to the container — program and debug real boards entirely from a
-browser tab, no local toolchain install.
+Browser IDE ([code-server](https://github.com/coder/code-server), VS Code 1.135) in which
+students build, flash and debug the **CaDS Zero** firmware
+([scimbe/cads-zero](https://github.com/scimbe/cads-zero), STM32F429ZI / ITSboard) with the
+board plugged into **their own computer**. The container has no USB: the ST-Link is driven
+from the browser via WebUSB/WebSerial (`cads-probe`), bridged into the container by
+`cads-board-bridge` (GDB server 3333, serial 3334, HTTP shim API 3335), with a course-driven
+tutor (`cads-tutor`). The binding architecture and all interfaces are in
+[`docs/SPEC.md`](docs/SPEC.md).
 
-It also ships the [codereview](https://github.com/scimbe/CADS-DEMO-codereview) VS Code extension
-in a repurposed **tutor mode**: instead of reviewing pull requests, it walks through the bundled
-example firmware as a guided lesson with two hands-on exercises, logging every step viewed and
-every exercise attempt to `tutor-session.log`. The IDE is fully usable for free-form coding
-alongside the tutor — it's not a locked-down teaching mode.
+This README describes the **image and workspace** part (SPEC §4). The three extensions and the
+courses are built by their own streams under `extensions/` and `courses/`.
 
-Each lesson step also has an optional **"Ask about this step"** panel backed by a real LLM
-(`TUTOR_LLM_BASE_URL`/`TUTOR_LLM_API_KEY`/`TUTOR_LLM_MODEL` in `.env` — see `.env.example`).
-Fully optional: leave `.env` absent and the rest of the tutor works exactly the same, the Ask
-panel just reports itself unconfigured. **`TUTOR_LLM_BASE_URL` must be `https://`, not `http://`** —
-see the comment in `.env.example` for why (it silently 401s instead of failing loudly at startup).
+## What the image contains
 
-## Status (2026-08-30)
+| Piece | Detail |
+|---|---|
+| Base | `codercom/code-server:latest` (Debian 13, multi-arch amd64/arm64) |
+| Toolchain | ARM GNU Toolchain **13.3.rel1** (official tarball per `TARGETARCH`, SHA-256 verified) in `/opt/arm-gnu-toolchain`, `CADS_ARM_TOOLCHAIN_BIN` set, on `PATH` |
+| Build tools | cmake 3.31, ninja, gcc (host preset), python3 + pyserial, clang-format, clangd 19, gdb-multiarch, binutils, socat, git |
+| Workspace seed | `/opt/cads-seed/cads-zero`: shallow clone of cads-zero at the pinned commit (`CADS_ZERO_REF`, default `e882fab`) with submodules, **built once during the image build** (`cmake --preset itsboard` → `cads-zero.bin`; `host` preset + `ctest` as a second smoke test). `build/itsboard` incl. `compile_commands.json` ships in the seed. |
+| Shims | `/usr/local/bin/st-flash`, `st-info`: Python HTTP clients for the bridge API on `127.0.0.1:3335`. `erase` is refused (lab policy, no mass erase), writes stay inside `0x08000000–0x080FFFFF`. Without a connected board they print `Board-Bridge nicht aktiv – Board im Browser verbinden (CaDS Board Panel)`. |
+| Extensions (Open VSX) | cortex-debug, peripheral-viewer, debug-tracker, memory-view, rtos-views, cmake-tools, vscode-clangd, python, plus every `extensions/*/dist/*.vsix` present at build time |
+| Settings | User settings (`workbench.startupEditor=none`, workspace trust off, CMake presets, clangd args, `cadsTutor.autoOpen`, …) in the image; workspace `.vscode/{settings,tasks,launch,extensions}.json` + `.clangd` written by the entrypoint |
+| CMD | `--bind-addr 0.0.0.0:8080 --app-name "CaDS Firmware Lab" --disable-workspace-trust --disable-telemetry --disable-update-check /home/coder/workspace/cads-zero` – complete, so a plain `docker run` is correct |
 
-Verified with real hardware by Maintainer `cads zero` (Nucleo-F429ZI + onboard ST-Link/V2-1):
-- Container builds clean, code-server serves and password-authenticates.
-- Both extensions (cortex-debug, the codereview tutor mode) install and register correctly for
-  the runtime user.
-- `example-firmware/`'s register addresses and `linker.ld`'s memory map were cross-checked
-  against this board's actual RM0090-derived CMSIS header and confirmed correct (no changes
-  needed): `RCC_AHB1ENR`=0x40023830, GPIOB base=0x40020400 (MODER 0x00, ODR 0x14), `GPIOBEN`=bit 1,
-  2048K flash, 192K SRAM.
+**Not** in the image: OpenOCD, st-util, `/dev/bus/usb`, device cgroup rules. Server-side USB is
+architecturally wrong here (the board is at the student) and does not work under Docker Desktop
+on macOS anyway.
 
-**Known limitation, confirmed real (2026-08-30): USB passthrough does not work under Docker
-Desktop for Mac.** `openocd -f openocd.cfg -c "init; exit"` fails with `Error: open failed` —
-reproduced as the `coder` user, as root, and even with `--privileged` bypassing
-`device_cgroup_rules` entirely, which rules out a permissions/cgroup bug. `/dev/bus/usb` node
-timestamps inside the container predate the actual probe connection — Docker Desktop for Mac's
-LinuxKit VM does not forward live host USB through that path the way native Linux Docker does.
-Host-side `st-info --probe` worked fine throughout, confirming the board/probe/compose logic are
-all sound; this is specifically a Docker-Desktop-macOS gap. `device_cgroup_rules` +
-`/dev/bus/usb` remains the textbook-correct approach on a **native Linux Docker host** — if you're
-on macOS, either run this container on a Linux host/VM instead, or bridge with `usbip` (the
-standard macOS workaround; more setup, not yet attempted here).
+### Start-up: `image/entrypoint.d/10-seed-workspace.sh`
 
-**Verified workaround for build-in-browser + flash-from-host on macOS** (cads zero, 2026-08-30):
-build inside the container as normal, then copy the binary out and flash it with a host-side
-toolchain instead of OpenOCD-in-container:
+code-server's entrypoint runs every executable in `/entrypoint.d` before starting the server.
+The seed script copies `/opt/cads-seed/cads-zero` to `/home/coder/workspace/cads-zero` if no
+`.git` exists there (student work is never overwritten), then writes the container variants of
+`.vscode/*.json` and `.clangd` (refreshed on every start, marked `skip-worktree` so `git status`
+stays clean), picks the GDB for cortex-debug (toolchain `arm-none-eabi-gdb` if it runs, else
+`gdb-multiarch`), and removes a CMake build tree whose cache points at a different source path.
+It always exits 0.
 
-```sh
-docker cp firmware-lab:/home/coder/workspace/build/firmware.bin ./firmware.bin
-st-flash write ./firmware.bin 0x08000000
-```
+### Tasks and debug configuration in the workspace
 
-The `docker cp` step (not a direct host path) is required because `/home/coder/workspace` is a
-named Docker volume, not a bind mount — there's no host-side path to reach into directly.
-Confirmed working end to end: a live GDB attach after flashing showed real execution in the
-example firmware's `delay()` loop, not stuck at reset. This sidesteps the USB-passthrough gap
-entirely (the host's own `st-link`/`st-flash` tools talk to the probe directly), at the cost of
-needing those tools installed on the host and Docker CLI access to `docker cp` from it.
+| Task | Command |
+|---|---|
+| `CaDS: Build` (default build) | `cmake --preset itsboard && cmake --build build/itsboard` |
+| `CaDS: Flash` | `st-flash write build/itsboard/cads-zero.bin 0x08000000 && st-flash reset` |
+| `CaDS: Build + Flash` | both, in sequence |
+| `CaDS: Host tests` (default test) | `cmake --preset host && cmake --build build/host && ctest --test-dir build/host` (headless SDL2) |
+| `CaDS: RAM budget` | `python3 scripts/check_ram_budget.py build/itsboard/cads-zero.elf` |
 
-**A second, generally preferable alternative: `webusb-flash/`, a browser-native flash app.**
-Sidesteps the Docker-USB-passthrough gap entirely by not going through the container at all —
-your browser talks WebUSB directly to the ST-Link, no host toolchain, no `docker cp`. Built on
-[devanlai/webstlink](https://github.com/devanlai/webstlink) (MIT), vendored in
-`webusb-flash/vendor/webstlink-src/` with real, hardware-verified fixes (see that directory's
-files' own "CADS:" comments for exactly what was fixed and why — chip-reset-vs-halt on `unlock()`
-was the deepest one, root-caused by cads zero against a real CaDS Zero board's hardware watchdog).
-Open `webusb-flash/index.html` in Chrome/Edge (needs `https://` or `localhost`, not `file://`),
-click Connect, pick a built `.bin`, click Flash. Complements the container's OpenOCD path — it
-doesn't replace it, since a browser without WebUSB support (or on a locked-down machine) still
-needs the container path to work.
+`launch.json`: **Debug CaDS Zero (Board im Browser)** – cortex-debug, `servertype: external`,
+`gdbTarget: 127.0.0.1:3333`, SVD `targets/itsboard/STM32F429.svd`, `preLaunchTask: CaDS: Build + Flash`,
+`overrideLaunchCommands: ["monitor reset halt"]`, `runToEntryPoint: main`; plus an attach variant.
 
-## Why code-server, not `linuxserver/docker-vscode`
+## Building and running locally
 
-The operator's original reference point was `linuxserver/docker-vscode`. After a comparative
-review: that image streams a full GUI desktop via Selkies (GPL-3.0, heavier, grants passwordless
-root to the GUI user) — unnecessary weight and attack surface for a browser-IDE-only use case.
-code-server is a thin, MIT-licensed wrapper around real VS Code Server, single process, no GUI
-desktop underneath. Eclipse Theia was also considered and ruled out (framework overkill, its own
-Open VSX friction). OpenOCD (scriptable, headless) was chosen over STM32CubeProgrammer/CubeIDE
-for the same reason — this needs to be driven from a thin browser session, not a desktop GUI tool.
-
-## Running
+Requires Docker with BuildKit and a GitHub login (`gh auth login`) that can read the private
+cads-zero repo. The token is passed as a build secret and never stored in the image.
 
 ```sh
-export FIRMWARE_LAB_PASSWORD=choose-a-real-password
-docker compose up -d --build
+cp .env.example .env          # set FIRMWARE_LAB_PASSWORD
+scripts/run-local.sh          # build + run on http://127.0.0.1:8084
+scripts/run-local.sh --fresh  # re-seed the workspace volume
+scripts/run-local.sh --stop
 ```
 
-Then visit `http://127.0.0.1:8083` (or the tunneled hostname once deployed) and log in with
-`FIRMWARE_LAB_PASSWORD`. Password auth only — there is no TLS termination in this container by
-design, same as every other origin in this system: it's reached through a ct-agent tunnel that
-terminates TLS at the edge, never a directly exposed host port.
+Or with compose: `GH_TOKEN=$(gh auth token) docker compose build && docker compose up -d`.
 
-### Using a different board
+Manual build: `GH_TOKEN=$(gh auth token) docker build --secret id=gh_token,env=GH_TOKEN -t cads-firmware-lab .`
+Build args: `CADS_ZERO_REF` (commit to seed), `CADS_SKIP_HOST_BUILD=1`, `CADS_KEEP_HOST_BUILD=1`.
 
-The bundled example targets a Nucleo-F429ZI (onboard ST-Link/V2-1, no external probe needed);
-`openocd.cfg`'s `target/stm32f4x.cfg` also covers other F4 boards (e.g. an F401RE) unchanged,
-since chip ID is auto-detected. For a non-F4 board, edit `example-firmware/openocd.cfg` (swap the
-`target/*.cfg` include) and adjust `linker.ld`'s memory sizes and `main.c`'s register
-addresses/LED pin for your MCU family.
+The build takes a while (toolchain download ≈150 MB, firmware and host builds); on the 2-CPU
+Docker Desktop VM used for development it is 20–40 minutes, on the lab host a few minutes.
 
-### USB passthrough on the host
+Lab deployment (`docker run`, no compose, port `127.0.0.1:8083`):
 
-Docker's `device_cgroup_rules: ["c 189:* rmw"]` plus a bind mount of `/dev/bus/usb` (see
-`docker-compose.yml`) is used instead of a pinned `--device=/dev/bus/usb/BBB/DDD` (breaks on
-replug/renumbering) or `--privileged` (unnecessary full host access). For non-root USB access to
-the probe on the host itself, add a udev rule, e.g. for a standard ST-Link/V2:
-
-```
-# /etc/udev/rules.d/49-stlink.rules
-ATTRS{idVendor}=="0483", ATTRS{idProduct}=="3748", MODE="660", GROUP="plugdev", TAG+="uaccess"
+```sh
+docker run -d --name firmware-lab -p 127.0.0.1:8083:8080 \
+  -e PASSWORD=... -e TUTOR_LLM_BASE_URL=... -e TUTOR_LLM_API_KEY=... -e TUTOR_LLM_MODEL=... \
+  -v firmware-lab-workspace:/home/coder/workspace cads-firmware-lab
 ```
 
-## Building blocks
+## Tests
 
-- `Dockerfile` — code-server + OpenOCD + arm-none-eabi toolchain + cortex-debug + the codereview
-  tutor-mode extension.
-- `docker-compose.yml` — runtime config: password from env, workspace volume, USB passthrough.
-- `example-firmware/` — the bundled STM32F429ZI blink example: `main.c`/`startup.s`/`linker.ld`
-  (no vendor SDK dependency), `Makefile`, `openocd.cfg`, and `.vscode/tasks.json`+`launch.json`
-  wired for build/flash/debug.
-- `vscode-extension/codereview-tutor.vsix` — built from
-  [CADS-DEMO-codereview, branch `feature/firmware-tutor-mode`](https://github.com/scimbe/CADS-DEMO-codereview/tree/feature/firmware-tutor-mode).
-  Rebuild with `npm run compile && npx @vscode/vsce package --no-dependencies -o vscode-extension/codereview-tutor.vsix`
-  from that repo's `vscode-extension/` directory, then copy the output here.
-- `webusb-flash/` — the browser-native flash app described above: `index.html` + `app.js` (this
-  repo's own code), `vendor/webstlink-src/` (vendored, patched upstream library).
+- Shims: `python3 -m unittest discover -s tests/shims -v` (mock HTTP bridge, no Docker).
+- Image: the firmware build and host `ctest` run inside `docker build`; a failing build fails the image.
+- Browser: see `docs/IMAGE-NOTES.md` for the Playwright checks done against the local container.
 
-## Manifest / packaging
+## Status and known gaps
 
-Not yet packaged — per this project's own process, that step (writing/signing the marketplace
-manifest, publishing to the registry) belongs to Tester Main once the source above is functionally
-verified, not this repo's own maintainer. See `docs/DEMO-PORTFOLIO.md` in `dev-workspace` for the
-overall demo-portfolio tracking.
+See [`docs/IMAGE-NOTES.md`](docs/IMAGE-NOTES.md) for verification results, image size, build
+times, and every deviation from the spec. Legacy directories from the previous OpenOCD-based
+lab (`example-firmware/`, `vscode-extension/codereview-tutor.vsix`) are not used by the image
+anymore; `webusb-flash/vendor/webstlink-src` is the hardware-verified driver source the
+`cads-probe` stream ports from.
+
+## Repository layout (SPEC §7)
+
+```
+Dockerfile, docker-compose.yml, .dockerignore
+image/entrypoint.d/10-seed-workspace.sh   workspace seed + .vscode/.clangd templates
+image/vscode-templates/                   settings/tasks/launch/extensions.json, clangd.yaml
+image/settings/user-settings.json         code-server user settings
+image/shims/st-flash, st-info             bridge HTTP shims (+ cads_shim_common.py)
+tests/shims/                              unittest suite for the shims
+scripts/run-local.sh                      build + run on 127.0.0.1:8084
+extensions/                               cads-probe, cads-board-bridge, cads-tutor (other streams)
+courses/                                  course packs (other stream)
+docs/SPEC.md, docs/IMAGE-NOTES.md
+```

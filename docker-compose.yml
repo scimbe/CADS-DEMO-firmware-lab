@@ -1,48 +1,47 @@
+# CaDS Firmware Lab - local/dev run of the image (SPEC.md §4).
+#
+# The lab deployment on cads-lambda uses a plain `docker run` (no compose), so
+# everything that matters for correctness (CMD flags, settings, seed) lives in
+# the image itself; this file only adds the runtime bits: password, LLM
+# credentials, the workspace volume and the loopback port mapping.
+#
+# No USB passthrough, no device rules: the board is at the student's computer
+# and is driven from the browser (WebUSB via cads-probe).
+#
+#   cp .env.example .env            # set FIRMWARE_LAB_PASSWORD (+ TUTOR_LLM_*)
+#   GH_TOKEN=$(gh auth token) docker compose build
+#   docker compose up -d
+#   open http://127.0.0.1:8084
 services:
   firmware-lab:
-    build: .
-    container_name: firmware-lab
+    build:
+      context: .
+      secrets:
+        - gh_token
+      args:
+        # Override to build a different cads-zero commit: CADS_ZERO_REF=<sha> docker compose build
+        CADS_ZERO_REF: ${CADS_ZERO_REF:-e882fabd347c0b5ca04a7668b50be1d005924cb9}
+    image: cads-firmware-lab:latest
+    container_name: firmware-lab-dev
     restart: unless-stopped
-    # Rebrands the {{app}} placeholder in the title bar and login/welcome page (default
-    # "code-server") -- the image's default CMD is `--bind-addr 0.0.0.0:8080 .` (see
-    # /usr/bin/entrypoint.sh); this appends --app-name rather than replacing the whole CMD.
-    # --disable-workspace-trust: without it, a brand-new profile opens in VS Code's "Restricted
-    # Mode" (confirmed live) -- which silently disables ALL extensions (including this one, so
-    # the tutor never even activates) and skips every workspace .vscode/settings.json value until
-    # a human clicks through the trust dialog. This workspace's content is our own bundled example
-    # firmware, trusted by construction, so that prompt is pure friction for a first-time learner.
-    command: ["--bind-addr", "0.0.0.0:8080", "--app-name", "CaDS Development System", "--disable-workspace-trust", "."]
     environment:
-      # Set by the manifest installer at activation time -- never bake a real password into the image.
-      - PASSWORD=${FIRMWARE_LAB_PASSWORD:?set FIRMWARE_LAB_PASSWORD before starting}
-      # Optional: powers the tutor mode's "Ask about this step" panel (same litellm-proxy
-      # convention as every other CADS-DEMO-* repo). Leave unset and the rest of the tutor still
-      # works fine -- the Ask panel just reports itself unconfigured. See .env.example.
-      #
-      # NOTE (found+fixed 2026-08-31): the bundled vscode-extension (codereview-tutor.vsix,
-      # from CADS-DEMO-codereview's vscode-extension/src/tutorPlatform.ts) reads
-      # TUTOR_LLM_BASE_URL / TUTOR_LLM_API_KEY / TUTOR_LLM_MODEL, NOT the LITELLM_* names this
-      # file used to pass through -- a real naming mismatch that meant the Ask panel was always
-      # unconfigured in this deployment regardless of .env. Renamed here to match what the
-      # extension actually reads; .env / .env.example follow the same convention now.
+      - PASSWORD=${FIRMWARE_LAB_PASSWORD:?set FIRMWARE_LAB_PASSWORD (in .env) before starting}
       - TUTOR_LLM_BASE_URL=${TUTOR_LLM_BASE_URL:-}
       - TUTOR_LLM_API_KEY=${TUTOR_LLM_API_KEY:-}
       - TUTOR_LLM_MODEL=${TUTOR_LLM_MODEL:-}
     ports:
-      # Loopback only -- this origin is reached through a ct-agent browser-plane tunnel, never a
-      # public host port, same convention as every other bunsenbrenner.org service.
-      # Host port 8083 (not the container's own 8080): on cads-lambda, 127.0.0.1:8788 -- this
-      # compose file's original mapping -- is already bound by the unrelated, pre-existing
-      # harness-memory service (marketplace#39); found live via `ss -tln`, not assumed.
-      - "127.0.0.1:8083:8080"
+      # Loopback only. 8084 locally (8083 is the older deployment's port and
+      # stays untouched); on the lab host the tunnel target is 127.0.0.1:8083.
+      - "127.0.0.1:${FIRMWARE_LAB_PORT:-8084}:8080"
     volumes:
+      # The student's cads-zero checkout lives here (seeded on first start).
       - firmware-lab-workspace:/home/coder/workspace
-      # USB passthrough for ST-Link probes, robust to hot-plug/re-enumeration -- prefer this over a
-      # pinned --device=/dev/bus/usb/BBB/DDD (breaks on replug) or --privileged (unnecessary blast
-      # radius: this only needs the USB character-device major number, not full host access).
-      - /dev/bus/usb:/dev/bus/usb
-    device_cgroup_rules:
-      - "c 189:* rmw"
+
+secrets:
+  gh_token:
+    # Read-only clone token for the private cads-zero repo, only used during
+    # `docker compose build`. Never written into the image.
+    environment: GH_TOKEN
 
 volumes:
   firmware-lab-workspace:
