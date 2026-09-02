@@ -49,8 +49,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # ARM GNU Toolchain 13.3.rel1 (the exact version cads-zero is developed with),
-# official tarball per architecture, SHA-256 verified. Docs/man pages dropped
-# (~100 MB nobody reads inside a container).
+# official tarball per architecture, SHA-256 verified. Docs/man pages dropped.
+#
+# The tarball ships ~610 MB of multilibs (Cortex-A/R, v8-M, ...); the lab
+# targets one chip (Cortex-M4F = thumb/v7e-m+fp/hard). Keep that plus the
+# small-M variants and the defaults, drop the rest - in the SAME layer as the
+# extraction, otherwise the deleted files still sit in the image (-550 MB).
+# CADS_PRUNE_MULTILIBS=0 keeps the full tarball content.
+ARG CADS_PRUNE_MULTILIBS=1
 RUN set -eu; \
     case "${TARGETARCH}" in \
         amd64) host=x86_64;  sha="${ARM_GNU_SHA256_AMD64}" ;; \
@@ -66,24 +72,19 @@ RUN set -eu; \
     tar -xJf "/tmp/${tarball}" -C /opt/arm-gnu-toolchain --strip-components=1; \
     rm -f "/tmp/${tarball}"; \
     rm -rf /opt/arm-gnu-toolchain/share/doc /opt/arm-gnu-toolchain/share/man /opt/arm-gnu-toolchain/share/info; \
-    /opt/arm-gnu-toolchain/bin/arm-none-eabi-gcc --version | head -1
-
-# The toolchain ships ~610 MB of multilibs (Cortex-A/R, v8-M, ...); the lab
-# targets one chip (Cortex-M4F = thumb/v7e-m+fp/hard). Keep that plus the
-# small-M variants and the defaults, drop the rest: -420 MB in the image.
-# CADS_PRUNE_MULTILIBS=0 keeps the full tarball content.
-ARG CADS_PRUNE_MULTILIBS=1
-RUN set -eu; [ "${CADS_PRUNE_MULTILIBS}" = "1" ] || exit 0; \
-    tc=/opt/arm-gnu-toolchain; gccdir="$tc/lib/gcc/arm-none-eabi/$($tc/bin/arm-none-eabi-gcc -dumpversion)"; \
-    keep=" . thumb/nofp thumb/v6-m/nofp thumb/v7-m/nofp thumb/v7e-m/nofp thumb/v7e-m+fp/softfp thumb/v7e-m+fp/hard "; \
-    for dir in $($tc/bin/arm-none-eabi-gcc -print-multi-lib | cut -d';' -f1); do \
-        case "$keep" in *" $dir "*) continue ;; esac; \
-        rm -rf "$tc/arm-none-eabi/lib/$dir" "$gccdir/$dir"; \
-    done; \
-    test -f "$tc/arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a"; \
-    test -f "$gccdir/thumb/v7e-m+fp/hard/libgcc.a"; \
-    echo "multilibs kept:"; $tc/bin/arm-none-eabi-gcc -print-multi-lib | cut -d';' -f1 | while read -r d; do if [ -d "$tc/arm-none-eabi/lib/$d" ]; then echo "  $d"; fi; done; \
-    du -sh "$tc"
+    /opt/arm-gnu-toolchain/bin/arm-none-eabi-gcc --version | head -1; \
+    if [ "${CADS_PRUNE_MULTILIBS}" = "1" ]; then \
+        tc=/opt/arm-gnu-toolchain; gccdir="$tc/lib/gcc/arm-none-eabi/$($tc/bin/arm-none-eabi-gcc -dumpversion)"; \
+        keep=" . thumb/nofp thumb/v6-m/nofp thumb/v7-m/nofp thumb/v7e-m/nofp thumb/v7e-m+fp/softfp thumb/v7e-m+fp/hard "; \
+        for dir in $($tc/bin/arm-none-eabi-gcc -print-multi-lib | cut -d';' -f1); do \
+            case "$keep" in *" $dir "*) continue ;; esac; \
+            rm -rf "$tc/arm-none-eabi/lib/$dir" "$gccdir/$dir"; \
+        done; \
+        test -f "$tc/arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc_nano.a"; \
+        test -f "$gccdir/thumb/v7e-m+fp/hard/libgcc.a"; \
+        echo "multilibs kept:"; $tc/bin/arm-none-eabi-gcc -print-multi-lib | cut -d';' -f1 | while read -r d; do if [ -d "$tc/arm-none-eabi/lib/$d" ]; then echo "  $d"; fi; done; \
+    fi; \
+    du -sh /opt/arm-gnu-toolchain
 
 ENV CADS_ARM_TOOLCHAIN_BIN=/opt/arm-gnu-toolchain/bin
 # /usr/local/bin first: that is where the st-flash/st-info shims live and they

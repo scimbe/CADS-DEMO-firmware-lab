@@ -72,7 +72,7 @@ if [ "$FRESH" = 1 ]; then
     docker volume rm "$VOLUME" >/dev/null 2>&1 && echo ">> removed volume $VOLUME" || true
 fi
 
-docker run -d --name "$CONTAINER" \
+docker run -d --name "$CONTAINER" --restart unless-stopped \
     -p "127.0.0.1:${PORT}:8080" \
     -e PASSWORD="$FIRMWARE_LAB_PASSWORD" \
     -e TUTOR_LLM_BASE_URL="${TUTOR_LLM_BASE_URL:-}" \
