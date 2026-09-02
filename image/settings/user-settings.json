@@ -5,7 +5,12 @@
   "workbench.startupEditor": "none",
   "security.workspace.trust.enabled": false,
   "cmake.useCMakePresets": "always",
-  "cmake.configureOnOpen": true,
+  // No configure-on-open: it prompts every student for a preset before they
+  // have done anything. IntelliSense comes from the seeded
+  // build/itsboard/compile_commands.json via clangd, the CaDS tasks call cmake
+  // themselves; CMake Tools stays available for those who want it.
+  "cmake.configureOnOpen": false,
+  "cmake.automaticReconfigure": false,
   "cadsTutor.autoOpen": true,
   "editor.formatOnSave": true,
   "clangd.path": "/usr/bin/clangd",
@@ -28,13 +33,15 @@
   "extensions.ignoreRecommendations": true,
   "telemetry.telemetryLevel": "off",
   "update.mode": "none",
+  "update.showReleaseNotes": false,
   "workbench.tips.enabled": false,
   "workbench.welcomePage.walkthroughs.openOnInstall": false,
   "workbench.enableExperiments": false,
   // No Copilot chat UI in the lab (the tutor has its own views); the
   // secondary side bar otherwise opens with an empty "Build with Agent" chat.
+  // (chat.commandCenter.enabled does not exist in Code 1.135 - checked
+  // against workbench.web.main.internal.js - so it is not set here.)
   "chat.disableAIFeatures": true,
-  "chat.commandCenter.enabled": false,
   "workbench.secondarySideBar.defaultVisibility": "hidden",
   "cmake.showOptionsMovedNotification": false,
   "cmake.options.statusBarVisibility": "visible",

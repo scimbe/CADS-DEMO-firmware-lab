@@ -116,26 +116,24 @@ try {
   await page.screenshot({ path: join(OUT, "01-workbench.png") });
   ok(`workbench: title="${title}", no Restricted Mode, explorer shows cads-zero (${explorerRoot.length} entries)`);
 
-  // CMake Tools (cmake.configureOnOpen + presets) asks for a configure preset
-  // on first open. Answer it like a student would: pick "itsboard". This also
-  // checks that CMake Tools sees CMakePresets.json.
-  const presetPicker = page.locator('.quick-input-widget input[placeholder*="configure preset" i]');
-  try {
-    await presetPicker.waitFor({ state: "visible", timeout: 20_000 });
-    const presets = await page.evaluate(() =>
-      [...document.querySelectorAll(".quick-input-list .monaco-list-row")].map((r) => (r.getAttribute("aria-label") ?? "").split(",")[0])
-    );
-    await page.click('.quick-input-list .monaco-list-row[aria-label*="itsboard" i]');
-    ok(`CMake Tools preset picker appeared (${JSON.stringify(presets)}), selected itsboard`);
-    // CMake Tools now configures build/itsboard itself; let that finish before
-    // the task touches the same build tree (and before piling up memory).
-    for (let i = 0; i < 120; i++) {
-      await sleep(1000);
-      if (dexec("pgrep -x cmake | wc -l").trim() === "0" && i > 3) break;
-    }
-  } catch {
-    ok("no CMake preset picker within 20 s (already selected or not prompted)");
-  }
+  // cmake.configureOnOpen is off in the image: no CMake Tools preset prompt
+  // and no Copilot chat side bar may greet the student.
+  await sleep(10_000);
+  const startupUi = await page.evaluate(() => {
+    const qi = document.querySelector(".quick-input-widget");
+    const qiVisible = qi && qi.style.display !== "none" && qi.getBoundingClientRect().height > 0;
+    const aux = document.getElementById("workbench.parts.auxiliarybar");
+    const auxVisible = aux && aux.getBoundingClientRect().width > 0 && !aux.classList.contains("hidden");
+    return {
+      prompt: qiVisible ? qi.querySelector("input")?.placeholder ?? "(quick input)" : null,
+      chatBar: !!auxVisible,
+      notifications: [...document.querySelectorAll(".notification-list-item-message")].map((e) => e.innerText),
+    };
+  });
+  await page.screenshot({ path: join(OUT, "01b-after-startup.png") });
+  if (startupUi.prompt) fail(`a prompt is open after startup: "${startupUi.prompt}"`);
+  if (startupUi.chatBar) fail("the secondary side bar (Copilot chat) is visible after startup");
+  ok(`no preset prompt, no chat side bar after startup (notifications: ${JSON.stringify(startupUi.notifications)})`);
   await page.keyboard.press("Escape");
 
   // 3. task "CaDS: Build" - force real work: drop the binary, touch a source

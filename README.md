@@ -46,7 +46,8 @@ It always exits 0.
 | `CaDS: Build` (default build) | `cmake --preset itsboard && cmake --build build/itsboard` |
 | `CaDS: Flash` | `st-flash write build/itsboard/cads-zero.bin 0x08000000 && st-flash reset` |
 | `CaDS: Build + Flash` | both, in sequence |
-| `CaDS: Host tests` (default test) | `cmake --preset host && cmake --build build/host && ctest --test-dir build/host` (headless SDL2) |
+| `CaDS: Host tests` (default test) | `cmake --preset host && cmake --build build/host && ctest --test-dir build/host -E '^golden_'` (headless SDL2) |
+| `CaDS: Golden images (informativ)` | the two golden-image tests, expected to differ by SDL rounding in the container (see notes) |
 | `CaDS: RAM budget` | `python3 scripts/check_ram_budget.py build/itsboard/cads-zero.elf` |
 
 `launch.json`: **Debug CaDS Zero (Board im Browser)** – cortex-debug, `servertype: external`,

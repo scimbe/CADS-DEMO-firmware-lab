@@ -34,9 +34,10 @@ actually does, what was verified and how, and where it deviates from the spec.
 - Login with the password → redirect to `/?folder=/home/coder/workspace/cads-zero`. ✔
 - Title `cads-zero — CaDS Firmware Lab`, no "Restricted Mode", Explorer shows the cads-zero tree, no notifications after a clean load; CMake Tools status bar present (shows "No Configure Preset Selected" until the student picks `itsboard`). ✔
 - `Tasks: Run Task` lists exactly `CaDS: Build`, `CaDS: Flash`, `CaDS: Host tests`, `CaDS: RAM budget`, `CaDS: Build + Flash`. ✔
-- CMake Tools prompts for a configure preset on first open (`cmake.configureOnOpen` + presets); the picker lists `ITSboard (STM32F429ZI)`, `Host (sim + unit tests)`; the script selects `itsboard` like a student would and CMake Tools configures `build/itsboard`. ✔
+- Earlier image: CMake Tools prompted for a configure preset on first open (picker listed `ITSboard (STM32F429ZI)`, `Host (sim + unit tests)`); selecting `itsboard` worked. Since `cmake.configureOnOpen=false`: **no prompt, no Copilot side bar, no notifications 10 s after the workbench loaded** (`ok - no preset prompt, no chat side bar after startup (notifications: [])`, screenshot `01b-after-startup.png`: Explorer + editor placeholder, tutor icon in the activity bar, CMake status bar items showing "No Configure Preset Selected"). ✔
+- Final image (after `git merge next`): `CaDS extensions installed: 1` → `cads.cads-tutor@0.1.0` listed by `code-server --list-extensions`; `/opt/cads-tutor/courses/` contains `cads-zero-foundations`, `cads-zero-projects` (98 files, no `_example*`). ✔
 - `CaDS: Build` started from the task picker: `ok - CaDS: Build produced cads-zero.bin (327076 bytes) in 14 s` (binary deleted and `targets/itsboard/main.c` touched beforehand, so the task really compiled and linked; three successful runs in total, one of them screenshot-documented with `Executing task: cmake --preset itsboard && cmake --build build/itsboard` in the task terminal). ✔
-- Terminal check `st-info --probe` inside the integrated terminal: **not completed in the browser on this machine**. The 2 GB Docker VM is shared with other streams' containers (`cads-lab-8085` 400–600 MB, `cads-tutor-e2e`, `fl-gate`, the old `firmware-lab` on 8083 ≈520 MB until the lead stopped it); whenever this container passes ≈600–850 MB (extension host + CMake Tools + clangd + ninja) the VM's OOM killer terminates it (docker events: `oom`, `die exit=137`; 12 restarts over the session, every browser run after the build step died this way). The same check passes via `docker exec` (see above). Repeat `node e2e/image-smoke.mjs` on the lab host; it is written to run end to end there.
+- Terminal check `st-info --probe` inside the integrated terminal: **not completed in the browser on this machine**. The 2 GB Docker VM is shared with other streams' containers (`cads-lab-8085` 400–600 MB, `cads-tutor-e2e`, `fl-gate`, the old `firmware-lab` on 8083 ≈520 MB until the lead stopped it); whenever this container passes ≈600–850 MB (extension host + CMake Tools + clangd + ninja) the VM's OOM killer terminates it (docker events: `oom`, `die exit=137`; 14 restarts over the session, every browser run after the build step died this way, the last one with four other streams' containers resident). The same check passes via `docker exec` (see above). Repeat `node e2e/image-smoke.mjs` on the lab host; it is written to run end to end there.
 
 ## Image size (Services host has ≈4.8 GB free disk)
 
@@ -88,16 +89,28 @@ local 2-GB VM tests). clangd is capped to 4 indexing workers with on-disk PCH st
   that execs the working gdb, so cads-zero's docs/scripts keep working by name. The rest of
   the toolchain (gcc, binutils, objcopy, nm, size) is unaffected – cortex-debug's
   `armToolchainPath` still points at `/opt/arm-gnu-toolchain/bin`.
+- **VSIX files are not in git.** Every `extensions/*/.gitignore` ignores `dist/` and `*.vsix`, so
+  a checkout has no VSIX; `scripts/run-local.sh` packages them (`npm ci && npm run package`) before
+  `docker build`, the CI `extensions` job does the same. A Docker build straight from a fresh
+  checkout yields "CaDS extensions installed: 0" – by design, not an error.
+- **CMake Tools does not configure on open** (`cmake.configureOnOpen=false`,
+  `cmake.automaticReconfigure=false`, lead decision 2026-09-02): the preset prompt on first open was
+  a hurdle. IntelliSense uses the seeded `build/itsboard/compile_commands.json` via clangd, the CaDS
+  tasks run cmake themselves. Students who want CMake Tools pick a preset in the status bar.
+- **Copilot chat hidden** (`chat.disableAIFeatures=true`, `workbench.secondarySideBar.defaultVisibility=hidden`).
+  `chat.commandCenter.enabled` does not exist in Code 1.135 (grep against
+  `workbench.web.main.internal.js`) and is therefore not set.
 - **Golden-image tests excluded from the image smoke test.** `ctest` in the host build
   passes 35/37; `golden_splash` and `golden_boot_desktop` differ by +1 on anti-aliased edge
   pixels (18866 and 14273 of 153600), which cads-zero's own ROADMAP (2026-09-01) root-caused
   to SDL's RGB565→24bpp conversion rounding differently per SDL build – the goldens were
   regenerated with the maintainer's SDL, Debian's SDL2 2.32 rounds differently. The image
   build runs `ctest -E '^golden_'` as the gate and the golden tests informationally. The
-  workspace task `CaDS: Host tests` runs the full suite, so students *will* see these two
-  failures. **Open for the courses stream / cads-zero maintainer:** either regenerate the
-  goldens inside the container (`update_golden` target) and commit them upstream, or teach
-  M8 (Qualität) to expect and explain the difference.
+  workspace task `CaDS: Host tests` runs `ctest -E '^golden_'` as well (lead decision
+  2026-09-02) and a separate task `CaDS: Golden images (informativ)` runs the two golden tests
+  with an explanatory note, so students see an honest green suite plus a labelled, expected
+  difference. Upstream fix would be regenerating the goldens inside the container
+  (`update_golden` target) – cads-zero maintainer's call.
 
 - **clangd binary installed from Debian (`clangd` 19).** The spec lists only the
   `llvm-vs-code-extensions.vscode-clangd` extension; without a binary it would try to download
