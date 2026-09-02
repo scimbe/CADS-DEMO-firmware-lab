@@ -27,11 +27,13 @@ FALLBACK_GDB="/usr/bin/gdb-multiarch"
 
 log() { echo "[cads-seed] $*"; }
 
+# Prints exactly one line (the path) on stdout - it is used via $(...); any
+# diagnostics go to stderr so they cannot leak into the sed substitution.
 pick_gdb() {
     if [ -x "$TOOLCHAIN_GDB" ] && "$TOOLCHAIN_GDB" --batch -ex 'show version' >/dev/null 2>&1; then
         echo "$TOOLCHAIN_GDB"
     else
-        log "toolchain gdb not usable here, cortex-debug will use $FALLBACK_GDB"
+        log "toolchain gdb not usable here, cortex-debug will use $FALLBACK_GDB" >&2
         echo "$FALLBACK_GDB"
     fi
 }
@@ -59,13 +61,18 @@ seed_workspace() {
 
 write_templates() {
     [ -d "$TEMPLATES" ] || { log "no templates at $TEMPLATES"; return 0; }
-    gdb="$(pick_gdb)"
+    gdb="$(pick_gdb | head -n 1)"
+    toolchain_bin="${CADS_ARM_TOOLCHAIN_BIN:-/opt/arm-gnu-toolchain/bin}"
     mkdir -p "$WS/.vscode" || return 1
     for name in settings tasks launch extensions; do
         [ -f "$TEMPLATES/$name.json" ] || continue
-        sed "s#__CADS_GDB_PATH__#$gdb#g; s#__CADS_TOOLCHAIN_BIN__#${CADS_ARM_TOOLCHAIN_BIN:-/opt/arm-gnu-toolchain/bin}#g" \
-            "$TEMPLATES/$name.json" > "$WS/.vscode/$name.json.tmp" \
-            && mv "$WS/.vscode/$name.json.tmp" "$WS/.vscode/$name.json"
+        if sed -e "s#__CADS_GDB_PATH__#$gdb#g" -e "s#__CADS_TOOLCHAIN_BIN__#$toolchain_bin#g" \
+                "$TEMPLATES/$name.json" > "$WS/.vscode/$name.json.tmp"; then
+            mv "$WS/.vscode/$name.json.tmp" "$WS/.vscode/$name.json"
+        else
+            log "failed to render $name.json"
+            rm -f "$WS/.vscode/$name.json.tmp"
+        fi
     done
     if [ -f "$TEMPLATES/clangd.yaml" ]; then
         cp "$TEMPLATES/clangd.yaml" "$WS/.clangd"
