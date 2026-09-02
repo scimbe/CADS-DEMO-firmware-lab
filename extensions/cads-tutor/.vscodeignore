@@ -1,0 +1,11 @@
+**
+!dist/extension.js
+!dist/content-packs/**
+!media/**
+!courses/**
+!package.json
+!README.md
+!LICENSE
+!CHANGELOG.md
+dist/*.vsix
+dist/*.map
