@@ -157,12 +157,20 @@ try {
 
   // 4. terminal + shim
   dexec("rm -f /tmp/e2e-st-info.txt");
-  await page.keyboard.press("Control+`");
+  await runCommand(page, "Terminal: Create New Terminal");
   await page.waitForSelector(".terminal-wrapper .xterm");
-  await sleep(2000);
-  await page.keyboard.type("st-info --probe > /tmp/e2e-st-info.txt 2>&1; echo exit=$? >> /tmp/e2e-st-info.txt; which st-flash >> /tmp/e2e-st-info.txt\n");
+  // Wait for the shell inside the pty (a bash prompt) before typing, otherwise
+  // keystrokes are lost; the shell shows up as a child of the pty host.
+  for (let i = 0; i < 30; i++) {
+    await sleep(1000);
+    if (dexec("pgrep -u coder -x bash | wc -l").trim() !== "0") break;
+  }
+  await sleep(1500);
+  await page.click(".terminal-wrapper .xterm");
+  await page.keyboard.type("st-info --probe > /tmp/e2e-st-info.txt 2>&1; echo exit=$? >> /tmp/e2e-st-info.txt; which st-flash >> /tmp/e2e-st-info.txt");
+  await page.keyboard.press("Enter");
   let probe = "";
-  for (let i = 0; i < 20 && !probe.includes("exit="); i++) {
+  for (let i = 0; i < 40 && !probe.includes("st-flash"); i++) {
     await sleep(1000);
     probe = dexec("cat /tmp/e2e-st-info.txt 2>/dev/null || true");
   }
@@ -183,6 +191,8 @@ async function runCommand(page, command) {
   await input.waitFor();
   // F1 may land in Quick Open on some builds - the ">" prefix forces the command palette.
   await input.fill(">" + command);
-  await page.waitForSelector(`.quick-input-list .monaco-list-row[aria-label="${command}"]`);
-  await page.click(`.quick-input-list .monaco-list-row[aria-label="${command}"]`);
+  // aria-label is "<command>" or "<command>, <keybinding>".
+  const row = `.quick-input-list .monaco-list-row[aria-label^="${command}"]`;
+  await page.waitForSelector(row);
+  await page.click(row);
 }
