@@ -1,36 +1,10 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
-import { ProbeService } from '../../cads-probe/src/driver/probe';
-import type { ProbeEvent, ProbeOp, ProbeResult } from '../../cads-probe/src/driver/types';
-import { MockStlinkDevice, MockTarget } from '../../cads-probe/test/mock-stlink';
 import { PacketParser, encodePacket, regToHex, unescapePayload } from '../src/rsp/packet';
-import { GdbSession, type GdbProbe, memoryMapXml, DEFAULT_MEMORY_MAP } from '../src/rsp/server';
+import { GdbSession, memoryMapXml, DEFAULT_MEMORY_MAP } from '../src/rsp/server';
+import { MockProbe } from './mock-probe';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-/** GdbProbe on top of the real ProbeService + simulated hardware. */
-export class MockProbe implements GdbProbe {
-  readonly target = new MockTarget();
-  readonly device = new MockStlinkDevice(this.target);
-  readonly service: ProbeService;
-  private listeners = new Set<(e: ProbeEvent) => void>();
-  constructor() {
-    this.service = new ProbeService({ emit: (e) => this.listeners.forEach((cb) => cb(e)), pollIntervalMs: 10 });
-  }
-  attach(): Promise<unknown> {
-    return this.service.attachUsb(this.device);
-  }
-  op(request: ProbeOp): Promise<ProbeResult> {
-    return this.service.op(request);
-  }
-  async batch(requests: ProbeOp[]): Promise<ProbeResult[]> {
-    return (await this.service.batch(requests)).results;
-  }
-  onEvent(cb: (e: ProbeEvent) => void): { dispose(): void } {
-    this.listeners.add(cb);
-    return { dispose: () => this.listeners.delete(cb) };
-  }
-}
 
 /** Collects replies; `ask()` sends a packet and waits for the next reply payload. */
 class TestConn {
@@ -134,8 +108,9 @@ describe('GdbSession against the simulated probe', () => {
     conn.session = session;
     await session.start();
   });
-  after(() => {
+  after(async () => {
     session.close();
+    await probe.service.detachUsb();
     probe.target.dispose();
   });
 
