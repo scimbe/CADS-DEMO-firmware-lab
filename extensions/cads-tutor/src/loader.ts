@@ -200,8 +200,14 @@ export function loadCoursePack(dir: string, origin: string): { course?: Course; 
   const curriculumFile = path.join(dir, "curriculum.json");
   if (isFile(curriculumFile)) {
     try {
-      const c = JSON.parse(fs.readFileSync(curriculumFile, "utf8"));
-      curriculum = Array.isArray(c) ? c : Object.values(c as Record<string, unknown[]>).flat();
+      const c = JSON.parse(fs.readFileSync(curriculumFile, "utf8")) as unknown;
+      // Accepted shapes: [..objectives], { objectives: [...] }, { <track>: [...] } (platform layout).
+      const raw = Array.isArray(c)
+        ? c
+        : c && typeof c === "object" && Array.isArray((c as { objectives?: unknown }).objectives)
+          ? (c as { objectives: unknown[] }).objectives
+          : Object.values((c ?? {}) as Record<string, unknown>).filter(Array.isArray).flat();
+      curriculum = raw.filter((o) => o && typeof o === "object" && typeof (o as { id?: unknown }).id === "string");
     } catch (err) {
       diagnostics.push({ level: "error", file: curriculumFile, message: `cannot read curriculum.json: ${err instanceof Error ? err.message : String(err)}` });
     }

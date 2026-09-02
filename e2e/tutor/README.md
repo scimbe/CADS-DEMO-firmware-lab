@@ -28,3 +28,17 @@ INFO /opt/cads-tutor/courses/_example: loaded course "example-course" v1.0.0 (4 
 Board-Bridge not installed – board/flash/serial checks report 'unavailable'
 check m0-01-welcome/hello [fileMatches] → passed: found /Hello ITS/ in apps/desktop/cads_desktop.c:24
 ```
+
+## Zweiter Lauf: echte Kurs-Packs (2026-09-02, nach Merge von `next`)
+
+`COURSES` unbesetzt → das Script kopiert `courses/cads-zero-foundations` und `courses/cads-zero-projects` nach
+`/opt/cads-tutor/courses`. Log: `loaded course "cads-zero-foundations" v1.0.0 (41 steps)`, `"cads-zero-projects" (6 steps)`,
+`0 error(s)`, `indexed 70 project file(s)`, `grounding: 2884 chunks`, `learning events: sqlite`.
+
+| # | Schritt | Erwartung | Beleg |
+|---|---|---|---|
+| 1 | Aktivierung ohne Session | Panel öffnet `m0-01-welcome` („Welcome to the CaDS firmware lab“, Step 1 of 41), Statusleiste zeigt den Step, Progress-View listet Plattform- und Pack-Objectives (`cz.*`) | `20-foundations-activation.png` |
+| 2 | Tree | Kurs → Module M0–M8 (Titel, Fortschritt 0/n) → Steps mit Sperr-Icons entlang `requires` | `21-foundations-modules.png` |
+| 3 | Sprachumschalter | „Willkommen im CaDS-Firmware-Labor“, Module auf Deutsch (M3 – Debugging als Handwerk …) | `22-foundations-german.png` |
+| 4 | `doc:docs/HARDWARE.md` | Markdown-Vorschau der cads-zero-Kopie öffnet sich | `23-doc-link.png` |
+| 5 | `step:` und `file:scripts/cads_env.sh#L28` | Step-Link springt zu m0-02 (gesperrt, Banner nennt den fehlenden Step); Datei-Link öffnet den Editor an Zeile 28 | `24-file-link.png` |

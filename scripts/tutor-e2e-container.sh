@@ -14,7 +14,10 @@ mkdir -p "$STAGE/ws/cads-zero" "$STAGE/opt/cads-tutor/courses" "$STAGE/tmp/e2e"
 rsync -a --exclude build --exclude .git "$SRC/" "$STAGE/ws/cads-zero/"
 mkdir -p "$STAGE/ws/cads-zero/build/itsboard"
 cp "$HERE/extensions/cads-tutor/test/fixtures/cads-zero.elf" "$STAGE/ws/cads-zero/build/itsboard/"
-cp -R "$HERE/extensions/cads-tutor/courses/_example" "$STAGE/opt/cads-tutor/courses/"
+# COURSES: space-separated pack dirs (default: the real packs from courses/, else the example pack)
+COURSES=${COURSES:-$(ls -d "$HERE"/courses/cads-zero-* 2>/dev/null | tr '\n' ' ')}
+[ -n "$COURSES" ] || COURSES="$HERE/extensions/cads-tutor/courses/_example"
+for c in $COURSES; do cp -R "$c" "$STAGE/opt/cads-tutor/courses/"; done
 cp "$VSIX" "$STAGE/tmp/e2e/cads-tutor.vsix"
 cat > "$STAGE/tmp/e2e/settings.json" <<'JSON'
 { "workbench.startupEditor": "none", "security.workspace.trust.enabled": false, "cadsTutor.autoOpen": true,

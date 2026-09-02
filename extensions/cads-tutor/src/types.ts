@@ -54,7 +54,8 @@ export type StepLink =
   | { url: string; title?: Localized };
 
 export interface SocraticHint {
-  /** e.g. "task:build:failed" – matches `task:<taskId>:failed`; "*" matches any task failure. */
+  /** `task:<taskId>:failed` (check failed), `task:<taskId>:stuck` (student asks for a hint),
+   * `question:<taskId>:weak` (rubric verdict fail), `event:<name>` (board/serial event), `*` (any). */
   trigger: string;
   question: Localized;
   hints: Localized[];
@@ -70,6 +71,10 @@ export interface StepFrontMatter {
   links: StepLink[];
   tasks: TaskSpec[];
   socratic: SocraticHint[];
+  /** Symbols the student is expected to create in this step (informational, from the pack). */
+  creates: string[];
+  /** Project files (relative to project.root) that ground this step's dialog; indexed for "ask" and check-ins. */
+  sources: string[];
 }
 
 export interface StepContent {

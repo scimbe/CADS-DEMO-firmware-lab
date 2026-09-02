@@ -34,7 +34,7 @@ import {
   stepStatus,
   writeSession,
 } from "./session";
-import { eventTrigger, hintTierForFailures, selectHint, taskFailedTrigger } from "./socratic";
+import { eventTrigger, hintTierForFailures, selectTaskHint } from "./socratic";
 import { CoursesTreeProvider, type TreeNode } from "./tree";
 import { loc, stepKey, type Course, type Lang, type LoadDiagnostic, type SessionState, type Step, type StepContent, type TaskSpec, type TaskStatus } from "./types";
 import { DebugStopTracker, ensureBridge, runShellTask, runTaskByLabel } from "./vscodeChecks";
@@ -273,6 +273,7 @@ export class TutorController implements vscode.Disposable {
       p = new TutorPlatform({
         course,
         packsDir: path.join(this.context.extensionPath, "dist", "content-packs"),
+        projectRoot: resolveProjectRoot(course, this.workspaceRoot),
         studentId: this.session.studentId,
         eventStore: this.eventStore?.store,
         memoryDir: path.join(os.homedir(), ".cads-tutor"),
@@ -404,6 +405,7 @@ export class TutorController implements vscode.Disposable {
       bloom: meta.bloom,
       estimatedMinutes: meta.estimatedMinutes,
       objectives: meta.objectives,
+      creates: meta.creates,
       status,
       lockedBy,
       bodyHtml: render(content.body),
@@ -418,7 +420,7 @@ export class TutorController implements vscode.Disposable {
   }
 
   private hintFor(content: StepContent, task: TaskSpec, failures: number, lang: Lang): HintView | undefined {
-    const h = selectHint(content.meta, taskFailedTrigger(task.id), failures, lang);
+    const h = selectTaskHint(content.meta, task.id, task.check.type, "failed", failures, lang);
     if (h) return { tier: h.tier, question: h.question, hint: h.hint };
     return undefined;
   }
@@ -595,7 +597,8 @@ export class TutorController implements vscode.Disposable {
 
       let hint: HintView | undefined;
       if (result.status === "failed") {
-        hint = await this.escalate(cur, task, rec.state.failures, result.message, opts.silent ?? false);
+        const reason = task.check.type === "question" && ctx.answerFor(taskId) ? "weak" : "failed";
+        hint = await this.escalate(cur, task, rec.state.failures, result.message, opts.silent ?? false, reason);
       }
       this.postTask(cur, task, result.status, result.message, hint);
       if (rec.stepCompleted || (!wasDone && stepStatus(this.session, cur.course, cur.step, this.courses) === "done")) {
@@ -691,11 +694,11 @@ export class TutorController implements vscode.Disposable {
   }
 
   /** Socratic escalation after a failure: authored hint tier n, else LLM/generic. */
-  private async escalate(cur: { course: Course; step: Step; content: StepContent }, task: TaskSpec, failures: number, message: string, silent: boolean): Promise<HintView | undefined> {
+  private async escalate(cur: { course: Course; step: Step; content: StepContent }, task: TaskSpec, failures: number, message: string, silent: boolean, reason: "failed" | "stuck" | "weak" = "failed"): Promise<HintView | undefined> {
     const tier = hintTierForFailures(failures);
     setHintTier(this.session, cur.course.manifest.id, cur.step.id, task.id, tier);
     this.saveSession();
-    const authored = selectHint(cur.content.meta, taskFailedTrigger(task.id), failures, this.lang);
+    const authored = selectTaskHint(cur.content.meta, task.id, task.check.type, reason, failures, this.lang);
     if (authored) return { tier: authored.tier, question: authored.question, hint: authored.hint };
     if (silent) return undefined;
     const s = ui(this.lang);
@@ -718,8 +721,11 @@ export class TutorController implements vscode.Disposable {
     const task = this.findTask(cur.step, taskId);
     if (!task) return;
     const state = getTaskState(getStepProgress(this.session, cur.course.manifest.id, cur.step.id), taskId);
-    const failures = Math.max(1, state.failures);
-    const hint = await this.escalate(cur, task, failures, state.message ?? "", false);
+    // Explicit hint requests escalate too (tier = requests so far + 1), and use the "stuck" trigger first
+    // unless the task actually failed.
+    const failures = Math.max(state.failures, state.hintTier + 1);
+    const reason = state.status === "failed" ? (task.check.type === "question" ? "weak" : "failed") : "stuck";
+    const hint = await this.escalate(cur, task, failures, state.message ?? "", false, reason);
     if (hint) this.postTask(cur, task, state.status, state.message, hint);
   }
 

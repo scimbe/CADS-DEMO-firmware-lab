@@ -36,7 +36,7 @@ describe("webview", () => {
   it("renders a step with CSP nonce, tasks, hint tier and language toggle", () => {
     const view: StepView = {
       lang: "de", courseId: "c", courseTitle: "Kurs", moduleTitle: "M0", stepId: "s", title: "Titel <x>", index: 0, total: 4, bloom: "apply",
-      estimatedMinutes: 5, objectives: ["o1"], status: "active", lockedBy: [], bodyHtml: "<p>hi</p>",
+      estimatedMinutes: 5, objectives: ["o1"], creates: [], status: "active", lockedBy: [], bodyHtml: "<p>hi</p>",
       links: [{ label: "Doc", link: { kind: "doc", path: "docs/x.md" } }],
       tasks: [
         { id: "a", title: "A", type: "fileMatches", status: "failed", message: "nope", hint: { tier: 2, question: "Q?", hint: "H" }, needsAnswer: false, manual: false, live: true },
