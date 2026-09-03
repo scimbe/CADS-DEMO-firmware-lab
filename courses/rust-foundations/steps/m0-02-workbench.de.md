@@ -70,6 +70,15 @@ Ohne das antwortet cargo mit `could not find Cargo.toml in /home/coder/workspace
 
 Zum Schließen eines Terminals drückst du das Papierkorbsymbol an seinem rechten Rand oder tippst `exit`. Es geht nichts verloren - ein Terminal hält keinen Zustand, den du brauchst. Öffne auf demselben Weg ein neues, und du bist wieder da, wo du warst.
 
+## Bilder zu diesen Schritten
+
+*Screenshots des Fensters, der Palette im Befehlsmodus und eines Terminals nach
+dem `cd` gehören hierher und fehlen noch.* Sie wurden in einem echten
+Laborcontainer aufgenommen, dürfen aber nicht ausgeliefert werden, solange das
+Tutor-Panel den falschen Kurs öffnet; `courses/rust-foundations/assets/README.md`
+nennt die vier Dateien und den Fehler. Alles, was sie zeigen würden, steht oben
+in Worten.
+
 ## Woran du erkennst, dass ein Befehl fertig ist
 
 Die Eingabeaufforderung erscheint wieder unter der Ausgabe. Solange sie fehlt, läuft der Befehl noch: ein blinkender Cursor ohne Eingabeaufforderung ist laufende Arbeit, kein Hänger. Das erste `cargo build` dauert ein paar Sekunden, weil die Crate einmal übersetzt wird; danach antwortet es sofort.

@@ -70,6 +70,14 @@ Without it, cargo answers `could not find Cargo.toml in /home/coder/workspace or
 
 To close a terminal, press the bin icon on its right-hand edge, or type `exit`. Nothing is lost - a terminal holds no state you need. Open a new one the same way and you are back where you were.
 
+## Pictures of these steps
+
+*Screenshots of the window, the palette in command mode and a terminal after
+the `cd` belong here and are not in yet.* They were captured from a real lab
+container but cannot be shipped while the tutor panel opens the wrong course;
+`courses/rust-foundations/assets/README.md` names the four files and the
+defect. Everything they would show is written out above.
+
 ## How you know a command has finished
 
 The shell prompt reappears underneath the output. Until it does, the command is still running: a blinking cursor with no prompt is work in progress, not a hang. The first `cargo build` takes a few seconds because the crate is compiled once; afterwards it answers immediately.
