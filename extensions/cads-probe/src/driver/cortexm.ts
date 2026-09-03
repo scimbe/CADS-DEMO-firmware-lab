@@ -295,8 +295,12 @@ export class CortexM {
     }
   }
 
-  /** Read arbitrary byte ranges: 8-bit head/tail, 32-bit body in ≤1024-byte transfers. */
-  async readMem(addr: number, size: number, checkStatus = true): Promise<Uint8Array> {
+  /**
+   * Read arbitrary byte ranges: 8-bit head/tail, 32-bit body in ≤1024-byte transfers.
+   * SWD-over-USB reads transiently return a non-OK status (see cads-zero CLAUDE.md, "retry a
+   * few times before escalating"); a read has no side effects, so retry the whole range once.
+   */
+  async readMem(addr: number, size: number, checkStatus = true, attempt = 0): Promise<Uint8Array> {
     if (size === 0) return new Uint8Array(0);
     const chunks: Uint8Array[] = [];
     let total = 0;
@@ -317,7 +321,13 @@ export class CortexM {
       chunks.push(await this.stlink.getMem8(addr + total, n));
       total += n;
     }
-    if (checkStatus) await this.checkRw('memory read', addr);
+    if (checkStatus) {
+      const status = await this.stlink.getLastRwStatus();
+      if (status !== 0x80) {
+        if (attempt < 2) return this.readMem(addr, size, checkStatus, attempt + 1);
+        throw new ProbeError(`memory read at 0x${hex32(addr)} failed (ST-Link status 0x${status.toString(16)})`, 'TARGET_FAULT');
+      }
+    }
     return concatBytes(chunks);
   }
 
