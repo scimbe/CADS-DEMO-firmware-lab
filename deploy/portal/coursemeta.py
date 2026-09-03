@@ -5,7 +5,7 @@ Loaded from ``courses/<id>/course.json`` plus the YAML front matter of
 ``courses/<id>/steps/<step>.de.md`` (only the three scalar keys we need are parsed;
 no YAML library).  Courses without a pack on disk (rust-foundations,
 javascript-foundations until their packs land) get placeholder steps
-``m0-01 .. m2-04`` so that analytics and the simulator work end to end.
+``m0-01 .. m5-04`` so that analytics and the simulator work end to end.
 """
 from __future__ import annotations
 
@@ -46,16 +46,27 @@ def _title(value, lang="de") -> str:
     return str(value or "")
 
 
+PLACEHOLDER_MODULES = 6
+PLACEHOLDER_STEPS_PER_MODULE = 4
+
+
 def placeholder_course(course_id: str) -> dict:
+    """A stand-in pack of ``m0-01 .. m5-04``.
+
+    The size matters: cohort statistics (percentile flags, first-attempt pass rates) need
+    enough checks per student to mean anything, and a six-module foundations course is what
+    the real packs look like.  The Bloom level advances by module and stops at "evaluate";
+    "create" belongs to a capstone project, which a placeholder does not have.
+    """
     modules = []
     steps: dict = {}
     order: list[str] = []
-    for mi in range(3):
+    for mi in range(PLACEHOLDER_MODULES):
         mid = f"m{mi}"
         sids = []
-        for si in range(1, 5):
+        for si in range(1, PLACEHOLDER_STEPS_PER_MODULE + 1):
             sid = f"{mid}-{si:02d}"
-            bloom = BLOOM_LEVELS[min(len(BLOOM_LEVELS) - 2, mi * 2 + (si - 1) // 2)]
+            bloom = BLOOM_LEVELS[min(len(BLOOM_LEVELS) - 2, mi)]
             steps[sid] = {"id": sid, "module": mid, "bloom": bloom,
                           "objectives": [f"{course_id}.{mid}"], "title": {"de": sid, "en": sid},
                           "estimatedMinutes": 15}

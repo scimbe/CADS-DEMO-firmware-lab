@@ -98,9 +98,14 @@ class EventSchemaTests(unittest.TestCase):
 class CourseMetaTests(unittest.TestCase):
     def test_placeholder(self):
         c = coursemeta.placeholder_course("javascript-foundations")
-        self.assertEqual(len(c["order"]), 12)
+        self.assertEqual(len(c["order"]),
+                         coursemeta.PLACEHOLDER_MODULES * coursemeta.PLACEHOLDER_STEPS_PER_MODULE)
+        # the Bloom level advances by module and stops at "evaluate"
         self.assertEqual(c["steps"]["m0-01"]["bloom"], "remember")
-        self.assertEqual(c["steps"]["m2-04"]["bloom"], "evaluate")
+        self.assertEqual(c["steps"]["m0-04"]["bloom"], "remember")
+        self.assertEqual(c["steps"]["m2-04"]["bloom"], "apply")
+        self.assertEqual(c["steps"]["m5-04"]["bloom"], "evaluate")
+        self.assertNotIn("create", {m["bloom"] for m in c["steps"].values()})
         self.assertTrue(c["placeholder"])
 
     def test_real_course_if_present(self):
@@ -194,7 +199,7 @@ class StepDifficultyTests(unittest.TestCase):
         self.assertEqual(rows["m0-02"]["opened"], 1)
         self.assertEqual(rows["m2-04"]["opened"], 0)
         self.assertGreater(an.difficulty_score(r), an.difficulty_score(rows["m0-02"]))
-        self.assertEqual(len(rows), 12)
+        self.assertEqual(len(rows), len(COURSE["order"]))
 
 
 class StudentMetricsTests(unittest.TestCase):
@@ -208,7 +213,7 @@ class StudentMetricsTests(unittest.TestCase):
         m = an.student_metrics(e, COURSE["order"], now=T0 + 3100 + 86400 * 2)[s]
         self.assertEqual(m["steps_opened"], 3)
         self.assertEqual(m["steps_done"], 2)
-        self.assertAlmostEqual(m["progress"], 2 / 12)
+        self.assertAlmostEqual(m["progress"], 2 / len(COURSE["order"]))
         self.assertEqual(m["steps_with_checks"], 2)
         self.assertEqual(m["first_pass_rate"], 0.5)
         self.assertEqual(m["mean_attempts"], 1.5)
@@ -363,9 +368,9 @@ class MasteryBloomTests(unittest.TestCase):
 
     def test_bloom(self):
         s = slug(1)
-        e = journey(s, "m0-01", 0) + journey(s, "m2-04", 100)
+        e = journey(s, "m0-01", 0) + journey(s, "m5-04", 100)
         rows = {r["level"]: r for r in an.bloom_coverage(e, COURSE)}
-        self.assertEqual(rows["remember"]["steps"], 2)
+        self.assertEqual(rows["remember"]["steps"], coursemeta.PLACEHOLDER_STEPS_PER_MODULE)
         self.assertEqual(rows["remember"]["done"], 1)
         self.assertEqual(rows["evaluate"]["done"], 1)
         self.assertEqual(rows["create"]["steps"], 0)

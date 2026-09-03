@@ -27,9 +27,10 @@ DEFAULT_THRESHOLDS: dict = {
     "dropped": {"inactiveDays": 14, "minStepsOpened": 1},
     "excellent": {
         "firstPassPercentile": 90,   # first-attempt pass rate >= this cohort percentile
+        "firstPassFloor": 0.85,      # and >= this absolute rate: "sehr gut" is not just "best of a weak cohort"
         "hintPercentileMax": 50,     # hints per step <= this cohort percentile
         "minMedianStepSeconds": 90,  # plausible working time
-        "minStepsWithChecks": 3,
+        "minStepsWithChecks": 5,     # enough checks that the rate is not a coin toss
     },
     "struggling": {
         "firstPassPercentile": 10,
@@ -39,7 +40,7 @@ DEFAULT_THRESHOLDS: dict = {
         "abandonRate": 0.3,
         "abandonMin": 2,
         "minIndicators": 2,
-        "minStepsWithChecks": 3,
+        "minStepsWithChecks": 5,     # three checks are a coin toss, not a trend
     },
     "cheat": {
         "fastPassSeconds": 60,
@@ -538,17 +539,18 @@ def compute_flags(events: list[dict], metrics: dict[str, dict], thresholds: Opti
         # ---- excellent ----------------------------------------------------------------------
         ex = th["excellent"]
         if (m["steps_with_checks"] >= ex["minStepsWithChecks"] and not strong
-                and rates and m["first_pass_rate"] >= p_ex and m["first_pass_rate"] > 0
+                and rates and m["first_pass_rate"] >= p_ex
+                and m["first_pass_rate"] >= ex["firstPassFloor"]
                 and m["hints_per_step"] <= p_hint
                 and m["median_step_time_s"] >= ex["minMedianStepSeconds"]):
             mine.append({"flag": "excellent", "label": {"de": "Sehr gut", "en": "Excellent"}, "reasons": [
                 {"strength": "strong", "evidence": {"first_pass_rate": m["first_pass_rate"], "p90": p_ex,
-                                                    "hints_per_step": m["hints_per_step"], "p50_hints": p_hint,
+                                                    "floor": ex["firstPassFloor"], "hints_per_step": m["hints_per_step"], "p50_hints": p_hint,
                                                     "median_step_time_s": m["median_step_time_s"]},
-                 "text": {"de": f"Erstversuch-Quote {m['first_pass_rate']:.0%} (obere 10 %: ≥ {p_ex:.0%}), "
+                 "text": {"de": f"Erstversuch-Quote {m['first_pass_rate']:.0%} (obere 10 %: ≥ {p_ex:.0%}, Mindestquote {ex['firstPassFloor']:.0%}), "
                                 f"{m['hints_per_step']:.2f} Hinweise/Step (Median {p_hint:.2f}), "
                                 f"mittlere Step-Zeit {m['median_step_time_s'] / 60:.0f} min (plausibel ≥ {ex['minMedianStepSeconds'] / 60:.1f} min)",
-                          "en": f"first-attempt pass rate {m['first_pass_rate']:.0%} (top 10 %: ≥ {p_ex:.0%}), "
+                          "en": f"first-attempt pass rate {m['first_pass_rate']:.0%} (top 10 %: ≥ {p_ex:.0%}, floor {ex['firstPassFloor']:.0%}), "
                                 f"{m['hints_per_step']:.2f} hints/step (median {p_hint:.2f}), "
                                 f"median step time {m['median_step_time_s'] / 60:.0f} min (plausible ≥ {ex['minMedianStepSeconds'] / 60:.1f} min)"}}]})
         # ---- struggling ----------------------------------------------------------------------
