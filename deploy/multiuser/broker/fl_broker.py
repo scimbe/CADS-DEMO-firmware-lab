@@ -47,7 +47,14 @@ HEARTBEAT_PATH = "/home/coder/.local/share/code-server/heartbeat"
 # Environment variables that are passed *by name* into every container
 # (docker reads the value from the broker's own environment, so the secret
 # never appears in an argument list or a label).
-PASSTHROUGH_ENV = ("TUTOR_LLM_BASE_URL", "TUTOR_LLM_API_KEY", "TUTOR_LLM_MODEL")
+#
+# CADS_TUTOR_TELEMETRY_* points the tutor extension at the teacher portal (SPEC A5).
+# The URL has to be reachable from *inside* a container, which is a different address
+# than the portal's own bind: host.docker.internal:3200 on Docker Desktop/Colima, the
+# bridge gateway (usually 172.17.0.1:3200) on Linux.  Leave both unset to switch
+# telemetry off - the extension then only writes its local event log.
+PASSTHROUGH_ENV = ("TUTOR_LLM_BASE_URL", "TUTOR_LLM_API_KEY", "TUTOR_LLM_MODEL",
+                   "CADS_TUTOR_TELEMETRY_URL", "CADS_TUTOR_TELEMETRY_TOKEN")
 
 
 # --------------------------------------------------------------------------- utils

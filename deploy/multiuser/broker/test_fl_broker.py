@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fl_broker as fb  # noqa: E402
 
 SECRET = "sk-super-secret-value"
+TELEMETRY_TOKEN = "tok-portal-secret-value"
 
 
 class FakeDocker:
@@ -135,6 +136,8 @@ class Clock:
 def make_broker(env=None, docker=None, clock=None):
     base = {"FL_IMAGE": "cads-firmware-lab:test", "FL_ADMIN_EMAILS": "Admin@Example.test",
             "TUTOR_LLM_BASE_URL": "https://llm.example/v1", "TUTOR_LLM_API_KEY": SECRET,
+            "CADS_TUTOR_TELEMETRY_URL": "http://host.docker.internal:3200",
+            "CADS_TUTOR_TELEMETRY_TOKEN": TELEMETRY_TOKEN,
             "FL_RESOLVE_CACHE_S": "0"}
     base.update(env or {})
     cfg = fb.Config(base)
@@ -176,6 +179,10 @@ class CreateTests(unittest.TestCase):
         self.assertNotIn(SECRET, " ".join(run))
         self.assertFalse(any("email" in a.lower() and "@" in a for a in run))
         self.assertNotIn("TUTOR_LLM_MODEL", run)           # unset -> not passed
+        # the portal's address and token reach the container the same way: by name
+        self.assertIn("CADS_TUTOR_TELEMETRY_URL", run)
+        self.assertIn("CADS_TUTOR_TELEMETRY_TOKEN", run)
+        self.assertNotIn(TELEMETRY_TOKEN, " ".join(run))
         img = run.index("cads-firmware-lab:test")
         self.assertEqual(run[img + 1:], ["--auth", "none", "--bind-addr", "0.0.0.0:8080",
                                          "--disable-workspace-trust", "/home/coder/workspace/cads-zero"])

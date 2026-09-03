@@ -26,7 +26,8 @@ fl-broker (Host-Prozess, Python-Stdlib, 127.0.0.1:3100) ─docker CLI─► fl-<
 | `compose.desktop.yml` | Override für Docker Desktop / Colima (bridged, `host.docker.internal`). |
 | `.env.example` | Alle Variablen (Gate, Agent, Broker, `TUTOR_LLM_*`). |
 | `install/fl-broker.service` | systemd-Unit (User `becke`, `EnvironmentFile`, `Restart=always`). |
-| `install/watchdog.sh` | Pidfile-Loop für Hosts ohne systemd-Nutzung. |
+| `install/fl-portal.service` | systemd-Unit für das Lehrenden-Portal (`deploy/portal/`, ohne Docker-Zugriff). |
+| `install/watchdog.sh` | Pidfile-Loop für Hosts ohne systemd-Nutzung; überwacht Broker **und** Portal. |
 | `test/stub_gate.py` | Stub des Keycloak-Gates für lokale Tests (niemals deployen). |
 | `agent/Dockerfile` | ct-agent-Image (identisch zu CADS-kali-desktop/agent). |
 
