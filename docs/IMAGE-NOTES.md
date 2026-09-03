@@ -98,6 +98,12 @@ local 2-GB VM tests). clangd is capped to 4 indexing workers with on-disk PCH st
   `cmake.automaticReconfigure=false`, lead decision 2026-09-02): the preset prompt on first open was
   a hurdle. IntelliSense uses the seeded `build/itsboard/compile_commands.json` via clangd, the CaDS
   tasks run cmake themselves. Students who want CMake Tools pick a preset in the status bar.
+- **CMake Tools kit scan disabled** (`cmake.enableAutomaticKitScan=false`, 2026-09-03, reported by
+  the docs stream): the first-activation kit scan ended in the notification "It is recommended to
+  reconfigure after upgrading to a new kits definition [Configure Now]" about 15 s after load
+  (`scanForKitsIfNeeded`: saved kits version ≠ 2 → scan → prompt). With presets as the only
+  mechanism the scan is pointless; off means "skip and update version", no kits file is written,
+  and the smoke test now asserts no notifications 30 s after load.
 - **Copilot chat hidden** (`chat.disableAIFeatures=true`, `workbench.secondarySideBar.defaultVisibility=hidden`).
   `chat.commandCenter.enabled` does not exist in Code 1.135 (grep against
   `workbench.web.main.internal.js`) and is therefore not set.
