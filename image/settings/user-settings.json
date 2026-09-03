@@ -48,6 +48,13 @@
   // noise for students; the CaDS tasks cover the workflow. Enum in cmake-tools
   // 1.23: visible | compact | icon | hidden.
   "cmake.options.statusBarVisibility": "hidden",
+  // build/launch/debug buttons default to "inherit" with inheritDefault
+  // "visible" and stayed on the status bar (verified) - hide them explicitly.
+  "cmake.options.advanced": {
+    "build": { "statusBarVisibility": "hidden" },
+    "launch": { "statusBarVisibility": "hidden" },
+    "debug": { "statusBarVisibility": "hidden" }
+  },
   "terminal.integrated.defaultProfile.linux": "bash",
   "git.openRepositoryInParentFolders": "never",
   "files.autoSave": "off"
