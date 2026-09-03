@@ -199,6 +199,11 @@
           "type": "string",
           "default": "",
           "description": "Modellname. Fallback für TUTOR_LLM_MODEL."
+        },
+        "cadsTutor.showAllCourses": {
+          "type": "boolean",
+          "default": false,
+          "description": "%configuration.properties.cadsTutor.showAllCourses.description%"
         }
       }
     },

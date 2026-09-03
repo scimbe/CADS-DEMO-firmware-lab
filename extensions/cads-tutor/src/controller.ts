@@ -13,7 +13,7 @@ import { failedTestNames } from "./checks/testParsers";
 import { DEFAULT_PREDICTION_MIN_CHARS, isLocalCheck, referencedFiles, runCheck, type CheckContext, type CheckResult } from "./checks/runner";
 import { openEventStore, type OpenedEventStore } from "./events";
 import { normalizeLang, ui } from "./i18n";
-import { loadCourses, orderedSteps, resolveProjectRoot, type ExtensionCourseContribution } from "./loader";
+import { coursesForFolders, loadCourses, orderedSteps, resolveProjectRoot, type ExtensionCourseContribution } from "./loader";
 import { createRenderer, type TutorLink } from "./markdown";
 import { PANEL_VIEW_TYPE, StepPanel } from "./panel";
 import { readLlmConfig, TutorPlatform, type AskOutcome } from "./platform";
@@ -143,9 +143,12 @@ export class TutorController implements vscode.Disposable {
       vscode.workspace.onDidSaveTextDocument((doc) => this.onSaved(doc)),
       vscode.workspace.onDidChangeConfiguration((e) => {
         if (e.affectsConfiguration("cadsTutor.extraCourseDirs")) this.reloadCourses();
+        if (e.affectsConfiguration("cadsTutor.showAllCourses")) this.reloadCourses();
         if (e.affectsConfiguration("cadsTutor.language")) this.renderCurrent(true);
       }),
-      vscode.extensions.onDidChange(() => this.scheduleReload())
+      vscode.extensions.onDidChange(() => this.scheduleReload()),
+      // Adding or removing a folder changes which courses belong to this window.
+      vscode.workspace.onDidChangeWorkspaceFolders(() => this.reloadCourses())
     );
     void this.connectBridge();
     this.updateStatusBar();
@@ -256,11 +259,30 @@ export class TutorController implements vscode.Disposable {
   reloadCourses(initial = false): void {
     const extra = vscode.workspace.getConfiguration("cadsTutor").get<string[]>("extraCourseDirs", []);
     const result = loadCourses({ workspaceRoot: this.workspaceRoot, extensionContributions: this.extensionContributions(), extraDirs: extra });
-    this.courses = result.courses;
     this.diagnostics = result.diagnostics;
     for (const d of result.diagnostics) this.log(`${d.level.toUpperCase()} ${d.file ? `${d.file}: ` : ""}${d.message}`);
     const errors = result.diagnostics.filter((d) => d.level === "error").length;
-    this.log(`courses: ${result.courses.map((c) => c.manifest.id).join(", ") || "(none)"}; ${errors} error(s)`);
+    this.log(`courses loaded: ${result.courses.map((c) => c.manifest.id).join(", ") || "(none)"}; ${errors} error(s)`);
+
+    // One link per track opens one workspace folder, and each link must show
+    // only its own course. Filtering here rather than in the loader keeps the
+    // diagnostics complete: everything that loaded is still reported.
+    const showAll = vscode.workspace.getConfiguration("cadsTutor").get<boolean>("showAllCourses", false);
+    const folders = (vscode.workspace.workspaceFolders ?? []).map((f) => f.uri.fsPath);
+    if (showAll) {
+      this.courses = result.courses;
+      this.log("showAllCourses is on: every loaded course is shown");
+    } else {
+      const { visible, matched } = coursesForFolders(result.courses, folders);
+      this.courses = visible;
+      if (matched) {
+        this.log(`courses shown for the opened folder(s) ${folders.join(", ")}: ${visible.map((c) => c.manifest.id).join(", ")}`);
+      } else if (result.courses.length > 0) {
+        // An arbitrary workspace folder must stay usable, and an empty tutor
+        // would look broken, so fall back to showing everything.
+        this.log(`no course's project.root matches the opened folder(s) ${folders.join(", ") || "(none)"} – showing all ${result.courses.length} course(s)`);
+      }
+    }
     this.platforms.clear();
     this.setupWatchers(result.watchedDirs);
     this.tree.refresh();

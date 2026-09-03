@@ -90,6 +90,8 @@ export interface TestCaseResult {
   depth: number;
   /** False for a parent test that only groups subtests (node --test files/suites). */
   leaf: boolean;
+  /** The entry is a whole test FILE that node reported as failed (it could not be loaded). */
+  file?: boolean;
 }
 
 /** Checks that need nothing but the file system / the workspace and are cheap to re-run on save. */

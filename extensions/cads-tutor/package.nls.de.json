@@ -29,5 +29,6 @@
   "walkthroughs.0.steps.3.description": "Mit F5 eine Debug-Sitzung starten und an einem Breakpoint anhalten.\n[Debug starten](command:workbench.action.debug.start)",
   "walkthroughs.0.steps.4.title": "5. Kurs im Tutor fortsetzen",
   "walkthroughs.0.steps.4.description": "Den geführten Kurs mit Aufgaben und Checks öffnen.\n[Tutor öffnen](command:cads.tutor.open)",
-  "commands.10.title": "Orientierung anzeigen"
+  "commands.10.title": "Orientierung anzeigen",
+  "configuration.properties.cadsTutor.showAllCourses.description": "Alle installierten Kurse anzeigen, auch solche, deren project.root zu keinem geöffneten Arbeitsordner passt."
 }
