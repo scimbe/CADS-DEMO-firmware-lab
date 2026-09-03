@@ -63,6 +63,10 @@ Without it, cargo answers `could not find Cargo.toml in /home/coder/workspace or
 
 2. **Command palette.** Press **F1**. In a browser this is more reliable than Ctrl+Shift+P, which the browser itself may keep. The palette opens in one of two modes and **remembers the one you used last**: without a leading `>` it searches files, with `>` it searches commands. So type `>Terminal: Create New Terminal`. If you forget the `>`, you get *No matching results* and nothing happens - that is the palette telling you it is looking for a file of that name.
 
+![The tutor panel's task list. The first task is ticked green and reads
+"exited with 0" under its Check button; the second is a question with a text
+box, a Submit answer button and a Show hint button.](task-check-result.png)
+
 3. **The Check button** in the tutor panel, next to a task. It runs that task's command for you and shows the output in the panel. It always uses the right folder, so it never needs the `cd`.
 
 To close a terminal, press the bin icon on its right-hand edge, or type `exit`. Nothing is lost - a terminal holds no state you need. Open a new one the same way and you are back where you were.

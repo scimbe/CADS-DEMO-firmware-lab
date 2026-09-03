@@ -29,6 +29,10 @@ misconceptions:
 
 Know what you are looking at, which command starts the work, and where a step's tests live - so that every later step is only about Rust, never about the tooling.
 
+![The lab window. On the left the CaDS Tutor panel lists the course Rust -
+Foundations with its modules M0 to M7; in the middle this step, with its Bloom
+badge, its scaffold badge and its task list.](tutor-panel-and-tree.png)
+
 ## What you see
 
 You are in a Rust *package* called `rust_foundations`. Everything the course asks you to do happens in this one folder. Four places matter:
@@ -44,7 +48,6 @@ Open a terminal in this folder and run:
 
 ```bash
 cargo --version
-cargo build
 ```
 
 `cargo --version` prints something like `cargo 1.94.0`. If it does not, nothing else in this course will work, and the problem is your environment, not your code. The next step, [Operating the workbench](step:m0-02-workbench), goes through the window region by region and through the three ways to run a command; this step only establishes that the toolchain answers at all.
