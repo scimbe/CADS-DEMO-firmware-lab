@@ -131,6 +131,59 @@ version; pin with `@<version>` if a build ever needs to be reproducible to the e
 this stream commits to `stream-tutorlab`, and the first run happens when the lead merges to
 `next`.
 
+## A starter workspace must fail its own tests (2026-09-03)
+
+The first build against the real workspaces (`stream-rust` `ac612c4`,
+`stream-js` `458bb1a`, tried locally before they reached `next`) failed, and the reason is
+worth writing down because it is a property of teaching content, not a bug in either stream.
+
+A starter workspace is the exercise *before* it is solved:
+
+| | Rust `rust-foundations` | JavaScript `javascript-foundations` |
+|---|---|---|
+| Exercise bodies | `todo!()` – compiles, panics when run | `throw new Error("TODO: …")` or the bug the step is about |
+| `cargo build` (lib + bins) | **succeeds** | n/a |
+| Test targets | 17 of 18 compile; `m1-03-copy-types` fails with E0277 until the student adds `#[derive(Copy)]` | n/a |
+| Whole suite | 1 of 70 tests passes | 8 of 73 tests pass |
+
+Two consequences the image had to absorb:
+
+- **`cargo test` and `node --test` are the wrong build gate.** They were, and they failed the
+  image build. A starter that passes its own tests is a course with nothing left to teach. The
+  gate is now `cargo build` (lib + bins): a starter whose library does not compile is broken for
+  everyone. Everything else – how many test targets compile, how many tests pass, clippy,
+  rustfmt, the `node --test` counts – is printed into the build log and never fatal, so a
+  regression is visible in CI without blocking the image.
+- **A whole-workspace `cargo test` reports nothing at all.** One test target that does not
+  compile aborts the run before any test executes, and `--no-fail-fast` does not help (it
+  continues past failing tests, not past a failing build). Both the seed stage and the smoke
+  test therefore work per target, which is also what a course `testSuite` check does. Students
+  who run a bare `cargo test` in the root will see only the E0277 from `m1-03` until they solve
+  that step – worth a sentence in the course text, and reported to the lead.
+
+The smoke test now asserts what can honestly be asserted: the runner executes, produces a
+result summary, and at least one test passes. That separates a broken toolchain (no summary,
+nothing passes) from unsolved exercises (summary, mostly red). Measured on the real content:
+`cargo test --test m0-02-first-test` 1 passed / 2 failed in 1 s, `node --test` 8 passed /
+65 failed of 73 in 2 s.
+
+## `target/` is no longer shipped (2026-09-03)
+
+The image used to carry the Rust `target/` directory so the first `cargo test` would be
+incremental. Measured against the real workspace, that trade is bad:
+
+| Measure | Value |
+|---|---|
+| `cargo build --tests` from cold | 7 s |
+| the same with the shipped `target/` | 1 s |
+| size of `target/` | 172 MB |
+
+The course has no dependencies at all, so there is nothing expensive to cache: 172 MB for six
+seconds, against a smoke-test budget of 60 s. The seed stage still builds at the runtime path –
+that is what makes cargo's absolute-path fingerprints reusable – and then deletes `target/`.
+`~/.cargo/registry` is still copied (it is empty today) so the mechanism is in place the moment
+a course takes its first dependency; re-measure then.
+
 ## Open dependencies (streams `rust` / `js`)
 
 `courses/rust-foundations`, `courses/javascript-foundations`, `workspaces/rust-foundations` and
