@@ -445,3 +445,13 @@ desynchronisierten Adapter, fährt sie automatisch eine Wiederherstellungskette 
 auf USB-Ebene, Debug-Modus neu betreten, Verbindungsaufbau mit gehaltenem Reset). Welche Schritte tatsächlich
 wirken, ist empirisch am realen Fehlerzustand zu ermitteln und in docs/BRIDGE-NOTES.md zu belegen. Erst wenn die
 Kette scheitert, erscheint die Aufforderung, das Kabel neu zu stecken, mit Schaltfläche zum erneuten Verbinden.
+
+## A7 Dokumentation je Tutor (2026-09-03, verbindlich)
+
+Jeder Tutor bekommt eine eigene, gleichwertig ausgearbeitete Nutzer-Dokumentation im Stil der Firmware-Doku
+(Diátaxis: Tutorials, How-to, Referenz, Erklärung, Fehlerhilfe; DE und EN mit identischen Kurzadressen,
+Bilder je Bedienhandlung), veröffentlicht über GitHub Pages, und auf der Demo-Übersichtsseite je Kachel
+verlinkt, sprachbewusst (Deutsch → /de/, Englisch → /en/). Betroffen: Firmware (vorhanden), Rust, JavaScript.
+Die Rust- und JavaScript-Doku entsteht nach Abschluss der Kurse; Quelle ist der jeweilige Kursinhalt, nicht
+eine Neuerfindung. Ein Tutor gilt erst als ausgeliefert, wenn seine Doku erreichbar und von der Kachel
+verlinkt ist.
