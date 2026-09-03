@@ -11,6 +11,11 @@
   // themselves; CMake Tools stays available for those who want it.
   "cmake.configureOnOpen": false,
   "cmake.automaticReconfigure": false,
+  // Presets are the only mechanism here; the kit scan on first activation
+  // ends in "It is recommended to reconfigure after upgrading to a new kits
+  // definition [Configure Now]" ~15 s after load (scanForKitsIfNeeded:
+  // kitsVersionSaved != 2 -> scan -> notification). Off = skip-and-update-version.
+  "cmake.enableAutomaticKitScan": false,
   "cadsTutor.autoOpen": true,
   "editor.formatOnSave": true,
   "clangd.path": "/usr/bin/clangd",

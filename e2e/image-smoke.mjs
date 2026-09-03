@@ -153,6 +153,14 @@ try {
   const porcelain = dexec(`git -C ${WS} status --porcelain -uall`).trim();
   if (porcelain) fail(`git status is not clean after seed:\n${porcelain}`);
   ok(`status bar has no CMake items and no pending changes (${JSON.stringify(statusbar)}); git status clean`);
+
+  // Late notifications (CMake Tools' kit scan used to pop up ~15 s after load).
+  await sleep(20_000);
+  const lateNotifications = await page.evaluate(() =>
+    [...document.querySelectorAll(".notification-list-item-message")].map((e) => e.innerText)
+  );
+  if (lateNotifications.length) fail(`notifications 30 s after load: ${JSON.stringify(lateNotifications)}`);
+  ok("still no notifications 30 s after load");
   await page.keyboard.press("Escape");
 
   // 3. task "CaDS: Build" - force real work: drop the binary, touch a source
