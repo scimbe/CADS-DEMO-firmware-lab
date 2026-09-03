@@ -246,6 +246,30 @@ REQUIRED_FIELDS = ["id", "title", "bloom", "objectives", "requires", "estimatedM
 
 FM_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 
+# Check types the shipped runtime can actually load. A pack that uses a type
+# outside this set still satisfies the SPEC, but extensions/cads-tutor drops the
+# whole step on the floor (schema.ts fails the check, loader.ts skips the file),
+# so the student silently gets a shorter course. Read the runtime's own list so
+# the two cannot drift apart unnoticed; if it cannot be read, warn rather than
+# guess.
+RUNTIME_TYPES_TS = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "extensions", "cads-tutor", "src", "types.ts",
+)
+
+
+def runtime_check_types(path=RUNTIME_TYPES_TS):
+    """Parse CHECK_TYPES out of the runtime's types.ts. None if unreadable."""
+    try:
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+    except OSError:
+        return None
+    m = re.search(r"CHECK_TYPES\s*:\s*readonly\s+CheckType\[\]\s*=\s*\[(.*?)\]", text, re.DOTALL)
+    if not m:
+        return None
+    return set(re.findall(r'"([A-Za-z]+)"', m.group(1))) or None
+
 
 class Report:
     def __init__(self):
@@ -324,7 +348,22 @@ def iter_check_paths(check):
                 yield from iter_check_paths(c)
 
 
-def validate_course(course_dir, root, symbols, report):
+def walk_check_types(check):
+    """Yield the type of this check and of every check nested inside it."""
+    if not isinstance(check, dict):
+        return
+    if check.get("type"):
+        yield check["type"]
+    if isinstance(check.get("then"), dict):
+        yield from walk_check_types(check["then"])
+    for key in ("checks", "all", "any"):
+        sub = check.get(key)
+        if isinstance(sub, list):
+            for c in sub:
+                yield from walk_check_types(c)
+
+
+def validate_course(course_dir, root, symbols, report, runtime_types=None):
     steps_dir = os.path.join(course_dir, "steps")
     course_json = os.path.join(course_dir, "course.json")
     name = os.path.basename(course_dir)
@@ -425,6 +464,19 @@ def validate_course(course_dir, root, symbols, report):
                 ctype = check.get("type")
                 if ctype not in CHECK_TYPES:
                     report.error(where, f"task '{task.get('id')}' check type '{ctype}' unknown")
+                for sub in walk_check_types(check):
+                    if runtime_types is not None and sub not in runtime_types:
+                        # Warning, not an error: the pack is SPEC-valid (addendum
+                        # v1.1) and the runtime is expected to catch up. But
+                        # today the runtime fails the check, the loader skips the
+                        # file, and the student silently gets a shorter course -
+                        # so this must never be invisible.
+                        report.warn(
+                            where,
+                            f"task '{task.get('id')}' uses check type '{sub}', which "
+                            f"extensions/cads-tutor/src/types.ts does not list - the runtime "
+                            f"will DROP this whole step until it implements the type",
+                        )
                 for kind, value in iter_check_paths(check):
                     if kind == "file":
                         if not repo_path_exists(root, value):
@@ -451,6 +503,7 @@ def main():
     ap.add_argument("--courses-dir", default=None, help="Directory holding the course packs")
     ap.add_argument("--elf", default=None, help="Path to cads-zero.elf")
     ap.add_argument("--nm", default=None, help="Path to arm-none-eabi-nm")
+    ap.add_argument("--no-runtime-check", action="store_true", help="Skip the check-type cross-check against extensions/cads-tutor/src/types.ts")
     args = ap.parse_args()
 
     root = os.path.abspath(args.project_root)
@@ -465,6 +518,7 @@ def main():
     nm = args.nm or "arm-none-eabi-nm"
 
     symbols = collect_symbols(nm, elf)
+    runtime_types = None if args.no_runtime_check else runtime_check_types()
     report = Report()
 
     print(f"validate-courses  (front-matter parser: {PARSER})")
@@ -473,6 +527,10 @@ def main():
     print(f"  elf          : {elf} {'[loaded]' if symbols is not None else '[unavailable]'}")
     if symbols is not None:
         print(f"  symbols read : {len(symbols)}")
+    if runtime_types is None:
+        print("  runtime types: [not checked]")
+    else:
+        print(f"  runtime types: {len(runtime_types)} from extensions/cads-tutor/src/types.ts")
     print()
 
     course_dirs = sorted(
@@ -481,7 +539,7 @@ def main():
         if os.path.isdir(os.path.join(courses_dir, d)) and os.path.exists(os.path.join(courses_dir, d, "course.json"))
     )
     for cdir in course_dirs:
-        validate_course(cdir, root, symbols, report)
+        validate_course(cdir, root, symbols, report, runtime_types)
 
     for w in report.warnings:
         print(f"WARN  {w}")

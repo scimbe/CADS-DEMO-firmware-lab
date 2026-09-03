@@ -14,13 +14,13 @@ sources: [targets/itsboard/hal/hal_io.c, targets/itsboard/hal/hal_gpio.h, docs/H
 tasks:
   - id: address-arithmetic
     title: Predict the address before you look it up
-    check: { type: predict, prompt: { en: "GPIOD sits at AHB1PERIPH_BASE + 0x0C00 and BSRR is at offset 0x18. Which address does GPIOD->BSRR have?", de: "GPIOD liegt bei AHB1PERIPH_BASE + 0x0C00, BSRR bei Offset 0x18. Welche Adresse hat GPIOD->BSRR?" }, then: { type: command, cwd: ".", command: "grep -n 'define AHB1PERIPH_BASE\\|define GPIOD_BASE\\|define RCC_BASE' lib/cmsis_device_f4/Include/stm32f429xx.h", expectExitCode: 0 }, rubric: "The prediction gives 0x40020C18, or shows the chain 0x40020000 + 0x0C00 + 0x18. A wrong number with a sound chain counts as a pass, provided the difference is named after the comparison.", bloom: understand }
+    check: { type: predict, prompt: { en: "GPIOE sits 0x400 above GPIOD, and ODR has offset 0x14. Which address does GPIOE->ODR have?", de: "GPIOE liegt 0x400 über GPIOD, ODR hat den Offset 0x14. Welche Adresse hat GPIOE->ODR?" }, then: { type: command, cwd: ".", command: "grep -n 'define PERIPH_BASE\\|define AHB1PERIPH_BASE\\|define GPIOE_BASE\\|uint32_t ODR;' lib/cmsis_device_f4/Include/stm32f429xx.h", expectExitCode: 0 }, rubric: "The prediction gives 0x40021014, or shows the chain 0x40020000 + 0x1000 + 0x14. A wrong number with a sound chain counts as a pass, provided the difference is named after the comparison.", bloom: understand }
   - id: why-volatile
     title: Explain what happens without volatile
     check: { type: question, prompt: { en: "Why does a register access need volatile?", de: "Warum braucht ein Registerzugriff volatile?" }, rubric: "Without volatile the compiler may remove or merge the access, because nothing in the source it can see reads or writes that value. With hardware the access itself is the effect, so every access must happen exactly as written and exactly as often.", bloom: understand }
   - id: register-naming
     title: Take the name RCC_AHB1ENR apart
-    check: { type: question, prompt: { en: "The name RCC_AHB1ENR has three parts. What does each one say?", de: "Der Name RCC_AHB1ENR besteht aus drei Teilen. Was sagt jeder aus?" }, rubric: "RCC = the peripheral unit (reset and clock control, which hands out the clocks), AHB1 = the internal bus the affected units hang off, ENR = the register's job (enable register, this is where things are switched on). Together: the enable register for everything on bus AHB1.", bloom: understand }
+    check: { type: question, prompt: { en: "Using the same pattern, what do RCC_APB2ENR and RCC_AHB1RSTR say?", de: "Was sagen nach demselben Muster RCC_APB2ENR und RCC_AHB1RSTR?" }, rubric: "RCC_APB2ENR is the enable register (ENR) for the units on bus APB2; RCC_AHB1RSTR is the reset register (RSTR) for the units on bus AHB1. In both, RCC is the unit, the middle part is the bus and the last part is the register's job. The answer must take both names apart, not just one.", bloom: understand }
 socratic:
   - { trigger: "task:address-arithmetic:stuck", question: { en: "Two additions in hex, nothing else. What is AHB1PERIPH_BASE as a number?", de: "Zwei Additionen im Hexsystem, mehr nicht. Welche Zahl ist AHB1PERIPH_BASE?" }, hints: [ { en: "The table 'Where the numbers come from' above gives every value you need.", de: "Die Tabelle „Woher die Zahlen kommen“ weiter oben nennt jeden Wert, den du brauchst." }, { en: "Add in hex column by column, from the right; there is no carry in this sum.", de: "Addiere im Hexsystem spaltenweise von rechts; in dieser Summe gibt es keinen Übertrag." }, { en: "Write the prediction down even if you are unsure — the point of this task is the comparison afterwards, not a perfect guess.", de: "Schreib die Vorhersage auch dann hin, wenn du unsicher bist — diese Aufgabe lebt vom Vergleich danach, nicht vom perfekten Raten." } ] }
   - { trigger: "question:why-volatile:weak", question: { en: "Imagine the compiler reading your code: it sees a value written and never read again. What is it allowed to do?", de: "Stell dir den Compiler beim Lesen deines Codes vor: er sieht einen Wert, der geschrieben und nie wieder gelesen wird. Was darf er damit tun?" }, hints: [ { en: "The compiler optimises for the program it can see. It cannot see the pin.", de: "Der Compiler optimiert für das Programm, das er sehen kann. Den Pin sieht er nicht." }, { en: "The section 'volatile: the word that keeps the access alive' argues it with the LED example.", de: "Der Abschnitt „volatile: das Wort, das den Zugriff am Leben hält“ führt es am LED-Beispiel vor." }, { en: "The key sentence has two halves: what the compiler is allowed to remove, and why with hardware the access itself is the effect.", de: "Der entscheidende Satz hat zwei Hälften: was der Compiler entfernen darf, und warum bei Hardware der Zugriff selbst die Wirkung ist." } ] }
@@ -43,7 +43,16 @@ The reason hardware is written this way: **one hex digit is exactly four bits.**
 | `3` | `0011` | | `c` | `1100` |
 | `7` | `0111` | | `f` | `1111` |
 
-A worked example you will need again in `m2-02`: `0x0301` in bits is `0000 0011 0000 0001`. Counting positions from the **right**, starting at zero, bits 0, 1 and 8 are set.
+A worked example you will need again in `m2-02`. `0x0301` has four hex digits, each standing for four bits:
+
+```
+  0     3     0     1     hex digits
+0000  0011  0000  0001   four bits each
+  ^     ^^    ^      ^
+ 15..12 11..8  7..4   3..0   bit numbers
+```
+
+Counting positions from the **right**, starting at zero, **bits 0, 8 and 9** are set. Arithmetically: 1 + 256 + 512 = 769, and `0x0301` is 769. Watch the trap: the digit `3` does *not* stand for bits 0 and 1, it stands for bits 8 and 9 — which bits a hex digit means depends on the place it sits in.
 
 And one notation that shows up everywhere: `1 << 3` means "take the number 1 and shift it three places to the left". `0001` becomes `1000` — exactly one bit set at position 3. That is how you write "the bit numbered *n*" without working out the number.
 
@@ -81,11 +90,13 @@ A compiler optimises for the program in front of it. If it sees a value written 
 
 For ordinary variables both are correct. For hardware both are fatal, because **the access itself is the effect**: the write *is* the switching on of the LED, and the second read may find a different value because somebody pressed a button in between. `volatile` tells the compiler: "Something is at work here that you cannot see. Perform every access exactly as written and exactly as often."
 
+Just as important is what `volatile` does **not** do: it protects the access from the compiler, but it does not make it indivisible. Two accesses stay two accesses, and something else can run in between. That is the reason for the `BSRR` register in `m2-02`.
+
 Without `volatile` the write disappears and the LED stays dark — no error, no warning. The code looks right and does nothing.
 
 ## How the names are built
 
-Nobody keeps addresses like `0x40023830` in their head, so the chip vendor gives them names. The names are built to a fixed pattern, and once you know the pattern you can read any further name without looking it up:
+Nobody keeps addresses like `0x40023830` in their head, so the chip vendor gives them names. For the registers that refer to a bus, those names are built to a fixed pattern:
 
 | Part | Example | What it says |
 |---|---|---|
@@ -95,11 +106,15 @@ Nobody keeps addresses like `0x40023830` in their head, so the chip vendor gives
 
 So `RCC_AHB1ENR` reads literally as **"the enable register for everything on bus AHB1".** By the same pattern `RCC_APB1ENR` is the enable register of the slower APB1 bus, and `RCC_AHB1RSTR` is the reset register of that same AHB1.
 
+The pattern holds for the bus-related registers, not for all of them. In the same part, other RCC registers are called simply `RCC_CR`, `RCC_CFGR` or `RCC_CSR` — two parts, no bus part, because they refer to no bus. Knowing the rule means knowing where it stops.
+
 The GPIO ports' own register names follow the pattern of their job too: `MODER` = mode register (a pin's direction), `IDR` = input data register (what is present right now), `ODR` = output data register (what is being driven), `BSRR` = bit set/reset register (set or clear individual bits without reading the others).
 
 ## Where the numbers come from
 
-The addresses are not arbitrary; they are base plus offset. Every value below is in `lib/cmsis_device_f4/Include/stm32f429xx.h`:
+The addresses are not arbitrary; they are base plus **offset**. An offset is a distance: the number you add to a base address to reach one particular register. Adding is done in hex place by place from the right, exactly as in decimal — as long as no place grows past `f`, only that one place changes: `0x40020000 + 0x0C00` gives `0x40020C00`.
+
+Every value below is in `lib/cmsis_device_f4/Include/stm32f429xx.h`:
 
 | Name | Value |
 |---|---|
@@ -125,7 +140,7 @@ RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOBEN | /* … */ RCC_AHB1EN
 (void)RCC->AHB1ENR;
 ```
 
-`RCC_AHB1ENR_GPIODEN` is nothing other than `1 << 3` — bit 3 of that register belongs to port D. The second line reads the register back and throws the value away. That looks pointless and is not: the write takes a few cycles to land on the bus, and reading it back forces it to be finished before the next line touches the port. Without `volatile` the compiler would be allowed to drop exactly that read-back — here you can see the reason at work.
+`RCC_AHB1ENR_GPIODEN` is nothing other than `1 << 3` — bit 3 of that register belongs to port D. The second line reads the register back and throws the value away. That looks pointless and is not: the clock enable only takes effect a few peripheral cycles after the write, and reading the same register back bridges exactly that gap before the next line touches the port. Without `volatile` the compiler would be allowed to drop exactly that read-back — here you can see the reason at work.
 
 The comment in the source also records why this is safe: switching a clock on changes no pin's direction at all.
 

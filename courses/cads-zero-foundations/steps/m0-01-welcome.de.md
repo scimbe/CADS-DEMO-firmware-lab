@@ -10,7 +10,6 @@ links:
   - { step: m0-02-connect }
   - { doc: "docs/HARDWARE.md" }
   - { doc: "docs/ROADMAP.md" }
-  - { url: "command:workbench.action.openWalkthrough?%22cads.cads-tutor%23cadsTutor.gettingStarted%22", title: "Bedienung: Erste Schritte im Fenster" }
 sources: [README.md, docs/HARDWARE.md, docs/ROADMAP.md]
 tasks:
   - id: oriented
@@ -45,6 +44,8 @@ Du siehst ein einziges Browser-Fenster. Darin steckt eine vollständige Programm
 ## Woran du erkennst, dass es geklappt hat
 
 Vor einer erledigten Aufgabe steht ein grüner Haken, und der linke Rand ihres Kastens wird grün. Sind alle Aufgaben eines Steps grün, wird der Knopf **Weiter** unten rechts aktiv, und der nächste Step in der Liste links ist nicht mehr grau. Bleibt etwas rot oder grau, ist der Step noch offen — das ist kein Fehler von dir, sondern nur der Stand der Dinge.
+
+Wenn du die Bedienung des Fensters noch einmal in Ruhe sehen willst: drücke `F1`, tippe *Welcome: Open Walkthrough* und wähle *CaDS Tutor*.
 
 **Wenn du nicht weiterkommst:** Bei jeder Aufgabe gibt es einen Knopf **Hinweis anzeigen**. Nutze ihn erst, wenn du es einmal selbst versucht hast — er wird mit jedem Klick konkreter. Hilft auch das nicht, ist das kein Scheitern: frag im Labor nach und nenne dabei die Step-Nummer aus der Kopfzeile dieses Panels.
 

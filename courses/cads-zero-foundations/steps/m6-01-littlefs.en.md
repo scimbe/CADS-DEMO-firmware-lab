@@ -24,7 +24,7 @@ tasks:
     check: { type: serialExpect, send: "u\n", pattern: "storage test: PASS", timeoutMs: 60000, bloom: understand }
   - id: erase-vs-watchdog
     title: Predict whether a format trips the watchdog
-    check: { type: predict, prompt: { en: "Formatting the volume erases seven 128 KB sectors one after another, and each erase blocks the calling thread. Predict whether the IWDG resets the board while that runs.", de: "Ein Format löscht sieben 128-KB-Sektoren nacheinander, und jedes Löschen blockiert den aufrufenden Thread. Sage voraus, ob der IWDG das Board dabei zurücksetzt." }, then: { type: command, cwd: ".", command: "grep -n -B3 -E 'CADS_FLASH_ERASE_TIMEOUT_MS|CADS_IWDG_RELOAD_VALUE' modules/storage/src/cads_flash_stm32f4.c targets/itsboard/hal/hal_watchdog.c", expectExitCode: 0 }, rubric: "The comparison puts two numbers side by side: the driver erase timeout (CADS_FLASH_ERASE_TIMEOUT_MS 4000 ms, with the comment that RM0090 gives a worst case under 2 s for the 128 KB sector) and the IWDG period (prescaler /64, RLR 1000, so about 2.048 s). Passes if the answer, after the comparison, explains why those do not contradict: the erase blocks the calling thread, not the CPU - the part is dual-bank, so code and interrupt handlers keep running from bank 1 and the 1 kHz tick hook feeds the IWDG throughout. A prediction of yes with that resolution passes just as one of no does.", bloom: understand }
+    check: { type: predict, prompt: { en: "Formatting the volume erases seven 128 KB sectors one after another, and each erase blocks the calling thread. Predict whether the IWDG resets the board while that runs.", de: "Ein Format löscht sieben 128-KB-Sektoren nacheinander, und jedes Löschen blockiert den aufrufenden Thread. Sage voraus, ob der IWDG das Board dabei zurücksetzt." }, then: { type: command, cwd: ".", command: "grep -n -B16 -E 'CADS_FLASH_ERASE_TIMEOUT_MS|CADS_IWDG_RELOAD_VALUE' modules/storage/src/cads_flash_stm32f4.c targets/itsboard/hal/hal_watchdog.c", expectExitCode: 0 }, rubric: "The comparison puts two numbers side by side: the driver erase timeout (CADS_FLASH_ERASE_TIMEOUT_MS 4000 ms, with the comment that RM0090 gives a worst case under 2 s for the 128 KB sector) and the IWDG period (prescaler /64, RLR 1000, so 2.0 s at a nominal 32 kHz - the source comment there says 2.048 s, which does not follow from 32 kHz; see M4-04). Passes if the answer, after the comparison, explains why those do not contradict, and does so in both halves. First: the wait in cads_flash_erase_sector() is a bare while(FLASH->SR & FLASH_SR_BSY) - it occupies the CPU completely, but it masks no interrupts and enters no critical section, so SysTick keeps firing and the 1 kHz tick hook feeds the IWDG throughout. Second: the part is dual-bank, the volume lives in bank 2, and erasing bank 2 does not stall instruction fetch from bank 1 - which is what lets the handler be fetched and executed at all. Missing either half does not pass; saying merely that the erase blocks the calling thread and not the CPU is too imprecise. A prediction of yes with that resolution passes just as one of no does.", bloom: understand }
   - id: why-safe
     title: Explain why a reflash cannot destroy the volume
     check: { type: question, prompt: { en: "Why can writing a new firmware image not erase the littlefs volume?", de: "Warum kann das Schreiben eines neuen Firmware-Images das littlefs-Volume nicht löschen?" }, rubric: "One reason is enough, but it has to be the mechanism: st-flash write sector-erases only the range it writes from 0x08000000 and never does a mass erase; or the image is size-checked against 1 MB before writing and cannot spill past bank 1; or the part is dual-bank, so bank 2 is a separate erase domain. Places the volume in bank 2 at 0x08120000 while doing so. An answer that only says the tool does not touch it does not pass.", bloom: understand }
@@ -57,7 +57,7 @@ littlefs is a small filesystem designed for raw flash that survives power loss m
 
 Three independent facts, **any one of which is enough**. Two of them are about the flash tool and are written up in `docs/SAFETY.md` §4: what exactly it erases before writing, and what it checks about the image beforehand. Read those two paragraphs — the third task of this step asks for one of them in your own words, with the address range.
 
-The third fact is here because you will need it again shortly: **the part is dual-bank.** Bank 2 is a separate erase domain, and the CPU can keep executing from bank 1 while bank 2 is being erased or programmed. That is also what lets the running firmware write its own files without stalling.
+The third fact hangs on no tool at all: **the part is dual-bank.** Bank 2, where the volume lives, is an erase domain of its own — what is erased there cannot reach bank 1.
 
 The same wall works in the other direction: the linker asserts the firmware fits in bank 1, and CI fails if any section lands above `0x08100000`.
 
@@ -65,7 +65,7 @@ The same wall works in the other direction: the linker asserts the firmware fits
 
 A format erases the volume's seven sectors one at a time, and a 128 KB sector is the largest erase unit on this part. The header says that takes "on the order of one second" and blocks the calling thread for that long (`modules/storage/include/cads/storage/flash.h`); the driver next to it cites RM0090's worst-case figure — under 2 s — and sets its own timeout generously above that (`modules/storage/src/cads_flash_stm32f4.c`).
 
-Put the number from M4-04 next to it: this board's IWDG runs with prescaler /64 and reload 1000, so it expires after roughly **2.048 s** (`targets/itsboard/hal/hal_watchdog.c`). Two magnitudes suspiciously close together. Whether that becomes a problem is the second task of this step — and the answer lies in the same property of the part that already carries point 3 above.
+Put the number from M4-04 next to it: this board's IWDG runs with prescaler /64 and reload 1000, so at a nominal 32 kHz it expires after **2.0 s** (`targets/itsboard/hal/hal_watchdog.c`; the comment there says 2.048 s — which of the two follows from the stated values is what you settled in M4-04). Two magnitudes suspiciously close together. Whether that becomes a problem is the second task of this step. Write your prediction down before you open the source — the comparison afterwards is where this task teaches.
 
 ## The gate you can run
 
@@ -73,4 +73,10 @@ The explorer command `u` is the M4 hardware gate: on a fresh volume it formats a
 
 ## Your task
 
-From the board console, run `u` and read its report (remember `board_key.py quit` if the board sits in the app tree). Then predict whether a format trips the watchdog and compare against the two constants in the source. Finally, the question of why a reflash leaves the volume intact. The next step opens the one file you will edit inside that volume.
+Open the board console so you can read along — you do not have to send anything: the **Check** button on this task sends `u` itself and waits for the answer. If the board is sitting in the app tree, run `python3 scripts/board_key.py quit` once in a terminal first. Then predict whether a format trips the watchdog and compare against the two constants in the source. Finally, the question of why a reflash leaves the volume intact. The next step opens the one file you will edit inside that volume.
+
+**Where you do this:**
+- Open a file: `Ctrl`/`Cmd`+`P`.
+- Open a terminal: menu *Terminal → New Terminal*.
+- Open the board console: `F1`, then *CaDS Board: Konsole öffnen*.
+- Build: menu *Terminal → Run Build Task…*.
