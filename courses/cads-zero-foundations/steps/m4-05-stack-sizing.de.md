@@ -5,6 +5,8 @@ bloom: analyze
 objectives: [cz.rtos.stack-sizing]
 requires: [m4-04-iwdg-watchdog]
 estimatedMinutes: 15
+scaffold: independent
+recallFrom: [m3-04-stack-guard]
 links:
   - { step: m5-01-canvas-draw }
   - { step: m3-04-stack-guard }
@@ -13,11 +15,15 @@ links:
   - { doc: "docs/reference/memory-map.md" }
 sources: [apps/bringup/tasks.c, docs/ROADMAP.md, docs/reference/memory-map.md, modules/kernel/src/kernel.c]
 tasks:
+  - id: ui-stayed-small
+    title: Sage voraus, welcher der drei Stacks nicht wachsen musste
+    check: { type: predict, prompt: { en: "input and console were both grown to 1024 words after real overflows. Predict the size of the third stack, ui, and the reason it was left as it was.", de: "input und console wurden nach echten Überläufen beide auf 1024 Worte vergrößert. Sage die Größe des dritten Stacks, ui, voraus und den Grund, aus dem er blieb, wie er war." }, then: { type: command, cwd: ".", command: "grep -nE 'define CADS_(UI|INPUT|CONSOLE)_STACK' apps/bringup/tasks.c", expectExitCode: 0 }, rubric: "Der Vergleich zeigt CADS_UI_STACK 512 gegen zweimal 1024. Bestanden, wenn die Vorhersage ui als die Task benennt, deren Stack ausschließlich projekteigenen Zeichencode trägt — eine Kette, die im Baum sichtbar und begrenzt ist —, während input und console fremde, app-spezifische Handler synchron ausführen. Eine falsche Zahl mit dieser Begründung besteht; die richtige Zahl ohne Begründung nicht.", bloom: analyze }
   - id: size-it
-    title: Dimensioniere einen Stack, wie es das Projekt tat
-    check: { type: question, prompt: { en: "Two task stacks in apps/bringup/tasks.c were resized after real overflows: CADS_CONSOLE_STACK 512->1024 words and CADS_INPUT_STACK 256->1024 words. Using the evidence each fix cites, explain how you would size a task stack in this firmware, and why spending CCM on it is the right trade even though the SRAM margin is a few hundred bytes.", de: "Zwei Task-Stacks in apps/bringup/tasks.c wurden nach echten Überläufen vergrößert: CADS_CONSOLE_STACK 512->1024 Worte und CADS_INPUT_STACK 256->1024 Worte. Erkläre anhand der zitierten Evidenz, wie du in dieser Firmware einen Task-Stack dimensionierst und warum CCM dafür der richtige Preis ist, obwohl die SRAM-Marge nur wenige hundert Byte beträgt." }, rubric: "Geht von dem aus, was tatsächlich auf dem Stack läuft, nicht von der eigenen Schleife der Task: die console-Task führt die gesamte App-Tree-Tick-Kette plus lwIPs DHCP-Zustandsmaschine bei net.dhcp=1 aus; die input-Task führt jeden App-Input-Handler synchron über cads_input_tick() aus. Evidenz: der Stack-Guard-Wächter im Idle-Hook faultete mit Müll-PC 0xF7FF0FF0 (console), und der Forensik-Ring hielt reason=input 22 ms vor einem HardFault fest (Marauder). Großzügig dimensionieren (2x/4x), Größen über Tasks angleichen, mit `k`-Höchstständen bestätigen. CCM trägt nur CPU-berührte Stacks und hatte ~54-59 KB von 64 KB frei; 2-3 KB dort kosten nichts vom DMA-fähigen SRAM-Heap, den check_ram_budget.py bewacht.", bloom: analyze }
+    title: Nenne das Kriterium
+    check: { type: question, prompt: { en: "What do you size a task stack against when the task runs handlers it does not own?", de: "Wogegen dimensionierst du den Stack einer Task, die Handler ausführt, die ihr nicht gehören?" }, rubric: "Gegen die tiefste fremde Aufrufkette, die auf diesem Stack landen kann — Bibliotheks-Zustandsmaschinen, Callbacks, App-Handler —, nicht gegen die eigene Schleife der Task. Verlangt einen Beleg statt einer Schätzung: den Höchststand aus dem Konsolenbefehl k, den Wächter im Idle-Hook oder den Forensik-Ring. Und eine Reserve, die dort großzügig ausfällt, wo der Speicher billig ist. Eine Antwort, die nur einen Faktor nennt, ohne zu sagen, wogegen gemessen wurde, besteht nicht.", bloom: analyze }
 socratic:
-  - { trigger: "question:size-it:weak", question: { en: "What code actually executes on the input task's stack when the Marauder menu is open - only the polling loop, or something deeper?", de: "Welcher Code läuft tatsächlich auf dem Stack der input-Task, wenn das Marauder-Menü offen ist - nur die Poll-Schleife oder etwas Tieferes?" }, hints: [ { en: "tasks.c's header comment: cads_input_tick() calls the active app's input handler synchronously via cads_input_set_callback().", de: "Kopfkommentar in tasks.c: cads_input_tick() ruft den Input-Handler der aktiven App synchron über cads_input_set_callback() auf." }, { en: "The console task's loop calls cads_net_poll() every tick; with net.dhcp=1 that is lwIP's DHCP state machine on the same stack.", de: "Die Schleife der console-Task ruft cads_net_poll() jeden Tick; mit net.dhcp=1 ist das die DHCP-Zustandsmaschine von lwIP auf demselben Stack." }, { en: "memory-map.md: CCM is no-DMA and holds only task stacks and the MSP; the 48 KB floor is about SRAM, not CCM.", de: "memory-map.md: CCM ist DMA-los und trägt nur Task-Stacks und den MSP; die 48-KB-Grenze betrifft SRAM, nicht CCM." } ] }
+  - { trigger: "task:ui-stayed-small:stuck", question: { en: "Whose code runs on the ui task's stack, and could a future app make that chain deeper without anyone touching the ui task?", de: "Wessen Code läuft auf dem Stack der ui-Task, und könnte eine künftige App diese Kette vertiefen, ohne dass jemand die ui-Task anfasst?" }, hints: [ { en: "Two of the three tasks call into code that is written by whoever wrote the app; one calls only into the canvas.", de: "Zwei der drei Tasks rufen Code auf, den schreibt, wer die App schreibt; eine ruft nur in das Canvas hinein." }, { en: "The header comment of apps/bringup/tasks.c names, per task, what runs on its stack.", de: "Der Kopfkommentar von apps/bringup/tasks.c nennt je Task, was auf ihrem Stack läuft." }, { en: "Write the prediction down even if you are unsure - this task lives on the comparison afterwards, not on a perfect guess.", de: "Schreib die Vorhersage auch dann hin, wenn du unsicher bist - diese Aufgabe lebt vom Vergleich danach, nicht vom perfekten Raten." } ] }
+  - { trigger: "question:size-it:weak", question: { en: "You are asked for a criterion, not a number. Against what would you have to measure before you could name any number at all?", de: "Gefragt ist ein Kriterium, keine Zahl. Wogegen müsstest du messen, bevor du überhaupt eine Zahl nennen könntest?" }, hints: [ { en: "Both overflows happened in tasks whose own loop is short. So the loop is not the quantity.", de: "Beide Überläufe trafen Tasks, deren eigene Schleife kurz ist. Die Schleife ist also nicht die Größe." }, { en: "The firmware has three places that report or record stack depth; name at least one and say what it tells you.", de: "Die Firmware hat drei Stellen, die Stacktiefe melden oder festhalten; nenne mindestens eine und sag, was sie dir verrät." }, { en: "A criterion has two halves: what you measure, and how much you add on top - and the second half depends on where the memory lives.", de: "Ein Kriterium hat zwei Hälften: was du misst und wie viel du darauf legst - und die zweite Hälfte hängt davon ab, wo der Speicher liegt." } ] }
 ---
 ## Lernziel
 
@@ -25,34 +31,28 @@ Lerne, einen FreeRTOS-Task-Stack aus Evidenz statt aus Gewohnheit zu dimensionie
 
 ## Die falsche Annahme
 
-`apps/bringup/tasks.c` beschrieb die input- und console-Tasks einst als „flach" gegenüber der UI-Task, die die Canvas-Aufrufkette trägt. Das M2-Gate schien zuzustimmen: Höchststände ui 224 B, input 132 B, console 372 B. Beide kleineren Tasks liefen später über. Der Fehler war, für die *eigene* Schleife der Task zu dimensionieren statt für **alles, was auf ihrem Stack läuft**.
+`apps/bringup/tasks.c` beschrieb die input- und console-Tasks einst als „flach" gegenüber der UI-Task, die die Canvas-Aufrufkette trägt. Das M2-Gate schien zuzustimmen: Höchststände ui 224 B, input 132 B, console 372 B. Beide kleineren Tasks liefen später über.
 
-## Fall 1: die console-Task und DHCP (2026-08-28)
+## Die Fallstudie kennst du schon
 
-Die App-Tree-Schleife der console-Task (`explorer_app_demo.c`) ruft jeden Tick `cads_net_poll()`. Mit `net.dhcp = 1` läuft dabei die DHCP-Client-Zustandsmaschine von lwIP — sichtbar tiefer als der Static-IP-Pfad — auf **demselben** 512-Wort-Stack, den die Schleife auch für die gesamte App-Tree-Tick-Kette nutzt (`cads_marauder_tick`, `cads_settings_service_config`, `cads_gui_tick`, …). `net.dhcp = 1` ließ das Board bei jedem Reset abstürzen.
+Wie ein Stack-Überlauf sich meldet — der Wächter im Idle-Hook, der Müll-PC `0xF7FF0FF0`, die Instruction-Fetch-Verletzung über eine zerstörte Rücksprungadresse — steht vollständig in **M3-04**. Hier wird sie nicht noch einmal erzählt, sondern benutzt. Falls dir der Ablauf entfallen ist, schlag dort nach; dieser Step fragt etwas anderes.
 
-Evidenz, live über SWD gefangen: `vApplicationIdleHook()` — die Stack-Guard-Wächterprüfung aus M3-04 — faultete mit einem Müll-PC `0xF7FF0FF0`, einer Instruction-Fetch-Verletzung über eine korrumpierte Rücksprungadresse. Das ist die Lehrbuch-Signatur eines Überlaufs, der schwer genug ist, genau den Code zu zerstören, der ihn erkennen soll. Zwei falsche Spuren (Dateisystem-Korruption, SWD-Flackern) wurden zuerst ausgeschlossen und stehen in `docs/ROADMAP.md`, damit niemand sie blind wiederholt.
+## Zwei Tasks, zwei Überläufe, ein Muster
 
-Korrektur: `CADS_CONSOLE_STACK` verdoppelt, 512 → 1024 Worte (2 KB → 4 KB). Bestätigt mit einem echten DHCP-Lease über zwei saubere Läufe und einem Forensik-Ring, der nicht wuchs.
+**console (2026-08-28).** Die App-Tree-Schleife der console-Task (`explorer_app_demo.c`) ruft jeden Tick `cads_net_poll()`. Mit `net.dhcp = 1` läuft dabei die DHCP-Client-Zustandsmaschine von lwIP auf demselben 512-Wort-Stack, den die Schleife auch für die gesamte App-Tree-Tick-Kette nutzt (`cads_marauder_tick`, `cads_settings_service_config`, `cads_gui_tick`, …). Korrektur: `CADS_CONSOLE_STACK` 512 → 1024 Worte. *Warum* ausgerechnet der DHCP-Pfad tiefer ist als der statische, ist die Frage von **M7-03** — nicht die dieses Steps.
 
-## Fall 2: die input-Task und das Marauder-Menü (2026-08-30)
+**input (2026-08-30).** `cads_input_tick()` ruft direkt den Input-Handler der aktiven App, synchron, auf dem Stack der input-Task. Die Menünavigation der Marauder-App war tief genug, das ursprüngliche 256-Wort-Budget zu sprengen — das kleinste der drei, obwohl es beliebige app-spezifische Tiefe trägt. Der Forensik-Ring (`E`) hielt den Wächtereintrag `reason=input` 22 ms vor dem HardFault fest. Korrektur: `CADS_INPUT_STACK` 256 → 1024 Worte, an die console-Größe angeglichen.
 
-`cads_input_tick()` ruft direkt den Input-Handler der aktiven App, synchron, auf dem Stack der input-Task. Die Menünavigation der Marauder-App — Befehlsformatierung und Zustandsverfolgung für das Koprozessor-UART-Protokoll — war tief genug, das ursprüngliche 256-Wort-Budget (1 KB) zu sprengen, das kleinste der drei, obwohl es beliebige App-spezifische Tiefe trägt.
-
-Evidenz: der Forensik-Ring (`E`) hielt einen `reason=input`-Eintrag des Stack-Guards 22 ms vor einem HardFault mit `HFSR = 0x80000000` (DEBUGEVT) — die `bkpt`-ohne-Debugger-Eskalation aus M3-03, aus einem ungeschützten `cads_hal_panic()`, im selben Zug behoben.
-
-Korrektur: `CADS_INPUT_STACK` vervierfacht, 256 → 1024 Worte, an die console-Größe angeglichen für eine konsistente statt minimale Marge.
+Das Gemeinsame: keine der beiden Tasks wurde von ihrer *eigenen* Schleife gesprengt.
 
 ## Warum die Korrekturen billig waren
 
-Task-Stacks liegen im CCM (`CADS_CCM_SECTION`, M4-01). CCM ist DMA-loser Speicher, der nur Stacks und den MSP trägt, und hatte vor der ersten Korrektur rund 59 KB von 64 KB frei, nach der zweiten ~54,7 KB. Die 2 KB und 3 KB kamen von dort — **kein einziges Byte** aus dem DMA-fähigen SRAM-Heap, dessen Marge `check_ram_budget.py` bei 256 B bewacht (M4-02). Wo der Speicher liegt, entscheidet, ob eine großzügige Korrektur bezahlbar ist.
+Task-Stacks liegen im CCM (`CADS_CCM_SECTION`, M4-01) — der Region, die für DMA unsichtbar ist und deshalb nur Stacks und den MSP trägt. Dort waren vor der ersten Korrektur rund 59 KB von 64 KB frei, nach der zweiten ~54,7 KB. Die 2 KB und 3 KB kamen von dort und **kein einziges Byte** aus dem DMA-fähigen SRAM-Heap, dessen 256-B-Marge `scripts/check_ram_budget.py` bewacht (M4-02). Wo der Speicher liegt, entscheidet, ob eine großzügige Korrektur bezahlbar ist.
 
-## Die Methode
+## Womit du prüfst
 
-1. Zähle auf, was wirklich auf dem Stack läuft: Callbacks, Polls, Bibliotheks-Zustandsmaschinen, nicht nur den Task-Rumpf.
-2. Lies die Evidenz, wenn es scheitert: den Wächter, den Forensik-Ring, den Fault-PC.
-3. Dimensioniere großzügig im CCM (2×–4×), halte Größen über Tasks konsistent, bestätige mit `k`. Der Feldeinsatz hat das letzte Wort — ein Build, der bloß läuft, ist kein Beweis.
+Drei Stellen dieser Firmware sagen etwas über Stacktiefe: der Konsolenbefehl `k` meldet die freien Höchststände aller drei Tasks, der Stack-Guard-Wächter im Idle-Hook schlägt an, bevor der Schaden endgültig ist, und der Forensik-Ring hält fest, welche Task zuletzt auffiel. Welche davon dir *vor* einem Absturz nützt und welche erst danach, ist der Unterschied zwischen Dimensionieren und Obduzieren.
 
 ## Deine Aufgabe
 
-Beantworte die Frage: dimensioniere einen Task-Stack so, wie es dieses Projekt tat, mit Evidenz und Speicheraufteilung.
+Erst eine Vorhersage: von den drei Task-Stacks musste einer nicht wachsen — welcher, und warum. Danach die Frage, die dieser Step wirklich stellt: wogegen dimensionierst du einen Stack, dessen Inhalt du nicht selbst geschrieben hast.

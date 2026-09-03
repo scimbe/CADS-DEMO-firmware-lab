@@ -54,6 +54,7 @@
         "en": "M2 – Memory-mapped I/O & GPIO"
       },
       "steps": [
+        "m2-00-mmio-primer",
         "m2-01-memory-map",
         "m2-02-mmio-gpio",
         "m2-03-buttons",
