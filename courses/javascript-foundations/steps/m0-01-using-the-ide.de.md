@@ -29,7 +29,7 @@ misconceptions:
   - pattern: "Cannot find module|no such file or directory|MODULE_NOT_FOUND"
     question: { en: "Node looked for the file where you started it. Which folder is the terminal sitting in?", de: "Node hat die Datei dort gesucht, wo du es gestartet hast. In welchem Ordner steht das Terminal?" }
     hints: [ { en: "Type pwd and press Enter; the path must end in javascript-foundations.", de: "Tippe pwd und drücke Enter; der Pfad muss auf javascript-foundations enden." }, { en: "cd javascript-foundations puts you there; ls then shows src, test and examples.", de: "cd javascript-foundations bringt dich dorthin; ls zeigt danach src, test und examples." }, { en: "Every command in this course is written relative to that folder, never to your home directory.", de: "Jeder Befehl dieses Kurses ist relativ zu diesem Ordner geschrieben, nie zum Home-Verzeichnis." } ]
-  - pattern: "command not found"
+  - pattern: ": not found|command not found"
     question: { en: "The shell could not find the program you typed. Was the whole line typed as written?", de: "Die Shell konnte das getippte Programm nicht finden. Wurde die ganze Zeile so getippt, wie sie dasteht?" }
     hints: [ { en: "node --version: all lower case, one space, two dashes.", de: "node --version: alles klein, ein Leerzeichen, zwei Bindestriche." }, { en: "Use the copy button at the top right of a code block in this panel instead of retyping.", de: "Nutze die Kopier-Schaltfläche rechts oben an einem Codeblock in diesem Panel, statt abzutippen." }, { en: "This workspace needs no npm install and no other tool - only node.", de: "Dieser Workspace braucht kein npm install und kein weiteres Werkzeug - nur node." } ]
   - pattern: "Set READY to true"

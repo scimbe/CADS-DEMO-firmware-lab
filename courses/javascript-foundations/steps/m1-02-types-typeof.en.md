@@ -26,7 +26,7 @@ tasks:
 socratic:
   - { trigger: "task:type-name:failed", question: { en: "Which value is still reported as object when it should have its own name?", de: "Welcher Wert wird noch als object gemeldet, obwohl er einen eigenen Namen bekommen soll?" }, hints: [ { en: "typeof cannot help here; both null and arrays answer object.", de: "typeof hilft hier nicht; sowohl null als auch Arrays antworten mit object." }, { en: "Test for null with a strict comparison, value === null, before anything else.", de: "Prüfe auf null mit einem strikten Vergleich, value === null, noch vor allem anderen." }, { en: "Arrays have their own test: Array.isArray(value).", de: "Arrays haben ihren eigenen Test: Array.isArray(value)." } ] }
 misconceptions:
-  - pattern: "object..!== ..null"
+  - pattern: "'object' !== 'null'"
     question: { en: "typeof answered object for a value that is not an object at all. Which one is it, and which check catches it?", de: "typeof hat object für einen Wert geantwortet, der gar kein Objekt ist. Welcher ist es, und welche Prüfung fängt ihn?" }
     hints: [ { en: "typeof null has been object since 1995 and cannot be changed without breaking the web.", de: "typeof null ist seit 1995 object und kann nicht geändert werden, ohne das Web zu brechen." }, { en: "Order matters: check null first, then arrays, then fall back to typeof.", de: "Die Reihenfolge zählt: erst null, dann Arrays, dann typeof als Rückfall." }, { en: "return value === null ? \"null\" : Array.isArray(value) ? \"array\" : typeof value;", de: "return value === null ? \"null\" : Array.isArray(value) ? \"array\" : typeof value;" } ]
   - pattern: "Cannot find module|MODULE_NOT_FOUND|Could not find '|no such file or directory"

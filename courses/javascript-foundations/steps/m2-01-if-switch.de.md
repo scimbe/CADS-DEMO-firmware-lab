@@ -27,7 +27,7 @@ tasks:
 socratic:
   - { trigger: "task:grade:failed", question: { en: "Which one is failing - the score exactly on a boundary, or the day that comes back as the wrong kind?", de: "Welcher schlägt fehl - die Punktzahl genau auf einer Grenze, oder der Tag, der als falsche Art zurückkommt?" }, hints: [ { en: "A score of exactly 80 must be a B. Which comparison excludes it?", de: "Genau 80 Punkte müssen ein B sein. Welcher Vergleich schließt das aus?" }, { en: "'sat' comes back as weekday: the weekend case assigns and then keeps running.", de: "'sat' kommt als weekday zurück: der Wochenend-Fall weist zu und läuft dann weiter." }, { en: "A case ends at break; without it, execution continues into the next case body.", de: "Ein case endet bei break; ohne break läuft die Ausführung in den nächsten case-Rumpf hinein." } ] }
 misconceptions:
-  - pattern: "weekday' !== 'weekend"
+  - pattern: "[+] 'weekday'"
     question: { en: "The weekend branch ran and then something overwrote its answer. What ends a case in JavaScript?", de: "Der Wochenend-Zweig lief, und dann hat etwas seine Antwort überschrieben. Was beendet einen case in JavaScript?" }
     hints: [ { en: "Cases do not end on their own; execution falls into the next case body.", de: "Ein case endet nicht von selbst; die Ausführung fällt in den nächsten case-Rumpf." }, { en: "Stacked case labels with no body between them are the deliberate use of that behaviour.", de: "Gestapelte case-Marken ohne Rumpf dazwischen sind die beabsichtigte Nutzung dieses Verhaltens." }, { en: "Add break after the weekend assignment.", de: "Ergänze break nach der Wochenend-Zuweisung." } ]
   - pattern: "'B' !== 'A'|'A' !== 'B'|'C' !== 'B'"
