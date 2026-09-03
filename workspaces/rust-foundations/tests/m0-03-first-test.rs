@@ -1,7 +1,7 @@
-//! Tests for step m0-02-first-test. Run: `cargo test --test m0-02-first-test`
-use rust_foundations::m0::m0_02_first_test::{add, greet};
+//! Tests for step m0-03-first-test. Run: `cargo test --test m0-03-first-test`
+use rust_foundations::m0::m0_03_first_test::{add, greet};
 
-mod m0_02_first_test {
+mod m0_03_first_test {
     use super::*;
 
     #[test]

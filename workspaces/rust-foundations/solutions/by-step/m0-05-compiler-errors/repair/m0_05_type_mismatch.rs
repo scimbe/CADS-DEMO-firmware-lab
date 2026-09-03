@@ -1,4 +1,4 @@
-// Reference solution for m0-04-compiler-errors.
+// Reference solution for m0-05-compiler-errors.
 //
 // Three E0308 diagnostics, three one-word fixes:
 //   1. `let name: String = "Ada";`  – a literal is a `&str`, not a `String`.

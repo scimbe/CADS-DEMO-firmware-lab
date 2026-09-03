@@ -30,6 +30,8 @@ socratic:
 misconceptions:
   - { pattern: "the trait bound `.*: From<std::io::Error>` is not satisfied|`\\?` couldn't convert the error", question: { en: "? cannot turn the I/O error into yours. Which impl is missing, and is the read really the line that needs it?", de: "? kann den E/A-Fehler nicht in deinen wandeln. Welches Impl fehlt, und ist das Lesen wirklich die Zeile, die es braucht?" }, hints: [ { en: "`impl From<std::io::Error> for WordstatError` is what makes `std::fs::read_to_string(path)?` compile in `run`.", de: "`impl From<std::io::Error> for WordstatError` macht `std::fs::read_to_string(path)?` in `run` übersetzbar." }, { en: "This is the same pattern as m5-04's From<ParseIntError>, with a different source type.", de: "Das ist dasselbe Muster wie From<ParseIntError> in m5-04, nur mit einem anderen Quelltyp." }, { en: "The variant should carry the original error so the message can print it.", de: "Die Variante sollte den ursprünglichen Fehler tragen, damit die Meldung ihn ausgeben kann." } ] }
   - { pattern: "error\\[E0507\\]: cannot move out of|error\\[E0502\\]", question: { en: "You are moving or mutating through a borrow of the map. Do you still need the map after building the ranking?", de: "Du verschiebst oder änderst durch eine Leihe der Map hindurch. Brauchst du die Map nach dem Bau der Rangfolge noch?" }, hints: [ { en: "`counts.into_iter()` consumes the map and hands you owned keys, which avoids cloning every word.", de: "`counts.into_iter()` verbraucht die Map und liefert besitzende Schlüssel, was das Klonen jedes Worts erspart." }, { en: "Compute `total_words` and `unique_words` from the map *before* you consume it.", de: "Berechne `total_words` und `unique_words`, *bevor* du die Map verbrauchst." }, { en: "`counts.iter().map(|(w, c)| (w.clone(), *c))` is the borrowing alternative when you must keep the map.", de: "`counts.iter().map(|(w, c)| (w.clone(), *c))` ist die leihende Alternative, wenn du die Map behalten musst." } ] }
+  - { pattern: "could not find `Cargo\\.toml`", question: { en: "cargo did not find a package. Which folder is your terminal in, and does that folder contain Cargo.toml?", de: "cargo hat kein Paket gefunden. In welchem Ordner steht dein Terminal, und liegt dort eine Cargo.toml?" }, hints: [ { en: "`pwd` prints the current folder; it has to be the rust-foundations workspace, the one holding Cargo.toml.", de: "`pwd` gibt den aktuellen Ordner aus; er muss der rust-foundations-Workspace sein, in dem die Cargo.toml liegt." }, { en: "A terminal opened with Terminal → New Terminal starts in the workspace folder; one you navigated away from does not.", de: "Ein über Terminal → Neues Terminal geöffnetes Terminal startet im Workspace-Ordner; eines, aus dem du herausnavigiert bist, nicht." }, { en: "The message names the folder cargo searched, so compare that path with where the file actually is.", de: "Die Meldung nennt den Ordner, in dem cargo gesucht hat; vergleiche diesen Pfad damit, wo die Datei wirklich liegt." } ] }
+  - { pattern: "no test target named", question: { en: "cargo knows no test target of that name. Is the name after --test exactly the step id, without the .rs?", de: "cargo kennt kein Testziel dieses Namens. Ist der Name hinter --test genau die Step-ID, ohne das .rs?" }, hints: [ { en: "cargo prints `a target with a similar name exists` and names it - that line is usually the whole answer.", de: "cargo gibt `a target with a similar name exists` aus und nennt es - diese Zeile ist meist die ganze Antwort." }, { en: "The target name is the file name in tests/ without the extension, and it matches the step id exactly.", de: "Der Zielname ist der Dateiname in tests/ ohne Endung und stimmt genau mit der Step-ID überein." }, { en: "`ls tests/` lists every name that is valid after --test.", de: "`ls tests/` listet jeden Namen auf, der hinter --test gültig ist." } ] }
 ---
 ## Lernziel
 
@@ -78,3 +80,23 @@ Der erste führt die neun Bibliothekstests aus. Der zweite führt das echte Bina
 ## Deine Aufgabe
 
 Implementiere alles in `src/project/wordstat.rs`. Arbeite von innen nach außen: zuerst `normalize`, dann `count_words`, dann `report`, dann die beiden `Display`-Impls, dann `run`. Führe nach jedem Schritt die Tests des Steps aus. Der letzte Step nimmt das Gebaute unter die Lupe.
+
+## So führst du das aus
+
+Öffne ein Terminal über das Menü **Terminal → Neues Terminal**, oder drücke **F1** (im Browser zuverlässiger als Strg+Umschalt+P), tippe `Terminal: Create New Terminal` und drücke die Eingabetaste. Das Terminal öffnet sich im Bereich unten, bereits im Workspace-Ordner. Führe dann aus:
+
+```bash
+cargo test --test m7-01-wordstat
+cargo run --quiet --bin wordstat -- samples/fox.txt 3
+cargo run --quiet --bin wordstat -- samples/nope.txt
+```
+
+Die Schaltfläche **Prüfen** neben der Aufgabe oben führt genau diese Befehle für dich aus und zeigt dieselbe Ausgabe im Tutor-Panel; das Terminal ist dafür da, dass du es selbst siehst und wiederholen kannst.
+
+**Was du siehst:** je Test eine Zeile `test … ok` oder `… FAILED`, danach die Zusammenfassung `test result: ok. 9 passed; 0 failed`, sobald du fertig bist.
+
+**Wie lange:** beim ersten Mal ein paar Sekunden, weil die Crate einmal übersetzt wird; bei jedem weiteren Lauf deutlich unter einer Sekunde.
+
+**Fertig ist es, wenn:** die Eingabeaufforderung unter der Ausgabe wieder erscheint. Solange sie fehlt, läuft der Befehl noch - ein blinkender Cursor ohne Eingabeaufforderung ist kein Hänger.
+
+**Wenn etwas nicht stimmt:** die Ausgabe steht im Reiter **Terminal** unten, nicht in **Problems** und nicht in **Output** - diese beiden zeigen anderes und sind der übliche Grund für „es passiert nichts". Hast du das Terminal versehentlich geschlossen, öffne auf demselben Weg ein neues; es geht nichts verloren. Antwortet cargo mit `could not find Cargo.toml`, steht das Terminal im falschen Ordner - wechsle mit `cd` zurück in den Workspace-Ordner.

@@ -175,9 +175,9 @@ citing ownership chunks for a cargo objective would be dishonest grounding.
 | Step | Module | Bloom | Scaffold | Automatic checks |
 |---|---|---|---|---|
 | m0-01-welcome | M0 | remember | worked | command ×2, question |
-| m0-02-first-test | M0 | apply | worked | testSuite, question |
-| m0-03-predict-output | M0 | understand | faded | predict → command, testSuite |
-| m0-04-compiler-errors | M0 | analyze | independent | command, question |
+| m0-03-first-test | M0 | apply | worked | testSuite, question |
+| m0-04-predict-output | M0 | understand | faded | predict → command, testSuite |
+| m0-05-compiler-errors | M0 | analyze | independent | command, question |
 | m1-01-scope-and-move | M1 | understand | worked | predict → command, testSuite |
 | m1-02-move-vs-clone | M1 | apply | faded | testSuite, question |
 | m1-03-copy-types | M1 | understand | faded | testSuite, question |

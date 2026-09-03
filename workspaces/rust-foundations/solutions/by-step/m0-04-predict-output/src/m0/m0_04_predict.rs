@@ -1,4 +1,4 @@
-//! Reference solution for m0-03-predict-output.
+//! Reference solution for m0-04-predict-output.
 
 /// Converts degrees Celsius to degrees Fahrenheit: F = C * 9/5 + 32.
 pub fn celsius_to_fahrenheit(c: f64) -> f64 {

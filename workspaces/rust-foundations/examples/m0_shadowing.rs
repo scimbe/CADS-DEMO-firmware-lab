@@ -1,4 +1,4 @@
-//! m0-03-predict-output: what does this program print?
+//! m0-04-predict-output: what does this program print?
 //! Run with `cargo run --example m0_shadowing`.
 fn main() {
     let x = 5;

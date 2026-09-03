@@ -1,4 +1,4 @@
-//! m0-03-predict-output: converting temperatures (exercise from the book,
+//! m0-04-predict-output: converting temperatures (exercise from the book,
 //! chapter 3 summary). `f64` is the 64-bit floating point type.
 
 /// Converts degrees Celsius to degrees Fahrenheit: F = C * 9/5 + 32.
