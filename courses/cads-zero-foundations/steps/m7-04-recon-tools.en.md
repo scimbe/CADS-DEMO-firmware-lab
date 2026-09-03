@@ -51,11 +51,11 @@ The commands, from `docs/reference/explorer-console.md`, all run for a bounded n
 
 ## How the DHCP watch decides
 
-`modules/toolbox/dhcpwatch.c` walks Ethernet → IPv4 (reading the IHL rather than assuming 20 bytes) → UDP → BOOTP/DHCP. It is **selective twice over**: it checks the direction from the UDP port pair and, on top of that, the DHCP message type inside the packet. Both conditions are stated in `dhcpwatch.h`; together they ensure a client's request is never taken for a server's reply. Each distinct server source lands in a fixed-capacity table, and `cads_dhcpwatch_table_multiple_servers()` (`dhcpwatch.h` line 102) reduces that table to a single boolean. Read the function and say in words what it returns true for — that is the second task of this step. The parser itself has 15 host unit-test cases (`tests/unit/test_dhcpwatch.c`) built from hand-constructed frames.
+`modules/toolbox/src/dhcpwatch.c` walks Ethernet → IPv4 (reading the IHL rather than assuming 20 bytes) → UDP → BOOTP/DHCP. It is **selective twice over**: it checks the direction from the UDP port pair and, on top of that, the DHCP message type inside the packet. Both conditions are stated in `modules/toolbox/include/cads/toolbox/dhcpwatch.h`; together they ensure a client's request is never taken for a server's reply. Each distinct server source lands in a fixed-capacity table, and `cads_dhcpwatch_table_multiple_servers()` (line 102 of that header) reduces that table to a single boolean. Read the function and say in words what it returns true for — that is the second task of this step. The parser itself has 15 host unit-test cases (`tests/unit/test_dhcpwatch.c`) built from hand-constructed frames.
 
 ## How the ARP watch decides
 
-`modules/toolbox/arpwatch.c` parses ARP claims and keeps an IP→MAC binding table. When a frame claims an IP that is already bound to a *different* MAC, the entry's `mac_changes` counter increments — that is the signature of arpspoof/ettercap-style cache poisoning. The header is conspicuously careful about what this means (`arpwatch.h` line 39): a changed binding is a **strong indicator, not proof**. Why that restraint is necessary — and what a tool that did not exercise it would be worth — is the third task of this step.
+`modules/toolbox/src/arpwatch.c` parses ARP claims and keeps an IP→MAC binding table. When a frame claims an IP that is already bound to a *different* MAC, the entry's `mac_changes` counter increments — that is the signature of arpspoof/ettercap-style cache poisoning. The header is conspicuously careful about what this means (`modules/toolbox/include/cads/toolbox/arpwatch.h` line 39): a changed binding is a **strong indicator, not proof**. Why that restraint is necessary — and what a tool that did not exercise it would be worth — is the third task of this step.
 
 ## What the bench actually saw
 
@@ -63,4 +63,10 @@ This is worth knowing before you expect drama: the development bench has no DHCP
 
 ## Your task
 
-Leave the app tree and run `R 20` on the console; the check waits for the summary line, not for entries — zero frames on a quiet cable passes it. Then answer the two analysis questions separately: which condition the DHCP watch flags, and why the ARP watch calls its finding an indicator.
+Open the board console so you can read along — you do not have to send anything: the **Check** button on this task sends `R 20` itself and waits for the answer. If the board is sitting in the app tree, run `python3 scripts/board_key.py quit` once in a terminal first. The check waits for the summary line, not for entries — zero frames on a quiet cable passes it. Then answer the two analysis questions separately: which condition the DHCP watch flags, and why the ARP watch calls its finding an indicator.
+
+**Where you do this:**
+- Open a file: `Ctrl`/`Cmd`+`P`.
+- Open a terminal: menu *Terminal → New Terminal*.
+- Open the board console: `F1`, then *CaDS Board: Konsole öffnen*.
+- Build: menu *Terminal → Run Build Task…*.

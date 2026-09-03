@@ -51,11 +51,11 @@ Die Befehle aus `docs/reference/explorer-console.md` laufen alle eine begrenzte 
 
 ## Wie die DHCP-Wache entscheidet
 
-`modules/toolbox/dhcpwatch.c` läuft Ethernet → IPv4 (liest die IHL, statt 20 Bytes anzunehmen) → UDP → BOOTP/DHCP ab. Sie ist dabei **zweifach wählerisch**: sie prüft die Richtung am UDP-Portpaar und zusätzlich den DHCP-Nachrichtentyp im Paket. Beide Bedingungen stehen in `dhcpwatch.h`; zusammen sorgen sie dafür, dass die Anfrage eines Clients nie für die Antwort eines Servers gehalten wird. Jede verschiedene Server-Quelle landet in einer Tabelle fester Kapazität, und `cads_dhcpwatch_table_multiple_servers()` (`dhcpwatch.h`, Zeile 102) fasst diese Tabelle zu einem einzigen Boolean zusammen. Lies die Funktion und sag in Worten, wofür sie wahr liefert — das ist die zweite Aufgabe dieses Steps. Der Parser selbst hat 15 Host-Unit-Test-Fälle (`tests/unit/test_dhcpwatch.c`) aus von Hand gebauten Frames.
+`modules/toolbox/src/dhcpwatch.c` läuft Ethernet → IPv4 (liest die IHL, statt 20 Bytes anzunehmen) → UDP → BOOTP/DHCP ab. Sie ist dabei **zweifach wählerisch**: sie prüft die Richtung am UDP-Portpaar und zusätzlich den DHCP-Nachrichtentyp im Paket. Beide Bedingungen stehen in `modules/toolbox/include/cads/toolbox/dhcpwatch.h`; zusammen sorgen sie dafür, dass die Anfrage eines Clients nie für die Antwort eines Servers gehalten wird. Jede verschiedene Server-Quelle landet in einer Tabelle fester Kapazität, und `cads_dhcpwatch_table_multiple_servers()` (dort Zeile 102) fasst diese Tabelle zu einem einzigen Boolean zusammen. Lies die Funktion und sag in Worten, wofür sie wahr liefert — das ist die zweite Aufgabe dieses Steps. Der Parser selbst hat 15 Host-Unit-Test-Fälle (`tests/unit/test_dhcpwatch.c`) aus von Hand gebauten Frames.
 
 ## Wie die ARP-Wache entscheidet
 
-`modules/toolbox/arpwatch.c` parst ARP-Ansprüche und hält eine IP→MAC-Bindungstabelle. Beansprucht ein Frame eine IP, die bereits an eine *andere* MAC gebunden ist, erhöht sich der Zähler `mac_changes` des Eintrags — das ist die Signatur von arpspoof-/ettercap-artiger Cache-Vergiftung. Der Header ist auffallend vorsichtig damit, was das bedeutet (`arpwatch.h`, Zeile 39): eine geänderte Bindung ist ein **starker Indikator, kein Beweis**. Warum diese Zurückhaltung nötig ist — und was ein Werkzeug wert wäre, das sie nicht übt —, ist die dritte Aufgabe dieses Steps.
+`modules/toolbox/src/arpwatch.c` parst ARP-Ansprüche und hält eine IP→MAC-Bindungstabelle. Beansprucht ein Frame eine IP, die bereits an eine *andere* MAC gebunden ist, erhöht sich der Zähler `mac_changes` des Eintrags — das ist die Signatur von arpspoof-/ettercap-artiger Cache-Vergiftung. Der Header ist auffallend vorsichtig damit, was das bedeutet (`modules/toolbox/include/cads/toolbox/arpwatch.h`, Zeile 39): eine geänderte Bindung ist ein **starker Indikator, kein Beweis**. Warum diese Zurückhaltung nötig ist — und was ein Werkzeug wert wäre, das sie nicht übt —, ist die dritte Aufgabe dieses Steps.
 
 ## Was die Werkbank tatsächlich sah
 
@@ -63,4 +63,10 @@ Das solltest du wissen, bevor du Drama erwartest: die Entwicklungs-Werkbank hat 
 
 ## Deine Aufgabe
 
-Verlasse den App-Baum und führe `R 20` auf der Konsole aus; der Check wartet auf die Zusammenfassungszeile, nicht auf Einträge — null Frames an einem stillen Kabel bestehen ihn. Beantworte danach die zwei Analysefragen getrennt: welche Bedingung die DHCP-Wache meldet, und warum die ARP-Wache ihren Befund einen Indikator nennt.
+Öffne die Board-Konsole, damit du mitliest — senden musst du nichts: der Knopf **Prüfen** an dieser Aufgabe schickt `R 20` selbst und wartet auf die Antwort. Steht das Board im App-Baum, führe vorher einmal `python3 scripts/board_key.py quit` in einem Terminal aus. Der Check wartet auf die Zusammenfassungszeile, nicht auf Einträge — null Frames an einem stillen Kabel bestehen ihn. Beantworte danach die zwei Analysefragen getrennt: welche Bedingung die DHCP-Wache meldet, und warum die ARP-Wache ihren Befund einen Indikator nennt.
+
+**Wo du das machst:**
+- Datei öffnen: `Strg`/`Cmd`+`P`.
+- Terminal öffnen: Menü *Terminal → New Terminal*.
+- Board-Konsole öffnen: `F1`, dann *CaDS Board: Konsole öffnen*.
+- Bauen: Menü *Terminal → Run Build Task…*.
