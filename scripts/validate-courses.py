@@ -19,6 +19,17 @@ What it checks, per the task brief:
      student is meant to add - it does not exist yet, by design).
   5. Bilingual: every step has both a .de.md and a .en.md file.
   6. Bloom: every step's `bloom:` is one of the six allowed levels.
+  7. Addendum v1.1: `command`/`testSuite`/`predict` checks (fields, `predict.then`
+     recursively), `scaffold`, `recallFrom` targets, `misconceptions[].pattern`
+     compiles, `socratic` triggers (`test:<name>:failed`, `output:<regex>`), and
+     `modules[].reflection.prompts` in course.json.
+  8. `--solutions DIR`: every top-level `testSuite`/`command` check is executed
+     twice in a scratch copy of PROJECT_ROOT - without the solution it must FAIL,
+     with DIR overlaid (same relative paths) it must PASS. Skipped with a note
+     when the toolchain binary the command runs (leading `VAR=value`
+     assignments skipped) is not installed.
+     A check that legitimately passes on the seed opts out with
+     `seedMustFail: false`.
 
 PyYAML is used when present; otherwise a self-contained parser for the
 front-matter subset these packs use takes over, so the validator runs on a
@@ -26,17 +37,23 @@ bare Python 3 (stdlib only).
 
 Usage:
     scripts/validate-courses.py PROJECT_ROOT [--courses-dir DIR] [--elf PATH] [--nm PATH]
+                                [--solutions DIR] [--only COURSE]
 
-PROJECT_ROOT is the checkout of the firmware (github.com/scimbe/cads-zero).
+PROJECT_ROOT is the checkout of the firmware (github.com/scimbe/cads-zero) or,
+for the Rust/JavaScript tracks, the seed workspace (workspaces/<track>/).
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
+import shlex
+import shutil
 import subprocess
 import sys
+import tempfile
 
 # --- front-matter parsing ---------------------------------------------------
 
@@ -110,7 +127,11 @@ except ImportError:
         while i < n and s[i] not in stop:
             buf.append(s[i])
             i += 1
-        return "".join(buf).strip(), i
+        # Bare flow scalars get the same typing as bare block scalars, so that
+        # `{ expectExitCode: 0 }` and a block `expectExitCode: 0` both yield the
+        # int PyYAML would yield. Without this the two parsers disagree and
+        # type-checking rules (expectExitCode, minPass, timeoutMs) fire spuriously.
+        return _strip_scalar("".join(buf)), i
 
     def _strip_scalar(v: str):
         v = v.strip()
@@ -118,8 +139,12 @@ except ImportError:
             return v[1:-1]
         if re.fullmatch(r"-?\d+", v):
             return int(v)
+        if re.fullmatch(r"-?\d+\.\d+", v):
+            return float(v)
         if v in ("true", "false"):
             return v == "true"
+        if v in ("null", "~", ""):
+            return None if v != "" else ""
         return v
 
     def _indent(line: str) -> int:
@@ -234,6 +259,10 @@ CHECK_TYPES = {
     "command", "testSuite", "predict",
 }
 REQUIRED_FIELDS = ["id", "title", "bloom", "objectives", "requires", "estimatedMinutes", "tasks"]
+SCAFFOLD_LEVELS = {"worked", "faded", "independent"}
+TEST_RUNNERS = {"cargo", "node-test", "tap", "custom"}
+TRIGGER_RE = re.compile(r"^(\*|task:[^:\s]+:(failed|stuck)|question:[^:\s]+:weak|event:[a-z-]+|test:.+:failed|output:.+)$", re.S)
+DEFAULT_PROBE_TIMEOUT_MS = 120000
 
 FM_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 
@@ -308,15 +337,187 @@ def iter_check_paths(check):
                 yield from iter_check_paths(c)
 
 
-def validate_course(course_dir, root, symbols, report):
+def _is_localized(v):
+    if isinstance(v, str):
+        return v.strip() != ""
+    if isinstance(v, dict):
+        return any(isinstance(v.get(k), str) and v[k].strip() for k in ("de", "en"))
+    return False
+
+
+def _compile(pattern, where, what, report, flags=""):
+    """Python `re` is close enough to JS RegExp for the patterns packs use; a
+    compile failure here is a real error, a success is a strong hint."""
+    try:
+        re.compile(str(pattern))
+    except re.error as exc:
+        report.error(where, f"{what} /{pattern}/ does not compile: {exc}")
+        return False
+    return True
+
+
+def _relative_cwd_ok(cwd):
+    if not isinstance(cwd, str):
+        return False
+    if cwd.startswith("/") or cwd.startswith("\\"):
+        return False
+    return ".." not in re.split(r"[\\/]", cwd)
+
+
+def validate_check(check, where, task_id, report, depth=0):
+    """Schema of one check (Addendum v1.1 types included), recursing into
+    all/any/predict.then. Returns the check type or None."""
+    if not isinstance(check, dict):
+        report.error(where, f"task '{task_id}' check is not a map")
+        return None
+    ctype = check.get("type")
+    label = f"task '{task_id}'" + (" (nested)" if depth else "")
+    if ctype not in CHECK_TYPES:
+        report.error(where, f"{label} check type '{ctype}' unknown")
+        return None
+    if ctype in ("fileMatches", "fileNotMatches", "serialExpect"):
+        if not check.get("pattern"):
+            report.error(where, f"{label}: {ctype} needs 'pattern'")
+        else:
+            _compile(check["pattern"], where, f"{label} pattern", report)
+    if ctype == "command":
+        if not isinstance(check.get("command"), str) or not check["command"].strip():
+            report.error(where, f"{label}: command needs a non-empty 'command'")
+        if "cwd" in check and not _relative_cwd_ok(check["cwd"]):
+            report.error(where, f"{label}: cwd '{check.get('cwd')}' must be relative and inside the project root")
+        for key in ("expectStdout", "expectStderr"):
+            if key in check and check[key] not in (None, ""):
+                _compile(check[key], where, f"{label} {key}", report)
+        if "expectExitCode" in check and not isinstance(check["expectExitCode"], int):
+            report.error(where, f"{label}: expectExitCode must be an integer")
+        if "seedMustFail" in check and not isinstance(check["seedMustFail"], bool):
+            report.error(where, f"{label}: seedMustFail must be true/false")
+    elif ctype == "testSuite":
+        runner = check.get("runner")
+        if runner not in TEST_RUNNERS:
+            report.error(where, f"{label}: testSuite runner '{runner}' not in {sorted(TEST_RUNNERS)}")
+        if runner in ("tap", "custom") and not check.get("command"):
+            report.error(where, f"{label}: testSuite runner '{runner}' needs 'command'")
+        if "cwd" in check and not _relative_cwd_ok(check["cwd"]):
+            report.error(where, f"{label}: cwd '{check.get('cwd')}' must be relative and inside the project root")
+        for key in ("expectPass", "expectFail"):
+            v = check.get(key, [])
+            if v is None:
+                v = []
+            if not isinstance(v, list) or not all(isinstance(x, str) and x for x in v):
+                report.error(where, f"{label}: {key} must be a list of test names")
+        both = set(check.get("expectPass") or []) & set(check.get("expectFail") or [])
+        if both:
+            report.error(where, f"{label}: {sorted(both)} listed in both expectPass and expectFail")
+        if "minPass" in check and (not isinstance(check["minPass"], int) or check["minPass"] < 0):
+            report.error(where, f"{label}: minPass must be a non-negative integer")
+        if not (check.get("expectPass") or check.get("expectFail") or check.get("minPass")):
+            report.warn(where, f"{label}: testSuite without expectPass/minPass/expectFail passes whenever no test fails")
+    elif ctype == "predict":
+        if not _is_localized(check.get("prompt")):
+            report.error(where, f"{label}: predict needs 'prompt' ({{de, en}} or string)")
+        then = check.get("then")
+        if not isinstance(then, dict):
+            report.error(where, f"{label}: predict needs 'then' (the check that runs after the prediction)")
+        else:
+            sub = validate_check(then, where, task_id, report, depth + 1)
+            if sub == "predict":
+                report.error(where, f"{label}: predict.then cannot be another predict")
+            elif sub in ("question", "manual"):
+                report.error(where, f"{label}: predict.then cannot be '{sub}'")
+        if "bloom" in check and check["bloom"] not in ALLOWED_BLOOM:
+            report.error(where, f"{label}: predict bloom '{check.get('bloom')}' not in {sorted(ALLOWED_BLOOM)}")
+    elif ctype == "question":
+        if not _is_localized(check.get("prompt")):
+            report.error(where, f"{label}: question needs 'prompt'")
+        if not check.get("rubric"):
+            report.error(where, f"{label}: question needs 'rubric'")
+    elif ctype in ("all", "any"):
+        subs = check.get("checks")
+        if not isinstance(subs, list) or not subs:
+            report.error(where, f"{label}: {ctype} needs a non-empty 'checks' list")
+        else:
+            for c in subs:
+                validate_check(c, where, task_id, report, depth + 1)
+    return ctype
+
+
+def _check_types(check):
+    """All check types in a check tree (for trigger plausibility)."""
+    out = set()
+    if not isinstance(check, dict):
+        return out
+    out.add(check.get("type"))
+    for c in check.get("checks") or []:
+        out |= _check_types(c)
+    if isinstance(check.get("then"), dict):
+        out |= _check_types(check["then"])
+    return out
+
+
+def _hints_ok(entry, where, what, report):
+    hints = entry.get("hints")
+    if not isinstance(hints, list) or not hints:
+        report.error(where, f"{what} needs a non-empty 'hints' list (1-3 tiers)")
+        return
+    if len(hints) > 3:
+        report.warn(where, f"{what} has {len(hints)} hints; only 3 tiers are used")
+    for h in hints:
+        if not _is_localized(h):
+            report.error(where, f"{what}: every hint must be a string or {{de, en}}")
+    if not _is_localized(entry.get("question")):
+        report.error(where, f"{what} needs a 'question' ({{de, en}} or string)")
+
+
+def load_manifest(course_dir, report):
+    course_json = os.path.join(course_dir, "course.json")
+    name = os.path.basename(course_dir)
+    try:
+        with open(course_json, encoding="utf-8") as fh:
+            manifest = json.load(fh)
+    except (OSError, ValueError) as exc:
+        report.error(name, f"course.json unreadable: {exc}")
+        return {}
+    modules = manifest.get("modules")
+    if not isinstance(modules, list) or not modules:
+        report.error(name, "course.json: modules must be a non-empty list")
+        return manifest
+    for i, mod in enumerate(modules):
+        if not isinstance(mod, dict):
+            report.error(name, f"course.json: modules[{i}] is not an object")
+            continue
+        refl = mod.get("reflection")
+        if refl is None:
+            continue
+        where = f"{name}/course.json modules[{i}].reflection"
+        prompts = refl.get("prompts") if isinstance(refl, dict) else None
+        if not isinstance(prompts, list) or not prompts:
+            report.error(where, "needs a non-empty 'prompts' list")
+            continue
+        if len(prompts) > 3:
+            report.warn(where, f"{len(prompts)} prompts; the reflection card is meant for 1-3")
+        for k, pr in enumerate(prompts):
+            if not _is_localized(pr):
+                report.error(where, f"prompts[{k}] must be a string or {{de, en}}")
+    return manifest
+
+
+def validate_course(course_dir, root, symbols, report, probes=None):
     steps_dir = os.path.join(course_dir, "steps")
     course_json = os.path.join(course_dir, "course.json")
     name = os.path.basename(course_dir)
     if not os.path.exists(course_json):
         report.error(name, "missing course.json")
+        manifest = {}
+    else:
+        manifest = load_manifest(course_dir, report)
     if not os.path.isdir(steps_dir):
         report.error(name, "missing steps/ directory")
         return
+    listed_steps = set()
+    for mod in manifest.get("modules") or []:
+        if isinstance(mod, dict):
+            listed_steps |= {s for s in (mod.get("steps") or []) if isinstance(s, str)}
 
     # Gather step ids from filenames.
     en_ids, de_ids = set(), set()
@@ -333,6 +534,14 @@ def validate_course(course_dir, root, symbols, report):
             report.error(where, "missing English step (.en.md)")
         if sid not in de_ids:
             report.error(where, "missing German step (.de.md)")
+
+    # Steps that own a `question` task (valid recallFrom targets).
+    recall_sources = set()
+    for sid in sorted(en_ids):
+        fm, _ = load_step(os.path.join(steps_dir, f"{sid}.en.md"))
+        for task in (fm or {}).get("tasks") or []:
+            if isinstance(task, dict) and isinstance(task.get("check"), dict) and task["check"].get("type") == "question":
+                recall_sources.add(sid)
 
     # Validate each language file.
     for sid in sorted(all_ids):
@@ -393,10 +602,42 @@ def validate_course(course_dir, root, symbols, report):
 
             creates = set(fm.get("creates") or [])
 
+            # Addendum v1.1 step fields
+            scaffold = fm.get("scaffold")
+            if scaffold is not None and scaffold not in SCAFFOLD_LEVELS:
+                report.error(where, f"scaffold '{scaffold}' not in {sorted(SCAFFOLD_LEVELS)}")
+            recall = fm.get("recallFrom") or []
+            if not isinstance(recall, list):
+                report.error(where, "recallFrom must be a list of step ids")
+                recall = []
+            for r in recall:
+                if r == sid:
+                    report.error(where, "recallFrom must not name the step itself")
+                elif r not in all_ids:
+                    report.error(where, f"recallFrom -> unknown step '{r}'")
+                elif r not in recall_sources:
+                    report.warn(where, f"recallFrom '{r}' has no question task; the recall card will never show")
+            misconceptions = fm.get("misconceptions") or []
+            if not isinstance(misconceptions, list):
+                report.error(where, "misconceptions must be a list")
+                misconceptions = []
+            for k, mc in enumerate(misconceptions):
+                what = f"misconceptions[{k}]"
+                if not isinstance(mc, dict):
+                    report.error(where, f"{what} is not a map")
+                    continue
+                if not mc.get("pattern"):
+                    report.error(where, f"{what} needs 'pattern'")
+                else:
+                    _compile(mc["pattern"], where, f"{what} pattern", report)
+                _hints_ok(mc, where, what, report)
+
             # tasks
             tasks = fm.get("tasks") or []
             if not (1 <= len(tasks) <= 3):
                 report.warn(where, f"expected 1-3 tasks, found {len(tasks)}")
+            step_check_types = set()
+            task_ids = set()
             for task in tasks:
                 if not isinstance(task, dict):
                     report.error(where, f"malformed task entry: {task!r}")
@@ -406,9 +647,11 @@ def validate_course(course_dir, root, symbols, report):
                     report.error(where, f"task '{task.get('id')}' has no check map")
                     continue
                 report.checks += 1
-                ctype = check.get("type")
-                if ctype not in CHECK_TYPES:
-                    report.error(where, f"task '{task.get('id')}' check type '{ctype}' unknown")
+                task_ids.add(task.get("id"))
+                ctype = validate_check(check, where, task.get("id"), report)
+                step_check_types |= _check_types(check)
+                if probes is not None and lang == "en" and ctype in ("command", "testSuite"):
+                    probes.append((f"{name}/{sid}", task.get("id"), check))
                 for kind, value in iter_check_paths(check):
                     if kind == "file":
                         if not repo_path_exists(root, value):
@@ -425,16 +668,219 @@ def validate_course(course_dir, root, symbols, report):
                                 f"symbolInElf '{value}' not in ELF and not declared under creates:",
                             )
 
+            # socratic triggers (classic + Addendum: test:<name>:failed, output:<regex>)
+            for k, entry in enumerate(fm.get("socratic") or []):
+                what = f"socratic[{k}]"
+                if not isinstance(entry, dict):
+                    report.error(where, f"{what} is not a map")
+                    continue
+                trig = entry.get("trigger")
+                if not isinstance(trig, str) or not TRIGGER_RE.match(trig):
+                    report.error(where, f"{what} trigger '{trig}' unknown (task:<id>:failed|stuck, question:<id>:weak, test:<name>:failed, output:<regex>, event:<name>, *)")
+                else:
+                    m = re.match(r"^(task|question):([^:]+):", trig)
+                    if m and m.group(2) not in task_ids:
+                        report.warn(where, f"{what} trigger '{trig}' references unknown task '{m.group(2)}'")
+                    if trig.startswith("output:"):
+                        _compile(trig[len("output:"):], where, f"{what} output trigger", report)
+                        if not (step_check_types & {"command", "testSuite"}):
+                            report.warn(where, f"{what} '{trig}' needs a command/testSuite task to ever fire")
+                    if trig.startswith("test:") and "testSuite" not in step_check_types:
+                        report.warn(where, f"{what} '{trig}' needs a testSuite task to ever fire")
+                _hints_ok(entry, where, what, report)
+            if misconceptions and not (step_check_types & {"command", "testSuite"}):
+                report.warn(where, "misconceptions declared but no command/testSuite task produces output to match")
+            if lang == "en" and listed_steps and sid not in listed_steps:
+                report.warn(where, "step file is not listed in any module of course.json")
+
     # Only enforce full checks once (avoid double-counting de/en): dedupe handled
     # by iterating both, which is intentional - both files must be schema-valid.
 
 
+# --- solution probes (--solutions) -----------------------------------------
+
+_TAP_RE = re.compile(r"^\s*(not ok|ok)\b\s*(\d+)?\s*-?\s*(.*?)\s*(#.*)?$")
+_CARGO_RE = re.compile(r"^test (\S+) \.\.\. (ok|FAILED|ignored)")
+
+
+def _parse_tests(output, runner):
+    """Minimal twin of the extension's parsers: returns {name: passed?} for
+    leaf tests; nested TAP names are keyed by both leaf name and 'a > b'."""
+    results = {}
+    if runner == "cargo":
+        for line in output.splitlines():
+            m = _CARGO_RE.match(line)
+            if m and m.group(2) != "ignored":
+                results[m.group(1)] = m.group(2) == "ok"
+        return results
+    stack = []  # (indent, name) from "# Subtest:" lines
+    for line in output.splitlines():
+        indent = len(line) - len(line.lstrip(" "))
+        st = line.strip()
+        sm = re.match(r"^# Subtest: (.*)$", st)
+        if sm:
+            while stack and stack[-1][0] >= indent:
+                stack.pop()
+            stack.append((indent, sm.group(1)))
+            continue
+        m = _TAP_RE.match(line)
+        if not m or not st.startswith(("ok", "not ok")):
+            continue
+        while stack and stack[-1][0] >= indent:
+            stack.pop()
+        name = m.group(3)
+        directive = (m.group(4) or "").lower()
+        if "skip" in directive or "todo" in directive:
+            continue
+        passed = m.group(1) == "ok"
+        path = " > ".join([n for _, n in stack] + [name])
+        results[name] = passed
+        results[path] = passed
+    return results
+
+
+def _suite_command(check):
+    runner = check.get("runner")
+    if check.get("command"):
+        return check["command"]
+    if runner == "cargo":
+        return "cargo test"
+    if runner == "node-test":
+        return "node --test --test-reporter=tap"
+    return None
+
+
+def _suite_passed(check, code, output):
+    tests = _parse_tests(output, check.get("runner"))
+    for name in check.get("expectPass") or []:
+        if not tests.get(name, False):
+            return False, f"expected test '{name}' to pass ({'missing' if name not in tests else 'failed'})"
+    for name in check.get("expectFail") or []:
+        if name not in tests or tests[name]:
+            return False, f"expected test '{name}' to fail ({'missing' if name not in tests else 'passed'})"
+    min_pass = check.get("minPass")
+    n_pass = sum(1 for k, v in tests.items() if v and " > " not in k)
+    if isinstance(min_pass, int) and n_pass < min_pass:
+        return False, f"minPass {min_pass} not reached ({n_pass} passed)"
+    if not (check.get("expectPass") or check.get("expectFail") or min_pass):
+        if not tests:
+            return False, "no test results parsed"
+        if any(not v for v in tests.values()):
+            return False, "a test failed"
+    return True, f"{n_pass} test(s) passed"
+
+
+def _command_passed(check, code, out, err):
+    expect = check.get("expectExitCode", 0)
+    # A front-matter parser that hands back "0" instead of 0 must not turn into
+    # a mismatch that reads "exit code 0 (expected 0)".
+    if isinstance(expect, str) and re.fullmatch(r"-?\d+", expect.strip()):
+        expect = int(expect)
+    if code != expect:
+        return False, f"exit code {code} (expected {expect})"
+    for key, text in (("expectStdout", out), ("expectStderr", err)):
+        pat = check.get(key)
+        if pat and not re.search(str(pat), text, re.M):
+            return False, f"{key} /{pat}/ not found"
+    return True, f"exit code {code}"
+
+
+_ENV_ASSIGN_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+
+
+def _leading_binary(command):
+    """The program a shell command actually runs, so a missing toolchain is
+    reported by name. Leading `VAR=value` assignments and a leading `env` are
+    skipped; anything with shell metacharacters before the first word is given
+    up on (returns None -> no skip, just run it)."""
+    try:
+        words = shlex.split(command)
+    except ValueError:
+        return None
+    while words and (_ENV_ASSIGN_RE.match(words[0]) or words[0] == "env"):
+        words.pop(0)
+    if not words:
+        return None
+    first = words[0]
+    if any(ch in first for ch in "|&;<>()$`"):
+        return None
+    return first
+
+
+def _run_probe(check, root):
+    """Runs a command/testSuite check in `root`; returns (passed, message, skipped)."""
+    ctype = check.get("type")
+    command = check.get("command") if ctype == "command" else _suite_command(check)
+    if not command:
+        return False, "no command", True
+    binary = _leading_binary(command)
+    if binary and "/" not in binary and shutil.which(binary) is None:
+        return False, f"toolchain binary '{binary}' not installed - probe skipped", True
+    cwd = os.path.normpath(os.path.join(root, check.get("cwd") or "."))
+    timeout = (check.get("timeoutMs") or DEFAULT_PROBE_TIMEOUT_MS) / 1000
+    try:
+        proc = subprocess.run(["/bin/sh", "-c", command], cwd=cwd, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return False, f"timeout after {timeout:.0f} s", False
+    except OSError as exc:
+        return False, f"cannot run: {exc}", False
+    if ctype == "command":
+        ok, msg = _command_passed(check, proc.returncode, proc.stdout, proc.stderr)
+    else:
+        ok, msg = _suite_passed(check, proc.returncode, proc.stdout + "\n" + proc.stderr)
+    return ok, msg, False
+
+
+def _copy_tree(src, dst):
+    shutil.copytree(src, dst, symlinks=True, ignore=shutil.ignore_patterns(".git", "node_modules", "target"), dirs_exist_ok=True)
+
+
+def run_solution_probes(probes, root, solutions_dir, report):
+    """Seed copy must fail each check, seed+solutions copy must pass it."""
+    if not probes:
+        print("solutions: no command/testSuite checks to probe")
+        return
+    if not os.path.isdir(solutions_dir):
+        report.error("solutions", f"'{solutions_dir}' is not a directory")
+        return
+    tmp = tempfile.mkdtemp(prefix="cads-validate-")
+    seed = os.path.join(tmp, "seed")
+    solved = os.path.join(tmp, "solved")
+    _copy_tree(root, seed)
+    _copy_tree(root, solved)
+    _copy_tree(solutions_dir, solved)
+    n_ok = n_skip = 0
+    try:
+        for where, task_id, check in probes:
+            label = f"{where} task '{task_id}' [{check.get('type')}]"
+            ok, msg, skipped = _run_probe(check, solved)
+            if skipped:
+                report.warn(where, f"task '{task_id}': {msg}")
+                n_skip += 1
+                continue
+            if not ok:
+                report.error(where, f"task '{task_id}' FAILS with the reference solution: {msg}")
+                continue
+            if check.get("seedMustFail", True):
+                ok2, msg2, _ = _run_probe(check, seed)
+                if ok2:
+                    report.error(where, f"task '{task_id}' PASSES on the seed workspace without a solution ({msg2}) - a check that always passes is worthless (set seedMustFail: false if intended)")
+                    continue
+            n_ok += 1
+            print(f"probe ok   {label}: solution passes ({msg})" + ("" if check.get("seedMustFail", True) else "; seed probe skipped (seedMustFail: false)"))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    print(f"solutions: {len(probes)} probe(s), {n_ok} ok, {n_skip} skipped, {len(probes) - n_ok - n_skip} failed")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("project_root", help="Checkout of the cads-zero firmware repo")
+    ap.add_argument("project_root", help="Checkout of the cads-zero firmware repo (or the seed workspace of a track)")
     ap.add_argument("--courses-dir", default=None, help="Directory holding the course packs")
     ap.add_argument("--elf", default=None, help="Path to cads-zero.elf")
     ap.add_argument("--nm", default=None, help="Path to arm-none-eabi-nm")
+    ap.add_argument("--solutions", default=None, help="Reference-solution directory (mirrors PROJECT_ROOT); runs command/testSuite checks with and without it")
+    ap.add_argument("--only", default=None, help="Validate only the course pack directory with this name")
     args = ap.parse_args()
 
     root = os.path.abspath(args.project_root)
@@ -463,9 +909,16 @@ def main():
         os.path.join(courses_dir, d)
         for d in os.listdir(courses_dir)
         if os.path.isdir(os.path.join(courses_dir, d)) and os.path.exists(os.path.join(courses_dir, d, "course.json"))
+        and (args.only is None or d == args.only)
     )
+    if args.only and not course_dirs:
+        print(f"error: no course pack named '{args.only}' under {courses_dir}", file=sys.stderr)
+        return 2
+    probes = [] if args.solutions else None
     for cdir in course_dirs:
-        validate_course(cdir, root, symbols, report)
+        validate_course(cdir, root, symbols, report, probes)
+    if args.solutions:
+        run_solution_probes(probes, root, os.path.abspath(args.solutions), report)
 
     for w in report.warnings:
         print(f"WARN  {w}")
