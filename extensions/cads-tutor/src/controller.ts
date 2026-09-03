@@ -8,6 +8,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { SERIAL_ERROR_PATTERNS, type BoardBridgeApi } from "./bridge";
 import { actionLabels, actionsForCheck, allowedActions, BOARD_COMMANDS, courseCapabilities, isBoardAction, type ActionKind } from "./actions";
+import { isProceduralQuestion, proceduralAnswer, stepTerms } from "./askRouting";
 import { runCommand } from "./checks/commandRunner";
 import { failedTestNames } from "./checks/testParsers";
 import { DEFAULT_PREDICTION_MIN_CHARS, isLocalCheck, referencedFiles, runCheck, type CheckContext, type CheckResult } from "./checks/runner";
@@ -1332,7 +1333,25 @@ export class TutorController implements vscode.Disposable {
     // strings, objective ids and save-triggered check-ins are not questions and
     // must never reach the question log, which is why they do not call emit here.
     this.emit({ type: "question.asked", data: { question: q, kind: classifyQuestionText(q), bloom: cur.content.meta.bloom, attempt: attempts } });
-    const outcome = await platform.ask(q, this.lang, { bloomLevel: cur.content.meta.bloom, attemptNumber: attempts });
+
+    // "How do I start?" has no indexable term in any language, so it used to be
+    // refused - while the last hint tells the student to go and ask exactly
+    // that. It is answered from session state, with no model and no retrieval,
+    // which is what the students' own configuration has.
+    if (isProceduralQuestion(q)) {
+      const text = proceduralAnswer(this.proceduralContext(cur));
+      this.log(`ask "${q.slice(0, 60)}" answered as a procedural question (no LLM, no retrieval)`);
+      this.emit({ type: "question.answered", data: { kind: "procedural", grounded: false, citations: 0 } });
+      this.panel.post({ type: "ask", outcome: { kind: "answer", text, citations: [] } });
+      return;
+    }
+
+    const outcome = await platform.ask(q, this.lang, {
+      bloomLevel: cur.content.meta.bloom,
+      attemptNumber: attempts,
+      // Used for RETRIEVAL only when the question does not ground on its own.
+      stepTerms: stepTerms(cur.step.variants.en!.meta),
+    });
     this.emit({
       type: "question.answered",
       data: (() => {
@@ -1342,6 +1361,24 @@ export class TutorController implements vscode.Disposable {
     });
     this.log(`ask "${q.slice(0, 80)}" → ${outcome.kind}`);
     this.panel.post({ type: "ask", outcome: this.toAskView(outcome) });
+  }
+
+  /** What a procedural answer needs to know: where the student is and what is open. */
+  private proceduralContext(cur: { course: Course; step: Step; content: StepContent }) {
+    const s = ui(this.lang);
+    const steps = orderedSteps(cur.course);
+    const progress = getStepProgress(this.session, cur.course.manifest.id, cur.step.id);
+    const open = cur.step.variants.en!.meta.tasks.find((t) => getTaskState(progress, t.id).status !== "passed");
+    const localized = open ? cur.content.meta.tasks.find((t) => t.id === open.id) ?? open : undefined;
+    const action = open ? this.actionViews(cur.course, open, this.lang)[0] : undefined;
+    return {
+      stepTitle: cur.content.meta.title,
+      openTaskTitle: localized ? loc(localized.title, this.lang) : undefined,
+      openTaskAction: action?.label,
+      position: s.stepOf(steps.findIndex((x) => x.id === cur.step.id) + 1, steps.length),
+      board: this.capabilitiesFor(cur.course).has("board"),
+      lang: this.lang,
+    };
   }
 
   private toAskView(outcome: AskOutcome): AskView {
