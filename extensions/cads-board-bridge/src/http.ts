@@ -2,6 +2,7 @@
 import * as http from 'node:http';
 import type { BoardController } from './board';
 import type { ProbeOp } from './types';
+import { shimMessage } from './messages';
 
 export interface HttpLogger {
   info(m: string): void;
@@ -41,7 +42,11 @@ function text(res: http.ServerResponse, code: number, body: string): void {
 export function probeText(board: BoardController): string {
   const s = board.getStatus();
   const p = s.probe;
-  if (!s.connected || !p?.stlink) return 'Found 0 stlink programmers\n';
+  if (!s.connected || !p?.stlink) {
+    // st-info's own wording first, so scripts that grep for it keep working, then the reason in
+    // plain words - the shims are the only thing a student sees when a terminal task fails.
+    return `Found 0 stlink programmers\n${shimMessage(p?.blockReason, false)}\n`;
+  }
   const flashBytes = (p.target?.flashSize ?? 0) * 1024;
   const sramBytes = (p.target?.sramSize ?? 0) * 1024;
   return [
@@ -80,17 +85,47 @@ export function createHttpServer(board: BoardController, log: HttpLogger, extras
         const at = addr ? Number(addr) : 0x08000000;
         if (!Number.isInteger(at)) return json(res, 400, { ok: false, error: `bad addr '${addr}'` });
         const body = await readBody(req);
-        if (!board.getStatus().connected) return json(res, 503, { ok: false, error: 'board not connected' });
+        {
+          const st = board.getStatus();
+          if (!st.connected) {
+            return json(res, 503, {
+              ok: false,
+              error: 'board not connected',
+              reason: st.probe?.blockReason ?? 'unknown',
+              message: shimMessage(st.probe?.blockReason, false),
+            });
+          }
+        }
         const r = await board.flashImage(body, at >>> 0, url.searchParams.get('name') ?? 'http-upload');
         return json(res, r.ok ? 200 : 500, r);
       }
       if (method === 'POST' && url.pathname === '/reset') {
-        if (!board.getStatus().connected) return json(res, 503, { ok: false, error: 'board not connected' });
+        {
+          const st = board.getStatus();
+          if (!st.connected) {
+            return json(res, 503, {
+              ok: false,
+              error: 'board not connected',
+              reason: st.probe?.blockReason ?? 'unknown',
+              message: shimMessage(st.probe?.blockReason, false),
+            });
+          }
+        }
         const r = await board.reset();
         return json(res, r.ok ? 200 : 500, r);
       }
       if (method === 'POST' && url.pathname === '/halt') {
-        if (!board.getStatus().connected) return json(res, 503, { ok: false, error: 'board not connected' });
+        {
+          const st = board.getStatus();
+          if (!st.connected) {
+            return json(res, 503, {
+              ok: false,
+              error: 'board not connected',
+              reason: st.probe?.blockReason ?? 'unknown',
+              message: shimMessage(st.probe?.blockReason, false),
+            });
+          }
+        }
         const r = await board.halt();
         return json(res, r.ok ? 200 : 500, r);
       }

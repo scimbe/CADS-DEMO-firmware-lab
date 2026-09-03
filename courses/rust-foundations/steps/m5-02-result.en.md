@@ -25,6 +25,8 @@ socratic:
 misconceptions:
   - { pattern: "error\\[E0308\\]: mismatched types", question: { en: "Is the mismatch a bare value where a Result was promised, or a Result where a bare value was expected?", de: "Ist der Konflikt ein blanker Wert, wo ein Result versprochen war, oder ein Result, wo ein blanker Wert erwartet wurde?" }, hints: [ { en: "A function returning `Result<u16, String>` must return `Ok(port)`, never a bare `port`.", de: "Eine Funktion mit Rückgabetyp `Result<u16, String>` muss `Ok(port)` liefern, nie ein blankes `port`." }, { en: "`Err` takes a `String` here, so `Err(\"…\")` with a literal is a `&str` and does not fit; use `String::from` or `format!`.", de: "`Err` nimmt hier einen `String`; `Err(\"…\")` mit einem Literal ist ein `&str` und passt nicht - nutze `String::from` oder `format!`." }, { en: "`sum_ports` returns `u32` while `parse_port` gives `u16`: convert with `u32::from(port)`.", de: "`sum_ports` liefert `u32`, `parse_port` aber `u16`: wandle mit `u32::from(port)` um." } ] }
   - { pattern: "error\\[E0599\\]: no method named `unwrap`|unused `Result` that must be used", question: { en: "A Result is being ignored or unwrapped where the function should pass it on. What is this function's contract on failure?", de: "Ein Result wird ignoriert oder ausgepackt, wo die Funktion es weiterreichen sollte. Wie lautet der Vertrag dieser Funktion im Fehlerfall?" }, hints: [ { en: "`sum_ports` must return the first error, not unwrap it - unwrapping would panic and break the contract.", de: "`sum_ports` muss den ersten Fehler zurückgeben, nicht auspacken - Auspacken stürzte ab und bräche den Vertrag." }, { en: "A `match` with an `Err(e) => return Err(e)` arm is the explicit form; the next step shortens it.", de: "Ein `match` mit einem Zweig `Err(e) => return Err(e)` ist die ausdrückliche Form; der nächste Step kürzt sie." }, { en: "`Result` is marked must_use, so ignoring one is a warning by design.", de: "`Result` ist als must_use markiert, es zu ignorieren ist also absichtlich eine Warnung." } ] }
+  - { pattern: "could not find `Cargo\\.toml`", question: { en: "cargo did not find a package. Which folder is your terminal in, and does that folder contain Cargo.toml?", de: "cargo hat kein Paket gefunden. In welchem Ordner steht dein Terminal, und liegt dort eine Cargo.toml?" }, hints: [ { en: "`pwd` prints the current folder; it has to be the rust-foundations workspace, the one holding Cargo.toml.", de: "`pwd` gibt den aktuellen Ordner aus; er muss der rust-foundations-Workspace sein, in dem die Cargo.toml liegt." }, { en: "A terminal opened with Terminal → New Terminal starts in the workspace folder; one you navigated away from does not.", de: "Ein über Terminal → Neues Terminal geöffnetes Terminal startet im Workspace-Ordner; eines, aus dem du herausnavigiert bist, nicht." }, { en: "The message names the folder cargo searched, so compare that path with where the file actually is.", de: "Die Meldung nennt den Ordner, in dem cargo gesucht hat; vergleiche diesen Pfad damit, wo die Datei wirklich liegt." } ] }
+  - { pattern: "no test target named", question: { en: "cargo knows no test target of that name. Is the name after --test exactly the step id, without the .rs?", de: "cargo kennt kein Testziel dieses Namens. Ist der Name hinter --test genau die Step-ID, ohne das .rs?" }, hints: [ { en: "cargo prints `a target with a similar name exists` and names it - that line is usually the whole answer.", de: "cargo gibt `a target with a similar name exists` aus und nennt es - diese Zeile ist meist die ganze Antwort." }, { en: "The target name is the file name in tests/ without the extension, and it matches the step id exactly.", de: "Der Zielname ist der Dateiname in tests/ ohne Endung und stimmt genau mit der Step-ID überein." }, { en: "`ls tests/` lists every name that is valid after --test.", de: "`ls tests/` listet jeden Namen auf, der hinter --test gültig ist." } ] }
 ---
 ## Learning goal
 
@@ -77,3 +79,21 @@ The success value borrows from the input; the error owns its message. That is a 
 ## Your task
 
 Implement the four functions, then argü for the error message the specification demands. The next step removes the `match` boilerplate.
+
+## Running it
+
+Open a terminal with the menu **Terminal → New Terminal**, or press **F1** (more reliable in a browser than Ctrl+Shift+P), type `Terminal: Create New Terminal` and press Enter. The terminal opens in the panel at the bottom, already in the workspace folder. Then run:
+
+```bash
+cargo test --test m5-02-result
+```
+
+The **Check** button next to the task above runs exactly these commands for you and shows the same output in the tutor panel; the terminal is there so you can see it yourself and repeat it.
+
+**What you see:** one `test … ok` or `… FAILED` line per test, then the summary `test result: ok. 4 passed; 0 failed` once you are done.
+
+**How long:** a few seconds the first time, because the crate is compiled once; well under a second on every later run.
+
+**Finished when:** the shell prompt reappears below the output. Until it does, the command is still running - a blinking cursor with no prompt is not a hang.
+
+**If something is off:** the output is in the **Terminal** tab at the bottom, not in **Problems** and not in **Output** - those two show different things and are the usual reason for "nothing happened". If you closed the terminal by accident, open a new one the same way; nothing is lost. If cargo answers `could not find Cargo.toml`, the terminal is in the wrong folder - `cd` back to the workspace root.

@@ -7,23 +7,22 @@ requires: [  ]
 estimatedMinutes: 10
 scaffold: worked
 links:
-  - { step: "m0-02-first-test" }
+  - { step: "m0-02-workbench" }
   - { file: "README.md" }
   - { file: "Cargo.toml" }
   - { url: "https://doc.rust-lang.org/book/ch01-03-hello-cargo.html", title: "The Book, 1.3: Hello, Cargo!" }
-sources: [ "README.md", "Cargo.toml", "src/lib.rs", "tests/m0-02-first-test.rs" ]
+sources: [ "README.md", "Cargo.toml", "src/lib.rs", "tests/m0-03-first-test.rs" ]
 tasks:
   - id: version
     title: "cargo answers"
     check: { type: "command", command: "cargo --version", seedMustFail: false, expectExitCode: 0, expectStdout: "cargo \\d+\\.\\d+\\.\\d+", timeoutMs: 60000 }
-  - id: build
-    title: "The workspace compiles"
-    check: { type: "command", command: "cargo build", seedMustFail: false, expectExitCode: 0, timeoutMs: 180000 }
   - id: orient
     title: "You can find the next step's test"
-    check: { type: "question", prompt: { en: "Name the file that holds the tests for the next step, m0-02-first-test, and the exact command that runs only those tests.", de: "Nenne die Datei, die die Tests des nächsten Steps m0-02-first-test enthält, und den genauen Befehl, der nur diese Tests ausführt." }, rubric: "Names tests/m0-02-first-test.rs as the file and `cargo test --test m0-02-first-test` as the command. Naming src/m0/m0_02_first_test.rs instead of the tests file, or plain `cargo test`, is incomplete.", bloom: "remember", minChars: 20 }
+    check: { type: "question", prompt: { en: "Name the file that holds the tests for the next step, m0-03-first-test, and the exact command that runs only those tests.", de: "Nenne die Datei, die die Tests des nächsten Steps m0-03-first-test enthält, und den genauen Befehl, der nur diese Tests ausführt." }, rubric: "Names tests/m0-03-first-test.rs as the file and `cargo test --test m0-03-first-test` as the command. Naming src/m0/m0_03_first_test.rs instead of the tests file, or plain `cargo test`, is incomplete.", bloom: "remember", minChars: 20 }
 socratic:
-  - { trigger: "task:build:failed", question: { en: "cargo could not build the workspace. Which directory is your terminal in, and does it contain a Cargo.toml?", de: "cargo konnte den Workspace nicht bauen. In welchem Verzeichnis steht dein Terminal, und liegt dort eine Cargo.toml?" }, hints: [ { en: "cargo works on the package in the current directory: run `pwd`, and if it is not the rust-foundations folder, change into it.", de: "cargo arbeitet am Paket im aktuellen Verzeichnis: führe `pwd` aus, und wechsle in den Ordner rust-foundations, falls du woanders stehst." }, { en: "`cargo --version` failing as well means cargo is not on your PATH at all, which is a setup problem, not a code problem.", de: "Schlägt auch `cargo --version` fehl, liegt cargo gar nicht im PATH - das ist ein Einrichtungs-, kein Codeproblem." }, { en: "If the build fails with a real compiler error, someone edited a file: `git status` shows what changed, `git checkout -- <file>` restores it.", de: "Scheitert der Build an einem echten Compilerfehler, wurde eine Datei geändert: `git status` zeigt was, `git checkout -- <Datei>` stellt sie wieder her." } ] }
+  - { trigger: "task:version:failed", question: { en: "cargo did not answer. Is cargo on this container's PATH?", de: "cargo hat nicht geantwortet. Liegt cargo im PATH dieses Containers?" }, hints: [ { en: "cargo works on the package in the current directory: run `pwd`, and if it is not the rust-foundations folder, change into it.", de: "cargo arbeitet am Paket im aktuellen Verzeichnis: führe `pwd` aus, und wechsle in den Ordner rust-foundations, falls du woanders stehst." }, { en: "`cargo --version` failing as well means cargo is not on your PATH at all, which is a setup problem, not a code problem.", de: "Schlägt auch `cargo --version` fehl, liegt cargo gar nicht im PATH - das ist ein Einrichtungs-, kein Codeproblem." }, { en: "If the build fails with a real compiler error, someone edited a file: `git status` shows what changed, `git checkout -- <file>` restores it.", de: "Scheitert der Build an einem echten Compilerfehler, wurde eine Datei geändert: `git status` zeigt was, `git checkout -- <Datei>` stellt sie wieder her." } ] }
+misconceptions:
+  - { pattern: "could not find `Cargo\\.toml`", question: { en: "cargo did not find a package. Which folder is your terminal in, and does that folder contain Cargo.toml?", de: "cargo hat kein Paket gefunden. In welchem Ordner steht dein Terminal, und liegt dort eine Cargo.toml?" }, hints: [ { en: "`pwd` prints the current folder; it has to be the rust-foundations workspace, the one holding Cargo.toml.", de: "`pwd` gibt den aktuellen Ordner aus; er muss der rust-foundations-Workspace sein, in dem die Cargo.toml liegt." }, { en: "A terminal opened with Terminal → New Terminal starts in the workspace folder; one you navigated away from does not.", de: "Ein über Terminal → Neues Terminal geöffnetes Terminal startet im Workspace-Ordner; eines, aus dem du herausnavigiert bist, nicht." }, { en: "The message names the folder cargo searched, so compare that path with where the file actually is.", de: "Die Meldung nennt den Ordner, in dem cargo gesucht hat; vergleiche diesen Pfad damit, wo die Datei wirklich liegt." } ] }
 ---
 ## Learning goal
 
@@ -35,7 +34,7 @@ You are in a Rust *package* called `rust_foundations`. Everything the course ask
 
 - **`Cargo.toml`** is the manifest: the package name, the Rust edition, and the list of dependencies (here: none, on purpose - everything in this course uses the standard library).
 - **`src/`** holds the exercises, one file per step, grouped into `m0/` … `m6/` and `project/`. **You edit these files, and only these.**
-- **`tests/`** holds one file per step, named exactly like the step: `tests/m0-02-first-test.rs`. These are finished and you do not change them. Read them - they say precisely what your code must do.
+- **`tests/`** holds one file per step, named exactly like the step: `tests/m0-03-first-test.rs`. These are finished and you do not change them. Read them - they say precisely what your code must do.
 - **`README.md`** is the map of the folder, including the directories you will meet later (`examples/`, `snippets/`, `repair/`, `samples/`).
 
 ## The first step, concretely
@@ -47,9 +46,9 @@ cargo --version
 cargo build
 ```
 
-`cargo --version` prints something like `cargo 1.94.0`. If it does not, nothing else in this course will work, and the problem is your environment, not your code.
+`cargo --version` prints something like `cargo 1.94.0`. If it does not, nothing else in this course will work, and the problem is your environment, not your code. The next step, [Operating the workbench](step:m0-02-workbench), goes through the window region by region and through the three ways to run a command; this step only establishes that the toolchain answers at all.
 
-`cargo build` compiles the package. It will print a line per crate and finish with `Finished`. It succeeds **even though nothing is implemented yet**: unfinished exercises are `todo!()`, a macro that type-checks as any type and panics if it is ever reached. So the package always compiles; the tests are what fail.
+Note that the package compiles **even though nothing is implemented yet**: unfinished exercises are `todo!()`, a macro that type-checks as any type and panics if it is ever reached. The package always builds; the tests are what fail.
 
 ## Reading cargo's output
 
@@ -67,11 +66,29 @@ The first build downloads nothing and takes a second or two. What you see is:
 `cargo test` runs everything, including the twenty-odd steps you have not started, so it will report a wall of failures. That is expected and useless to you right now. Run **one** step instead:
 
 ```bash
-cargo test --test m0-02-first-test
+cargo test --test m0-03-first-test
 ```
 
 The name after `--test` is the file name in `tests/`, without `.rs`, and it is identical to the step id. The tutor prints this command for whichever step you are on, so you never have to guess it.
 
 ## Your task
 
-Run the two commands above; the first two checks confirm them. Then answer where the next step's tests live and how to run only them. The next step makes those tests pass.
+Run `cargo --version`; the first check confirms it. Then answer where the next step's tests live and how to run only them. The next step takes you through the window itself.
+
+## Running it
+
+Open a terminal with the menu **Terminal → New Terminal**, or press **F1** (more reliable in a browser than Ctrl+Shift+P), type `Terminal: Create New Terminal` and press Enter. The terminal opens in the panel at the bottom, already in the workspace folder. Then run:
+
+```bash
+cargo --version
+```
+
+The **Check** button next to the task above runs exactly these commands for you and shows the same output in the tutor panel; the terminal is there so you can see it yourself and repeat it.
+
+**What you see:** the program's output, containing `cargo \d+\.\d+\.\d+`.
+
+**How long:** a few seconds the first time, because the crate is compiled once; well under a second on every later run.
+
+**Finished when:** the shell prompt reappears below the output. Until it does, the command is still running - a blinking cursor with no prompt is not a hang.
+
+**If something is off:** the output is in the **Terminal** tab at the bottom, not in **Problems** and not in **Output** - those two show different things and are the usual reason for "nothing happened". If you closed the terminal by accident, open a new one the same way; nothing is lost. If cargo answers `could not find Cargo.toml`, the terminal is in the wrong folder - `cd` back to the workspace root.

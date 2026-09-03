@@ -294,6 +294,13 @@ export class MockTarget {
 export interface MockDeviceOptions {
   hangOnTransferIn?: boolean;
   disconnectAfterTransfers?: number;
+  /** Throw this from open(), to model "something else holds the device". */
+  failOpenWith?: Error;
+  /**
+   * Report a dead target (core id 0) until this many SWD entries have happened – models the
+   * desynchronised ST-Link that a connect-under-reset repairs.
+   */
+  deadUntilSwdEntry?: number;
 }
 
 /** WebUSB-shaped ST-Link V2-1 wrapping a MockTarget. */
@@ -316,7 +323,16 @@ export class MockStlinkDevice implements UsbDeviceLike {
     readonly opts: MockDeviceOptions = {},
   ) {}
 
+  /** False while the mock pretends the SWD state machine is out of step. */
+  targetAlive(): boolean {
+    return this.swdEntries >= (this.opts.deadUntilSwdEntry ?? 0);
+  }
+
+  /** Counts STLINK_DEBUG_APIV2_ENTER (SWD) commands – the recovery path re-enters. */
+  swdEntries = 0;
+
   async open(): Promise<void> {
+    if (this.opts.failOpenWith) throw this.opts.failOpenWith;
     if (this.disconnected) throw new Error('The device was disconnected.');
     this.opened = true;
     this.configuration = { configurationValue: 1, interfaces: [{ interfaceNumber: 0, claimed: this.claimed, alternate: { alternateSetting: 0 } }] };
@@ -397,10 +413,11 @@ export class MockStlinkDevice implements UsbDeviceLike {
             break;
           case 0x30:
             this.mode = 0x02;
+            this.swdEntries++;
             this.reply([0x80, 0]);
             break;
           case 0x22:
-            this.reply(this.u32(0x2ba01477));
+            this.reply(this.u32(this.targetAlive() ? 0x2ba01477 : 0));
             break;
           case 0x43:
           case 0x32:

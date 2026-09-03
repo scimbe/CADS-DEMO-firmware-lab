@@ -8,7 +8,9 @@
  * No DOM / VS Code API in this file: it also runs under node:test with mocks.
  */
 
+import { type BlockReason, diagnoseOpenFailure, isTargetUnresponsive } from './busy';
 import { BreakpointUnit } from './breakpoints';
+import { DeviceLock, deviceLockName, type LockManagerLike } from './deviceLock';
 import { CortexM, REG_PC } from './cortexm';
 import { ProbeError } from './errors';
 import { type Logger, nullLogger } from './logger';
@@ -27,9 +29,22 @@ export const FLASH_WINDOW_END = 0x08100000; // exclusive – bank 1 only (cads-z
 export interface ProbeHost {
   emit(event: ProbeEvent): void;
   log?: Logger;
-  /** Poll interval while running (ms). Spec: ≤ 100. */
+  /** Fastest poll interval while running (ms). Spec: ≤ 100. */
   pollIntervalMs?: number;
+  /** Web Locks of the browser profile, so a second lab tab cannot fight over the board. */
+  locks?: LockManagerLike;
 }
+
+/**
+ * How the idle poller backs off. The board wedged once after nine minutes of an idle session in
+ * which the 100 ms poller was the only USB traffic - roughly 5000 transfers that told us nothing.
+ * Anything that changes state resets the ladder to the first step.
+ */
+export const POLL_LADDER_MS = [100, 500, 2000] as const;
+/** Ticks at one rung with no state change before dropping to the next. */
+export const POLL_STEPS_PER_RUNG = 20;
+
+const delay = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
 type CoreStatus = NonNullable<ProbeStatus['core']>;
 
@@ -55,10 +70,52 @@ export class ProbeService {
 
   private pollTimer: ReturnType<typeof setTimeout> | null = null;
   private pollGeneration = 0;
+  private pollRung = 0;
+  private pollQuietTicks = 0;
+  /** Set false while nothing needs live state (no debug session, window not focused). */
+  private pollWanted = true;
+  private readonly lock: DeviceLock;
+  private blockReason: BlockReason | undefined;
+  /** True between the first erase and the end of a flash: never tear down in this window. */
+  private flashing = false;
 
   constructor(private readonly host: ProbeHost) {
     this.log = host.log ?? nullLogger;
     this.pollIntervalMs = Math.min(100, host.pollIntervalMs ?? 100);
+    this.lock = new DeviceLock(host.locks);
+  }
+
+  /** Total USB transfers since the device was opened - makes idle chatter visible in the log. */
+  get usbTransfers(): number {
+    return this.connector?.transferCount ?? 0;
+  }
+
+  /** True while a flash is between erase and done; callers must not tear the connection down. */
+  get isFlashing(): boolean {
+    return this.flashing;
+  }
+
+  /**
+   * Say whether live core state is worth USB traffic. A debug session or an open status view sets
+   * this true; an idle editor sets it false and the poller stops entirely.
+   */
+  setPollingWanted(wanted: boolean): void {
+    if (this.pollWanted === wanted) return;
+    this.pollWanted = wanted;
+    this.log.debug(`polling ${wanted ? 'wanted' : 'not wanted'}`);
+    if (wanted) {
+      this.pollRung = 0;
+      this.pollQuietTicks = 0;
+      if (this.usbState === 'connected' && this.coreState === 'running') this.startPoller();
+    } else {
+      this.stopPoller();
+    }
+  }
+
+  /** Something happened that makes the core state interesting again: poll fast for a while. */
+  noteActivity(): void {
+    this.pollRung = 0;
+    this.pollQuietTicks = 0;
   }
 
   // ---- status ----------------------------------------------------------------------------
@@ -67,6 +124,8 @@ export class ProbeService {
     const s: ProbeStatus = {
       usb: this.usbState,
       serial: this.serialState,
+      blockReason: this.blockReason,
+      usbTransfers: this.usbTransfers,
       core: this.usbState === 'connected' ? this.coreState : 'unknown',
       usbDeviceKnown: this.usbDevice !== null,
       serialPortKnown: this.serialPort !== null,
@@ -124,13 +183,35 @@ export class ProbeService {
       if (this.connector && this.usbState === 'connected' && this.usbDevice === device) return this.status();
       await this.teardownUsb(false);
       this.usbDevice = device;
+
+      // One lab tab per board. Web Locks are shared across the whole browser profile, so this
+      // catches the second tab *before* WebUSB fails with a DOMException that reads like a
+      // hardware fault. It says nothing about other programs on the machine - that is the
+      // claimInterface() failure below.
+      const lockName = deviceLockName(device.vendorId, device.productId, device.serialNumber);
+      if (this.lock.available && !(await this.lock.acquire(lockName))) {
+        this.blockReason = 'other-tab';
+        this.usbState = 'error';
+        this.lastError = 'board is open in another tab of this browser';
+        this.logEvent('warn', `board already claimed by another tab (lock ${lockName})`);
+        throw new ProbeError('board is open in another tab of this browser', 'NO_DEVICE');
+      }
+
       const connector = new UsbConnector(device, this.log);
       const stlink = new Stlink(connector, this.log);
       try {
-        await connector.connect();
+        try {
+          await connector.connect();
+        } catch (openErr) {
+          const d = diagnoseOpenFailure(openErr, await this.lock.heldElsewhere(lockName));
+          this.blockReason = d.reason;
+          this.logEvent('warn', `open failed (${d.reason}): ${d.detail}`);
+          throw ProbeError.from(openErr, 'NO_DEVICE');
+        }
         await stlink.init();
         const core = new CortexM(stlink, this.log);
-        this.target = await this.identify(stlink, core);
+        this.target = await this.identifyWithRecovery(stlink, core);
+        this.blockReason = undefined;
         this.connector = connector;
         this.stlink = stlink;
         this.core = core;
@@ -154,15 +235,77 @@ export class ProbeService {
           // ignore
         }
         await connector.disconnect();
+        this.lock.releaseNow();
         this.connector = null;
         this.stlink = null;
         this.core = null;
         this.bpu = null;
         this.target = null;
+        if (!this.blockReason) {
+          this.blockReason = diagnoseOpenFailure(err, false).reason;
+        }
         this.logEvent('error', `probe attach failed: ${err.message}`);
         throw err;
       }
     });
+  }
+
+  /**
+   * Identify the target, and if it does not answer, put the ST-Link back into a defined state
+   * instead of handing the student a wedged adapter.
+   *
+   * The failure this repairs is the everyday one: the previous session ended without a clean
+   * detach (tab closed, browser killed, client crash), so the ST-Link's SWD state machine is out
+   * of step and reports an all-zero core id - what the host tool prints as "Failed to enter SWD
+   * mode" and chipid 0x000. Never assume the last session shut down properly; establish the state.
+   *
+   * Two escalating attempts, both non-destructive:
+   *   1. leave debug mode and re-enter SWD (the software half of --connect-under-reset),
+   *   2. the same with NRST held low, so the target cannot run away while we re-attach.
+   * A target that still does not answer means the ST-Link itself is desynchronised at USB level,
+   * and only a physical replug fixes that - the caller turns that into a message with a button.
+   */
+  private async identifyWithRecovery(stlink: Stlink, core: CortexM): Promise<TargetInfo> {
+    let lastError: unknown;
+    for (let attempt = 0; attempt <= 2; attempt++) {
+      if (attempt > 0) {
+        this.logEvent('warn', `target did not answer, recovery attempt ${attempt} of 2`);
+        try {
+          if (attempt === 2) await stlink.driveNrst('low');
+          await stlink.leaveState();
+          await delay(30);
+          await stlink.enterDebugSwd();
+          await stlink.readCoreId();
+          if (attempt === 2) {
+            // Halt on the reset vector before letting the target run, so a firmware that
+            // immediately re-wedges the bus cannot do so before we have identified it.
+            try {
+              await core.resetHalt();
+            } catch {
+              // best effort - identification below is what actually decides
+            }
+            await stlink.driveNrst('high');
+          }
+        } catch (e) {
+          lastError = e;
+          continue;
+        }
+      }
+      try {
+        const info = await this.identify(stlink, core);
+        const cpuid = await core.readCpuid().catch(() => 0);
+        if (!isTargetUnresponsive(info.coreId, cpuid)) {
+          if (attempt > 0) this.logEvent('info', `target recovered on attempt ${attempt} (connect under reset)`);
+          this.blockReason = undefined;
+          return info;
+        }
+        lastError = new ProbeError(`target unresponsive (core id 0x${info.coreId.toString(16)}, CPUID 0x${cpuid.toString(16)})`, 'TARGET_FAULT');
+      } catch (e) {
+        lastError = e;
+      }
+    }
+    this.blockReason = 'target-unresponsive';
+    throw ProbeError.from(lastError ?? new ProbeError('target unresponsive', 'TARGET_FAULT'), 'TARGET_FAULT');
   }
 
   private async identify(stlink: Stlink, core: CortexM): Promise<TargetInfo> {
@@ -221,6 +364,24 @@ export class ProbeService {
     return this.mutex.runExclusive(() => this.teardownUsb(true));
   }
 
+  /**
+   * Hand the board back to the browser profile: close the port, close the device, drop the lock.
+   * Called by the "Board freigeben" command, on extension shutdown, and when the window goes away.
+   * A flash in progress is never interrupted - the caller waits or the image is left half written.
+   */
+  async release(): Promise<void> {
+    if (this.flashing) {
+      this.logEvent('warn', 'release ignored: a flash is running, that must finish first');
+      return;
+    }
+    await this.mutex.runExclusive(async () => {
+      this.setSerialPort(null);
+      await this.teardownUsb(true);
+      this.usbDevice = null;
+      this.logEvent('info', 'board released (device closed, lock dropped)');
+    });
+  }
+
   private async teardownUsb(cleanTarget: boolean): Promise<void> {
     this.stopPoller();
     const wasConnected = this.usbState === 'connected';
@@ -240,6 +401,7 @@ export class ProbeService {
       }
       await this.connector.disconnect();
     }
+    this.lock.releaseNow();
     this.connector = null;
     this.stlink = null;
     this.core = null;
@@ -312,8 +474,15 @@ export class ProbeService {
 
   // ---- poller ----------------------------------------------------------------------------
 
+  /** Current back-off rung in ms; exported through status for tests and the log. */
+  get pollDelayMs(): number {
+    const rung = Math.min(this.pollRung, POLL_LADDER_MS.length - 1);
+    return Math.max(this.pollIntervalMs, POLL_LADDER_MS[rung] ?? POLL_LADDER_MS[0]);
+  }
+
   private startPoller(): void {
     if (this.pollTimer) return;
+    if (!this.pollWanted) return;
     const generation = ++this.pollGeneration;
     const tick = (): void => {
       this.pollTimer = null;
@@ -327,9 +496,20 @@ export class ProbeService {
             const reason = await this.core.haltReason();
             const pc = await this.core.readReg(REG_PC);
             this.lastHalt = { reason, pc };
+            this.pollRung = 0;
+            this.pollQuietTicks = 0;
             this.emit({ type: 'halted', reason, pc });
           } else if (st.lockup) {
             this.logEvent('warn', 'core is in LOCKUP state');
+            this.pollRung = 0;
+            this.pollQuietTicks = 0;
+          } else if (++this.pollQuietTicks >= POLL_STEPS_PER_RUNG) {
+            // Nothing changed for a whole rung: slow down rather than keep the bus busy.
+            this.pollQuietTicks = 0;
+            if (this.pollRung < POLL_LADDER_MS.length - 1) {
+              this.pollRung++;
+              this.log.debug(`poller backing off to ${this.pollDelayMs} ms after ${this.usbTransfers} USB transfers`);
+            }
           }
         })
         .catch((e) => {
@@ -338,18 +518,20 @@ export class ProbeService {
           this.markFatal(err);
         })
         .finally(() => {
-          if (generation === this.pollGeneration && this.coreState === 'running' && this.usbState === 'connected') {
-            this.pollTimer = setTimeout(tick, this.pollIntervalMs);
+          if (generation === this.pollGeneration && this.pollWanted && this.coreState === 'running' && this.usbState === 'connected') {
+            this.pollTimer = setTimeout(tick, this.pollDelayMs);
           } else {
             this.pollTimer = null;
           }
         });
     };
-    this.pollTimer = setTimeout(tick, this.pollIntervalMs);
+    this.pollTimer = setTimeout(tick, this.pollDelayMs);
   }
 
   private stopPoller(): void {
     this.pollGeneration++;
+    this.pollRung = 0;
+    this.pollQuietTicks = 0;
     if (this.pollTimer) {
       clearTimeout(this.pollTimer);
       this.pollTimer = null;
@@ -549,20 +731,28 @@ export class ProbeService {
     const started = Date.now();
     const flash = new Stm32FlashFS(core, this.log);
     this.logEvent('info', `flashing ${data.length} bytes @0x${hex32(addr)}`);
-    await bpu.clearAll();
-    await flash.write(addr, data, {
-      eraseSizes: target.eraseSizes,
-      flashStart: FLASH_WINDOW_START,
-      verify,
-      onProgress: (phase, done, total) => this.emit({ type: 'flash-progress', phase, done, total }),
-    });
-    // Leave the target in a defined state: reset and halted at the reset vector.
-    await core.resetHalt();
+    // From here to the finally below the image on the chip is incomplete. release() refuses to
+    // run in this window, so no teardown can leave a half-erased flash behind.
+    this.flashing = true;
+    try {
+      await bpu.clearAll();
+      await flash.write(addr, data, {
+        eraseSizes: target.eraseSizes,
+        flashStart: FLASH_WINDOW_START,
+        verify,
+        onProgress: (phase, done, total) => this.emit({ type: 'flash-progress', phase, done, total }),
+      });
+      // Leave the target in a defined state: reset and halted at the reset vector.
+      await core.resetHalt();
+    } finally {
+      this.flashing = false;
+    }
     this.coreState = 'halted';
+    this.noteActivity();
     const pc = await core.readReg(REG_PC);
     this.lastHalt = { reason: 'reset', pc };
     const ms = Date.now() - started;
-    this.logEvent('info', `flash done: ${data.length} bytes in ${ms} ms (${verify ? 'verified' : 'not verified'})`);
+    this.logEvent('info', `flash done: ${data.length} bytes in ${ms} ms (${verify ? 'verified' : 'not verified'}), ${this.usbTransfers} USB transfers total`);
     return { ok: true, bytes: data.length, ms, verified: verify, state: 'halted' };
   }
 

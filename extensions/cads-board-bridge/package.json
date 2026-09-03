@@ -76,6 +76,10 @@
         "command": "cads.board.showMenu",
         "title": "CaDS Board: Menü",
         "category": "CaDS"
+      },
+      {
+        "command": "cads.board.release",
+        "title": "CaDS Board: Board freigeben (für einen anderen Tab)"
       }
     ],
     "configuration": {
@@ -125,6 +129,11 @@
           "type": "boolean",
           "default": true,
           "description": "POST /command auf dem HTTP-Shim-Port erlauben (nur 127.0.0.1; für Tests/Tooling)"
+        },
+        "cads.board.idleReleaseSeconds": {
+          "type": "number",
+          "default": 0,
+          "description": "Gib das Board automatisch frei, wenn das Fenster so viele Sekunden lang nicht im Vordergrund war. 0 schaltet die automatische Freigabe aus."
         }
       }
     }

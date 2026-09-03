@@ -1,11 +1,11 @@
-// m0-04-compiler-errors: this file does NOT compile. Read the diagnostic,
+// m0-05-compiler-errors: this file does NOT compile. Read the diagnostic,
 // then repair it so that `rustc` accepts the file and the program prints
 //
 //   Ada is 36 years old and 1 metre 62 tall.
 //
 // Build and run it with one command (the check does exactly this):
-//   mkdir -p target/check && rustc --edition 2024 -o target/check/m0_04 \
-//     repair/m0_04_type_mismatch.rs && target/check/m0_04
+//   mkdir -p target/check && rustc --edition 2024 -o target/check/m0_05 \
+//     repair/m0_05_type_mismatch.rs && target/check/m0_05
 //
 // Change only what the compiler complains about. Keep every variable and
 // keep the printed sentence exactly as above.

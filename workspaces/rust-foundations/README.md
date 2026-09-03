@@ -10,7 +10,7 @@ else comes with it.
 ## The one command you need
 
 ```bash
-cargo test --test m0-02-first-test
+cargo test --test m0-03-first-test
 ```
 
 That runs the tests of a single step. The step id is the file name in

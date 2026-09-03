@@ -46,6 +46,11 @@
       {
         "command": "cads.probe.diag",
         "title": "CaDS Probe: Diagnose (getDevices/getPorts)"
+      },
+      {
+        "command": "cads.probe.release",
+        "title": "CaDS Probe: Board freigeben / Release board",
+        "category": "CaDS"
       }
     ]
   },
