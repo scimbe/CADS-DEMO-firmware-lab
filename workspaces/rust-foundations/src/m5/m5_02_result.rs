@@ -28,6 +28,11 @@ pub fn first_line(text: &str) -> Result<&str, String> {
 ///
 /// Reuse `parse_port` and handle its `Result` with a `match` inside the loop –
 /// the next step replaces that `match` with a single character.
+///
+/// Clippy's `question_mark` lint proposes that single character already. It is
+/// right about finished code and wrong about this exercise, whose subject is
+/// the long form, so the lint is switched off here on purpose.
+#[allow(clippy::question_mark)]
 pub fn sum_ports(entries: &[&str]) -> Result<u32, String> {
     todo!()
 }

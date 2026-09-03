@@ -21,6 +21,10 @@ pub fn first_line(text: &str) -> Result<&str, String> {
 }
 
 /// The `match` in the loop is what `?` replaces in the next step.
+/// Clippy's `question_mark` lint would collapse the match into `?`. It is right
+/// about production code and wrong about this exercise, whose subject is the
+/// long form; m5-03 takes the lint up on its offer.
+#[allow(clippy::question_mark)]
 pub fn sum_ports(entries: &[&str]) -> Result<u32, String> {
     let mut total = 0u32;
     for entry in entries {
