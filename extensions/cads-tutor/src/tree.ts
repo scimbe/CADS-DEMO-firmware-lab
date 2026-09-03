@@ -23,6 +23,8 @@ const STATUS_ICONS: Record<StepStatus, vscode.ThemeIcon> = {
   open: new vscode.ThemeIcon("circle-large-outline"),
   active: new vscode.ThemeIcon("play-circle", new vscode.ThemeColor("charts.blue")),
   done: new vscode.ThemeIcon("pass-filled", new vscode.ThemeColor("testing.iconPassed")),
+  // A step course.json promises but the pack does not provide yet.
+  unavailable: new vscode.ThemeIcon("circle-slash", new vscode.ThemeColor("disabledForeground")),
 };
 
 export class CoursesTreeProvider implements vscode.TreeDataProvider<TreeNode> {

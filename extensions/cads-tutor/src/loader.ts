@@ -8,7 +8,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { parseFrontMatter } from "./frontmatter";
 import { validateCourseManifest, validateStepFrontMatter } from "./schema";
-import type { Course, Lang, LoadDiagnostic, Step, StepContent } from "./types";
+import type { Course, Lang, LoadDiagnostic, Step, StepContent, StepFrontMatter } from "./types";
 
 export interface ExtensionCourseContribution {
   extensionId: string;
@@ -95,6 +95,37 @@ function packDirsIn(source: CourseSource): string[] {
 const STEP_FILE_RE = /^(.+)\.(de|en)\.md$/;
 
 /** Loads one pack directory. Errors in individual steps do not discard the whole course. */
+/**
+ * A stand-in for a step that course.json promises but the pack does not (yet)
+ * provide. It carries just enough front matter to render a title and to be
+ * skipped everywhere a real step would be evaluated.
+ */
+function placeholderStep(stepId: string, moduleId: string, courseId: string, file: string): Step {
+  const meta: StepFrontMatter = {
+    id: stepId,
+    title: stepId,
+    bloom: "remember",
+    objectives: [],
+    requires: [],
+    estimatedMinutes: undefined,
+    links: [],
+    tasks: [],
+    socratic: [],
+    creates: [],
+    sources: [],
+    scaffold: "independent",
+    recallFrom: [],
+    misconceptions: [],
+  };
+  return {
+    id: stepId,
+    moduleId,
+    courseId,
+    placeholder: true,
+    variants: { en: { meta, body: "", file } },
+  };
+}
+
 export function loadCoursePack(dir: string, origin: string): { course?: Course; diagnostics: LoadDiagnostic[] } {
   const diagnostics: LoadDiagnostic[] = [];
   const manifestFile = path.join(dir, "course.json");
@@ -168,7 +199,16 @@ export function loadCoursePack(dir: string, origin: string): { course?: Course; 
     for (const sid of mod.steps) {
       const step = steps.get(sid);
       if (!step) {
-        diagnostics.push({ level: "error", file: path.join(stepsDir, `${sid}.en.md`), message: `course "${manifest.id}": step "${sid}" listed in module "${mod.id}" has no valid step file` });
+        // A course under construction lists steps whose files are not written yet.
+        // Dropping them used to take the whole pack with it; now the step becomes a
+        // visible placeholder and the rest of the course stays usable, so a course
+        // can be delivered module by module.
+        diagnostics.push({
+          level: "warning",
+          file: path.join(stepsDir, `${sid}.en.md`),
+          message: `course "${manifest.id}": step "${sid}" is listed in module "${mod.id}" but has no usable step file – shown as "not yet available"`,
+        });
+        steps.set(sid, placeholderStep(sid, mod.id, manifest.id, path.join(stepsDir, `${sid}.en.md`)));
         continue;
       }
       if (!step.variants.en) {

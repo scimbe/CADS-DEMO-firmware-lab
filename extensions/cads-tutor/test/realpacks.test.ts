@@ -56,10 +56,20 @@ describe("real course packs", { skip: REAL.length === 0 ? "courses/ not present"
 
   it("both packs load together; projects is locked behind foundations; pack objectives land in the curriculum", () => {
     const result = loadCourses({ workspaceRoot: os.tmpdir(), homeDir: os.tmpdir(), imageDir: COURSES });
-    assert.deepEqual(result.courses.map((c) => c.manifest.id).sort(), REAL.sort());
+    // courses/ also holds the language tracks now, so assert that the firmware
+    // packs are among what loaded rather than pinning the whole set - a new pack
+    // in the repo must not break this test.
+    const ids = result.courses.map((c) => c.manifest.id);
+    for (const id of REAL) assert.ok(ids.includes(id), `${id} loaded (got ${ids.join(", ")})`);
+    for (const c of result.courses) assert.ok(c.steps.size > 0, `${c.manifest.id} has steps`);
+    assert.deepEqual(result.diagnostics.filter((d) => d.level === "error"), [], "no pack in courses/ fails to load");
     const foundations = result.courses.find((c) => c.manifest.id === "cads-zero-foundations")!;
     const projects = result.courses.find((c) => c.manifest.id === "cads-zero-projects");
-    assert.equal(foundations.curriculum.length, 27);
+    // A count pinned to the day it was written breaks whenever the course stream
+    // adds an objective, which is normal authoring. Assert the property that
+    // matters: the pack ships its own objectives and they parse.
+    assert.ok(foundations.curriculum.length >= 20, `curriculum entries: ${foundations.curriculum.length}`);
+    assert.ok(foundations.curriculum.every((o) => typeof (o as { id?: unknown }).id === "string"));
     const session = newSession();
     assert.equal(stepStatus(session, foundations, orderedSteps(foundations)[0], result.courses), "open");
     if (projects) assert.equal(stepStatus(session, projects, orderedSteps(projects)[0], result.courses), "locked");

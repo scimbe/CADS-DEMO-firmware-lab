@@ -80,13 +80,17 @@ export function isStepUnlocked(session: SessionState, course: Course, step: Step
   const requires = step.variants.en?.meta.requires ?? [];
   for (const req of requires) {
     const reqStep = course.steps.get(req);
-    if (reqStep && !isStepDone(session, reqStep)) return false;
+    // A placeholder is a step whose file is not written yet. Requiring it would
+    // lock the rest of the course behind a file that does not exist, which is
+    // exactly what shipping a course module by module must not do.
+    if (reqStep && !reqStep.placeholder && !isStepDone(session, reqStep)) return false;
   }
   return true;
 }
 
 /** done → locked → active → open: a locked step stays locked even while it is the session's current step. */
 export function stepStatus(session: SessionState, course: Course, step: Step, allCourses: Course[]): StepStatus {
+  if (step.placeholder) return "unavailable";
   if (isStepDone(session, step)) return "done";
   if (!isStepUnlocked(session, course, step, allCourses)) return "locked";
   if (session.courseId === course.manifest.id && session.stepId === step.id) return "active";
@@ -185,6 +189,7 @@ export function nextOpenStep(session: SessionState, course: Course, allCourses: 
   const start = stepId ? steps.findIndex((s) => s.id === stepId) + 1 : 0;
   for (let i = start; i < steps.length; i++) {
     const s = steps[i];
+    if (s.placeholder) continue; // nothing to open
     if (!isStepDone(session, s) && isStepUnlocked(session, course, s, allCourses)) return s;
   }
   return undefined;
@@ -192,23 +197,29 @@ export function nextOpenStep(session: SessionState, course: Course, allCourses: 
 
 export function adjacentStep(course: Course, stepId: string, delta: 1 | -1): Step | undefined {
   const steps = orderedSteps(course);
-  const i = steps.findIndex((s) => s.id === stepId);
+  let i = steps.findIndex((s) => s.id === stepId);
   if (i < 0) return undefined;
-  return steps[i + delta];
+  // Step over placeholders: Back/Next must not land on a step that has no content.
+  for (i += delta; i >= 0 && i < steps.length; i += delta) {
+    if (!steps[i].placeholder) return steps[i];
+  }
+  return undefined;
 }
 
 /** Where a fresh session should start: the first course without prerequisites, its first step. */
 export function defaultStart(courses: Course[]): { course: Course; step: Step } | undefined {
   const sorted = [...courses].sort((a, b) => a.manifest.prerequisites.length - b.manifest.prerequisites.length);
   for (const c of sorted) {
-    const [first] = orderedSteps(c);
+    const first = orderedSteps(c).find((s) => !s.placeholder);
     if (first) return { course: c, step: first };
   }
   return undefined;
 }
 
 export function courseProgress(session: SessionState, course: Course): { done: number; total: number } {
-  const steps = orderedSteps(course);
+  // Placeholders are not part of the work: counting them would show a course as
+  // permanently incomplete because of files nobody has written yet.
+  const steps = orderedSteps(course).filter((s) => !s.placeholder);
   return { done: steps.filter((s) => isStepDone(session, s)).length, total: steps.length };
 }
 
