@@ -7,12 +7,20 @@ number in these steps is verifiable in that repository; nothing is invented.
 
 | Pack | Kind | Bloom span | Steps | Time |
 |---|---|---|---|---|
-| [`cads-zero-foundations`](cads-zero-foundations/) | required | remember → create | 41 | ~10 h |
+| [`cads-zero-foundations`](cads-zero-foundations/) | required | remember → create | 42 | ~10 h |
 | [`cads-zero-projects`](cads-zero-projects/) | elective | create / evaluate | 6 | open |
 
 The pack format, the check types and the front-matter schema are defined in
 `docs/SPEC.md` (section 3.3). This file is the map and the author's cheat-sheet;
 the specification is the contract.
+
+**Before writing or changing a step, read [`docs/PEDAGOGY-RULES.md`](../docs/PEDAGOGY-RULES.md).**
+It is binding, and it is short. Where the SPEC says what a pack may contain, the
+rules say what a step has to do to be worth a student's time: the answer may not
+sit in the step text, every check must be able to fail, hint tier 3 is not the
+solution, and a tick is not knowledge. Each rule names the review finding it came
+from, in [`docs/review/`](../docs/review/) - all of them from three personas
+reading this very course, after a cohort in the field got no further than module 2.
 
 ## Learning path
 
@@ -21,7 +29,7 @@ graph TD
   subgraph Foundations["cads-zero-foundations (required)"]
     M0["M0 Orientation<br/>IDE · connect · build · flash · console"]
     M1["M1 Architecture<br/>modules · HAL · sim vs board · splash"]
-    M2["M2 MMIO & GPIO<br/>memory map · LEDs · buttons · SAFETY · own command"]
+    M2["M2 MMIO & GPIO<br/>registers &amp; volatile · memory map · LEDs · buttons · SAFETY · own command"]
     M3["M3 Debugging<br/>breakpoints · SVD · fault forensics · stack guard · SPI mutex"]
     M4["M4 FreeRTOS<br/>tasks · RAM budget · bus mutex · IWDG · stack sizing"]
     M5["M5 Display & GUI<br/>canvas · views · own app · dirty-rect tradeoff"]
