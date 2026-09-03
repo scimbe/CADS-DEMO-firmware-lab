@@ -188,9 +188,26 @@ except ImportError:
             key = m.group(1).strip()
             rest = m.group(2).strip()
             if rest == "":
-                # nested block
-                val, idx = _parse_block(lines, idx + 1, indent + 1)
-                obj[key] = val
+                # Nested block. The child's indent is DISCOVERED from its first
+                # significant line, not assumed to be indent + 1: a block map
+                # under `check:` is normally indented by two, and assuming one
+                # made _parse_map bail out immediately and yield {} - so every
+                # block-style check parsed as type None. A sequence may also sit
+                # at the key's own indent, which is legal YAML.
+                j = idx + 1
+                while j < len(lines) and (not lines[j].strip() or lines[j].lstrip().startswith("#")):
+                    j += 1
+                if j < len(lines):
+                    child = _indent(lines[j])
+                    is_seq = lines[j].lstrip().startswith("- ")
+                    if child > indent or (is_seq and child == indent):
+                        val, idx = _parse_block(lines, idx + 1, child)
+                        obj[key] = val
+                        continue
+                # A key with nothing under it is an explicit null, as in PyYAML.
+                obj[key] = None
+                idx += 1
+                continue
             elif rest[0] in "[{":
                 val, _ = _parse_flow(rest, 0)
                 obj[key] = val
