@@ -738,8 +738,13 @@ def badge(kind: str, label: str) -> str:
 
 # --------------------------------------------------------------------------- inline SVG charts
 
+def _clip(text: str, n: int) -> str:
+    """Shorten a chart label; the table under every chart still carries the full text."""
+    return text if len(text) <= n else text[:n - 1] + "\u2026"
+
+
 def svg_hbars(rows: list[tuple[str, float, str]], vmax: Optional[float] = None,
-              width: int = 900, label_w: int = 210, color: str = "var(--accent)",
+              width: int = 900, label_w: int = 250, color: str = "var(--accent)",
               title: str = "") -> str:
     """rows = [(label, value, value_text)]; horizontal bars, deterministic geometry."""
     if not rows:
@@ -755,7 +760,7 @@ def svg_hbars(rows: list[tuple[str, float, str]], vmax: Optional[float] = None,
     for i, (label, value, vtext) in enumerate(rows):
         y = pad_t + i * (bar_h + gap)
         w = max(1.0, plot_w * (abs(value) / vmax)) if vmax else 1.0
-        parts.append(f'<text x="8" y="{y + 13}" class="mut">{esc(label[:34])}</text>')
+        parts.append(f'<text x="8" y="{y + 13}" class="mut">{esc(_clip(label, 38))}</text>')
         parts.append(f'<rect x="{label_w}" y="{y}" width="{plot_w}" height="{bar_h}" rx="3" '
                      f'fill="var(--chip)"/>')
         parts.append(f'<rect x="{label_w}" y="{y}" width="{w:.1f}" height="{bar_h}" rx="3" fill="{color}"/>')
@@ -765,7 +770,7 @@ def svg_hbars(rows: list[tuple[str, float, str]], vmax: Optional[float] = None,
 
 
 def svg_stacked(rows: list[tuple[str, list[float], str]], colors: list[str], width: int = 900,
-                label_w: int = 210, title: str = "") -> str:
+                label_w: int = 250, title: str = "") -> str:
     if not rows:
         return ""
     bar_h, gap, pad_t, pad_b = 18, 6, 14, 10
@@ -778,7 +783,7 @@ def svg_stacked(rows: list[tuple[str, list[float], str]], colors: list[str], wid
     for i, (label, vals, vtext) in enumerate(rows):
         y = pad_t + i * (bar_h + gap)
         x = float(label_w)
-        parts.append(f'<text x="8" y="{y + 13}" class="mut">{esc(label[:34])}</text>')
+        parts.append(f'<text x="8" y="{y + 13}" class="mut">{esc(_clip(label, 38))}</text>')
         parts.append(f'<rect x="{label_w}" y="{y}" width="{plot_w}" height="{bar_h}" rx="3" fill="var(--chip)"/>')
         for v, col in zip(vals, colors):
             w = plot_w * (v / vmax)
@@ -790,19 +795,22 @@ def svg_stacked(rows: list[tuple[str, list[float], str]], colors: list[str], wid
     return "".join(parts)
 
 
-def svg_funnel(funnel: list[dict], total: int, width: int = 900, height: int = 220, title: str = "") -> str:
-    """Two-series line chart over the course order: reached and completed per step."""
+def svg_funnel(funnel: list[dict], total: int, width: int = 900, height: int = 230, title: str = "") -> str:
+    """Two series over the course order: how many students reached and completed each step.
+
+    The x axis is labelled by module, not by step: at 41 steps the individual names are
+    unreadable, and where the cohort thins out is a question about modules anyway.  The
+    table under the chart carries the exact per-step numbers.
+    """
     if len(funnel) < 2:
         return ""
-    pad_l, pad_r, pad_t, pad_b = 34, 12, 12, 44
+    pad_l, pad_r, pad_t, pad_b = 40, 14, 26, 34
     plot_w, plot_h = width - pad_l - pad_r, height - pad_t - pad_b
     vmax = max(total, max((f["reached"] for f in funnel), default=1), 1)
     n = len(funnel)
 
     def xy(i: int, v: int) -> tuple[float, float]:
-        x = pad_l + (plot_w * i / (n - 1))
-        y = pad_t + plot_h - (plot_h * v / vmax)
-        return x, y
+        return pad_l + (plot_w * i / (n - 1)), pad_t + plot_h - (plot_h * v / vmax)
 
     parts = [f'<svg class="chart" viewBox="0 0 {width} {height}" role="img" width="{width}" height="{height}">']
     if title:
@@ -811,20 +819,24 @@ def svg_funnel(funnel: list[dict], total: int, width: int = 900, height: int = 2
         y = pad_t + plot_h - plot_h * frac
         parts.append(f'<line x1="{pad_l}" y1="{y:.1f}" x2="{width - pad_r}" y2="{y:.1f}" '
                      f'stroke="var(--line)" stroke-width="1"/>')
-        parts.append(f'<text x="4" y="{y + 4:.1f}" class="mut">{vmax * frac:.0f}</text>')
+        parts.append(f'<text x="6" y="{y + 4:.1f}" class="mut">{vmax * frac:.0f}</text>')
+    # module boundaries
+    seen: set = set()
+    for i, f in enumerate(funnel):
+        mod = (f["step"].split("-", 1)[0] or "?")
+        if mod in seen:
+            continue
+        seen.add(mod)
+        x, _ = xy(i, 0)
+        parts.append(f'<line x1="{x:.1f}" y1="{pad_t}" x2="{x:.1f}" y2="{pad_t + plot_h}" '
+                     f'stroke="var(--line)" stroke-dasharray="2 3"/>')
+        parts.append(f'<text x="{x + 3:.1f}" y="{height - pad_b + 16}" class="mut">{esc(mod)}</text>')
     for key, col, dash in (("reached", "var(--accent)", ""), ("done", "var(--good)", ' stroke-dasharray="4 3"')):
         pts = " ".join(f"{x:.1f},{y:.1f}" for x, y in (xy(i, f[key]) for i, f in enumerate(funnel)))
         parts.append(f'<polyline points="{pts}" fill="none" stroke="{col}" stroke-width="2"{dash}/>')
-    every = max(1, n // 12)
-    for i, f in enumerate(funnel):
-        if i % every:
-            continue
-        x, _ = xy(i, 0)
-        parts.append(f'<text x="{x:.1f}" y="{height - 24}" class="mut" text-anchor="end" '
-                     f'transform="rotate(-40 {x:.1f} {height - 24})">{esc(f["step"][:16])}</text>')
-    parts.append(f'<text x="{pad_l}" y="{height - 4}" class="mut">'
-                 f'<tspan fill="var(--accent)">●</tspan> reached  '
-                 f'<tspan fill="var(--good)">●</tspan> done</text>')
+    parts.append(f'<text x="{width - pad_r}" y="{pad_t - 10}" text-anchor="end">'
+                 f'<tspan fill="var(--accent)">\u25cf</tspan> reached  '
+                 f'<tspan fill="var(--good)">\u25cf</tspan> done</text>')
     parts.append("</svg>")
     return "".join(parts)
 
@@ -848,7 +860,7 @@ def svg_zbars(rows: list[tuple[str, float]], width: int = 900, label_w: int = 15
         w = abs(zc) / 3.0 * (plot_w / 2)
         x = mid if zc >= 0 else mid - w
         col = "var(--warn)" if zc >= 0 else "var(--accent)"
-        parts.append(f'<text x="8" y="{y + 12}" class="mut">{esc(label[:26])}</text>')
+        parts.append(f'<text x="8" y="{y + 12}" class="mut">{esc(_clip(label, 26))}</text>')
         parts.append(f'<rect x="{x:.1f}" y="{y}" width="{max(1.0, w):.1f}" height="{bar_h}" rx="2" fill="{col}"/>')
         parts.append(f'<text x="{label_w + plot_w + 8}" y="{y + 12}">{z:+.2f}</text>')
     parts.append(f'<text x="{label_w}" y="{height - 6}" class="mut">-3</text>'

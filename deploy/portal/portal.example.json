@@ -1,0 +1,23 @@
+{
+  "_comment": "Beispiel fuer FL_PORTAL_CONFIG. Wer hier nicht steht, bekommt 403 - auch mit gueltiger Gate-Anmeldung. Schwellwerte und Kriterien sind in RULES.md erklaert; weggelassene Werte bleiben auf der Vorgabe aus analytics.py.",
+  "teachers": {
+    "anna.lehrende@hs.example": { "courses": ["cads-zero-foundations"], "role": "teacher" },
+    "bernd.lehrender@hs.example": { "courses": ["rust-foundations"], "role": "teacher" },
+    "carla.lehrende@hs.example": { "courses": ["javascript-foundations"], "role": "teacher" },
+    "admin@hs.example": { "courses": [], "role": "admin" }
+  },
+  "thresholds": {
+    "activeDays": 7,
+    "dropped": { "inactiveDays": 14 },
+    "cheat": { "fastPassSeconds": 60, "pasteShare": 0.8, "textJaccard": 0.9 }
+  },
+  "credit": {
+    "minStepShare": 0.8,
+    "minCheckShare": 0.8,
+    "minReflections": 2,
+    "requireProject": true
+  },
+  "creditPerCourse": {
+    "rust-foundations": { "requireProject": false }
+  }
+}
