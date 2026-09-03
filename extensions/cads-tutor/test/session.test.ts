@@ -4,7 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { describe, it } from "node:test";
 import { loadCoursePack, orderedSteps } from "../src/loader";
-import { adjacentStep, defaultStart, isStepUnlocked, newSession, nextOpenStep, readSession, recordTaskResult, setCurrentStep, stepStatus, writeSession } from "../src/session";
+import { adjacentStep, defaultStart, isStepUnlocked, moduleProgress, newSession, nextOpenStep, readSession, recordTaskResult, setCurrentStep, stepStatus, writeSession } from "../src/session";
 import { hintTierForFailures, selectHint, taskFailedTrigger } from "../src/socratic";
 
 const EXAMPLE = path.resolve(__dirname, "..", "..", "courses", "_example");
@@ -81,5 +81,57 @@ describe("socratic hints", () => {
     assert.equal(h3.tier, 3);
     assert.match(h3.hint, /Save the file/);
     assert.equal(selectHint(meta, taskFailedTrigger("readme"), 1, "en"), undefined);
+  });
+});
+
+describe("module progress (A3)", () => {
+  function sessionWith(tasks: Record<string, Partial<import("../src/types").TaskState>>): import("../src/types").SessionState {
+    const s = newSession();
+    for (const [key, state] of Object.entries(tasks)) {
+      const [stepId, taskId] = key.split("#");
+      s.steps[`example-course/${stepId}`] ??= { tasks: {} };
+      s.steps[`example-course/${stepId}`].tasks[taskId] = { status: "pending", failures: 0, hintTier: 0, ...state } as import("../src/types").TaskState;
+    }
+    return s;
+  }
+
+  it("counts a check passed on the first attempt without hints as first try", () => {
+    const s = sessionWith({ "m0-01-welcome#hello": { status: "passed", attempts: 1, hintTier: 0 } });
+    const p = moduleProgress(course, "m0", s);
+    assert.equal(p.firstTry, 1);
+    assert.equal(p.assisted, 0);
+  });
+  it("counts a check that needed a second attempt as assisted", () => {
+    const p = moduleProgress(course, "m0", sessionWith({ "m0-01-welcome#hello": { status: "passed", attempts: 3, hintTier: 0 } }));
+    assert.equal(p.firstTry, 0);
+    assert.equal(p.assisted, 1);
+  });
+  it("counts a check passed on attempt one but after a hint as assisted", () => {
+    // Reading a tier-3 hint and then passing is not independent work.
+    const p = moduleProgress(course, "m0", sessionWith({ "m0-01-welcome#hello": { status: "passed", attempts: 1, hintTier: 3 } }));
+    assert.equal(p.firstTry, 0);
+    assert.equal(p.assisted, 1);
+  });
+  it("reads a pre-v1.1 session without attempts as a single attempt", () => {
+    // Old progress must not be retroactively reported as assisted.
+    const p = moduleProgress(course, "m0", sessionWith({ "m0-01-welcome#hello": { status: "passed", hintTier: 0 } }));
+    assert.equal(p.firstTry, 1);
+  });
+  it("counts everything not yet passed as open", () => {
+    const p = moduleProgress(course, "m0", newSession());
+    assert.equal(p.firstTry, 0);
+    assert.equal(p.assisted, 0);
+    assert.ok(p.open > 0);
+    assert.equal(p.stepsDone, 0);
+  });
+  it("reports no reflection for a module that does not offer one", () => {
+    const p = moduleProgress(course, "m0", newSession());
+    assert.equal(p.reflection, false);
+    assert.equal(p.stepsTotal, 2);
+  });
+  it("reports an unknown module as empty rather than throwing", () => {
+    const p = moduleProgress(course, "does-not-exist", newSession());
+    assert.equal(p.stepsTotal, 0);
+    assert.equal(p.open, 0);
   });
 });

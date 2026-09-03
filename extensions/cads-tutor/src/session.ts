@@ -211,3 +211,75 @@ export function courseProgress(session: SessionState, course: Course): { done: n
   const steps = orderedSteps(course);
   return { done: steps.filter((s) => isStepDone(session, s)).length, total: steps.length };
 }
+
+// ---------------------------------------------------------------------------
+// Addendum v1.1 A3: per-module progress for the progress view.
+// ---------------------------------------------------------------------------
+
+export interface ModuleProgress {
+  moduleId: string;
+  stepsTotal: number;
+  stepsDone: number;
+  /** Checks that passed on the first attempt with no hint shown. */
+  firstTry: number;
+  /** Checks that passed, but only after another attempt or a hint. */
+  assisted: number;
+  /** Checks in this module that have not passed yet. */
+  open: number;
+  predictionsCorrect: number;
+  predictionsDeviated: number;
+  /** Predictions made but never compared (no LLM graded them and the student did not self-assess). */
+  predictionsOpen: number;
+  /** A3: whether the module's reflection card has been filled in. */
+  reflection: boolean;
+  /** True when the module declares no reflection prompts at all. */
+  reflectionOffered: boolean;
+}
+
+/**
+ * A3: "Steps erledigt, Checks bestanden beim ersten Versuch vs. mit Hinweisen,
+ * Vorhersagen korrekt/abweichend, Reflexion vorhanden."
+ *
+ * "First try" deliberately requires BOTH a single attempt and no hint: a check
+ * that passed on attempt one after reading a tier-3 hint is not independent work.
+ * Sessions written before v1.1 have no `attempts`, and are read as one attempt so
+ * old progress is not retroactively reported as assisted.
+ */
+export function moduleProgress(course: Course, moduleId: string, session: SessionState): ModuleProgress {
+  const mod = course.manifest.modules.find((m) => m.id === moduleId);
+  const stepIds = mod?.steps ?? [];
+  const out: ModuleProgress = {
+    moduleId,
+    stepsTotal: stepIds.length,
+    stepsDone: 0,
+    firstTry: 0,
+    assisted: 0,
+    open: 0,
+    predictionsCorrect: 0,
+    predictionsDeviated: 0,
+    predictionsOpen: 0,
+    reflection: session.reflections?.[stepKey(course.manifest.id, moduleId)] !== undefined,
+    reflectionOffered: (mod?.reflection?.prompts.length ?? 0) > 0,
+  };
+  for (const stepId of stepIds) {
+    const step = course.steps.get(stepId);
+    if (!step) continue;
+    if (isStepDone(session, step)) out.stepsDone += 1;
+    const progress = getStepProgress(session, course.manifest.id, stepId);
+    for (const task of step.variants.en?.meta.tasks ?? []) {
+      const state = progress?.tasks?.[task.id];
+      if (!state || state.status !== "passed") {
+        out.open += 1;
+      } else if ((state.attempts ?? 1) <= 1 && state.hintTier === 0) {
+        out.firstTry += 1;
+      } else {
+        out.assisted += 1;
+      }
+      if (task.check.type !== "predict") continue;
+      if (state?.predictionOutcome === "correct") out.predictionsCorrect += 1;
+      else if (state?.predictionOutcome === "deviated") out.predictionsDeviated += 1;
+      else if (state?.prediction) out.predictionsOpen += 1;
+    }
+  }
+  return out;
+}

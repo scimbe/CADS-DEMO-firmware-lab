@@ -51,7 +51,7 @@ import { eventTrigger, hintTierForFailures, selectInsight, selectTaskHint, type 
 import { CoursesTreeProvider, type TreeNode } from "./tree";
 import { loc, stepKey, type Course, type Lang, type LoadDiagnostic, type SessionState, type Step, type StepContent, type TaskSpec, type TaskState, type TaskStatus } from "./types";
 import { DebugStopTracker, ensureBridge, runShellTask, runTaskByLabel } from "./vscodeChecks";
-import type { AskView, FromWebview, HintView, LinkView, NoteView, StepRef, StepView, TaskView } from "./webview";
+import { renderPredict, renderRecall, renderReflection, type AskView, type FromWebview, type HintView, type LinkView, type NoteView, type PredictView, type RecallView, type ReflectionView, type StepRef, type StepView, type TaskView } from "./webview";
 
 const SAVE_DEBOUNCE_MS = 2000;
 const NOTIFY_MIN_INTERVAL_MS = 60_000;
@@ -431,6 +431,7 @@ export class TutorController implements vscode.Disposable {
         needsAnswer: t.check.type === "question",
         manual,
         live: isLocalCheck(t.check),
+        predict: t.check.type === "predict" ? this.predictView(t, state, lang) : undefined,
       };
     });
     const ref = (s: Step | undefined): StepRef | undefined => (s ? { stepId: s.id, title: this.contentFor(s).meta.title } : undefined);
@@ -466,6 +467,98 @@ export class TutorController implements vscode.Disposable {
       llmConfigured: platform.hasLlm,
       bridgeAvailable: !!this.bridge,
       note,
+      scaffold: enMeta.scaffold,
+      recall: this.recallView(course, step, lang),
+      reflection: this.reflectionView(course, step, lang),
+    };
+  }
+
+  /**
+   * A1: the observed output is only put into the view once a prediction exists.
+   * Withholding it here rather than hiding it in the page means it is never in
+   * the DOM to be read.
+   */
+  private predictView(task: TaskSpec, state: TaskState, lang: Lang): PredictView | undefined {
+    if (task.check.type !== "predict") return undefined;
+    const ran = (state.prediction ?? "").trim().length > 0 && state.output !== undefined;
+    return {
+      prompt: loc(task.check.prompt, lang),
+      prediction: state.prediction,
+      actual: ran ? excerptOutput(state.output, 4000) : undefined,
+      outcome: state.predictionOutcome,
+      feedback: state.predictionFeedback,
+      ran,
+    };
+  }
+
+  /**
+   * A2: one question task from a completed step named in `recallFrom`. Chosen
+   * deterministically per step and day, so a reload shows the same card rather
+   * than shuffling through the whole set.
+   */
+  private recallView(course: Course, step: Step, lang: Lang): RecallView | undefined {
+    const meta = step.variants.en!.meta;
+    if (meta.recallFrom.length === 0) return undefined;
+    const key = stepKey(course.manifest.id, step.id);
+    const today = new Date().toISOString().slice(0, 10);
+    const existing = this.session.recall?.[key];
+    if (existing && existing.date === today) {
+      const from = course.steps.get(existing.fromStepId);
+      const src = from ? this.contentFor(from) : undefined;
+      const task = src?.meta.tasks.find((t) => t.id === existing.taskId);
+      if (!src || !task || task.check.type !== "question") return undefined;
+      return {
+        fromStepId: existing.fromStepId,
+        fromTitle: src.meta.title,
+        taskId: existing.taskId,
+        prompt: loc(task.check.prompt, lang),
+        answer: existing.answer,
+        settled: existing.answer !== undefined || existing.dismissed === true,
+      };
+    }
+    // Only completed steps can be recalled: asking about material the student
+    // has not worked through yet is a quiz, not a repetition.
+    const candidates: { stepId: string; taskId: string }[] = [];
+    for (const sid of meta.recallFrom) {
+      const from = course.steps.get(sid);
+      if (!from || !isStepDone(this.session, from)) continue;
+      for (const t of from.variants.en!.meta.tasks) {
+        if (t.check.type === "question") candidates.push({ stepId: sid, taskId: t.id });
+      }
+    }
+    if (candidates.length === 0) return undefined;
+    const pick = candidates[hashString(`${key}:${today}`) % candidates.length];
+    this.session.recall = { ...(this.session.recall ?? {}), [key]: { date: today, fromStepId: pick.stepId, taskId: pick.taskId } };
+    this.saveSession();
+    const src = this.contentFor(course.steps.get(pick.stepId)!);
+    const task = src.meta.tasks.find((t) => t.id === pick.taskId)!;
+    return {
+      fromStepId: pick.stepId,
+      fromTitle: src.meta.title,
+      taskId: pick.taskId,
+      prompt: task.check.type === "question" ? loc(task.check.prompt, lang) : "",
+      settled: false,
+    };
+  }
+
+  /** A3: the module's reflection card, once its last step is done. */
+  private reflectionView(course: Course, step: Step, lang: Lang): ReflectionView | undefined {
+    const mod = course.manifest.modules.find((m) => m.id === step.moduleId);
+    if (!mod?.reflection || mod.reflection.prompts.length === 0) return undefined;
+    const lastStepId = mod.steps[mod.steps.length - 1];
+    if (lastStepId !== step.id) return undefined;
+    const moduleDone = mod.steps.every((sid) => {
+      const st = course.steps.get(sid);
+      return st ? isStepDone(this.session, st) : true;
+    });
+    if (!moduleDone) return undefined;
+    const record = this.session.reflections?.[stepKey(course.manifest.id, mod.id)];
+    return {
+      moduleId: mod.id,
+      moduleTitle: loc(mod.title, lang),
+      prompts: mod.reflection.prompts.map((p) => loc(p, lang)),
+      answers: record?.answers,
+      saved: record !== undefined,
     };
   }
 
@@ -538,6 +631,18 @@ export class TutorController implements vscode.Disposable {
           return;
         case "hint":
           await this.showHint(m.taskId);
+          return;
+        case "predict":
+          await this.submitPrediction(m.taskId, m.text);
+          return;
+        case "recallAnswer":
+          await this.answerRecall(m.text);
+          return;
+        case "recallSkip":
+          await this.answerRecall(undefined);
+          return;
+        case "reflection":
+          await this.saveReflection(m.answers);
           return;
         case "ask":
           await this.ask(m.question);
@@ -680,19 +785,23 @@ export class TutorController implements vscode.Disposable {
     if (!view || view.stepId !== cur.step.id || view.courseId !== cur.course.manifest.id) return;
     const localized = cur.content.meta.tasks.find((t) => t.id === task.id) ?? task;
     const platform = this.platformFor(cur.course);
+    const state = getTaskState(getStepProgress(this.session, cur.course.manifest.id, cur.step.id), task.id);
+    const predict = this.predictView(localized, state, this.lang);
+    const taskView: TaskView = {
+      id: task.id,
+      title: loc(localized.title, this.lang),
+      type: task.check.type,
+      status,
+      message,
+      hint,
+      needsAnswer: task.check.type === "question",
+      manual: task.check.type === "manual" || (task.check.type === "question" && !platform.hasLlm),
+      live: isLocalCheck(task.check),
+      predict,
+    };
     this.panel.post({
       type: "task",
-      task: {
-        id: task.id,
-        title: loc(localized.title, this.lang),
-        type: task.check.type,
-        status,
-        message,
-        hint,
-        needsAnswer: task.check.type === "question",
-        manual: task.check.type === "manual" || (task.check.type === "question" && !platform.hasLlm),
-        live: isLocalCheck(task.check),
-      },
+      task: { ...taskView, predictHtml: predict ? renderPredict(taskView, this.lang) : undefined },
     });
   }
 
@@ -761,6 +870,103 @@ export class TutorController implements vscode.Disposable {
     if (!cur) return;
     this.confirmedNow.add(`${stepKey(cur.course.manifest.id, cur.step.id)}/${taskId}`);
     await this.runTask(taskId);
+  }
+
+  /**
+   * A1: stores the prediction, then runs the check. The self-assessment buttons
+   * (used when no LLM graded the comparison) come through the same channel with
+   * a `__self:` marker and only record the outcome.
+   */
+  async submitPrediction(taskId: string, text: string): Promise<void> {
+    const cur = this.current;
+    if (!cur) return;
+    const key = stepKey(cur.course.manifest.id, cur.step.id);
+    const progress = ensureStepProgress(this.session, cur.course.manifest.id, cur.step.id);
+
+    if (text === "__self:correct" || text === "__self:deviated") {
+      const state = getTaskState(progress, taskId);
+      state.predictionOutcome = text === "__self:correct" ? "correct" : "deviated";
+      progress.tasks[taskId] = state;
+      this.saveSession();
+      this.emit({ type: "predict.compared", data: { taskId, verdict: state.predictionOutcome, graded: false } });
+      this.repostTask(cur, taskId);
+      return;
+    }
+
+    const prediction = text.trim();
+    const state = getTaskState(progress, taskId);
+    state.prediction = prediction;
+    // A new prediction invalidates the previous comparison.
+    delete state.predictionOutcome;
+    delete state.predictionFeedback;
+    progress.tasks[taskId] = state;
+    this.saveSession();
+    this.emit({ type: "predict.made", data: { taskId, length: prediction.length } });
+    this.log(`prediction for ${key}/${taskId}: ${prediction.length} chars`);
+    await this.runTask(taskId);
+  }
+
+  /** Re-sends one task to the panel without re-running its check. */
+  private repostTask(cur: { course: Course; step: Step; content: StepContent }, taskId: string): void {
+    const task = this.findTask(cur.step, taskId);
+    if (!task) return;
+    const state = getTaskState(getStepProgress(this.session, cur.course.manifest.id, cur.step.id), taskId);
+    this.postTask(cur, task, state.status, state.message);
+  }
+
+  /**
+   * A2: records the recall answer. Never blocking and never graded as a check -
+   * it is a repetition prompt, so an empty answer simply dismisses the card.
+   */
+  async answerRecall(text: string | undefined): Promise<void> {
+    const cur = this.current;
+    if (!cur) return;
+    const key = stepKey(cur.course.manifest.id, cur.step.id);
+    const record = this.session.recall?.[key];
+    if (!record) return;
+    const answer = text?.trim();
+    this.session.recall = {
+      ...(this.session.recall ?? {}),
+      [key]: { ...record, ...(answer ? { answer } : { dismissed: true }) },
+    };
+    this.saveSession();
+    this.emit({
+      type: "recall.answered",
+      data: {
+        fromStep: record.fromStepId,
+        taskId: record.taskId,
+        skipped: !answer,
+        answer,
+        // A2: recall exercises retrieval, so it is recorded at the lower Bloom levels.
+        bloom: "remember",
+      },
+    });
+    const view = this.recallView(cur.course, cur.step, this.lang);
+    if (view) this.panel.post({ type: "recall", html: renderRecall(view, this.lang) });
+  }
+
+  /** A3: stores the module reflection and records it as a learning event. */
+  async saveReflection(answers: string[]): Promise<void> {
+    const cur = this.current;
+    if (!cur) return;
+    const view = this.reflectionView(cur.course, cur.step, this.lang);
+    if (!view) return;
+    const cleaned = answers.map((a) => a.trim());
+    if (cleaned.every((a) => !a)) return;
+    this.session.reflections = {
+      ...(this.session.reflections ?? {}),
+      [stepKey(cur.course.manifest.id, view.moduleId)]: { answers: cleaned, at: new Date().toISOString() },
+    };
+    this.saveSession();
+    this.emit({
+      type: "reflection.written",
+      module: view.moduleId,
+      data: { prompts: view.prompts.length, reflection: cleaned.join("\n---\n"), chars: cleaned.join("").length, bloom: "evaluate" },
+    });
+    this.log(`reflection for ${cur.course.manifest.id}/${view.moduleId} saved (${cleaned.length} answer(s))`);
+    const refreshed = this.reflectionView(cur.course, cur.step, this.lang);
+    if (refreshed) this.panel.post({ type: "reflection", html: renderReflection(refreshed, this.lang) });
+    this.progress.refresh();
   }
 
   async answerTask(taskId: string, text: string): Promise<void> {
@@ -1087,3 +1293,15 @@ export class TutorController implements vscode.Disposable {
   }
 }
 
+/**
+ * Small stable hash, used only to pick a recall card deterministically for a
+ * given step and day. Not a security primitive.
+ */
+function hashString(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return Math.abs(h);
+}
