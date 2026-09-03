@@ -184,6 +184,95 @@ that is what makes cargo's absolute-path fingerprints reusable – and then dele
 `~/.cargo/registry` is still copied (it is empty today) so the mechanism is in place the moment
 a course takes its first dependency; re-measure then.
 
+## The language-lab details: what was broken, what was fixed (2026-09-03)
+
+The operator asked for the details a learning environment lives or dies by, checked in the
+browser rather than assumed. Everything below is now asserted by `e2e/tutor-lab-smoke.mjs`
+(section 5), one screenshot per point in [`docs/evidence/`](evidence/).
+
+### Three real defects, all fixed
+
+**1. `Cargo.toml` opened as "Plain Text".** Neither code-server nor rust-analyzer contributes a
+TOML grammar – `rust-analyzer`'s only grammar is `ra_syntax_tree`, and no built-in extension
+claims the `.toml` extension. So the very first file of the Rust course, the one the student
+edits to add a dependency, had no colours and no structure. Fixed by installing
+`tamasfe.even-better-toml` (Open VSX, 0.21.2, 69 MB – two 35 MB server bundles), which also
+brings the Cargo schema, so keys are completed and typos underlined. Verified: language
+indicator "TOML", 4 token colours
+([tutorlab-02-highlight-toml.png](evidence/tutorlab-02-highlight-toml.png)).
+
+**2. JavaScript files had no diagnostics at all – the settings were in a file that cannot apply
+them.** `js/ts.implicitProjectConfig.checkJs` has `"scope": "window"`, and VS Code **silently
+ignores** window-scoped settings in a folder's `.vscode/settings.json`. It was sitting in
+`vscode-templates/javascript-foundations.settings.json`, so the built-in language service was
+never asked to check `.js` at all: the starter's deliberate bugs – assignment to a `const`, a
+block-scoped variable used before its declaration – produced no squiggle and no Problems entry,
+in a course whose first instruction is "run the test and read both error messages".
+
+The same trap applied to the Rust template: `rust-analyzer.*` is window-scoped and `lldb.*`
+application-scoped, so those lines had no effect either. They happened to be duplicated in the
+image's user settings, so nothing was visibly broken – the template was simply lying about what
+it did.
+
+Fixed by moving every window/application-scoped setting into the image's user settings and
+cutting the folder templates down to what a folder file can actually apply (resource scope:
+`eslint.*`, `javascript.suggest.autoImports`, the `[rust]`/`[javascript]` formatter blocks).
+Both templates now say so in a comment. Verified: `counter.js` shows
+`Cannot assign to 'count' because it is a constant. ts(2588)` and
+`Block-scoped variable 'suffix' used before its declaration. ts(2448)`
+([tutorlab-09-javascript-diagnostics.png](evidence/tutorlab-09-javascript-diagnostics.png)).
+
+**3. TypeScript jargon on correct JavaScript.** With `checkJs` working, the implicit project is
+`strict` by default, and strict implies `noImplicitAny`, so every untyped parameter of perfectly
+good JavaScript was flagged *"Parameter 'text' implicitly has an 'any' type (ts 7006)"* – a
+TypeScript concept this course never teaches, sitting in the Problems list next to the real bug
+the step is about. Two of the five entries on the first exercise file were this noise. Fixed
+with `js/ts.implicitProjectConfig.strict: false` while keeping `strictNullChecks` and
+`strictFunctionTypes` on, so "possibly undefined" is still reported. The smoke test now fails
+if ts7006 ever comes back.
+
+### Checked and working, no change needed
+
+| Point | Evidence |
+|---|---|
+| Syntax highlighting `.rs` / `.toml` / `.js` / `.json` / `.md` | language indicator correct and 9 / 4 / 8 / 4 / 7 distinct token colours ([rust](evidence/tutorlab-01-highlight-rust.png), [toml](evidence/tutorlab-02-highlight-toml.png), [javascript](evidence/tutorlab-03-highlight-javascript.png), [json](evidence/tutorlab-04-highlight-json.png), [markdown](evidence/tutorlab-05-highlight-markdown.png)) |
+| rust-analyzer starts and reports itself | status bar shows `Roots Scanned: n/15` then `Indexing: n/22`, then the plain `rust-analyzer` item |
+| Hover with type information | `rust_foundations::m0::m0_02_first_test pub fn add(a: i32, b: i32) -> i32` plus the doc comment ([screenshot](evidence/tutorlab-06-rust-hover.png)) |
+| Completion | `Vec::` offers 12 items (`new()`, `from_raw_parts(…)`, `into_flattened(…)`, …) ([screenshot](evidence/tutorlab-07-rust-completion.png)) |
+| Errors and warnings in the Problems view | 8 rows: the rustc `E0277` the m1-03 step is about, plus clippy warnings on the examples ([screenshot](evidence/tutorlab-08-problems-rustc-clippy.png)) |
+| Go to definition | jumps within the file, no "no definition found" |
+| JavaScript recognised as a module | `"type": "module"`, ESM imports resolve, language indicator "JavaScript" |
+| ESLint quiet without a configuration | the workspace has no ESLint config, so the entrypoint writes `eslint.enable: false`; no missing-library complaint |
+| rustfmt on save | `pub fn fmt_probe( a:i32,b:i32 )->i32{a+b}` typed in the editor becomes `pub fn fmt_probe(a: i32, b: i32) -> i32 {` on save ([screenshot](evidence/tutorlab-10-rustfmt-on-save.png)) |
+| Built-in JavaScript formatter on save | `export function fmtProbe(  a,b ){…}` becomes `export function fmtProbe(a, b) {…}` ([screenshot](evidence/tutorlab-11-jsfmt-on-save.png)) |
+| Search finds exercise files | "countWords" → 5 results in 2 files, across both workspaces ([screenshot](evidence/tutorlab-12-search.png)) |
+| File icons, line numbers, bracket pairs | per-type icons (`rs-ext-file-icon`, `rust-lang-file-icon`, …), line numbers, 2 bracket-pair colours ([screenshot](evidence/tutorlab-13-icons-and-chrome.png)) |
+| No missing-extension warning, no empty welcome page | no notifications at any point in the run, no welcome or get-started tab |
+
+### How long a student waits for rust-analyzer
+
+rust-analyzer activates on workspace load (the workspace has a `Cargo.toml`), scans 15 roots and
+indexes 22 crates (core, libc, std). Measured from the workbench being usable, over six runs on
+the developer VM (4 CPU, shared with the other streams' containers):
+
+| Situation | Ready after |
+|---|---|
+| idle machine | 15–20 s |
+| four other files opened during indexing | 37 s |
+| a `docker build` running at the same time | 79 s |
+| already indexed (second file) | 5–6 s |
+
+Editing, highlighting, search and the terminal work immediately; only hover, completion and the
+Problems view wait, and the status bar names what it is doing the whole time. **Nothing was
+pre-warmed into the image**: rust-analyzer keeps no on-disk index to bake in – its cache priming
+is the indexing above, and `target/` (deliberately not shipped, see below) does not shorten it.
+The smoke test fails if readiness ever exceeds 120 s.
+
+One ordering lesson is baked into the test: opening a `.rs` file starts that indexing, and a
+TextMate grammar requested during it can take a minute to arrive. The highlighting checks
+therefore open Markdown, JSON, JavaScript and TOML before Rust, which is also how a student
+works – one file at a time, not five in three seconds.
+
 ## Blocked: the tutor extension is a schema version behind the courses (2026-09-03)
 
 With the real content merged (`next` 5f54794 for both workspaces, plus the first

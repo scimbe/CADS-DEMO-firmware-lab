@@ -2,13 +2,14 @@
   // cads-tutor-lab: managed by the image (images/tutor-lab/vscode-templates).
   // Rewritten on container start while this line is present; remove it to
   // keep your own settings.
-  "rust-analyzer.check.command": "clippy",
-  "rust-analyzer.checkOnSave": true,
-  "rust-analyzer.cargo.allTargets": true,
-  "rust-analyzer.updates.askBeforeDownload": false,
+  //
+  // ONLY settings of scope "resource" belong here - VS Code silently ignores
+  // window- and application-scoped ones in a folder's .vscode/settings.json.
+  // rust-analyzer.* is window-scoped and lldb.* application-scoped, so both
+  // live in the image's user settings; they used to be listed here and had no
+  // effect at all.
   "[rust]": {
     "editor.defaultFormatter": "rust-lang.rust-analyzer",
     "editor.formatOnSave": true
-  },
-  "lldb.suppressUpdateNotifications": true
+  }
 }

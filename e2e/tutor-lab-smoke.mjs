@@ -42,6 +42,14 @@ function fail(msg) {
   console.error(`FAIL: ${msg}`);
   process.exit(1);
 }
+// A check that is independent of the others records its failure and lets the
+// run continue, so one broken thing does not hide the evidence for everything
+// after it. The run still ends non-zero.
+const failures = [];
+function problem(msg) {
+  console.error(`FAIL: ${msg}`);
+  failures.push(msg);
+}
 function ok(msg) {
   console.log(`ok - ${msg}`);
 }
@@ -249,13 +257,15 @@ try {
       // not a missing course.
       const rejected = tutorUi.notifications.some((n) => /no course packs|keine kurse/i.test(n));
       if (rejected) {
-        fail(
+        problem(
           `the image ships ${courses.length} course pack(s) (${JSON.stringify(courses)}) but the tutor loaded none.\n` +
             `The extension rejected them; the CaDS Tutor output channel says:\n${tutorLog(10)}`
         );
+      } else if (!tutorOpen) {
+        problem(`tutor view did not open: ${JSON.stringify(tutorUi)}\ntutor log:\n${tutorLog(6)}`);
+      } else {
+        ok(`tutor view open: side bar="${tutorUi.sidebar}", views=${JSON.stringify(tutorUi.views)}, editors=${JSON.stringify(tutorUi.editors)}, course packs=${JSON.stringify(courses)}`);
       }
-      if (!tutorOpen) fail(`tutor view did not open: ${JSON.stringify(tutorUi)}\ntutor log:\n${tutorLog(6)}`);
-      ok(`tutor view open: side bar="${tutorUi.sidebar}", views=${JSON.stringify(tutorUi.views)}, editors=${JSON.stringify(tutorUi.editors)}, course packs=${JSON.stringify(courses)}`);
     }
   }
 
@@ -341,7 +351,14 @@ try {
       `node --test ${nodeTests} tests (${nodePass} passed, ${nodeFail} failed) in ${nodeExit[2]} s`
   );
 
-  console.log("PASS: tutor-lab smoke test");
+  await languageLabChecks(page);
+
+  if (failures.length) {
+    console.error(`\nFAIL: tutor-lab smoke test - ${failures.length} check(s) failed`);
+    process.exitCode = 1;
+  } else {
+    console.log("PASS: tutor-lab smoke test");
+  }
 } finally {
   await browser.close();
 }
@@ -366,4 +383,316 @@ async function runCommand(page, command) {
   const row = `.quick-input-list .monaco-list-row[aria-label^="${command}"]`;
   await page.waitForSelector(row);
   await page.click(row);
+}
+
+// ---------------------------------------------------------------------------
+// 5. The details a language lab lives or dies by: is the code actually
+//    coloured, does the language server answer, does saving format, and are
+//    the small things (icons, search, line numbers) there. One screenshot per
+//    point, so the notes can show rather than claim.
+// ---------------------------------------------------------------------------
+async function languageLabChecks(page) {
+  const shot = (n) => page.screenshot({ path: join(OUT, `${n}.png`) });
+
+  async function openFile(name) {
+    // Ctrl+P is swallowed by the browser; go through the command palette.
+    await runCommand(page, "Go to File...");
+    const input = page.locator(".quick-input-widget input");
+    await input.waitFor({ state: "visible" });
+    await input.fill(name);
+    await sleep(2000);
+    await page.keyboard.press("Enter");
+    // Wait for the editor to really be on that file before anything is read
+    // from the status bar or the DOM - otherwise a slow switch is reported as
+    // "wrong language" for the file that was open before.
+    for (let i = 0; i < 20; i++) {
+      const active = await page.evaluate(
+        () => document.querySelector(".editor-group-container .tab.active")?.getAttribute("aria-label") ?? ""
+      );
+      if (active.includes(name)) break;
+      await sleep(1000);
+      if (i === 19) problem(`the editor never switched to ${name} (active tab: "${active}")`);
+    }
+    await sleep(1500);
+  }
+  const statusItems = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll("#workbench\\.parts\\.statusbar .statusbar-item")]
+        .map((e) => e.innerText.trim().replace(/\n/g, " "))
+        .filter(Boolean)
+    );
+  // Monaco names token colours mtk<N>. One class for the whole file means the
+  // text is painted in the default colour, i.e. not highlighted. TextMate
+  // grammars load lazily on the first file of a language, so poll.
+  const readTokenClasses = () =>
+    page.evaluate(() => {
+      const c = new Set();
+      for (const t of document.querySelectorAll(".monaco-editor .view-line span span"))
+        for (const k of t.classList) if (/^mtk\d/.test(k)) c.add(k);
+      return [...c].sort();
+    });
+  async function tokenClasses(file, maxWaitS = 40) {
+    let classes = [];
+    for (let i = 0; i < maxWaitS; i++) {
+      classes = await readTokenClasses();
+      if (classes.length > 1) return classes;
+      // The first file of a language waits for its TextMate grammar, and the
+      // extension host may be busy (rust-analyzer indexing) when it arrives.
+      // Re-opening forces a re-tokenisation once the grammar is there.
+      if (i === Math.floor(maxWaitS / 2)) await openFile(file);
+      await sleep(1000);
+    }
+    return classes;
+  }
+
+  // --- 5a. syntax highlighting per language ---------------------------------
+  // Rust goes last on purpose: opening a .rs file starts rust-analyzer, which
+  // saturates the extension host while it indexes, and a TextMate grammar
+  // asked for during that wait can take a minute to arrive. A student opens
+  // one file at a time; this order keeps the check honest instead of
+  // measuring our own thundering herd.
+  const wanted = [
+    ["README.md", "Markdown"],
+    ["package.json", "JSON"],
+    ["hello.js", "JavaScript"],
+    ["Cargo.toml", "TOML"],
+    ["m0_02_first_test.rs", "Rust"],
+  ];
+  const hl = [];
+  // The clock for rust-analyzer starts when the first Rust file is opened -
+  // that is when the server is spawned and starts indexing. Measuring later
+  // would report a warm start and hide exactly the wait a student feels.
+  let raStart = null;
+  for (const [file, language] of wanted) {
+    await openFile(file);
+    if (file.endsWith(".rs") && raStart === null) raStart = Date.now();
+    const classes = await tokenClasses(file);
+    const status = await statusItems();
+    const detected = status.includes(language);
+    if (!detected) {
+      problem(`${file}: the language indicator does not say "${language}" - status bar was ${JSON.stringify(status)}`);
+    } else if (classes.length < 2) {
+      problem(`${file}: detected as ${language} but rendered in a single colour (${JSON.stringify(classes)}) - no syntax highlighting`);
+    }
+    hl.push(`${file} -> ${detected ? language : "?"} (${classes.length} token colours)`);
+    await shot(`10-highlight-${language.toLowerCase()}`);
+  }
+  ok(`syntax highlighting: ${hl.join(", ")}`);
+
+  // --- 5b. rust-analyzer ----------------------------------------------------
+  await openFile("m0_02_first_test.rs");
+  if (raStart === null) raStart = Date.now();
+  let raReady = false;
+  for (let i = 0; i < 120; i++) {
+    const s = (await statusItems()).join(" | ");
+    if (/rust-analyzer/.test(s) && !/Indexing|Loading|Fetching|Roots/i.test(s)) { raReady = true; break; }
+    await sleep(1000);
+  }
+  const raSeconds = Math.round((Date.now() - raStart) / 1000);
+  if (!raReady) problem(`rust-analyzer never reported itself ready (${raSeconds} s): ${JSON.stringify(await statusItems())}`);
+  else if (raSeconds > 120) problem(`rust-analyzer took ${raSeconds} s to become ready - students would sit in front of a dead editor`);
+  await sleep(2000);
+
+  // hover over an identifier: type and doc comment must come back
+  const idents = await page.evaluate(() =>
+    [...document.querySelectorAll(".monaco-editor .view-line span span")]
+      .map((s) => ({ t: s.innerText.trim(), r: s.getBoundingClientRect() }))
+      .filter((o) => o.r.width > 0 && /^[A-Za-z_][A-Za-z0-9_]*$/.test(o.t))
+      .map((o) => ({ t: o.t, x: Math.round(o.r.x + o.r.width / 2), y: Math.round(o.r.y + o.r.height / 2) }))
+  );
+  let hover = null;
+  for (const c of idents.filter((i) => ["add", "greet", "i32", "String"].includes(i.t)).slice(0, 4)) {
+    await page.mouse.move(10, 10);
+    await sleep(400);
+    await page.mouse.move(c.x, c.y);
+    await sleep(3500);
+    hover = await page.evaluate(() => {
+      const el = document.querySelector(".monaco-hover .hover-contents") ?? document.querySelector(".monaco-hover");
+      return el ? el.innerText.replace(/\s+/g, " ").trim().slice(0, 200) : null;
+    });
+    if (hover) break;
+  }
+  await shot("11-rust-hover");
+  if (!hover) problem("rust-analyzer gave no hover for any identifier in the first Rust file");
+
+  // completion: a fresh function at the end of the file, so nothing else in
+  // the file has to parse for the request to make sense
+  await page.keyboard.press("Escape");
+  await runCommand(page, "Go to Line/Column...");
+  await page.keyboard.type("999");
+  await page.keyboard.press("Enter");
+  await sleep(600);
+  await page.keyboard.press("End");
+  await page.keyboard.type("\npub fn e2e_probe() {\n    let _v: Vec<i32> = Vec::");
+  let completion = { count: 0, first: [] };
+  for (let i = 0; i < 20; i++) {
+    await sleep(1000);
+    completion = await page.evaluate(() => {
+      const rows = [...document.querySelectorAll(".suggest-widget .monaco-list-row")];
+      return { count: rows.length, first: rows.slice(0, 4).map((r) => r.innerText.trim().split("\n")[0]) };
+    });
+    if (completion.count > 0) break;
+    if (i === 9) {
+      // nudge the request again - the server may have been mid-index
+      await page.keyboard.press("Backspace");
+      await page.keyboard.type(":");
+    }
+  }
+  await shot("12-rust-completion");
+  if (completion.count === 0) problem("rust-analyzer offered no completion after `Vec::`");
+  await page.keyboard.press("Escape");
+  await runCommand(page, "File: Revert File");
+  await sleep(1500);
+
+  // diagnostics in the Problems view
+  await runCommand(page, "View: Focus Problems");
+  await sleep(3000);
+  const problemRows = await page.evaluate(() =>
+    [...document.querySelectorAll(".markers-panel .monaco-list-row")].map((r) => r.innerText.replace(/\n/g, " ").slice(0, 130))
+  );
+  await shot("13-problems");
+  const hasRustc = problemRows.some((r) => /rustc/.test(r));
+  const hasClippy = problemRows.some((r) => /clippy/.test(r));
+  if (!hasRustc && !hasClippy) problem(`the Problems view shows no rustc/clippy diagnostics: ${JSON.stringify(problemRows.slice(0, 5))}`);
+  ok(
+    `rust-analyzer: ready ${raSeconds} s after the first Rust file was opened, hover=${JSON.stringify((hover ?? "").slice(0, 70))}, ` +
+      `${completion.count} completions after "Vec::" (${JSON.stringify(completion.first.slice(0, 3))}), ` +
+      `Problems has rustc=${hasRustc} clippy=${hasClippy} (${problemRows.length} rows)`
+  );
+
+  // --- 5c. JavaScript -------------------------------------------------------
+  await openFile("counter.js");
+  let squigglies = 0;
+  for (let i = 0; i < 30; i++) {
+    squigglies = await page.evaluate(
+      () => document.querySelectorAll(".monaco-editor .squiggly-error, .monaco-editor .squiggly-warning").length
+    );
+    if (squigglies > 0) break;
+    await sleep(1000);
+  }
+  await runCommand(page, "View: Focus Problems");
+  await sleep(2500);
+  const jsRows = await page.evaluate(() =>
+    [...document.querySelectorAll(".markers-panel .monaco-list-row")].map((r) => r.innerText.replace(/\n/g, " ").slice(0, 130))
+  );
+  await shot("14-javascript-diagnostics");
+  const jsDiag = jsRows.filter((r) => /\bts\b|counter\.js/.test(r));
+  // The starter file carries the bugs its step is about, so the built-in
+  // service MUST have something to say. checkJs is window-scoped and only
+  // works from the image's user settings - if it ever moves back into a
+  // folder's .vscode/settings.json this check goes red.
+  if (squigglies === 0) {
+    problem(
+      `the JavaScript starter shows no diagnostics from the built-in language service. ` +
+        `js/ts.implicitProjectConfig.checkJs is window-scoped: it only takes effect in the user settings.`
+    );
+  }
+  const eslintCfg = dexec(
+    `ls ${JS_WS}/eslint.config.* ${JS_WS}/.eslintrc* 2>/dev/null | wc -l`
+  ).trim();
+  const eslintEnabled = dexec(`grep -c '"eslint.enable": true' ${JS_WS}/.vscode/settings.json || true`).trim();
+  if (eslintCfg === "0" && eslintEnabled !== "0") {
+    problem("the workspace has no ESLint configuration but eslint.enable is true - ESLint will complain on every file");
+  }
+  // No TypeScript jargon on correct JavaScript: noImplicitAny (ts 7006) would
+  // flag every untyped parameter in the course's own starter files.
+  const implicitAny = jsRows.filter((r) => /ts\(?7006/.test(r) || /implicitly has an 'any' type/.test(r));
+  if (implicitAny.length) {
+    problem(
+      `the Problems view reports TypeScript implicit-any on plain JavaScript (${implicitAny.length} row(s), e.g. ` +
+        `${JSON.stringify(implicitAny[0])}) - js/ts.implicitProjectConfig.strict should be off`
+    );
+  }
+  ok(
+    `javascript: ${squigglies} squiggle(s), ${jsDiag.length} diagnostic row(s) ` +
+      `${JSON.stringify(jsDiag.slice(0, 2))}; ESLint config files=${eslintCfg}, eslint.enable=${eslintEnabled !== "0"}`
+  );
+
+  // --- 5d. formatting on save ----------------------------------------------
+  // The badly formatted line has to be typed IN the editor: a file changed on
+  // disk opens clean, and "File: Save" on a clean document is a no-op, so
+  // nothing would be formatted and the check would lie.
+  const fmt = [];
+  async function formatOnSave({ file, type, expect, what }) {
+    await openFile(file);
+    await sleep(2500);
+    await runCommand(page, "Go to Line/Column...");
+    await page.keyboard.type("999");
+    await page.keyboard.press("Enter");
+    await sleep(500);
+    await page.keyboard.press("End");
+    await page.keyboard.type("\n" + type);
+    await sleep(1500);
+    const dirty = await page.evaluate(() => !!document.querySelector(".editor-group-container .tab.active.dirty"));
+    await runCommand(page, "File: Save");
+    await sleep(5000);
+    const onDisk = dexec(`tail -4 ${file === "lib.rs" ? `${RUST_WS}/src/lib.rs` : `${JS_WS}/src/m0/hello.js`}`);
+    if (expect.test(onDisk)) fmt.push(what);
+    else problem(`${what} did not happen on save (document was dirty: ${dirty}); the file ends with:\n${onDisk}`);
+    await runCommand(page, "File: Revert File");
+    await sleep(1500);
+  }
+  await formatOnSave({
+    file: "lib.rs",
+    type: "pub fn fmt_probe( a:i32,b:i32 )->i32{a+b}",
+    expect: /pub fn fmt_probe\(a: i32, b: i32\) -> i32 \{/,
+    what: "rustfmt on save",
+  });
+  await shot("15-format-rust");
+  dexec(`sed -i '/fmt_probe/,+2d' ${RUST_WS}/src/lib.rs; true`);
+  await formatOnSave({
+    file: "hello.js",
+    type: "export function fmtProbe(  a,b ){return a+b}",
+    expect: /export function fmtProbe\(a, b\)/,
+    what: "the built-in JavaScript formatter on save",
+  });
+  await shot("16-format-javascript");
+  dexec(`sed -i '/fmtProbe/d' ${JS_WS}/src/m0/hello.js; true`);
+  ok(`formatting works with no setup: ${fmt.join(", ") || "(nothing)"}`);
+
+  // --- 5e. the small things -------------------------------------------------
+  await runCommand(page, "Search: Find in Files");
+  await sleep(800);
+  await page.keyboard.type("countWords");
+  await sleep(6000);
+  const search = await page.evaluate(() => ({
+    message: document.querySelector(".search-view .message")?.innerText?.trim() ?? "",
+    rows: [...document.querySelectorAll(".search-view .monaco-list-row")].map((r) => r.innerText.replace(/\n/g, " ").trim().slice(0, 60)),
+  }));
+  await shot("17-search");
+  if (!/\d+ result/.test(search.message)) problem(`search for an exercise symbol found nothing: ${JSON.stringify(search)}`);
+
+  await runCommand(page, "View: Show Explorer");
+  await sleep(2000);
+  const small = await page.evaluate(() => ({
+    fileIconClasses: [
+      ...new Set(
+        [...document.querySelectorAll(".explorer-folders-view .monaco-icon-label")]
+          .flatMap((e) => [...e.classList])
+          .filter((c) => /-ext-file-icon|-lang-file-icon/.test(c))
+      ),
+    ].slice(0, 6),
+    lineNumbers: document.querySelectorAll(".monaco-editor .line-numbers").length,
+    bracketColours: [
+      ...new Set(
+        [...document.querySelectorAll(".monaco-editor .view-line span span")]
+          .flatMap((e) => [...e.classList])
+          .filter((c) => /^bracket-highlighting-/.test(c))
+      ),
+    ],
+    notifications: [...document.querySelectorAll(".notification-list-item-message")].map((e) => e.innerText),
+    welcomeTabs: [...document.querySelectorAll(".editor-group-container .tab")]
+      .map((t) => t.getAttribute("aria-label"))
+      .filter((t) => /welcome|get started/i.test(t ?? "")),
+  }));
+  await shot("18-small-things");
+  if (small.fileIconClasses.length === 0) problem("the Explorer shows no per-file-type icons (icon theme missing?)");
+  if (small.lineNumbers === 0) problem("the editor shows no line numbers");
+  if (small.notifications.length) problem(`notifications are on screen at the end of the run: ${JSON.stringify(small.notifications)}`);
+  if (small.welcomeTabs.length) problem(`a welcome/get-started tab is open: ${JSON.stringify(small.welcomeTabs)}`);
+  ok(
+    `small things: search "${search.message}", file icons ${JSON.stringify(small.fileIconClasses.slice(0, 3))}, ` +
+      `${small.lineNumbers} line numbers, ${small.bracketColours.length} bracket-pair colours, ` +
+      `no notifications, no welcome tab`
+  );
 }
