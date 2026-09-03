@@ -185,20 +185,30 @@ try {
     ok("cads-tutor is NOT installed in this image (no VSIX at build time) - tutor checks skipped");
   } else {
     await runCommand(page, "CaDS Tutor: Tutor öffnen / Open Tutor");
-    await sleep(4000);
+    await sleep(5000);
     const tutorUi = await page.evaluate(() => ({
       sidebar: document.querySelector(".sidebar .composite.title h2")?.innerText.trim() ?? "",
       views: [...document.querySelectorAll(".sidebar .pane-header")].map((h) => h.innerText.trim()),
       editors: [...document.querySelectorAll(".editor-group-container .tab")].map((t) => t.getAttribute("aria-label") ?? t.innerText.trim()),
       welcome: document.querySelector(".sidebar .welcome-view-content")?.innerText.trim().slice(0, 120) ?? "",
+      notifications: [...document.querySelectorAll(".notification-list-item-message")].map((e) => e.innerText),
     }));
     await page.screenshot({ path: join(OUT, "02-tutor.png") });
-    const tutorOpen = /tutor/i.test(tutorUi.sidebar) || tutorUi.editors.some((e) => /tutor/i.test(e));
-    if (!tutorOpen) fail(`tutor view did not open: ${JSON.stringify(tutorUi)}`);
-    if (courses.length === 0 && !/keine kurse|no courses/i.test(tutorUi.welcome)) {
-      fail(`no course packs in the image, but the tutor view does not say so: ${JSON.stringify(tutorUi)}`);
+    const tutorOpen = /cads.?tutor/i.test(tutorUi.sidebar) || tutorUi.editors.some((e) => /tutor/i.test(e));
+    if (courses.length === 0) {
+      // The rust/javascript course packs are built in their own streams. Until they
+      // are merged the image ships none, the tutor has nothing to open, and the only
+      // correct behaviour is to say so. Once a pack is in the image this branch is
+      // skipped and the panel itself is asserted.
+      const saysSo = tutorUi.notifications.some((n) => /no course packs|keine kurse/i.test(n)) ||
+        /keine kurse|no courses/i.test(tutorUi.welcome);
+      if (!saysSo) fail(`no course packs in the image, but the tutor does not report that: ${JSON.stringify(tutorUi)}`);
+      ok(`no course packs in this image yet - tutor reports it (${JSON.stringify(tutorUi.notifications)}); panel checks skipped`);
+      await page.keyboard.press("Escape");
+    } else {
+      if (!tutorOpen) fail(`tutor view did not open: ${JSON.stringify(tutorUi)}`);
+      ok(`tutor view open: side bar="${tutorUi.sidebar}", views=${JSON.stringify(tutorUi.views)}, editors=${JSON.stringify(tutorUi.editors)}, course packs=${JSON.stringify(courses)}`);
     }
-    ok(`tutor view open: side bar="${tutorUi.sidebar}", views=${JSON.stringify(tutorUi.views)}, editors=${JSON.stringify(tutorUi.editors)}, course packs=${JSON.stringify(courses)}`);
   }
 
   // 4. terminal: toolchains + tests
@@ -209,6 +219,15 @@ try {
   await runCommand(page, "Terminal: Create New Terminal");
   for (let i = 0; i < 30 && shells() <= shellsBefore; i++) await sleep(1000);
   await sleep(1500);
+  // A multi-root workspace without terminal.integrated.cwd asks "Select current
+  // working directory for new terminal" instead of opening one - that prompt is
+  // what the image setting removes, so name it when it comes back.
+  const cwdPrompt = await page.evaluate(() => {
+    const qi = document.querySelector(".quick-input-widget");
+    const visible = qi && qi.style.display !== "none" && qi.getBoundingClientRect().height > 0;
+    return visible ? qi.querySelector("input")?.placeholder ?? "(quick input)" : null;
+  });
+  if (cwdPrompt) fail(`Terminal: Create New Terminal opened a prompt instead of a terminal: "${cwdPrompt}" (terminal.integrated.cwd missing?)`);
   await page.focus(".terminal-wrapper.active .xterm-helper-textarea");
   const script =
     `{ cargo --version; node --version; s=$(date +%s); (cd ${RUST_WS} && cargo test 2>&1 | tail -n 25); echo "cargo_test_exit=\${PIPESTATUS[0]} cargo_test_s=$(( $(date +%s) - s ))"; ` +
@@ -218,7 +237,7 @@ try {
   let out = "";
   for (let i = 0; i < 180 && !out.includes("E2E_DONE"); i++) {
     await sleep(1000);
-    out = dexec(`cat ${marker} 2>/dev/null || true`);
+    out = stripAnsi(dexec(`cat ${marker} 2>/dev/null || true`));
   }
   await page.screenshot({ path: join(OUT, "03-terminal.png") });
   if (!out.includes("E2E_DONE")) fail(`terminal script did not finish within 180 s:\n${out}`);
@@ -240,6 +259,16 @@ try {
   console.log("PASS: tutor-lab smoke test");
 } finally {
   await browser.close();
+}
+
+// VS Code's shell integration writes OSC 633 sequences into the captured stream
+// (";E;<command>;<uuid>" before, ";C" after), so an anchored /^cargo/ would never
+// match the first command of a terminal. Drop OSC and CSI sequences before matching.
+function stripAnsi(text) {
+  return text
+    .replace(/\u001b\][^\u0007\u001b]*(?:\u0007|\u001b\\)?/g, "")
+    .replace(/\u001b\[[0-9;?]*[ -/]*[@-~]/g, "")
+    .replace(/[\u0007]/g, "");
 }
 
 async function runCommand(page, command) {

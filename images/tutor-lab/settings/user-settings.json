@@ -37,6 +37,10 @@
   "typescript.surveys.enabled": false,
 
   "terminal.integrated.defaultProfile.linux": "bash",
+  // Multi-root workspace: without a fixed cwd every new terminal first asks
+  // "Select current working directory for new terminal" and lists both folders.
+  // The root keeps that prompt away; both tracks are one `cd` from here.
+  "terminal.integrated.cwd": "/home/coder/workspace",
   "git.openRepositoryInParentFolders": "never",
   "files.autoSave": "off"
 }
