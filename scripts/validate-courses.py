@@ -231,6 +231,7 @@ ALLOWED_BLOOM = {"remember", "understand", "apply", "analyze", "evaluate", "crea
 CHECK_TYPES = {
     "board", "task", "build", "fileMatches", "fileNotMatches", "symbolInElf",
     "flash", "serialExpect", "debugStop", "question", "manual", "all", "any",
+    "command", "testSuite", "predict",
 }
 REQUIRED_FIELDS = ["id", "title", "bloom", "objectives", "requires", "estimatedMinutes", "tasks"]
 

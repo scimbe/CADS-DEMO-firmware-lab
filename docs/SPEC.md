@@ -290,3 +290,75 @@ eigenes Volume, eigenes `PASSWORD`/Token, Idle-Reaper. Routing: ein ct-agent-Tun
   laufende Flash-Vorgänge, `diskutil unmountDisk` für `NOD_F429ZI` nach Replug (siehe cads-zero/CLAUDE.md).
 - "Fertig" heißt: gebaut, getestet, im lokalen Container (127.0.0.1:8083) mit Playwright verifiziert; für
   Hardware-Pfade zusätzlich mit echtem Board verifiziert.
+
+---
+
+# Addendum v1.1 (2026-09-03) – Lehraspekte und sprachunabhängige Tracks (Rust, JavaScript)
+
+Gilt zusätzlich zu §3.3. Motivation: Erkenntnisse aus dem Firmware-Kurs (Lernziel zuerst, automatische Checks statt
+`manual`, autorisierte Hinweis-Tiers je wahrscheinlicher Fehlerursache, Bloom-Progression, Querverweise) werden zur
+Runtime-Funktion; dazu kommen Vorhersage-Aufgaben, Wiederholung, Fehlkonzept-Trigger und Modul-Reflexion.
+Hardware-Checks bleiben unverändert; alles Neue ist sprachunabhängig.
+
+## A1 Neue Check-Typen
+```yaml
+- id: build
+  check: { type: command, cwd: ".", command: "cargo build", expectExitCode: 0, expectStdout: "regex?", expectStderr: "regex?", timeoutMs: 120000 }
+- id: tests
+  check: { type: testSuite, cwd: ".", runner: cargo | node-test | tap | custom, command: "optional override",
+           expectPass: ["ch04::moves_string"], minPass: 3, expectFail: [] }
+- id: guess
+  check: { type: predict, prompt: {en: "…", de: "…"}, then: { type: command, command: "cargo run --bin ch04_move" },
+           rubric: "optional LLM rubric comparing prediction and output", bloom: evaluate }
+```
+- `command`: läuft mit `/bin/sh -c` im Projekt-Root (`cwd` relativ dazu), Umgebung des Containers, Ausgabe wird
+  gespeichert (`result.output`, max. 64 KB) und steht Triggern zur Verfügung. Ein `command`-Check ist bestanden, wenn
+  Exit-Code und (falls gesetzt) die Regexe passen.
+- `testSuite`: Runner `cargo` = `cargo test -- --format terse`-kompatibles Parsing (`test <name> ... ok|FAILED`),
+  `node-test` = `node --test` (TAP-Ausgabe `ok N - name` / `not ok`), `tap` = generisches TAP, `custom` = `command`
+  plus TAP-Parsing. Bestanden, wenn alle `expectPass` ok sind (und `minPass` erreicht, und alle `expectFail` fehlschlagen).
+  Ergebnis enthält die Liste der Tests mit Status, damit Trigger (`test:<name>:failed`) feuern können.
+- `predict`: Studierende schreiben zuerst eine Vorhersage (Textfeld, mindestens 10 Zeichen), erst dann wird `then`
+  ausgeführt; das Panel zeigt Vorhersage und tatsächliche Ausgabe nebeneinander und stellt eine Reflexionsfrage
+  (mit LLM: Rubrik-Vergleich; ohne LLM: Selbstbestätigung). Bestanden, wenn `then` besteht und eine Vorhersage vorliegt.
+  Aufzeichnung als LearningEvent mit Bloom-Stufe (Default `evaluate`).
+
+## A2 Neue Step-Felder (Front Matter)
+```yaml
+scaffold: worked | faded | independent   # Badge + Hinweis im Panel: worked = vollständig vorgemacht,
+                                         # faded = Lücken, independent = eigenständig. Default independent.
+recallFrom: [m1-02-borrowing]            # Wiederholung: beim Öffnen des Steps stellt das Panel EINE question-Aufgabe
+                                         # aus einem der genannten (erledigten) Steps als kurze Abfrage ("Wiederholung"),
+                                         # nicht blockierend, Antwort wird als LearningEvent (remember/understand) gespeichert.
+misconceptions:                          # Fehlkonzept-Trigger auf Check-Ausgaben (Regex auf output/stderr aller Checks des Steps)
+  - pattern: "error\\[E0382\\]"
+    question: { en: "…", de: "…" }
+    hints: [ {en,de}, {en,de}, {en,de} ]
+```
+`socratic`-Trigger werden erweitert: `task:<id>:failed|stuck`, `question:<id>:weak`, `test:<name>:failed`,
+`output:<regex>` (äquivalent zu `misconceptions`, die Kurzform bleibt bevorzugt).
+
+## A3 Modul-Reflexion und Fortschritt
+`course.json` → `modules[].reflection: { prompts: [ {en, de}, … ] }`. Beim Abschluss des letzten Steps eines Moduls zeigt
+das Panel eine Reflexionskarte (1–3 Prompts, Freitext, optional LLM-Feedback nach Bloom `evaluate`), speichert die
+Antworten in der Session und als LearningEvents. Die Fortschrittsansicht zeigt je Modul: Steps erledigt, Checks
+bestanden beim ersten Versuch vs. mit Hinweisen, Vorhersagen korrekt/abweichend, Reflexion vorhanden.
+
+## A4 Kurse und Workspaces für Rust und JavaScript
+- Packs: `courses/rust-foundations` (The Rust Programming Language, Kapitel 3–10, Objectives `rust-*` der Plattform
+  wiederverwenden), `courses/javascript-foundations` (MDN JavaScript Guide, Objectives `javascript-*`). Struktur wie
+  §3.3; `project.root` zeigt auf den jeweiligen Starter-Workspace.
+- Starter-Workspaces im Monorepo: `workspaces/rust-foundations/` (Cargo-Projekt, je Step ein Modul/Übung mit Tests,
+  `cargo test --test <step>` isoliert lauffähig) und `workspaces/javascript-foundations/` (`node --test`, je Step eine
+  Datei `exercises/<step>.test.js`). Jede Übung hat eine Referenzlösung unter `solutions/` (nicht im Seed-Workspace,
+  nur zur Validierung), und `scripts/validate-courses.py` prüft mit `--solutions`, dass alle `testSuite`/`command`-Checks
+  mit der Referenzlösung bestehen und ohne Lösung fehlschlagen (Negativprobe – ein Check, der immer besteht, ist wertlos).
+- Bloom-Progression wie im Firmware-Kurs; `scaffold` beginnt je Modul mit `worked`, dann `faded`, dann `independent`.
+  Jeder Step ≥1 automatischer Check; `predict` mindestens einmal je Modul; `misconceptions` für die typischen
+  Compiler-/Laufzeitfehler (Rust: E0382, E0499, E0502, E0106, E0308; JavaScript: TypeError undefined, ReferenceError,
+  NaN, `==`-Fallen, `this`-Verlust, async ohne await).
+- Image `ghcr.io/scimbe/cads-tutor-lab` (`images/tutor-lab/Dockerfile`): code-server + rustup stable (rustfmt, clippy,
+  rust-analyzer) + Node 22 + Extensions (rust-lang.rust-analyzer, dbaeumer.vscode-eslint) + cads-tutor-VSIX + beide Packs
+  + beide Workspaces (Seed nach `/home/coder/workspace/<name>`), dieselben User-Settings/CMD-Flags wie firmware-lab,
+  `cadsTutor.autoOpen` öffnet den zuerst passenden Kurs zum geöffneten Workspace; Multi-Root-Workspace-Datei
+  `/home/coder/workspace/cads-tutor.code-workspace` mit beiden Ordnern; Kurswahl über den Tutor-Tree.
