@@ -236,6 +236,14 @@ USER coder
 # contributes a TOML grammar, so without it Cargo.toml opens as "Plain Text" -
 # no colours, no structure - in a course whose very first file is Cargo.toml.
 # It also brings the Cargo schema, so keys are completed and typos underlined.
+# A German display language is wanted (SPEC/operator) but cannot be delivered
+# from here yet: Open VSX's newest ms-ceintl.vscode-language-pack-de is 1.131.0
+# and this base runs Code 1.135.0. VS Code keys a language pack's bundle to the
+# exact Code version, so the 1.131 pack is installed and then ignored - no clp/
+# cache, and "Configure Display Language" offers English as the only installed
+# language. Installing it anyway would put an inert entry in the Extensions
+# list and imply a German workbench that never arrives, so it stays out until a
+# matching version exists. See docs/TUTOR-LAB-NOTES.md.
 RUN set -eu; for ext in \
         rust-lang.rust-analyzer \
         dbaeumer.vscode-eslint \

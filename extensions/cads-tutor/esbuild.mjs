@@ -47,11 +47,20 @@ function copyContentPacks() {
   fs.rmSync(dst, { recursive: true, force: true });
   fs.mkdirSync(dst, { recursive: true });
   fs.copyFileSync(path.join(src, "curriculum.json"), path.join(dst, "curriculum.json"));
-  for (const pack of ["firmware"]) {
+  // Every pack the platform ships, not a hard-coded list: the list said
+  // ["firmware"] while @cads/tutor-platform also carries javascript and rust,
+  // so the language courses fell back to their own sources/ - three MDN pages
+  // instead of the seven calibrated chapters their grounding threshold was set
+  // against. A new pack in the dependency now needs no change here.
+  const packs = fs
+    .readdirSync(src, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name);
+  for (const pack of packs) {
     fs.mkdirSync(path.join(dst, pack), { recursive: true });
     for (const f of ["index.json", "sources.json", "manifest.json"]) fs.copyFileSync(path.join(src, pack, f), path.join(dst, pack, f));
   }
-  console.log(`copied content packs → ${path.relative(here, dst)}`);
+  console.log(`copied content packs → ${path.relative(here, dst)} (${packs.join(", ")})`);
 }
 copyContentPacks();
 

@@ -322,6 +322,113 @@ JavaScript language service against a scratch file it writes itself (`const` rea
 afterwards) rather than hoping a course file still carries a bug. The same rule applies to the
 runbooks: they say `cargo test --no-fail-fast`, never a step name.
 
+## Two entry links, one per language (2026-09-03)
+
+The demo page gives Rust and JavaScript one address each, and each address may show only its own
+course:
+
+```
+https://<host>/?folder=/home/coder/workspace/rust-foundations
+https://<host>/?folder=/home/coder/workspace/javascript-foundations
+```
+
+Both open cleanly and scoped: the window title names the folder, the Explorer shows that folder
+as its only root (`RUST-FOUNDATIONS` / `JAVASCRIPT-FOUNDATIONS`, no second `*-FOUNDATIONS`
+root), and there is no Restricted Mode. Asserted by `e2e/tutor-lab-smoke.mjs` section 6.
+
+**The image default stays the multi-root workspace** (`cads-tutor.code-workspace` in the `CMD`).
+Reasons: the file has to exist anyway for people who want both tracks at once, a `docker run`
+with no query string then shows both languages rather than silently favouring one, and the two
+links do not depend on the default at all. The file is written on first start and then owned by
+the student.
+
+Two behaviours worth knowing:
+
+- **A bare URL reopens whatever that browser had open last.** After a student follows the Rust
+  link, `https://<host>/` reopens `rust-foundations`, not the workspace. That is code-server
+  remembering the last window, not a setting. Publish the two links; do not tell students to
+  visit the bare host and expect a particular view. The smoke test resets the session to the
+  workspace at the end for the same reason.
+- **The tutor does not filter courses by the open folder yet.** Both links currently offer both
+  courses, and the course the tutor auto-opens is the JavaScript one regardless of folder. This
+  is the runtime stream's work; the smoke test reports it as `pending` with the offending course
+  named, and turns into a real failure once that ships.
+
+## Reproduced: the tutor shows the wrong course for the folder (2026-09-03)
+
+Both language streams reported this independently and it reproduces in the published image
+`ghcr.io/scimbe/cads-tutor-lab:next-303c5c4`:
+
+| Opened as | Course the tutor expands and opens |
+|---|---|
+| `?folder=rust-foundations` | **JavaScript – Foundations**, step *Operating the interface* |
+| `?folder=javascript-foundations` | JavaScript – Foundations (right by luck) |
+| multi-root workspace | JavaScript – Foundations |
+
+And the Rust entry itself carries the JavaScript course's content: collapsing *JavaScript –
+Foundations* and expanding *Rust – Foundations* shows `0/31` (the Rust course has 30 steps) with
+the children *"let, const and the temporal dead zone"*, *"Types and what typeof will not tell
+you"*, *"Coercion, + and the value that equals nothing"* – all JavaScript M1 steps, listed at
+tree level 2 where the Rust modules should be.
+
+So a student following the Rust link lands in the JavaScript course. **Nothing about the image
+causes this** – the packs on disk are correct and byte-identical to the repository, and the
+image needs no change for the fix. It is the tutor runtime's course selection.
+
+## The German display language cannot be delivered from here yet (2026-09-03)
+
+Requirement: German workbench, so the sidebar and the tutor panel speak the same language.
+Attempted, measured, and reverted. Evidence:
+
+| Attempt | Result |
+|---|---|
+| `ms-ceintl.vscode-language-pack-de` installed from Open VSX | installs, `code-server --list-extensions` lists it |
+| `--locale de` in the image `CMD` | no effect on the workbench, and the login page stays English |
+| `~/.local/share/code-server/argv.json` with `"locale": "de"` | no effect; VS Code never writes one itself here |
+| browser `Accept-Language: de-DE` | no effect |
+| *Configure Display Language* in the palette | offers **English (Current, Installed)** and everything else as *Available* from the gallery – the installed German pack is not recognised as installed |
+| `~/.local/share/code-server/clp/` (cached language-pack bundle) | does not exist, so no pack was ever activated |
+
+**Cause: a version gap in the gallery we are allowed to use.** VS Code keys a language pack's
+translation bundle to its own version. This base image is code-server 4.135.0 with **Code
+1.135.0**; the newest German pack on Open VSX is **1.131.0** (versions available: 1.124–1.131).
+The pack's `engines.vscode: ^1.131.0` is satisfied, which is why it installs, but the language
+pack resolution rejects it and falls back to English.
+
+The pack and the `--locale` flag were therefore **removed again**: an installed pack that VS Code
+refuses to load puts an inert entry in the Extensions list and implies a German workbench that
+never arrives, which is worse than not shipping it.
+
+Options, none of which is this stream's call:
+
+1. **Wait** for Open VSX to publish a 1.135 pack, then add the two lines back. Cheapest; the
+   Dockerfile comment says exactly what to re-add.
+2. **Pin code-server** to a build whose Code version matches an available pack. Affects both
+   images and gives up four minor versions of code-server.
+3. **Take the pack from the Microsoft marketplace** instead of Open VSX. Technically works;
+   the marketplace terms restrict use to Visual Studio products, so this is a licensing
+   decision, not an engineering one.
+
+Until then the workbench chrome is English while the tutor panel is German – the mixture the
+operator objected to, now with a named cause.
+
+## Platform content packs: only `firmware` reached the VSIX (2026-09-03)
+
+Reported from the panel run: `content pack "javascript" not loadable from
+…/dist/content-packs/javascript: ENOENT … sources.json`. Confirmed and fixed.
+
+**Cause:** `extensions/cads-tutor/esbuild.mjs` copied a hard-coded list into the VSIX –
+`for (const pack of ["firmware"])` – while the dependency `@cads/tutor-platform` v0.12.0 ships
+`firmware`, `javascript` **and** `rust`. So the language courses could not load the pack their
+`grounding.pack` names and fell back to the sources they carry themselves: three MDN pages
+instead of the seven chapters the threshold 9.0 was calibrated against. No language model is
+configured on this deployment, so nothing failed visibly.
+
+**Fix:** the copy now enumerates every directory the dependency ships, so a new pack needs no
+build change. Verified in the VSIX (`firmware`, `javascript`, `rust`, each with `index.json`,
+`sources.json`, `manifest.json`) and in the installed extension inside the image. This is the
+tutor extension's build script rather than the image, and it fixes the firmware image too.
+
 ## Open dependencies (streams `rust` / `js`)
 
 `courses/rust-foundations`, `courses/javascript-foundations`, `workspaces/rust-foundations` and
