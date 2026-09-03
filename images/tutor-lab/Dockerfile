@@ -133,27 +133,69 @@ RUN --mount=type=bind,target=/ctx \
 USER coder
 WORKDIR /home/coder/workspace
 
-# Rust: build + test at the runtime path (cargo fingerprints carry absolute
-# paths), then move the whole tree incl. target/ into the seed. Students then
-# get an incremental first `cargo test` instead of a cold build.
+# Rust. A STARTER workspace must not pass its own tests - the exercises are
+# `todo!()` bodies and, where the step is about a trait, a type that does not
+# yet compile (m1-03 wants the student to add `#[derive(Copy)]`, so that test
+# target fails with E0277 until they do). So "cargo test is green" is the wrong
+# gate; it would mean the exercises were already solved.
+#
+# The gate is that the LIBRARY and the binaries compile: a starter whose
+# src/ does not build is broken for everyone and must fail the image build.
+# Everything below that is recorded, never fatal, so the build log shows the
+# starter state (how many test targets compile, how many tests pass) and a
+# regression is visible in CI without blocking the image.
+#
+# target/ is NOT shipped: measured on the real workspace, a cold
+# `cargo build --tests` is 7 s (the course has no dependencies at all) while
+# the build artefacts are 172 MB. Six saved seconds are not worth that; the
+# smoke test's 60 s budget is met with room to spare. Revisit if a course ever
+# takes a dependency - then the registry cache and target/ start to matter and
+# this stage already builds at the runtime path, which is what makes cargo's
+# absolute-path fingerprints reusable.
 RUN set -eu; \
+    # cargo only writes the registry when a course actually takes a dependency;
+    # create it so the final stage's COPY has something to copy either way.
     mkdir -p /home/coder/.cargo/registry; \
     mv /opt/cads-seed/rust-foundations /home/coder/workspace/rust-foundations; \
     cd /home/coder/workspace/rust-foundations; \
-    cargo build --all-targets; \
-    cargo test; \
-    cargo clippy --all-targets -- -D warnings || echo "note: clippy has findings in the seed (not fatal for the image)"; \
-    cargo fmt --check || echo "note: seed is not rustfmt-clean (not fatal for the image)"; \
+    echo "--- gate: the library and binaries must compile ---"; \
+    cargo build; \
+    echo "--- informational: test targets, tests, lints ---"; \
+    # Per target, not a plain `cargo test`: one test target that does not
+    # compile aborts the whole run, and then nothing is reported at all.
+    ok=0; bad=0; pass=0; failed=0; \
+    for t in tests/*.rs; do \
+        [ -e "$t" ] || continue; \
+        name=$(basename "$t" .rs); \
+        if ! cargo test --test "$name" --no-run >/dev/null 2>&1; then \
+            bad=$((bad+1)); echo "  test target does not compile (expected for some steps): $name"; \
+            continue; \
+        fi; \
+        ok=$((ok+1)); \
+        line=$(cargo test --test "$name" 2>&1 | grep -m1 '^test result:' || true); \
+        pass=$((pass + $(echo "$line" | awk '{print $4+0}'))); \
+        failed=$((failed + $(echo "$line" | awk '{print $6+0}'))); \
+    done; \
+    echo "  test targets: $ok compile, $bad do not"; \
+    echo "  tests: $pass passed, $failed failed (a starter is expected to fail most)"; \
+    cargo clippy -- -D warnings >/dev/null 2>&1 && echo "  clippy: clean" || echo "  clippy: findings in the starter (not fatal)"; \
+    cargo fmt --check >/dev/null 2>&1 && echo "  rustfmt: clean" || echo "  rustfmt: not clean (not fatal)"; \
     cd /home/coder/workspace; \
+    rm -rf /home/coder/workspace/rust-foundations/target; \
     mv /home/coder/workspace/rust-foundations /opt/cads-seed/rust-foundations; \
-    du -sh /opt/cads-seed/rust-foundations /opt/cads-seed/rust-foundations/target /home/coder/.cargo/registry
+    du -sh /opt/cads-seed/rust-foundations
 
-# JavaScript: install locked dev dependencies if there are any, run the tests.
+# JavaScript. Same reasoning: the starter's exercises throw or carry the bug
+# the step is about, so `node --test` exits non-zero by design. The gate is
+# that the runner starts and produces a summary; the counts are recorded.
 RUN set -eu; \
     mv /opt/cads-seed/javascript-foundations /home/coder/workspace/javascript-foundations; \
     cd /home/coder/workspace/javascript-foundations; \
     if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; fi; \
-    node --test; \
+    node --test > /tmp/node-test.log 2>&1 || true; \
+    grep -E '^# (tests|pass|fail)' /tmp/node-test.log | sed 's/^/  /' \
+        || { echo "node --test produced no summary - the runner itself is broken:"; tail -30 /tmp/node-test.log; exit 1; }; \
+    rm -f /tmp/node-test.log; \
     cd /home/coder/workspace; \
     mv /home/coder/workspace/javascript-foundations /opt/cads-seed/javascript-foundations; \
     du -sh /opt/cads-seed/javascript-foundations

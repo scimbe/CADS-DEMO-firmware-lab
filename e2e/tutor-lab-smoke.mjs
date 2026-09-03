@@ -8,9 +8,11 @@
 //   2. workbench: app name in the title, no Restricted Mode, both folders in the
 //      Explorer, no prompt / chat side bar / notification 30 s after load
 //   3. tutor: the CaDS Tutor view opens (with or without course packs)
-//   4. integrated terminal: cargo --version, node --version (22.x),
-//      `cargo test` in rust-foundations (< 60 s, warm cache),
-//      `node --test` in javascript-foundations (0 failures)
+//   4. integrated terminal: cargo --version, node --version (22.x), and both
+//      test runners really running in their workspace (< 60 s). A starter
+//      workspace is EXPECTED to fail most of its tests - the exercises are
+//      unsolved - so the assertion is "a summary appears and at least one test
+//      passes", which separates a broken toolchain from unsolved exercises.
 //
 // Usage:
 //   CADS_LAB_PASSWORD=... node e2e/tutor-lab-smoke.mjs
@@ -250,9 +252,20 @@ try {
   });
   if (cwdPrompt) fail(`Terminal: Create New Terminal opened a prompt instead of a terminal: "${cwdPrompt}" (terminal.integrated.cwd missing?)`);
   await page.focus(".terminal-wrapper.active .xterm-helper-textarea");
+  // Rust runs ONE test target, the way a course `testSuite` check does, not a
+  // bare `cargo test`: a starter workspace legitimately contains a target that
+  // does not compile yet (a step whose job is to make it compile), and a
+  // whole-workspace `cargo test` aborts on it and reports nothing at all. The
+  // target is picked at run time - the first one that compiles - so the check
+  // stays independent of the course content.
   const script =
-    `{ cargo --version; node --version; s=$(date +%s); (cd ${RUST_WS} && cargo test 2>&1 | tail -n 25); echo "cargo_test_exit=\${PIPESTATUS[0]} cargo_test_s=$(( $(date +%s) - s ))"; ` +
-    `(cd ${JS_WS} && node --test 2>&1 | tail -n 12); echo "node_test_exit=\${PIPESTATUS[0]}"; echo E2E_DONE; } > ${marker} 2>&1`;
+    `{ cargo --version; node --version; ` +
+    `s=$(date +%s); (cd ${RUST_WS} && step=$(for f in tests/*.rs; do n=$(basename "$f" .rs); ` +
+    `if cargo test --test "$n" --no-run >/dev/null 2>&1; then echo "$n"; break; fi; done); ` +
+    `echo "cargo_step=$step"; cargo test --test "$step" 2>&1 | grep -E '^test result:'); ` +
+    `echo "cargo_test_exit=\${PIPESTATUS[0]} cargo_test_s=$(( $(date +%s) - s ))"; ` +
+    `t=$(date +%s); (cd ${JS_WS} && node --test 2>&1 | grep -E '^# (tests|pass|fail|suites)'); ` +
+    `echo "node_test_exit=\${PIPESTATUS[0]} node_test_s=$(( $(date +%s) - t ))"; echo E2E_DONE; } > ${marker} 2>&1`;
   await page.keyboard.type(script);
   await page.keyboard.press("Enter");
   let out = "";
@@ -266,16 +279,42 @@ try {
   const nodeV = out.match(/^v22\.\d+\.\d+/m)?.[0];
   if (!cargoV) fail(`cargo --version missing:\n${out}`);
   if (!nodeV) fail(`node --version is not 22.x:\n${out}`);
+  // What "the test suite runs" means in a STARTER workspace: the runner must
+  // execute and report results, not exit zero. The exercises are unsolved by
+  // design - `todo!()` bodies in Rust, a thrown TODO or the bug the step is
+  // about in JavaScript - so a green suite here would mean the exercises had
+  // been solved and the course had nothing left to teach. What must hold is
+  // that the toolchain really runs tests: a result summary appears, and at
+  // least one test passes (the steps that hand the student a worked example).
+  // A broken toolchain or a workspace cargo cannot find looks completely
+  // different - no summary at all - and that is what this catches.
   const cargoExit = out.match(/cargo_test_exit=(\d+) cargo_test_s=(\d+)/);
-  if (!cargoExit || cargoExit[1] !== "0") fail(`cargo test failed:\n${out}`);
+  if (!cargoExit) fail(`cargo test did not report an exit code:\n${out}`);
   const cargoS = Number(cargoExit[2]);
-  if (cargoS > CARGO_TEST_BUDGET_S) fail(`cargo test took ${cargoS} s (> ${CARGO_TEST_BUDGET_S} s, cache not warm?):\n${out}`);
-  const testResults = [...out.matchAll(/^test result: ok\. (\d+) passed/gm)].map((m) => Number(m[1]));
-  const nodeExit = out.match(/node_test_exit=(\d+)/)?.[1];
+  if (cargoS > CARGO_TEST_BUDGET_S) fail(`cargo test took ${cargoS} s (> ${CARGO_TEST_BUDGET_S} s):\n${out}`);
+  const cargoStep = out.match(/^cargo_step=(\S+)/m)?.[1];
+  if (!cargoStep) fail(`no test target in ${RUST_WS} compiles - the workspace, not one exercise, is broken:\n${out}`);
+  const cargoSummaries = [...out.matchAll(/^test result: (?:ok|FAILED)\. (\d+) passed; (\d+) failed/gm)];
+  if (!cargoSummaries.length) fail(`cargo test --test ${cargoStep} produced no "test result:" summary - the toolchain, not the exercises, is broken:\n${out}`);
+  const cargoPassed = cargoSummaries.reduce((a, m) => a + Number(m[1]), 0);
+  const cargoFailed = cargoSummaries.reduce((a, m) => a + Number(m[2]), 0);
+  if (cargoPassed === 0) fail(`cargo test --test ${cargoStep} ran but not one test passed - that is a toolchain problem, not unsolved exercises:\n${out}`);
+
+  const nodeExit = out.match(/node_test_exit=(\d+) node_test_s=(\d+)/);
+  const nodeTests = out.match(/^# tests (\d+)/m)?.[1];
   const nodeFail = out.match(/^# fail (\d+)/m)?.[1];
   const nodePass = out.match(/^# pass (\d+)/m)?.[1];
-  if (nodeExit !== "0" || nodeFail !== "0") fail(`node --test failed (exit=${nodeExit}, fail=${nodeFail}):\n${out}`);
-  ok(`terminal: ${cargoV}, node ${nodeV}; cargo test ok in ${cargoS} s (${testResults.reduce((a, b) => a + b, 0)} tests in ${testResults.length} binaries); node --test pass=${nodePass} fail=0`);
+  if (!nodeExit) fail(`node --test did not report an exit code:\n${out}`);
+  if (nodeTests === undefined || nodePass === undefined || nodeFail === undefined) {
+    fail(`node --test produced no summary - the runner itself is broken:\n${out}`);
+  }
+  if (Number(nodeTests) === 0) fail(`node --test found no tests in ${JS_WS} - wrong layout?:\n${out}`);
+  if (Number(nodePass) === 0) fail(`node --test ran ${nodeTests} tests and not one passed - that is a runner problem, not unsolved exercises:\n${out}`);
+  ok(
+    `terminal: ${cargoV}, node ${nodeV}; cargo test --test ${cargoStep} ran in ${cargoS} s ` +
+      `(${cargoPassed} passed, ${cargoFailed} failed - unsolved exercises are expected in a starter); ` +
+      `node --test ${nodeTests} tests (${nodePass} passed, ${nodeFail} failed) in ${nodeExit[2]} s`
+  );
 
   console.log("PASS: tutor-lab smoke test");
 } finally {
