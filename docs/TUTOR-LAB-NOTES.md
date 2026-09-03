@@ -349,10 +349,13 @@ Two behaviours worth knowing:
   remembering the last window, not a setting. Publish the two links; do not tell students to
   visit the bare host and expect a particular view. The smoke test resets the session to the
   workspace at the end for the same reason.
-- **The tutor does not filter courses by the open folder yet.** Both links currently offer both
-  courses, and the course the tutor auto-opens is the JavaScript one regardless of folder. This
-  is the runtime stream's work; the smoke test reports it as `pending` with the offending course
-  named, and turns into a real failure once that ships.
+- **Per-link course filtering works as of the current `next`.** The Rust link offers only
+  *Rust – Foundations*, the JavaScript link only *JavaScript – Foundations*; asserted. It does
+  **not** work in the published tag `next-303c5c4`, which predates the runtime fix.
+  A caution for whoever writes such a check: read the course rows only once the CaDS Tutor side
+  bar is actually the visible one. Reading `.sidebar .monaco-list-row` too early collects the
+  Explorer's file names, which look enough like course names to make the check pass or fail at
+  random - it cost two wrong readings here before the wait was added.
 
 ## Reproduced: the tutor shows the wrong course for the folder (2026-09-03)
 
@@ -370,6 +373,12 @@ Foundations* and expanding *Rust – Foundations* shows `0/31` (the Rust course 
 the children *"let, const and the temporal dead zone"*, *"Types and what typeof will not tell
 you"*, *"Coercion, + and the value that equals nothing"* – all JavaScript M1 steps, listed at
 tree level 2 where the Rust modules should be.
+
+**State as of the current `next` (freshly packaged VSIX, 2026-09-03 late):** the per-folder half
+is fixed – each entry link now lists only its own course. The multi-root half is **not**: in
+`cads-tutor.code-workspace`, *Rust – Foundations* still reads `0/31` and still expands to
+JavaScript step titles. Since the multi-root workspace is the image default, a student who opens
+the bare URL still sees the mixed tree. The two published links are unaffected.
 
 So a student following the Rust link lands in the JavaScript course. **Nothing about the image
 causes this** – the packs on disk are correct and byte-identical to the repository, and the
