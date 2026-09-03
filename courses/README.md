@@ -11,7 +11,7 @@ the tutor platform. Nothing in any of them is invented.
 |---|---|---|---|---|---|
 | [`cads-zero-foundations`](cads-zero-foundations/) | firmware | required | remember → create | 41 | ~10 h |
 | [`cads-zero-projects`](cads-zero-projects/) | firmware | elective | create / evaluate | 6 | open |
-| [`javascript-foundations`](javascript-foundations/) | javascript | standalone | remember → create | 31 | ~9 h |
+| [`rust-foundations`](rust-foundations/) | language | standalone | remember → create | 31 | ~12 h |
 
 The firmware packs need the board; `javascript-foundations` needs nothing but
 Node 22 and its starter workspace at `workspaces/javascript-foundations`.
@@ -212,7 +212,7 @@ prerequisites with the firmware packs and needs no hardware.
 ```mermaid
 graph TD
   subgraph Rust["rust-foundations (standalone)"]
-    R0["M0 Tooling<br/>cargo · first test · predict · read a diagnostic"]
+    R0["M0 Tooling<br/>cargo · the workbench · first test · predict · read a diagnostic"]
     R1["M1 Ownership<br/>scope · move · clone · Copy · functions"]
     R2["M2 Borrowing<br/>&T · &mut T · aliasing rule · slices"]
     R3["M3 Structs & enums<br/>update syntax · variants · match · if let"]
@@ -241,13 +241,14 @@ citing ownership chunks for a cargo objective would be dishonest grounding.
 
 | Step | Module | Bloom | Scaffold | Automatic checks |
 |---|---|---|---|---|
-| m0-01-welcome | M0 | remember | worked | command ×2, question |
+| m0-01-welcome | M0 | remember | worked | command, question |
+| m0-02-workbench | M0 | apply | worked | command ×2, question |
 | m0-03-first-test | M0 | apply | worked | testSuite, question |
 | m0-04-predict-output | M0 | understand | faded | predict → command, testSuite |
 | m0-05-compiler-errors | M0 | analyze | independent | command, question |
 | m1-01-scope-and-move | M1 | understand | worked | predict → command, testSuite |
 | m1-02-move-vs-clone | M1 | apply | faded | testSuite, question |
-| m1-03-copy-types | M1 | understand | faded | testSuite, question |
+| m1-03-copy-types | M1 | understand | faded | testSuite, fileMatches+fileNotMatches, question |
 | m1-04-ownership-and-functions | M1 | apply | independent | testSuite, question |
 | m2-01-shared-references | M2 | apply | worked | predict → command, testSuite |
 | m2-02-mutable-references | M2 | apply | faded | testSuite, question |
@@ -276,9 +277,9 @@ citing ownership chunks for a cargo objective would be dishonest grounding.
 
 | Level | Steps | | Scaffold | Steps |
 |---|---:|---|---|---:|
-| remember | 1 | | worked | 9 |
+| remember | 1 | | worked | 10 |
 | understand | 6 | | faded | 12 |
-| apply | 15 | | independent | 9 |
+| apply | 16 | | independent | 9 |
 | analyze | 6 | | | |
 | evaluate | 1 | | | |
 | create | 1 | | | |
@@ -302,7 +303,23 @@ project, is `independent` throughout by design.
   `m6-04-lifetimes` has the same broken program in both `snippets/` and
   `repair/`, on purpose: the prediction check must keep reporting the original
   diagnostic after the repair file has been fixed.
-- **Checks that pass without a solution, and why.** Thirteen checks carry
+- **Every step that runs something states the full operating path.** Menu,
+  key and the command to copy sit in a `Running it` section at the foot of the
+  step, generated from that step's own checks so the command in the prose and
+  the command the Check button runs cannot drift apart. It also names what you
+  see, how long it takes, how you know the command finished, and which of the
+  three panel tabs the output is in -- looking in `Problems` or `Output`
+  instead of `Terminal` is the most common way to lose ten minutes. There are
+  no "as before" references: `m0-02-workbench` teaches the window once, and
+  every later step still repeats the path it needs.
+
+- **Two tooling misconceptions attach themselves automatically** wherever they
+  can actually fire: `could not find Cargo.toml` (terminal in the wrong folder)
+  and `no test target named` (wrong step id after `--test`). Looking in the
+  wrong panel and closing the terminal produce no output at all, so they are
+  prose in the `Running it` section rather than regexes that could never match.
+
+- **Checks that pass without a solution, and why.** Fifteen checks carry
   `seedMustFail: false`, which switches off the negative half of the probe.
   All thirteen test a fixed artifact rather than student code: the environment
   probes in `m0-01-welcome` (`cargo --version`, `cargo build` -- the workspace
@@ -311,7 +328,7 @@ project, is `independent` throughout by design.
   standalone snippet compilations, which assert that a read-only file still
   produces exactly the documented diagnostic. Every check that grades student
   work does fail without the solution, and the validator proves it:
-  38 probes, 38 ok, 0 failed.
+  39 probes, 39 ok, 0 failed.
 - **`#[should_panic]` and test-list parsing.** cargo prints such a test as
   `test <name> - should panic ... ok`, with the marker between the name and the
   result. `m5-01-panic-vs-result` therefore pairs its `testSuite` check with a

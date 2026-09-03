@@ -87,3 +87,60 @@ describe("event store", () => {
     assert.ok(fs.existsSync(opened.file));
   });
 });
+
+describe("language reaches the model", () => {
+  // The live fault: the UI was German and the tutor answered in English, because
+  // `lang` was accepted by ask() and then dropped before the prompt was built.
+  function withLang(lang: "de" | "en", prompts: string[]) {
+    return new TutorPlatform({
+      course,
+      packsDir: PACKS,
+      studentId: "s1",
+      memoryDir: tmp(),
+      llm: null,
+      llmClient: { complete: async (p: string) => (prompts.push(p), "ok\nVERDICT: pass") },
+      lang: () => lang,
+    });
+  }
+
+  it("puts the German instruction into the prompt when the UI is German", async () => {
+    // The corpus is English, so the query that grounds is English; the ANSWER is
+    // what has to be German. That split is the whole point of the directive.
+    const prompts: string[] = [];
+    await withLang("de", prompts).ask("how do I build the firmware with cmake presets?", "de");
+    assert.equal(prompts.length, 1);
+    assert.match(prompts[0], /ausschließlich auf Deutsch/);
+  });
+  it("puts the English instruction into an English prompt", async () => {
+    const prompts: string[] = [];
+    await withLang("en", prompts).ask("how do I build the firmware with cmake presets?", "en");
+    assert.match(prompts[0], /exclusively in English/);
+    assert.doesNotMatch(prompts[0], /ausschließlich auf Deutsch/);
+  });
+  it("instructs the rubric grader too, so feedback is not English in a German UI", async () => {
+    const prompts: string[] = [];
+    const v = await withLang("de", prompts).gradeAnswer("Warum?", "nennt RCC_AHB1ENR", "weil die Clock aktiviert werden muss");
+    assert.equal(v.kind, "pass");
+    assert.match(prompts[0], /ausschließlich auf Deutsch/);
+    assert.match(prompts[0], /Rubric/, "still the grading prompt");
+  });
+  it("instructs the generic hint as well", async () => {
+    const prompts: string[] = [];
+    const hint = await withLang("de", prompts).genericHint("Build", "exit code 2", "apply", 1, "de", ["firmware-how-to-build"]);
+    assert.ok(hint !== undefined, "a hint was produced");
+    assert.match(prompts[0], /ausschließlich auf Deutsch/);
+  });
+  it("tells the model the source excerpts are English but the answer is not", async () => {
+    const prompts: string[] = [];
+    await withLang("de", prompts).ask("how do I build the firmware with cmake presets?", "de");
+    assert.match(prompts[0], /Referenzauszüge.*Englisch/s);
+  });
+  it("leaves the grounding query free of the instruction", async () => {
+    // The question is also the BM25 query against an English corpus; German
+    // instruction words in it would degrade retrieval for no benefit.
+    const prompts: string[] = [];
+    const p = withLang("de", prompts);
+    const out = await p.ask("how do I build the firmware with cmake presets?", "de");
+    assert.equal(out.kind, "answer", "still grounded, so retrieval was not disturbed");
+  });
+});
