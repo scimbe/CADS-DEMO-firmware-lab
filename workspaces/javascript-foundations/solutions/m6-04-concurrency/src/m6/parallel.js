@@ -1,4 +1,6 @@
 // m6-04-concurrency (reference solution)
+
+import "../course-hint.js"; // prints guidance if this file is run directly
 export function step(label, ms) {
   return new Promise((resolve) => setTimeout(() => resolve(label), ms));
 }

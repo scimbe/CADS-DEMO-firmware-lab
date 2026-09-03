@@ -35,6 +35,9 @@ misconceptions:
   - pattern: "Set READY to true"
     question: { en: "The test is still reading false. Was the file saved, and was it the file under src/?", de: "Der Test liest weiterhin false. Wurde die Datei gespeichert, und war es die Datei unter src/?" }
     hints: [ { en: "An unsaved file shows a dot instead of a cross on its editor tab. Ctrl+S (Cmd+S) saves it.", de: "Eine ungespeicherte Datei zeigt auf ihrem Editor-Tab einen Punkt statt eines Kreuzes. Strg+S (Cmd+S) speichert sie." }, { en: "Check the path in the tab: it must be src/m0/ready.js, not test/m0-01-using-the-ide.test.js.", de: "Prüfe den Pfad im Tab: er muss src/m0/ready.js sein, nicht test/m0-01-using-the-ide.test.js." }, { en: "Node reads the file from disk at every run, so an unsaved change cannot be seen.", de: "Node liest die Datei bei jedem Lauf von der Platte, eine ungespeicherte Änderung ist also unsichtbar." } ]
+  - pattern: "is an exercise, not a program"
+    question: { en: "You ran the exercise file itself. Which folder holds the files that actually check your work?", de: "Du hast die Übungsdatei selbst ausgeführt. In welchem Ordner liegen die Dateien, die deine Arbeit wirklich prüfen?" }
+    hints: [ { en: "Files under src/ only export functions; on their own they compute nothing and print nothing.", de: "Dateien unter src/ exportieren nur Funktionen; für sich allein berechnen sie nichts und geben nichts aus." }, { en: "The reminder you just saw names the exact command - it ends in test/<step-id>.test.js.", de: "Der eben gezeigte Hinweis nennt den genauen Befehl - er endet auf test/<step-id>.test.js." }, { en: "In this course you run files under test/ and edit files under src/, never the other way round.", de: "In diesem Kurs führst du Dateien unter test/ aus und änderst Dateien unter src/, nie umgekehrt." } ]
 ---
 ## Lernziel
 
@@ -139,6 +142,14 @@ Siehst du stattdessen `Could not find 'test/…'`, steht das Terminal im falsche
 
 
 Dateien unter `test/` sind das Prüfschema. Eine davon zu ändern, damit sie besteht, ist der eine Handgriff, der dir in diesem Kurs nirgends hilft.
+
+Eines lohnt sich einmal auszuprobieren, weil die Antwort nicht naheliegt:
+
+```bash
+node src/m0/ready.js
+```
+
+Eine Übungsdatei direkt auszuführen prüft **nichts**. Übungsdateien exportieren nur Funktionen, die ein Test aufruft; für sich allein berechnen sie nichts und geben nichts aus. Damit du nicht auf ein leeres Terminal starrst, gibt jede von ihnen einen Hinweis aus, der den Befehl nennt, der deine Arbeit wirklich prüft. Die Regel dahinter: in diesem Kurs führst du Dateien unter `test/` aus, nie Dateien unter `src/`.
 
 ## Woran du erkennst, dass es geklappt hat
 

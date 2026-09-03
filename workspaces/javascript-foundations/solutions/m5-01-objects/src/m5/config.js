@@ -1,4 +1,6 @@
 // m5-01-objects (reference solution)
+
+import "../course-hint.js"; // prints guidance if this file is run directly
 export function readSettings(raw) {
   return {
     host: raw.host,

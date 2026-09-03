@@ -6,6 +6,8 @@
 // The current code mutates the caller's array with push and splice. The test
 // checks that the input is untouched.
 
+import "../course-hint.js"; // prints guidance if this file is run directly
+
 export function addTask(list, task) {
   list.push(task);
   return list;

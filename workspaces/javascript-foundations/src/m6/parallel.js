@@ -9,6 +9,8 @@
 //                      (reason is the error MESSAGE, not the Error object)
 // The test measures elapsed time, so `together` really has to run in parallel.
 
+import "../course-hint.js"; // prints guidance if this file is run directly
+
 export function step(label, ms) {
   return new Promise((resolve) => setTimeout(() => resolve(label), ms));
 }

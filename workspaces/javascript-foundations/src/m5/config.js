@@ -6,6 +6,8 @@
 // The version below hands back the caller's array, so changing the result
 // changes the input too. The test catches that.
 
+import "../course-hint.js"; // prints guidance if this file is run directly
+
 export function readSettings(raw) {
   return {
     host: raw.host,

@@ -1,4 +1,6 @@
 // m4-02-parameters (reference solution)
+
+import "../course-hint.js"; // prints guidance if this file is run directly
 export function joinWords(separator = ", ", ...words) {
   return words.join(separator);
 }

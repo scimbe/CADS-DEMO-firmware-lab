@@ -8,6 +8,8 @@
 //   TypeError: Cannot read properties of undefined (reading 'count')
 // Make the ticker work even when tick is passed around on its own.
 
+import "../course-hint.js"; // prints guidance if this file is run directly
+
 export function makeTicker() {
   return {
     count: 0,

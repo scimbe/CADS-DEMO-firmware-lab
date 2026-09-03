@@ -1,4 +1,6 @@
 // m4-03-closures (reference solution)
+
+import "../course-hint.js"; // prints guidance if this file is run directly
 export function makeCounter(start) {
   let current = start;
   return {

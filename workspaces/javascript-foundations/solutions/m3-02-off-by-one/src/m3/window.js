@@ -1,4 +1,6 @@
 // m3-02-off-by-one (reference solution)
+
+import "../course-hint.js"; // prints guidance if this file is run directly
 export function lastThree(list) {
   const out = [];
   for (let i = Math.max(0, list.length - 3); i < list.length; i++) {

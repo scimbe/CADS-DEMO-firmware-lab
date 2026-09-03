@@ -5,6 +5,8 @@
 //                         by row, or null. Both loops must stop at the hit -
 //                         a labeled `break` leaves both at once.
 
+import "../course-hint.js"; // prints guidance if this file is run directly
+
 export function stripComments(lines) {
   throw new Error("TODO: skip empty and commented lines with continue");
 }

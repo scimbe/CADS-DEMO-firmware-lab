@@ -1,4 +1,6 @@
 // m5-04-transformations (reference solution)
+
+import "../course-hint.js"; // prints guidance if this file is run directly
 export function totals(rows) {
   const amounts = rows.map((row) => row.amount);
   return {

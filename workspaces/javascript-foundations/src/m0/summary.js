@@ -6,6 +6,8 @@
 // The test compares the whole object with assert.deepEqual, so a wrong
 // property NAME fails just like a wrong value. Read the diff the test prints.
 
+import "../course-hint.js"; // prints guidance if this file is run directly
+
 export function summarize(numbers) {
   let sum = 0;
   for (const n of numbers) {

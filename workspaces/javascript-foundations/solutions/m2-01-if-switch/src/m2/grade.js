@@ -1,4 +1,6 @@
 // m2-01-if-switch (reference solution)
+
+import "../course-hint.js"; // prints guidance if this file is run directly
 export function letterGrade(score) {
   if (score >= 90) {
     return "A";
