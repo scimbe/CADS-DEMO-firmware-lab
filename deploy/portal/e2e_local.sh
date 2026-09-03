@@ -8,7 +8,7 @@
 #   3. every view for a teacher             -> 200 text/html
 #   4. course isolation                     -> foreign course 403, own course 200, admin both 200
 #   5. no identity / unknown e-mail         -> 403
-#   6. deep dive for a flagged student      -> 200 with reasons, evidence and a recommendation
+#   6. deep dive for a flagged student      -> 200 with reasons, counter-hypotheses and advice
 #   7. CSV and JSON export                  -> 200, one row per student
 #   8. sign-off round trip                  -> 303, appears in the export with teacher and timestamp
 #   9. cross-course sign-off                -> 403, nothing written
@@ -75,7 +75,7 @@ import json, sys
 r = json.load(open(sys.argv[1]))
 assert r["ok"], r
 PY
-pass "all flag targets met, every cheat pseudonym visible on the anomalies page"
+pass "all flag targets met, every follow-up pseudonym visible on the anomalies page"
 
 step "3. every view answers for a teacher"
 for view in "/portal/" "/portal/questions" "/portal/steps" "/portal/anomalies" \
@@ -102,10 +102,11 @@ saveb "$TEACHER_A" "/portal/anomalies?c=$COURSE_A" "$WORK/anomalies.html"
 SLUG="$(grep -o 's=[a-f0-9]\{12\}' "$WORK/anomalies.html" | head -1 | sed 's/s=//')"
 [[ -n "$SLUG" ]] || fail "no flagged student on the anomalies page"
 saveb "$TEACHER_A" "/portal/student?c=$COURSE_A&s=$SLUG" "$WORK/deep.html"
-for marker in "Empfehlung" "Mastery je Lernziel" "Bloom-Abdeckung" "Zeitstrahl" "Belege"; do
+for marker in "Empfehlung" "Mastery je Lernziel" "Bloom-Abdeckung" "Zeitstrahl" "Belege" "counter"; do
   grep -q "$marker" "$WORK/deep.html" || fail "deep dive is missing: $marker"
 done
-pass "deep dive for $SLUG has reasons, evidence, mastery, Bloom and a recommendation"
+if grep -q "Betrug" "$WORK/deep.html"; then fail "the interface calls it cheating"; fi
+pass "deep dive for $SLUG has reasons, counter-hypotheses, evidence, mastery, Bloom and advice"
 
 step "7. exports"
 saveb "$TEACHER_A" "/portal/board?c=$COURSE_A&export=csv" "$WORK/board.csv"

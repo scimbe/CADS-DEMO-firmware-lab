@@ -238,7 +238,7 @@ class StudentMetricsTests(unittest.TestCase):
         self.assertEqual(z[slug(1)]["first_pass_rate"], 0.0)
 
 
-class CheatIndicatorTests(unittest.TestCase):
+class IntegrityIndicatorTests(unittest.TestCase):
     def test_fast_paste_pass(self):
         s = slug(9)
         e = journey(s, "m0-01", 0, seconds=30, typed=20, pasted=900)     # 30 s, 98 % pasted, no fail
@@ -246,8 +246,28 @@ class CheatIndicatorTests(unittest.TestCase):
         e += journey(s, "m0-03", 200, seconds=300, typed=20, pasted=900)  # pasted but slow -> no hit
         e += journey(s, "m0-04", 600, first_pass=False, attempts=2, seconds=40, typed=20, pasted=900)  # failed first
         m = an.student_metrics(e, COURSE["order"])
-        hits = an.fast_paste_passes(m, 60, 0.8)
+        hits = an.fast_paste_passes(m, None, 60, 0.8)
         self.assertEqual([h["step"] for h in hits[s]], ["m0-01"])
+
+    def test_paste_share_is_ignored_once_the_tutor_has_given_the_answer(self):
+        """A tier-2/3 hint contains the solution line, so pasting after it is system-conform."""
+        s = slug(9)
+        e = journey(s, "m0-01", 0, seconds=30, typed=20, pasted=900, hints=(2,))
+        m = an.student_metrics(e, COURSE["order"])
+        self.assertEqual(an.fast_paste_passes(m, None, 60, 0.8), {})
+        # a tier-1 hint does not give the answer away, so the signal survives it
+        e1 = journey(slug(8), "m0-01", 0, seconds=30, typed=20, pasted=900, hints=(1,))
+        m1 = an.student_metrics(e1, COURSE["order"])
+        self.assertEqual([h["step"] for h in an.fast_paste_passes(m1, None, 60, 0.8)[slug(8)]], ["m0-01"])
+
+    def test_paste_share_is_ignored_where_the_step_states_the_answer(self):
+        s = slug(9)
+        e = journey(s, "m0-01", 0, seconds=30, typed=20, pasted=900)
+        m = an.student_metrics(e, COURSE["order"])
+        course = dict(COURSE)
+        course["steps"] = dict(COURSE["steps"])
+        course["steps"]["m0-01"] = dict(COURSE["steps"]["m0-01"], solution_in_material=True)
+        self.assertEqual(an.fast_paste_passes(m, course, 60, 0.8), {})
 
     def test_identical_texts(self):
         txt = "Ownership bedeutet dass jeder Wert genau einen Besitzer hat und beim Verlassen des Scopes freigegeben wird"
@@ -257,11 +277,37 @@ class CheatIndicatorTests(unittest.TestCase):
         e += journey(slug(4), "m0-02", 900, reflection=txt)   # other step -> not compared
         e += journey(slug(5), "m0-01", 950, reflection="kurz")  # too short
         e += journey(slug(6), "m0-01", 960, reflection="kurz")
-        hits = an.identical_texts(e, 0.9, 8)
+        hits = an.identical_texts(e, None, 0.9, 8)
         self.assertEqual(set(hits), {slug(1), slug(2)})
         self.assertEqual(hits[slug(2)][0]["other"], slug(1))
         self.assertTrue(hits[slug(2)][0]["later"])
         self.assertFalse(hits[slug(1)][0]["later"])
+
+    def test_texts_that_only_echo_the_step_are_not_a_signal(self):
+        """The model answer is in the step file, so quoting it makes two students look identical."""
+        rubric = ("Ownership bedeutet dass jeder Wert genau einen Besitzer hat und beim Verlassen "
+                  "des Scopes freigegeben wird")
+        course = dict(COURSE)
+        course["steps"] = dict(COURSE["steps"])
+        course["steps"]["m0-01"] = dict(COURSE["steps"]["m0-01"], reference_text=rubric)
+        e = journey(slug(1), "m0-01", 0, reflection=rubric)
+        e += journey(slug(2), "m0-01", 500, reflection=rubric + " wirklich")
+        self.assertEqual(an.identical_texts(e, course, 0.9, 8), {},
+                         "quoting the same rubric must not look like copying from each other")
+        # a shared text that owes nothing to the step still shows up
+        own = "Mein eigener Gedanke zu diesem Schritt war vollkommen anders und ziemlich ausfuehrlich notiert"
+        e2 = journey(slug(3), "m0-01", 0, reflection=own)
+        e2 += journey(slug(4), "m0-01", 500, reflection=own)
+        self.assertEqual(set(an.identical_texts(e2, course, 0.9, 8)), {slug(3), slug(4)})
+
+    def test_only_free_wording_answers_are_compared(self):
+        txt = "Ein hinreichend langer Text der als Antwort auf eine Frage gegeben wurde und geteilt wird"
+        e = [ev(slug(1), "m0-01", "question.answered", 0, answer=txt, verdict="pass"),
+             ev(slug(2), "m0-01", "question.answered", 10, answer=txt, verdict="pass")]
+        self.assertEqual(an.identical_texts(e, None, 0.9, 8), {},
+                         "answers to a rubric question are not free wording")
+        self.assertEqual(set(an.identical_texts(e, None, 0.9, 8, types=("question.answered",))),
+                         {slug(1), slug(2)})
 
     def test_outside_session(self):
         s = slug(3)
@@ -319,18 +365,78 @@ class FlagTests(unittest.TestCase):
         flags = an.compute_flags(e, m)
         kinds = {s: {f["flag"] for f in fl} for s, fl in flags.items()}
         self.assertIn("excellent", kinds[slug(1)])
-        self.assertIn("cheat", kinds[slug(10)])
+        self.assertIn("followup", kinds[slug(10)])
         self.assertNotIn("excellent", kinds[slug(10)])   # perfect but implausible
         self.assertIn("struggling", kinds[slug(8)])
         self.assertIn("struggling", kinds[slug(9)])
         for k in range(2, 8):
             self.assertEqual(kinds[slug(k)], set(), f"solid {k} flagged: {flags[slug(k)]}")
+        # The paste-share signal is weak by design; several of them together earn a question.
         reason = flags[slug(10)][0]["reasons"][0]
-        self.assertEqual(reason["strength"], "strong")
+        self.assertEqual(reason["strength"], "weak")
         self.assertIn("m0-01", reason["text"]["de"])
-        self.assertIn("evidence", reason)
+        self.assertEqual(flags[slug(10)][0]["flag"], "followup")
+
+    def test_every_reason_carries_a_counter_hypothesis(self):
+        """Binding: a reason without its innocent reading invites the conclusion the rules forbid."""
+        e = self.cohort()
+        m = an.student_metrics(e, COURSE["order"])
+        for stu, fl in an.compute_flags(e, m).items():
+            for f in fl:
+                self.assertTrue(f["reasons"], f"{f['flag']} has no reasons")
+                for r in f["reasons"]:
+                    self.assertIn("counter", r, f"{f['flag']} reason without counter-hypothesis")
+                    for lang in ("de", "en"):
+                        self.assertTrue(r["counter"][lang].strip())
+                self.assertNotIn("Betrug", f["label"]["de"])
+                self.assertNotIn("cheat", f["label"]["en"].lower())
+
+    def test_a_single_weak_signal_is_only_a_notice(self):
+        s = slug(11)
+        e = journey(s, "m0-01", 0, seconds=25, typed=10, pasted=800)
+        m = an.student_metrics(e, COURSE["order"])
+        kinds = {f["flag"] for f in an.compute_flags(e, m)[s]}
+        self.assertIn("notice", kinds)
+        self.assertNotIn("followup", kinds)
+
+    def test_flags_do_not_depend_on_the_cohort(self):
+        """Criterion-referenced: the same student gets the same flag in any company."""
+        alone = journey(slug(1), COURSE["order"][0], 0, first_pass=False, attempts=4,
+                        hints=(3, 3), seconds=2500)
+        for i, sid in enumerate(COURSE["order"][1:6], start=1):
+            alone += journey(slug(1), sid, i * 3000, first_pass=False, attempts=4, hints=(3, 3), seconds=2500)
+        strong_peers = []
+        for k in range(2, 12):
+            for i, sid in enumerate(COURSE["order"][:6]):
+                strong_peers += journey(slug(k), sid, i * 3000, first_pass=True, seconds=400)
+        m_alone = an.student_metrics(alone, COURSE["order"])
+        m_mixed = an.student_metrics(alone + strong_peers, COURSE["order"])
+        f_alone = {f["flag"] for f in an.compute_flags(alone, m_alone)[slug(1)]}
+        f_mixed = {f["flag"] for f in an.compute_flags(alone + strong_peers, m_mixed)[slug(1)]}
+        self.assertIn("struggling", f_alone)
+        self.assertEqual(f_alone, f_mixed, "the cohort must not change whether a flag is raised")
+        # and the strongest of a weak cohort is not "excellent" just for being on top
+        weak_only = []
+        for k in range(2, 12):
+            for i, sid in enumerate(COURSE["order"][:6]):
+                weak_only += journey(slug(k), sid, i * 3000, first_pass=(k == 5 and i < 4),
+                                     attempts=2, seconds=800)
+        m_weak = an.student_metrics(weak_only, COURSE["order"])
+        for stu, fl in an.compute_flags(weak_only, m_weak).items():
+            self.assertNotIn("excellent", {f["flag"] for f in fl},
+                             f"{stu} was called excellent for topping a weak cohort")
+
+    def test_struggling_needs_two_criteria_and_carries_its_evidence(self):
+        e = self.cohort()
+        m = an.student_metrics(e, COURSE["order"])
+        flags = an.compute_flags(e, m)
         strug = [f for f in flags[slug(8)] if f["flag"] == "struggling"][0]
         self.assertGreaterEqual(len(strug["reasons"]), 2)
+        for r in strug["reasons"]:
+            self.assertIn("evidence", r)
+        # the norm-referenced observations are present but live in notes, not in reasons
+        for n in strug.get("notes", []):
+            self.assertEqual(n["kind"], "norm")
 
     def test_dropped_and_review(self):
         s = slug(2)
@@ -341,8 +447,8 @@ class FlagTests(unittest.TestCase):
         flags = an.compute_flags(e, m, now=T0 + 10_030 + 20 * 86400)
         kinds = {f["flag"] for f in flags[s]}
         self.assertIn("dropped", kinds)
-        self.assertIn("review", kinds)      # 4 events outside any session, no strong indicator
-        self.assertNotIn("cheat", kinds)
+        self.assertIn("notice", kinds)      # one weak signal only: never a follow-up on its own
+        self.assertNotIn("followup", kinds)
 
     def test_thresholds_override(self):
         e = self.cohort()
@@ -398,8 +504,8 @@ class OverviewRecommendationTests(unittest.TestCase):
         m = an.student_metrics(e, COURSE["order"])[slug(1)]
         self.assertIn("Kein Handlungsbedarf", an.recommendation(m, [], COURSE, "de")[0])
         self.assertIn("No action", an.recommendation(m, [], COURSE, "en")[0])
-        rec = an.recommendation(m, [{"flag": "cheat"}, {"flag": "struggling"}, {"flag": "dropped"}], COURSE, "de")
-        self.assertTrue(any("Gespräch" in r for r in rec))
+        rec = an.recommendation(m, [{"flag": "followup"}, {"flag": "struggling"}, {"flag": "dropped"}], COURSE, "de")
+        self.assertTrue(any("Gegenhypothese" in r for r in rec))
         self.assertTrue(any("Sprechstunde" in r for r in rec))
         self.assertTrue(any("inaktiv" in r for r in rec))
 

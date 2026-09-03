@@ -11,7 +11,7 @@ Identität ausschließlich aus dem Keycloak-Gate.
 | `events.py` | Ereignisschema `v: 1`, Validierung, Textbereinigung, Idempotenzschlüssel |
 | `coursemeta.py` | Modul-/Step-Reihenfolge, Bloom-Stufe, Lernziele aus `courses/<id>/` |
 | `simulate.py` | Synthetische Kohorten + Precision/Recall der Flags |
-| `RULES.md` | Jede Regel, jeder Schwellwert, jede Grenze – **lesen, bevor man ein Flag benutzt** |
+| `RULES.md` | Jede Regel, jeder Schwellwert, jede Grenze, die drei methodischen Einwände – **lesen, bevor man ein Flag benutzt** |
 
 ## Betrieb
 
@@ -135,9 +135,12 @@ Das entfernt Ereignisse **und** Sign-off endgültig aus der Datenbank. Hinter de
 `/portal/admin/forget` zu benutzen (`/admin*` gehört dort dem Broker). Um das Pseudonym zu einer Person
 zu finden, dient `roster.json` oder `sha256(lower(E-Mail))[:12]`.
 
-**Zweckbindung.** Das Portal ist ein Werkzeug zur Verbesserung der Lehre und zur Betreuung. Die Flags
-sind Hinweise, keine Nachweise – was sie nicht beweisen, steht in `RULES.md`, Abschnitt 0. Für eine
-Prüfungsentscheidung genügt keine Zahl aus diesem Portal.
+**Zweckbindung.** Das Portal ist ein Werkzeug zur Verbesserung der Lehre und zur Betreuung. Kein Flag
+behauptet eine Täuschung; das stärkste integritätsbezogene Signal heißt „Auffälligkeit, die eine Rückfrage
+rechtfertigt" und wird immer zusammen mit seinen Belegen **und der Gegenhypothese** angezeigt. Alle Flags
+hängen an absoluten Kriterien; Perzentile und z-Werte sind nur gekennzeichnete Zusatzhinweise. Ein Flag darf
+**niemals allein** Grundlage einer Bewertung sein. Die Begründungen, die Schwellwerte und die drei
+methodischen Einwände, die zu diesen Regeln geführt haben, stehen in `RULES.md` (Abschnitte 0 und 0a).
 
 ## Tests
 
