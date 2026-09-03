@@ -3,7 +3,7 @@
   "displayName": "CaDS Probe (WebUSB ST-Link / WebSerial)",
   "description": "Runs in the browser's web-worker extension host: WebUSB ST-Link driver and WebSerial console for the CaDS Firmware Lab.",
   "publisher": "cads",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "license": "MIT",
   "private": true,
   "engines": {

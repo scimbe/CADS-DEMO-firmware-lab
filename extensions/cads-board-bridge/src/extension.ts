@@ -182,13 +182,23 @@ export function activate(context: vscode.ExtensionContext): BoardBridgeApi {
     log.info(`GDB client connected from ${sock.remoteAddress ?? '?'}:${sock.remotePort ?? '?'}`);
     void session.start();
     sock.on('data', (d: Buffer) => session.feed(d));
+    let done_ran = false;
     const done = (): void => {
-      if (gdbSessions === 0) return;
-      gdbSessions--;
+      if (done_ran) return;
+      done_ran = true;
+      gdbSessions = Math.max(0, gdbSessions - 1);
       board.setGdbClients(gdbSessions);
-      session.close();
-      log.info('GDB client disconnected');
-      void board.refresh();
+      // If the debugger dropped the socket without a detach/kill, the core may be left halted.
+      // Resume it (and drop our breakpoints / vector catch) so closing the debugger never
+      // freezes the student's board (cads-zero: "a bare write/attach left halted looks like a crash").
+      session
+        .releaseTarget(true)
+        .catch((e) => log.warn(`resume-on-disconnect: ${e instanceof Error ? e.message : String(e)}`))
+        .finally(() => {
+          session.close();
+          log.info('GDB client disconnected');
+          void board.refresh();
+        });
     };
     sock.on('close', done);
     sock.on('error', done);

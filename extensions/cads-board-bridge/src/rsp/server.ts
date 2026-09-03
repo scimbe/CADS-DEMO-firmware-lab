@@ -42,11 +42,16 @@ export interface MemoryRegion {
 
 /** STM32F429ZI (cads-zero window: bank 1 only). */
 export const DEFAULT_MEMORY_MAP: MemoryRegion[] = [
+  // Bank-1 flash (the only writable window); sector sizes drive vFlashErase blocks.
   { type: 'flash', start: 0x08000000, length: 0x10000, blocksize: 0x4000 },
   { type: 'flash', start: 0x08010000, length: 0x10000, blocksize: 0x10000 },
   { type: 'flash', start: 0x08020000, length: 0xe0000, blocksize: 0x20000 },
-  { type: 'ram', start: 0x20000000, length: 0x30000 },
-  { type: 'ram', start: 0x10000000, length: 0x10000 },
+  { type: 'ram', start: 0x20000000, length: 0x30000 }, // SRAM1+2+3 192K
+  { type: 'ram', start: 0x10000000, length: 0x10000 }, // CCM 64K
+  // Listed as ram so GDB permits reads/writes (mem-inaccessible-by-default is on when a map is
+  // provided): SVD peripherals and the debug/SCS region for cortex-debug's register & peripheral views.
+  { type: 'ram', start: 0x40000000, length: 0x20000000 }, // APB/AHB peripherals
+  { type: 'ram', start: 0xe0000000, length: 0x00100000 }, // PPB: SCS, DWT, FPB, ITM
 ];
 
 export const FLASH_WINDOW = { start: 0x08000000, end: 0x08100000 };
