@@ -264,7 +264,52 @@ try {
       } else if (!tutorOpen) {
         problem(`tutor view did not open: ${JSON.stringify(tutorUi)}\ntutor log:\n${tutorLog(6)}`);
       } else {
-        ok(`tutor view open: side bar="${tutorUi.sidebar}", views=${JSON.stringify(tutorUi.views)}, editors=${JSON.stringify(tutorUi.editors)}, course packs=${JSON.stringify(courses)}`);
+        // The lab's promise is a course PICKER: every pack in the image has to
+        // appear in the tree, not just the one the tutor happened to open.
+        // The tree renders only the rows it can show, and an expanded course
+        // fills the panel, so the second course is not in the DOM at all. The
+        // list scrolls virtually (scrollTop on the container does nothing), so
+        // walk it with the keyboard and collect what each view shows.
+        const tree = [];
+        const collect = async () => {
+          const batch = await page.evaluate(() =>
+            [...document.querySelectorAll(".sidebar .monaco-list-row")]
+              .map((r) => (r.getAttribute("aria-label") || r.innerText).replace(/\s+/g, " ").trim())
+              .filter(Boolean)
+          );
+          for (const b of batch) if (!tree.includes(b)) tree.push(b);
+        };
+        await page.click(".sidebar .monaco-list-row");
+        await sleep(400);
+        await collect();
+        for (let i = 0; i < 40; i++) {
+          await page.keyboard.press("PageDown");
+          await sleep(250);
+          await collect();
+          const last = await page.evaluate(() => {
+            const rows = [...document.querySelectorAll(".sidebar .monaco-list-row")];
+            const focused = rows.find((r) => r.classList.contains("focused"));
+            return focused === rows[rows.length - 1];
+          });
+          if (last && i > 2) break;
+        }
+        await page.keyboard.press("End");
+        await sleep(500);
+        await collect();
+        const missing = courses.filter(
+          (c) => !tree.some((row) => new RegExp(c.replace(/-/g, "[ -]?"), "i").test(row))
+        );
+        if (missing.length) {
+          problem(`course pack(s) ${JSON.stringify(missing)} are in the image but not in the tutor tree: ${JSON.stringify(tree.slice(0, 8))}`);
+        }
+        const openStep = tutorUi.editors.find((e) => /tutor/i.test(e ?? ""));
+        if (!openStep) problem(`the tutor opened no step: editors=${JSON.stringify(tutorUi.editors)}`);
+        await page.screenshot({ path: join(OUT, "02b-tutor-tree.png") });
+        ok(
+          `tutor: side bar="${tutorUi.sidebar}", views=${JSON.stringify(tutorUi.views)}, ` +
+            `tree lists all ${courses.length} course pack(s) ${JSON.stringify(courses)}, ` +
+            `first step open as "${openStep}"`
+        );
       }
     }
   }
