@@ -295,6 +295,33 @@ DEFAULT_PROBE_TIMEOUT_MS = 120000
 
 FM_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 
+# --- runtime cross-check ----------------------------------------------------
+# A pack may legally use a check type from SPEC addendum v1.1 that the shipped
+# runtime has not implemented yet - but today that is not a soft gap: schema.ts
+# fails the check, loader.ts skips the file, and the student silently gets a
+# SHORTER COURSE with no error anywhere. That cost a whole day once. So read the
+# runtime's own list and warn per check, rather than keeping a second list here
+# that would drift. Warning, not error: the gap belongs to the runtime, and the
+# warnings disappear by themselves once it catches up.
+RUNTIME_TYPES_TS = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "extensions", "cads-tutor", "src", "types.ts",
+)
+_RUNTIME_TYPES = None
+
+
+def runtime_check_types(path=RUNTIME_TYPES_TS):
+    """Parse CHECK_TYPES out of the runtime's types.ts. None if unreadable."""
+    try:
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+    except OSError:
+        return None
+    m = re.search(r"CHECK_TYPES\s*:\s*readonly\s+CheckType\[\]\s*=\s*\[(.*?)\]", text, re.DOTALL)
+    if not m:
+        return None
+    return set(re.findall(r'"([A-Za-z]+)"', m.group(1))) or None
+
 
 class Report:
     def __init__(self):
@@ -411,6 +438,13 @@ def validate_check(check, where, task_id, report, depth=0):
     if ctype not in CHECK_TYPES:
         report.error(where, f"{label} check type '{ctype}' unknown")
         return None
+    if _RUNTIME_TYPES is not None and ctype not in _RUNTIME_TYPES:
+        report.warn(
+            where,
+            f"{label} uses check type '{ctype}', which "
+            f"extensions/cads-tutor/src/types.ts does not list - the runtime "
+            f"will DROP this whole step until it implements the type",
+        )
     if ctype in ("fileMatches", "fileNotMatches", "serialExpect"):
         if not check.get("pattern"):
             report.error(where, f"{label}: {ctype} needs 'pattern'")
@@ -985,6 +1019,7 @@ def main():
     ap.add_argument("--nm", default=None, help="Path to arm-none-eabi-nm")
     ap.add_argument("--solutions", default=None, help="Reference-solution directory (mirrors PROJECT_ROOT); runs command/testSuite checks with and without it")
     ap.add_argument("--only", default=None, help="Validate only the course pack directory with this name")
+    ap.add_argument("--no-runtime-check", action="store_true", help="Skip the cross-check of check types against extensions/cads-tutor/src/types.ts")
     args = ap.parse_args()
 
     root = os.path.abspath(args.project_root)
@@ -1007,6 +1042,12 @@ def main():
     print(f"  elf          : {elf} {'[loaded]' if symbols is not None else '[unavailable]'}")
     if symbols is not None:
         print(f"  symbols read : {len(symbols)}")
+    global _RUNTIME_TYPES
+    _RUNTIME_TYPES = None if args.no_runtime_check else runtime_check_types()
+    if _RUNTIME_TYPES is None:
+        print("  runtime types: [not checked]")
+    else:
+        print(f"  runtime types: {len(_RUNTIME_TYPES)} from extensions/cads-tutor/src/types.ts")
     print()
 
     course_dirs = sorted(
