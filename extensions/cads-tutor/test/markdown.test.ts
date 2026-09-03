@@ -42,7 +42,7 @@ describe("webview", () => {
         { id: "a", title: "A", type: "fileMatches", status: "failed", message: "nope", hint: { tier: 2, question: "Q?", hint: "H" }, needsAnswer: false, manual: false, live: true },
         { id: "q", title: "Q", type: "question", status: "pending", needsAnswer: true, manual: true, live: false },
       ],
-      prev: undefined, next: { stepId: "s2", title: "Next" }, llmConfigured: false, bridgeAvailable: false, scaffold: "independent",
+      prev: undefined, next: { stepId: "s2", title: "Next" }, llmConfigured: false, bridgeAvailable: false, scaffold: "independent", hasBoard: false,
     };
     const html = renderStepHtml(view, "vscode-webview://x", "NONCE123");
     assert.match(html, /script-src 'nonce-NONCE123'/);

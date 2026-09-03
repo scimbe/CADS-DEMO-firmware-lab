@@ -55,6 +55,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   register("cads.tutor.nextStep", () => c.nextStep());
   register("cads.tutor.prevStep", () => c.prevStep());
   register("cads.tutor.showOutput", () => c.output.show());
+  register("cads.tutor.showOrientation", () => c.showOrientation());
 
   await c.activate();
 }
