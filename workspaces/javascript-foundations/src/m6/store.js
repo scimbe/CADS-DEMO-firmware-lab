@@ -7,6 +7,8 @@
 // Both forget to await, so they hand back Promises instead of strings and the
 // assertion prints "+ Promise {".
 
+import "../course-hint.js"; // prints guidance if this file is run directly
+
 const RECORDS = new Map([
   [1, { id: 1, name: "Ada" }],
   [2, { id: 2, name: "Grace" }],

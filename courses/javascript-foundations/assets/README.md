@@ -1,8 +1,10 @@
 # Screenshots for javascript-foundations
 
-Six screenshots of the real lab, embedded in
+Nine screenshots of the real lab. Six are embedded in
 [`steps/m0-01-using-the-ide`](../steps/m0-01-using-the-ide.en.md), which is where
-every operating move in this course is taught.
+every operating move in this course is taught; two more show the tutor panel
+itself, and one shows the editor's own diagnostics in
+[`steps/m1-01-let-const`](../steps/m1-01-let-const.en.md).
 
 | File | The move it shows |
 |---|---|
@@ -12,6 +14,9 @@ every operating move in this course is taught.
 | `ide-edit-unsaved.png` | the edited line and the dot on the tab that means "not saved yet" |
 | `ide-test-passing.png` | the same test with `pass 1` and `fail 0` |
 | `ide-wrong-folder.png` | `Could not find 'test/…'` because the terminal is one folder too high |
+| `tutor-panel-step.png` | the tutor panel beside the editor: course tree, step, Bloom and scaffold badges |
+| `tutor-panel-checks.png` | the task list after two checks passed, with Check, Show hint and the answer box |
+| `ide-problems-panel.png` | red underlines and the Problems panel naming both bugs of m1-01 |
 
 ## How they were taken
 
@@ -32,21 +37,11 @@ real file open in the editor, legible text, and the interface in one language.
 
 ## What is still missing, and why
 
-**The tutor panel showing this course.** The image available locally
-(`cads-tutor-lab:dev`, and `ghcr.io/scimbe/cads-tutor-lab:next` could not be
-pulled) carries `cads-tutor` **0.1.0**, which predates Addendum v1.1. It refuses
-every step of this pack with, for example:
-
-```
-ERROR …/m0-02-first-run.en.md: tasks[0].check.type: unknown check type "testSuite"
-  (known: board, task, build, fileMatches, fileNotMatches, symbolInElf, flash,
-   serialExpect, debugStop, question, manual, all, any)
-```
-
-so the panel shows "No courses found". Screenshots of the tutor panel, the task
-check buttons and the recall card therefore have to wait for an image built from
-the merged extension (the v1.1 runtime is stream-tutor2's next commit). Nothing
-about the course content blocks them.
+**The recall card and the module reflection card.** Both appear only after
+earlier steps are finished, so photographing them means walking a session far
+enough in. Everything they need is in place - `recallFrom` on every step from M1
+onwards and `reflection` prompts on all eight modules - and the runtime loads
+them without complaint.
 
 **Per-step screenshots.** Deliberately not taken. The operating move is identical
 in all 31 steps - the same terminal, the same shape of command, the same summary

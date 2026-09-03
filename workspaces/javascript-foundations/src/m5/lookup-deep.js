@@ -5,6 +5,8 @@
 // Both reach through levels that may not exist. Run the test and read the
 // TypeError: Cannot read properties of undefined (reading 'port').
 
+import "../course-hint.js"; // prints guidance if this file is run directly
+
 export function serverPort(cfg) {
   return cfg.server.port || 8080;
 }

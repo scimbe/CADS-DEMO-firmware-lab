@@ -1,4 +1,6 @@
 // m2-04-error-objects (reference solution)
+
+import "../course-hint.js"; // prints guidance if this file is run directly
 export class ValidationError extends Error {
   constructor(message, field) {
     super(message);

@@ -4,6 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { describe, it } from "node:test";
 import { collectSources, loadCoursePack, loadCourses, orderedSteps } from "../src/loader";
+import { adjacentStep, courseProgress, isStepUnlocked, newSession, nextOpenStep, stepStatus } from "../src/session";
 
 const EXAMPLE = path.resolve(__dirname, "..", "..", "courses", "_example");
 
@@ -96,9 +97,12 @@ describe("loader", () => {
     const err = diagnostics.find((d) => d.level === "error" && /bloom/.test(d.message));
     assert.ok(err, "bloom error reported");
     assert.match(err!.message, /must be one of remember\|understand/);
-    // The broken step is missing; the module still references it → error listed, other steps intact.
-    assert.ok(diagnostics.some((d) => /has no valid step file/.test(d.message)));
-    assert.equal(course!.steps.size, 5);
+    // The broken step yields no usable variant, so it becomes a placeholder: the
+    // schema error is still reported against the file, but the pack survives and
+    // the step is visible as "not yet available" rather than silently gone.
+    assert.ok(diagnostics.some((d) => d.level === "warning" && /not yet available/.test(d.message)));
+    assert.equal(course!.steps.get("m0-02-build")!.placeholder, true);
+    assert.equal(course!.steps.size, 6);
   });
 
   it("rejects a course.json with the wrong schema version", () => {
@@ -119,5 +123,52 @@ describe("loader", () => {
     const step = course!.steps.get("m1-02-reflect")!;
     assert.equal(step.variants.en, step.variants.de);
     assert.ok(diagnostics.some((d) => /no English variant/.test(d.message)));
+  });
+});
+
+describe("courses under construction", () => {
+  it("keeps the rest of the pack usable when a listed step has no file", () => {
+    // A course is delivered module by module; a step announced in course.json
+    // whose file is not written yet must not take the whole pack with it.
+    const dir = tmp();
+    fs.cpSync(EXAMPLE, dir, { recursive: true });
+    fs.unlinkSync(path.join(dir, "steps", "m0-02-build.en.md"));
+    fs.unlinkSync(path.join(dir, "steps", "m0-02-build.de.md"));
+    const { course, diagnostics } = loadCoursePack(dir, "test");
+    assert.ok(course, "the pack still loads");
+    assert.deepEqual(diagnostics.filter((d) => d.level === "error"), [], "a missing file is not an error");
+    assert.ok(diagnostics.some((d) => d.level === "warning" && /not yet available/.test(d.message)), "it is a clear warning");
+    const missing = course!.steps.get("m0-02-build")!;
+    assert.ok(missing, "the step is still in the tree");
+    assert.equal(missing.placeholder, true);
+    assert.equal(course!.steps.size, 6, "every other step is intact");
+  });
+
+  it("a placeholder blocks nothing that follows it", () => {
+    const dir = tmp();
+    fs.cpSync(EXAMPLE, dir, { recursive: true });
+    fs.unlinkSync(path.join(dir, "steps", "m0-02-build.en.md"));
+    fs.unlinkSync(path.join(dir, "steps", "m0-02-build.de.md"));
+    const course = loadCoursePack(dir, "test").course!;
+    const session = newSession();
+    const later = course.steps.get("m1-01-board")!;
+    // m1-01-board requires m0-02-build, which now has no file. Requiring a step
+    // nobody has written would lock the remainder of the course forever.
+    assert.equal(isStepUnlocked(session, course, later, [course]), true);
+    assert.equal(stepStatus(session, course, course.steps.get("m0-02-build")!, [course]), "unavailable");
+  });
+
+  it("skips placeholders when navigating and when counting progress", () => {
+    const dir = tmp();
+    fs.cpSync(EXAMPLE, dir, { recursive: true });
+    fs.unlinkSync(path.join(dir, "steps", "m0-02-build.en.md"));
+    fs.unlinkSync(path.join(dir, "steps", "m0-02-build.de.md"));
+    const course = loadCoursePack(dir, "test").course!;
+    const session = newSession();
+    // Next from the first step must step over the placeholder, not land on it.
+    assert.equal(adjacentStep(course, "m0-01-welcome", 1)!.id, "m1-01-board");
+    assert.equal(adjacentStep(course, "m1-01-board", -1)!.id, "m0-01-welcome");
+    assert.equal(nextOpenStep(session, course, [course])!.id, "m0-01-welcome");
+    assert.equal(courseProgress(session, course).total, 5, "a file nobody wrote is not outstanding work");
   });
 });

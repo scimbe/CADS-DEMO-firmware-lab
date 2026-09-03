@@ -35,6 +35,9 @@ misconceptions:
   - pattern: "Set READY to true"
     question: { en: "The test is still reading false. Was the file saved, and was it the file under src/?", de: "Der Test liest weiterhin false. Wurde die Datei gespeichert, und war es die Datei unter src/?" }
     hints: [ { en: "An unsaved file shows a dot instead of a cross on its editor tab. Ctrl+S (Cmd+S) saves it.", de: "Eine ungespeicherte Datei zeigt auf ihrem Editor-Tab einen Punkt statt eines Kreuzes. Strg+S (Cmd+S) speichert sie." }, { en: "Check the path in the tab: it must be src/m0/ready.js, not test/m0-01-using-the-ide.test.js.", de: "Prüfe den Pfad im Tab: er muss src/m0/ready.js sein, nicht test/m0-01-using-the-ide.test.js." }, { en: "Node reads the file from disk at every run, so an unsaved change cannot be seen.", de: "Node liest die Datei bei jedem Lauf von der Platte, eine ungespeicherte Änderung ist also unsichtbar." } ]
+  - pattern: "is an exercise, not a program"
+    question: { en: "You ran the exercise file itself. Which folder holds the files that actually check your work?", de: "Du hast die Übungsdatei selbst ausgeführt. In welchem Ordner liegen die Dateien, die deine Arbeit wirklich prüfen?" }
+    hints: [ { en: "Files under src/ only export functions; on their own they compute nothing and print nothing.", de: "Dateien unter src/ exportieren nur Funktionen; für sich allein berechnen sie nichts und geben nichts aus." }, { en: "The reminder you just saw names the exact command - it ends in test/<step-id>.test.js.", de: "Der eben gezeigte Hinweis nennt den genauen Befehl - er endet auf test/<step-id>.test.js." }, { en: "In this course you run files under test/ and edit files under src/, never the other way round.", de: "In diesem Kurs führst du Dateien unter test/ aus und änderst Dateien unter src/, nie umgekehrt." } ]
 ---
 ## Learning goal
 
@@ -52,6 +55,12 @@ The window has four regions, and you will use all four.
 | Bottom | Panel: **Terminal**, **Problems**, **Output**. | Run commands and read what they print. |
 
 The step you are reading is the **tutor panel**. Its task list carries a check button per task; pressing one runs the check and shows the result next to the task.
+
+![The tutor panel beside the editor, with the course tree on the left and the step's badges and text on the right](tutor-panel-step.png)
+*Where you are: the course tree on the left, this step on the right. The badges under the title give the Bloom level, the kind of scaffolding and the estimated time.*
+
+![The panel's task list with the first two checks passed and a green tick beside each](tutor-panel-checks.png)
+*The same panel scrolled to its task list. **Check** runs one task and prints the verdict under it - here `exited with 0` and `10 test(s) passed`. **Show hint** opens the hints one tier at a time, and a `question` task is answered in the box.*
 
 If the bottom panel is not visible, the menu **View > Terminal** brings it back. Nothing is lost when it is hidden.
 
@@ -139,6 +148,14 @@ If instead you see `Could not find 'test/…'`, the terminal is in the wrong fol
 
 
 Files under `test/` are the marking scheme. Editing one to make it pass is the one move that will not help you anywhere in this course.
+
+One more thing worth trying once, because the answer is not obvious:
+
+```bash
+node src/m0/ready.js
+```
+
+Running an exercise file directly does **not** check anything. Exercise files only export functions for a test to call, so on their own they compute nothing and print nothing. Rather than leave you staring at an empty terminal, each one prints a reminder naming the command that does check your work. The rule behind it: in this course you run files under `test/`, never files under `src/`.
 
 ## How you know it worked
 

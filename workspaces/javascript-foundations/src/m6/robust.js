@@ -8,6 +8,8 @@
 //                    the standard `cause` option)
 // A try/catch around a call you did not await never sees the rejection.
 
+import "../course-hint.js"; // prints guidance if this file is run directly
+
 export function failing(message) {
   return Promise.reject(new Error(message));
 }

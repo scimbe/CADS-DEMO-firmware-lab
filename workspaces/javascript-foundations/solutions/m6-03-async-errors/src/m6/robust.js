@@ -1,4 +1,6 @@
 // m6-03-async-errors (reference solution)
+
+import "../course-hint.js"; // prints guidance if this file is run directly
 export function failing(message) {
   return Promise.reject(new Error(message));
 }

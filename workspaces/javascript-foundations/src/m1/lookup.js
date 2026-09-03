@@ -4,6 +4,8 @@
 // sameValue(a, b): true when a and b are the same value, including NaN.
 //   sameValue(NaN, NaN) must be true; sameValue(1, "1") must be false.
 
+import "../course-hint.js"; // prints guidance if this file is run directly
+
 export function findById(items, id) {
   for (const item of items) {
     if (item.id == id) {

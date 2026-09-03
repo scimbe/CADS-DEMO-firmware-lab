@@ -14,6 +14,7 @@ the built-in test runner (`node --test`) and `node:assert/strict`.
 | Path | What lives there |
 |---|---|
 | `src/m0` … `src/m7` | the exercises, one file per step, grouped by module |
+| `src/course-hint.js` | course scaffolding: explains what happened if you run an exercise file directly |
 | `test/<step-id>.test.js` | the checks for that step; every file runs on its own |
 | `examples/` | short scripts to predict before running |
 | `solutions/<step-id>/` | reference solutions, used to validate the course |

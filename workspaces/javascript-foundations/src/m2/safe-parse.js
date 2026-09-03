@@ -4,6 +4,8 @@
 //   afterwards. If work() throws, the error must still reach the caller
 //   (rethrow it, or do not catch it at all).
 
+import "../course-hint.js"; // prints guidance if this file is run directly
+
 export function safeParse(text, fallback) {
   throw new Error("TODO: parse text, return fallback on failure");
 }

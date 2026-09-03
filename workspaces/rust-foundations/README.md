@@ -14,9 +14,15 @@ cargo test --test m0-02-first-test
 ```
 
 That runs the tests of a single step. The step id is the file name in
-`tests/`, and the tutor prints the exact command for the step you are on.
+`tests/`, and the tutor prints the exact command for the step you are on. It is
+the command every check in the course uses, so what you see in the terminal is
+what the tutor sees.
+
 `cargo test` on its own runs every step, including the ones you have not
-started, so expect failures there until the end.
+started. It stops at the first step that fails, which early on is the first
+step you have not done yet; `cargo test --no-fail-fast` runs all thirty test
+targets and shows the whole picture. Both are useful for orientation and
+neither is what a step asks you to run.
 
 ## Layout
 

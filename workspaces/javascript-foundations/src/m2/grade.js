@@ -3,6 +3,8 @@
 // dayKind(day): "sat"/"sun" -> "weekend", "mon".."fri" -> "weekday", anything else -> "unknown".
 // One boundary in letterGrade is wrong and one break in dayKind is missing.
 
+import "../course-hint.js"; // prints guidance if this file is run directly
+
 export function letterGrade(score) {
   if (score >= 90) {
     return "A";

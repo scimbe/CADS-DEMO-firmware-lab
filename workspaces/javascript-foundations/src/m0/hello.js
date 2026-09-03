@@ -3,6 +3,8 @@
 // greet() to return the exact string "Hello, JavaScript!".
 // Replace the throw statement with a return statement.
 
+import "../course-hint.js"; // prints guidance if this file is run directly
+
 export function greet() {
   throw new Error("TODO: return the greeting");
 }

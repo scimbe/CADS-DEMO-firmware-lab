@@ -21,26 +21,26 @@ tasks:
     title: "first_word, last_word, sum und tail bestehen"
     check: { type: "testSuite", runner: "cargo", command: "cargo test --test m2-04-slices", expectPass: [ "m2_04_slices::first_word_of_sentence", "m2_04_slices::first_word_of_single_word", "m2_04_slices::last_word_of_sentence", "m2_04_slices::sum_and_tail_of_slices" ], minPass: 4, timeoutMs: 180000 }
 socratic:
-  - { trigger: "task:slices:failed", question: { en: "Which function fails, and on which input? The single-word and empty-string cases are the ones most solutions miss.", de: "Welche Funktion scheitert, und bei welcher Eingabe? Die Faelle mit einem Wort und mit leerer Zeichenkette werden von den meisten Loesungen uebersehen." }, hints: [ { en: "`s.find(' ')` returns `Option<usize>`; the `None` arm is the no-space case, where the answer is the whole string.", de: "`s.find(' ')` liefert `Option<usize>`; der `None`-Zweig ist der Fall ohne Leerzeichen, in dem die ganze Zeichenkette die Antwort ist." }, { en: "For `last_word`, `rfind` searches from the end; the slice starts one byte after the separator.", de: "Fuer `last_word` sucht `rfind` von hinten; der Slice beginnt ein Byte hinter dem Trennzeichen." }, { en: "`tail` on an empty slice must stay empty: `&xs[1..]` on an empty slice panics, so check `is_empty()` first.", de: "`tail` muss beim leeren Slice leer bleiben: `&xs[1..]` auf einem leeren Slice stuerzt ab, pruefe also zuerst `is_empty()`." } ] }
+  - { trigger: "task:slices:failed", question: { en: "Which function fails, and on which input? The single-word and empty-string cases are the ones most solutions miss.", de: "Welche Funktion scheitert, und bei welcher Eingabe? Die Fälle mit einem Wort und mit leerer Zeichenkette werden von den meisten Lösungen übersehen." }, hints: [ { en: "`s.find(' ')` returns `Option<usize>`; the `None` arm is the no-space case, where the answer is the whole string.", de: "`s.find(' ')` liefert `Option<usize>`; der `None`-Zweig ist der Fall ohne Leerzeichen, in dem die ganze Zeichenkette die Antwort ist." }, { en: "For `last_word`, `rfind` searches from the end; the slice starts one byte after the separator.", de: "Für `last_word` sucht `rfind` von hinten; der Slice beginnt ein Byte hinter dem Trennzeichen." }, { en: "`tail` on an empty slice must stay empty: `&xs[1..]` on an empty slice panics, so check `is_empty()` first.", de: "`tail` muss beim leeren Slice leer bleiben: `&xs[1..]` auf einem leeren Slice stürzt ab, prüfe also zuerst `is_empty()`." } ] }
 misconceptions:
-  - { pattern: "error\\[E0502\\]", question: { en: "A slice is still alive when the collection is modified. Where is the slice used last, and does the modification have to happen before that?", de: "Ein Slice lebt noch, waehrend die Sammlung veraendert wird. Wo wird der Slice zuletzt benutzt, und muss die Aenderung wirklich davor passieren?" }, hints: [ { en: "A slice is a borrow of the collection, not a copy of the data - which is precisely why this is caught.", de: "Ein Slice ist eine Leihe auf die Sammlung, keine Kopie der Daten - genau deshalb wird das erkannt." }, { en: "If you need the text after the collection changes, make it owned with `.to_string()` first.", de: "Brauchst du den Text nach der Aenderung der Sammlung, mache ihn zuvor mit `.to_string()` besitzend." }, { en: "Reordering the statements so the last use of the slice comes before the mutation is usually the better fix.", de: "Die Anweisungen so umzuordnen, dass die letzte Verwendung des Slice vor der Aenderung liegt, ist meist die bessere Loesung." } ] }
-  - { pattern: "byte index \\d+ is out of bounds|byte index \\d+ is not a char boundary", question: { en: "A slice index is not where you assumed. Are you indexing by bytes into text whose characters are not all one byte, or past the end?", de: "Ein Slice-Index liegt nicht dort, wo du annimmst. Indizierst du byteweise in Text, dessen Zeichen nicht alle ein Byte lang sind - oder hinter das Ende?" }, hints: [ { en: "String slicing uses byte offsets; the offsets from `find`/`rfind` are always valid boundaries, hand-computed ones may not be.", de: "String-Slicing nutzt Byte-Offsets; die Offsets von `find`/`rfind` sind stets gueltige Grenzen, selbst berechnete nicht unbedingt." }, { en: "`&s[i + 1..]` is right after a single-byte space, but not after a multi-byte separator.", de: "`&s[i + 1..]` stimmt hinter einem Ein-Byte-Leerzeichen, aber nicht hinter einem mehrbyteigen Trennzeichen." }, { en: "Check the empty-input case separately before you index at all.", de: "Pruefe den Fall der leeren Eingabe gesondert, bevor du ueberhaupt indizierst." } ] }
+  - { pattern: "error\\[E0502\\]", question: { en: "A slice is still alive when the collection is modified. Where is the slice used last, and does the modification have to happen before that?", de: "Ein Slice lebt noch, während die Sammlung verändert wird. Wo wird der Slice zuletzt benutzt, und muss die Änderung wirklich davor passieren?" }, hints: [ { en: "A slice is a borrow of the collection, not a copy of the data - which is precisely why this is caught.", de: "Ein Slice ist eine Leihe auf die Sammlung, keine Kopie der Daten - genau deshalb wird das erkannt." }, { en: "If you need the text after the collection changes, make it owned with `.to_string()` first.", de: "Brauchst du den Text nach der Änderung der Sammlung, mache ihn zuvor mit `.to_string()` besitzend." }, { en: "Reordering the statements so the last use of the slice comes before the mutation is usually the better fix.", de: "Die Anweisungen so umzuordnen, dass die letzte Verwendung des Slice vor der Änderung liegt, ist meist die bessere Lösung." } ] }
+  - { pattern: "byte index \\d+ is out of bounds|byte index \\d+ is not a char boundary", question: { en: "A slice index is not where you assumed. Are you indexing by bytes into text whose characters are not all one byte, or past the end?", de: "Ein Slice-Index liegt nicht dort, wo du annimmst. Indizierst du byteweise in Text, dessen Zeichen nicht alle ein Byte lang sind - oder hinter das Ende?" }, hints: [ { en: "String slicing uses byte offsets; the offsets from `find`/`rfind` are always valid boundaries, hand-computed ones may not be.", de: "String-Slicing nutzt Byte-Offsets; die Offsets von `find`/`rfind` sind stets gültige Grenzen, selbst berechnete nicht unbedingt." }, { en: "`&s[i + 1..]` is right after a single-byte space, but not after a multi-byte separator.", de: "`&s[i + 1..]` stimmt hinter einem Ein-Byte-Leerzeichen, aber nicht hinter einem mehrbyteigen Trennzeichen." }, { en: "Check the empty-input case separately before you index at all.", de: "Prüfe den Fall der leeren Eingabe gesondert, bevor du überhaupt indizierst." } ] }
 ---
 ## Lernziel
 
-Gib eine Referenz auf einen Teil einer Sammlung zurueck und sieh, wie der Borrow-Checker diese Referenz mit der Sammlung verknuepft, aus der sie stammt.
+Gib eine Referenz auf einen Teil einer Sammlung zurück und sieh, wie der Borrow-Checker diese Referenz mit der Sammlung verknüpft, aus der sie stammt.
 
 ## Das Problem aus dem Buch
 
-Kapitel 4.3 beginnt mit einem `first_word`, das einen `usize`-Index liefert. Es kompiliert und ist eine Falle: der Index ist nur eine Zahl, ohne Verbindung zur Zeichenkette. Leere die Zeichenkette, und der Index ueberlebt - nun bedeutungslos. Bei zwei Indizes fuer ein zweites Wort verdoppelt sich der Fehler.
+Kapitel 4.3 beginnt mit einem `first_word`, das einen `usize`-Index liefert. Es kompiliert und ist eine Falle: der Index ist nur eine Zahl, ohne Verbindung zur Zeichenkette. Leere die Zeichenkette, und der Index überlebt - nun bedeutungslos. Bei zwei Indizes für ein zweites Wort verdoppelt sich der Fehler.
 
-Ein Slice loest das, indem er eine Referenz ist:
+Ein Slice löst das, indem er eine Referenz ist:
 
 ```rust
 pub fn first_word(s: &str) -> &str
 ```
 
-`&s[0..5]` speichert einen Zeiger auf Byte 0 und die Laenge 5. Er leiht `s`, der Compiler kennt also die Verbindung, und jede Regel des vorigen Steps gilt.
+`&s[0..5]` speichert einen Zeiger auf Byte 0 und die Länge 5. Er leiht `s`, der Compiler kennt also die Verbindung, und jede Regel des vorigen Steps gilt.
 
 ## Was das einbringt
 
@@ -52,22 +52,22 @@ s.clear();                              // error[E0502]
 println!("the first word is: {word}");
 ```
 
-Sage das Ergebnis vor dem Uebersetzen vorher. `clear` braucht eine veraenderliche Leihe; `word` haelt noch eine geteilte, weil das `println!` in der naechsten Zeile sie benutzt. Der Compiler lehnt die *Form* ab, und der Fehler, der in einer anderen Sprache ein veralteter Index geworden waere, entsteht gar nicht erst.
+Sage das Ergebnis vor dem Übersetzen vorher. `clear` braucht eine veränderliche Leihe; `word` hält noch eine geteilte, weil das `println!` in der nächsten Zeile sie benutzt. Der Compiler lehnt die *Form* ab, und der Fehler, der in einer anderen Sprache ein veralteter Index geworden wäre, entsteht gar nicht erst.
 
 ## `&str` ist ein Slice
 
-Deshalb ist `&str` seit m2-01 der empfohlene Parametertyp. Ein String-Literal ist ein `&str`, der in das Binary zeigt. `&my_string[..]` ist ein `&str` ueber den ganzen `String`. `&my_string[0..5]` ist ein `&str` ueber einen Teil davon. Ein Parametertyp nimmt alle drei, und `first_word(&s)` funktioniert, ob `s` nun ein `String` oder ein Literal ist.
+Deshalb ist `&str` seit m2-01 der empfohlene Parametertyp. Ein String-Literal ist ein `&str`, der in das Binary zeigt. `&my_string[..]` ist ein `&str` über den ganzen `String`. `&my_string[0..5]` ist ein `&str` über einen Teil davon. Ein Parametertyp nimmt alle drei, und `first_word(&s)` funktioniert, ob `s` nun ein `String` oder ein Literal ist.
 
-Dasselbe gilt fuer Arrays und Vektoren: `&[i32]` ist ein Slice, und `sum(&v)`, `sum(&v[1..3])` und `sum(&[])` passen alle auf die eine Signatur.
+Dasselbe gilt für Arrays und Vektoren: `&[i32]` ist ein Slice, und `sum(&v)`, `sum(&v[1..3])` und `sum(&[])` passen alle auf die eine Signatur.
 
 ## Byte-Offsets, nicht Zeichen-Offsets
 
-String-Slicing arbeitet in Bytes. `s.find(' ')` und `s.rfind(' ')` liefern Offsets, die garantiert gueltige Zeichengrenzen sind; selbst berechnete nicht unbedingt, und mitten in ein mehrbyteiges Zeichen zu schneiden stuerzt zur Laufzeit mit `byte index N is not a char boundary` ab. Modul M4 behandelt das gruendlich; hier genuegt es, die Offsets von `find` zu beziehen.
+String-Slicing arbeitet in Bytes. `s.find(' ')` und `s.rfind(' ')` liefern Offsets, die garantiert gültige Zeichengrenzen sind; selbst berechnete nicht unbedingt, und mitten in ein mehrbyteiges Zeichen zu schneiden stürzt zur Laufzeit mit `byte index N is not a char boundary` ab. Modul M4 behandelt das gründlich; hier genügt es, die Offsets von `find` zu beziehen.
 
-## Die Randfaelle, die die Tests festnageln
+## Die Randfälle, die die Tests festnageln
 
-`first_word("hello")` - kein Leerzeichen, also die ganze Zeichenkette. `first_word("")` - die leere Zeichenkette. `last_word("fox")` - wieder die ganze Zeichenkette. `tail(&[])` - der leere Slice, und beachte, dass `&xs[1..]` auf einem leeren Slice abstuerzt, es braucht also eine Absicherung.
+`first_word("hello")` - kein Leerzeichen, also die ganze Zeichenkette. `first_word("")` - die leere Zeichenkette. `last_word("fox")` - wieder die ganze Zeichenkette. `tail(&[])` - der leere Slice, und beachte, dass `&xs[1..]` auf einem leeren Slice abstürzt, es braucht also eine Absicherung.
 
 ## Deine Aufgabe
 
-Sage das Snippet vorher und implementiere dann die vier Funktionen. Modul M3 laesst Borrowing eine Weile ruhen und baut eigene Datentypen.
+Sage das Snippet vorher und implementiere dann die vier Funktionen. Modul M3 lässt Borrowing eine Weile ruhen und baut eigene Datentypen.

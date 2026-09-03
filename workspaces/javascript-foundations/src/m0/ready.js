@@ -10,4 +10,6 @@
 // The test in test/m0-01-using-the-ide.test.js expects READY to be true.
 // Change false to true, save, and run the command again.
 
+import "../course-hint.js"; // prints guidance if this file is run directly
+
 export const READY = false;

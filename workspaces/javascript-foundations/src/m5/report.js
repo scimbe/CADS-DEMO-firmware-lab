@@ -4,6 +4,8 @@
 // Array.prototype.sort compares STRINGS by default, so [10, 9, 100] sorts to
 // [10, 100, 9]. sort also sorts in place - do not disturb the caller's array.
 
+import "../course-hint.js"; // prints guidance if this file is run directly
+
 export function totals(rows) {
   throw new Error("TODO: derive count, sum and max with array methods");
 }
