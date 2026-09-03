@@ -134,3 +134,80 @@ mit einem Übergang kollidiert). Die Firmware im Flash ist intakt (vielfach gefl
 `diskutil list external` → `diskutil unmountDisk /dev/diskN` für `NOD_F429ZI`, danach
 `st-flash write /Users/dev/Documents/git/cads-zero/build/itsboard/cads-zero.bin 0x08000000 && st-flash reset`
 (oder nur `st-flash reset`, da die Firmware unverändert ist). Danach bootet das Board wieder normal.
+
+## Regressionstest gegen next-dbfa3c5 (2026-09-03)
+
+Testaufbau: `docker run -d --name hw-lab -p 127.0.0.1:8091:8080 -e PASSWORD=hw-test
+ghcr.io/scimbe/cads-firmware-lab:next-dbfa3c5`. Das produktive Image bringt `cads.cads-probe-0.1.3`
+und `cads.cads-board-bridge-0.1.3` mit – exakt die Versionen aus diesem Worktree, der Test ist also
+1:1 gegen den Stand von B1–B3. Ausserdem enthalten: `marus25.cortex-debug` 1.13.0-pre6,
+`mcu-debug.peripheral-viewer` 1.6.3, `mcu-debug.memory-view`, `gdb-multiarch`, `socat`.
+Browser: echtes Google Chrome 152 (Playwright `channel:'chrome'`, headed, persistentes Profil),
+WebUSB per Policy auf `http://127.0.0.1:8091` freigegeben.
+
+### Vorlauf: Hardware nachweislich gesund
+
+| Zeit | Schritt | Ergebnis |
+|---|---|---|
+| 08:26 | `diskutil unmountDisk /dev/disk4` | NOD_F429ZI war beim Start gemountet, unmount ok |
+| 08:28 | `st-info --probe` | V2J33S25, SN 066FFF565282494867161033, **chipid 0x419**, STM32F42x_F43x |
+| 08:29 | `st-flash reset` + serielle Mitschrift | Board bootet, `1..10`, `# 10/10 passed`, `# RESULT: PASS`, `# EXPLORER ready` |
+
+Nebenbefund zur Konsole: direkt nach dem Anstecken war `/dev/cu.usbmodem1303` stumm. Das ist **kein**
+Fehler – `boot.autostart=1` startet die App-Demo, und die ignoriert getippte Bytes bewusst
+(siehe cads-zero `docs/reference/explorer-console.md`). Nach `st-flash reset` kam die volle
+Boot-Ausgabe. Wer hier "Board tot" diagnostiziert, sitzt der Autostart-Falle auf.
+
+### Befund: ST-Link im Wedge, bevor der eigentliche Test lief
+
+Beim ersten WebUSB-Attach meldete die Bridge reproduzierbar:
+
+```
+[probe] probe attach failed: transferOut: timeout after 2000 ms
+```
+
+USB-Diagnose direkt im Seitenkontext (Extension-Handle vorher per
+`POST /command {"command":"cads.board.disconnect"}` freigegeben):
+
+| Schritt | Ergebnis |
+|---|---|
+| `navigator.usb.getDevices()` | liefert chooser-frei `STM32 STLink`, VID 1155 / PID 14155, SN 066FFF565282494867161033 |
+| `open()`, `selectConfiguration(1)`, `claimInterface(0)` | alle ok |
+| Endpunkte Interface 0 | `in1:bulk, out1:bulk, in2:bulk` – genau die Pipes 0x01/0x81 aus `DEV_TYPES` |
+| `transferOut(1, GET_VERSION)` | **Timeout** |
+| `clearHalt('out',1)` / `clearHalt('in',1)` | gehen durch, `transferOut` danach weiter Timeout |
+| `device.reset()` | `NetworkError: Unable to reset the device` |
+
+Nach sauberem Schliessen von Chrome (SIGTERM auf den Playwright-Prozess, **kein** `kill -9`; danach
+hält kein Prozess mehr das Geraet) vom Mac aus zweimal bestaetigt:
+`Failed to enter SWD mode`, `Found 1 stlink programmers`, `version: V2`, **`chipid: 0x000`**,
+`dev-type: unknown`. Gemaess cads-zero/CLAUDE.md und `docs/SAFETY.md` ab hier **nicht weiter
+probiert** – ein Wedge löst nur ein physischer Replug.
+
+### Bewertung: kein Bridge-Bug nachweisbar
+
+Der Wedge ist **nicht** WebUSB anzulasten, und ebenso wenig laesst sich WebUSB freisprechen –
+die Beweislage traegt nur die schwaechere Aussage. Dafuer spricht:
+
+- Der **allererste** `transferOut` lief ins Timeout. Es gab keine angefangene Transaktion, die der
+  WebUSB-Pfad haette zerreissen koennen; der Treiber hat nur ein Kommando abgesetzt und nie eine
+  Antwort bekommen.
+- Zwischen dem letzten gesunden Nachweis (08:29, Board bootet) und dem ersten WebUSB-Zugriff (08:43)
+  lagen 14 Minuten ohne jeden Zugriff – aber in diesem Fenster hat macOS **NOD_F429ZI erneut
+  gemountet** (um 08:53 erneut vorgefunden, zweimal nachtraeglich unmounted). Das ist Wedge-Ursache
+  (1) aus cads-zero/CLAUDE.md: macOS schreibt ungefragt Metadaten auf das MBED-Massenspeicher-Volume,
+  und der ST-Link deutet Schreibzugriffe dort als Firmware fuer 0x08000000. Ein `st-flash reset`
+  re-enumeriert das Geraet und loest genau dieses Auto-Mount aus – der Reset um 08:29 ist damit der
+  plausibelste Ausloeser.
+- Die Bridge selbst hat sich in jedem Punkt korrekt verhalten: Geraet gefunden, Interface geclaimt,
+  Timeout mit `withTimeout` sauber abgefangen, Fehler als `probe attach failed` gemeldet, kein
+  Haenger, kein Absturz, Status-JSON konsistent (`usb: "error"`, `lastError` gesetzt).
+
+**Konsequenz fuer den Betrieb (neu):** `diskutil unmountDisk` fuer NOD_F429ZI ist nicht nur nach
+jedem *Replug* noetig, sondern nach **jedem `st-flash reset`** – der Reset re-enumeriert den
+Composite-Device und macOS mountet das Volume sofort wieder. In einer unbeaufsichtigten Testsitzung
+gehoert deshalb ein Unmount unmittelbar hinter jeden Reset, sonst wedged der ST-Link irgendwann von
+selbst, ohne dass ein Client etwas falsch gemacht hat.
+
+Der eigentliche Regressionstest (Connect über die Statusleiste, Flash, Boot-Verifikation, F5-Debug)
+steht damit weiter aus; er wird nach dem Replug nachgeholt.

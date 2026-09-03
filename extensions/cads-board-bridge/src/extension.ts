@@ -8,6 +8,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { BoardController, type BoardEvent, type BoardStatus } from './board';
 import { createHttpServer } from './http';
+import { listenWithRetry } from './listen';
 import { VsCodeProbeClient } from './probeClient';
 import { GdbSession } from './rsp/server';
 import { SerialTcpServer, SocatPty } from './serialServer';
@@ -203,16 +204,14 @@ export function activate(context: vscode.ExtensionContext): BoardBridgeApi {
     sock.on('close', done);
     sock.on('error', done);
   });
-  gdbServer.on('error', (e) => log.error(`GDB server: ${e.message}`));
-  gdbServer.listen(gdbPort, '127.0.0.1', () => log.info(`GDB server listening on 127.0.0.1:${gdbPort}`));
-  context.subscriptions.push({ dispose: () => gdbServer.close() });
+  const gdbListener = listenWithRetry(gdbServer, gdbPort, '127.0.0.1', 'GDB server', log);
+  context.subscriptions.push({ dispose: () => { gdbListener.dispose(); gdbServer.close(); } });
 
   // ---- serial TCP + socat + HTTP ---------------------------------------------------------
   const serialPort = cfg('serialPort', 3334);
   const serialTcp = new SerialTcpServer(board, log);
-  serialTcp.server.on('error', (e) => log.error(`serial tcp: ${e.message}`));
-  serialTcp.server.listen(serialPort, '127.0.0.1', () => log.info(`serial TCP listening on 127.0.0.1:${serialPort}`));
-  context.subscriptions.push({ dispose: () => serialTcp.close() });
+  const serialListener = listenWithRetry(serialTcp.server, serialPort, '127.0.0.1', 'serial TCP', log);
+  context.subscriptions.push({ dispose: () => { serialListener.dispose(); serialTcp.close(); } });
   const socat = new SocatPty(cfg('consoleLink', '/home/coder/board-console'), serialPort, log);
   socat.start();
   context.subscriptions.push({ dispose: () => socat.stop() });
@@ -227,9 +226,8 @@ export function activate(context: vscode.ExtensionContext): BoardBridgeApi {
         }
       : undefined,
   });
-  httpServer.on('error', (e) => log.error(`http: ${e.message}`));
-  httpServer.listen(httpPort, '127.0.0.1', () => log.info(`HTTP shim API listening on 127.0.0.1:${httpPort}`));
-  context.subscriptions.push({ dispose: () => httpServer.close() });
+  const httpListener = listenWithRetry(httpServer, httpPort, '127.0.0.1', 'HTTP shim API', log);
+  context.subscriptions.push({ dispose: () => { httpListener.dispose(); httpServer.close(); } });
 
   // ---- commands --------------------------------------------------------------------------
   const flashCommand = async (file?: string): Promise<{ ok: boolean; error?: string }> => {
