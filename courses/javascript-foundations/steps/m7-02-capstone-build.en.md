@@ -84,7 +84,7 @@ node --test --test-reporter=tap test/m7-02-capstone-build.mine.test.js
 Then everything together:
 
 ```bash
-node --test
+node --test test/*.test.js
 ```
 
 If one of your tests fails against your own implementation, you have found something. Decide which of the two is wrong before you change either - and note it, because the third task asks about exactly that.
