@@ -865,7 +865,19 @@ async function entryLinkChecks(page) {
       let courses = [];
       try {
         await runCommandMatching(p2, "CaDS Tutor", /open tutor|tutor öffnen/i);
-        await sleep(7000);
+        // Wait for the tutor side bar to actually be the visible one. Reading
+        // rows too early collects the EXPLORER's files instead, which then look
+        // like course names and make the check meaningless.
+        let sidebarIsTutor = false;
+        for (let i = 0; i < 25; i++) {
+          const t = await p2.evaluate(() => document.querySelector(".sidebar .composite.title h2")?.innerText.trim() ?? "");
+          if (/cads.?tutor/i.test(t)) { sidebarIsTutor = true; break; }
+          await sleep(1000);
+        }
+        if (!sidebarIsTutor) {
+          problem(`${folder} link: the CaDS Tutor side bar did not come up, so its course list could not be read`);
+          continue;
+        }
         const tree = [];
         await p2.click(".sidebar .monaco-list-row").catch(() => {});
         await sleep(400);
@@ -885,6 +897,12 @@ async function entryLinkChecks(page) {
       }
       const wrong = courses.filter((c) => !new RegExp(folder.split("-")[0], "i").test(c));
       await p2.screenshot({ path: join(OUT, `20-entry-${folder}.png`) });
+      if (!courses.length) {
+        // An empty read is not a pass: without a course row there is nothing to
+        // judge, and "no wrong courses" would be true of a broken tutor too.
+        problem(`${folder} link: read no course rows from the tutor tree - cannot tell which courses this link offers`);
+        continue;
+      }
       if (wrong.length) {
         pending(
           `${folder} link still offers ${JSON.stringify(wrong)} - the tutor does not filter courses by the open folder yet ` +
