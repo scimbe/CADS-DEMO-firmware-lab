@@ -28,13 +28,69 @@ export type CheckSpec =
   | { type: "question"; prompt: Localized; rubric: string; bloom?: BloomLevel; minChars?: number }
   | { type: "manual"; label?: Localized }
   | { type: "all"; checks: CheckSpec[] }
-  | { type: "any"; checks: CheckSpec[] };
+  | { type: "any"; checks: CheckSpec[] }
+  | CommandCheck
+  | TestSuiteCheck
+  | PredictCheck;
+
+/** Addendum v1.1 A1: shell command via `/bin/sh -c` in the project root (`cwd` relative to it). */
+export interface CommandCheck {
+  type: "command";
+  command: string;
+  cwd?: string;
+  expectExitCode?: number;
+  expectStdout?: string;
+  expectStderr?: string;
+  timeoutMs?: number;
+  /** Validator only (`--solutions`): set to false when the check legitimately passes on the seed workspace. */
+  seedMustFail?: boolean;
+}
+
+export type TestRunner = "cargo" | "node-test" | "tap" | "custom";
+export const TEST_RUNNERS: readonly TestRunner[] = ["cargo", "node-test", "tap", "custom"];
+
+/** Addendum v1.1 A1: a test run whose per-test results are parsed (cargo / TAP) and exposed to triggers. */
+export interface TestSuiteCheck {
+  type: "testSuite";
+  runner: TestRunner;
+  cwd?: string;
+  /** Optional override; required for `tap` and `custom`. */
+  command?: string;
+  /** Optional: the schema normalises a missing list to [], a hand-built spec may omit it. */
+  expectPass?: string[];
+  minPass?: number;
+  expectFail?: string[];
+  timeoutMs?: number;
+  seedMustFail?: boolean;
+}
+
+/** Addendum v1.1 A1: the student predicts first, then `then` runs; prediction and output are shown side by side. */
+export interface PredictCheck {
+  type: "predict";
+  prompt: Localized;
+  then: CheckSpec;
+  rubric?: string;
+  bloom?: BloomLevel;
+  minChars?: number;
+}
 
 export type CheckType = CheckSpec["type"];
 export const CHECK_TYPES: readonly CheckType[] = [
   "board", "task", "build", "fileMatches", "fileNotMatches", "symbolInElf", "flash", "serialExpect",
-  "debugStop", "question", "manual", "all", "any",
+  "debugStop", "question", "manual", "all", "any", "command", "testSuite", "predict",
 ];
+
+/** Result of one test case parsed from a test runner's output. */
+export interface TestCaseResult {
+  /** Leaf name as printed by the runner (e.g. `ch04::moves_string`, `adds numbers`). */
+  name: string;
+  /** Full path for nested subtests (`suite > case`); equals `name` at top level. */
+  path: string;
+  status: "passed" | "failed" | "skipped";
+  depth: number;
+  /** False for a parent test that only groups subtests (node --test files/suites). */
+  leaf: boolean;
+}
 
 /** Checks that need nothing but the file system / the workspace and are cheap to re-run on save. */
 export const LOCAL_CHECK_TYPES: readonly CheckType[] = ["fileMatches", "fileNotMatches", "symbolInElf"];
@@ -55,11 +111,23 @@ export type StepLink =
 
 export interface SocraticHint {
   /** `task:<taskId>:failed` (check failed), `task:<taskId>:stuck` (student asks for a hint),
-   * `question:<taskId>:weak` (rubric verdict fail), `event:<name>` (board/serial event), `*` (any). */
+   * `question:<taskId>:weak` (rubric verdict fail), `event:<name>` (board/serial event),
+   * `test:<name>:failed` (a parsed test case failed), `output:<regex>` (check output matches), `*` (any). */
   trigger: string;
   question: Localized;
   hints: Localized[];
 }
+
+/** Addendum v1.1 A2: a misconception recognised by a regex over a check's output (short form of `output:<regex>`). */
+export interface Misconception {
+  pattern: string;
+  flags?: string;
+  question: Localized;
+  hints: Localized[];
+}
+
+export type Scaffold = "worked" | "faded" | "independent";
+export const SCAFFOLD_LEVELS: readonly Scaffold[] = ["worked", "faded", "independent"];
 
 export interface StepFrontMatter {
   id: string;
@@ -75,6 +143,12 @@ export interface StepFrontMatter {
   creates: string[];
   /** Project files (relative to project.root) that ground this step's dialog; indexed for "ask" and check-ins. */
   sources: string[];
+  /** Addendum A2: worked example / faded / independent (default independent). */
+  scaffold: Scaffold;
+  /** Addendum A2: steps whose `question` tasks may be asked again as a short recall card. */
+  recallFrom: string[];
+  /** Addendum A2: misconception triggers over check output. */
+  misconceptions: Misconception[];
 }
 
 export interface StepContent {
@@ -98,6 +172,8 @@ export interface CourseModule {
   id: string;
   title: Localized;
   steps: string[];
+  /** Addendum A3: reflection prompts shown after the module's last step is completed. */
+  reflection?: { prompts: Localized[] };
 }
 
 export interface CourseManifest {
@@ -145,12 +221,44 @@ export interface TaskState {
   hintTier: number;
   /** Student's free-text answer for `question`/`manual` checks. */
   answer?: string;
+  /** Total check runs (passed + failed); a first-try pass has attempts === 1 and hintTier === 0. */
+  attempts?: number;
+  /** Captured stdout+stderr of the last `command`/`testSuite` run (max 64 KB). */
+  output?: string;
+  /** Parsed test cases of the last `testSuite` run. */
+  tests?: TestCaseResult[];
+  /** `predict`: the student's prediction, entered before `then` ran. */
+  prediction?: string;
+  /** `predict`: reflection result – LLM rubric verdict or the student's self-assessment. */
+  predictionOutcome?: PredictionOutcome;
+  /** `predict`: LLM feedback comparing prediction and output. */
+  predictionFeedback?: string;
 }
+
+export type PredictionOutcome = "correct" | "deviated";
 
 export interface StepProgress {
   startedAt?: string;
   completedAt?: string;
   tasks: Record<string, TaskState>;
+}
+
+/** Addendum A3: answers to a module's reflection prompts. */
+export interface ReflectionRecord {
+  answers: string[];
+  feedback?: string[];
+  at: string;
+}
+
+/** Addendum A2: the recall card shown for a step on a given day. */
+export interface RecallRecord {
+  /** ISO date (YYYY-MM-DD) the card was selected for. */
+  date: string;
+  fromStepId: string;
+  taskId: string;
+  answer?: string;
+  feedback?: string;
+  dismissed?: boolean;
 }
 
 export interface SessionState {
@@ -163,6 +271,10 @@ export interface SessionState {
   updatedAt: string;
   /** keyed by "<courseId>/<stepId>" */
   steps: Record<string, StepProgress>;
+  /** keyed by "<courseId>/<moduleId>" */
+  reflections?: Record<string, ReflectionRecord>;
+  /** keyed by "<courseId>/<stepId>" (the step that showed the card) */
+  recall?: Record<string, RecallRecord>;
 }
 
 export type StepStatus = "locked" | "open" | "active" | "done";

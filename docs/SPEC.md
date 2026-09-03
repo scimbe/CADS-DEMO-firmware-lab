@@ -362,3 +362,48 @@ bestanden beim ersten Versuch vs. mit Hinweisen, Vorhersagen korrekt/abweichend,
   + beide Workspaces (Seed nach `/home/coder/workspace/<name>`), dieselben User-Settings/CMD-Flags wie firmware-lab,
   `cadsTutor.autoOpen` öffnet den zuerst passenden Kurs zum geöffneten Workspace; Multi-Root-Workspace-Datei
   `/home/coder/workspace/cads-tutor.code-workspace` mit beiden Ordnern; Kurswahl über den Tutor-Tree.
+
+## A5 Telemetrie und Lehrenden-Portal (2026-09-03)
+
+**Zweck:** Lehrende sehen anonymisiert, wie Kurse funktionieren (meistgestellte Fragen, schwerste Steps, Auffälligkeiten,
+sehr gute/sehr schwache Verläufe, Betrugsindikatoren), erhalten je Studierendem eine tiefe, pseudonyme Analyse und ein
+Organisations-Board für Leistungsnachweise. Multi-Kurs, Multi-Lehrende.
+
+**Pseudonymisierung:** Studierenden-ID = `slug` (sha256(lower(email))[:12], wie im Broker). Klarnamen liegen nur in einer
+optionalen, vom Lehrenden gepflegten Zuordnungstabelle im Portal (Datei `roster.json`, nie in Events). Fragetexte werden vor
+dem Versand von E-Mail-Adressen/URLs mit Zugangsdaten bereinigt.
+
+**Event-Schema (JSON, append-only, ein Ereignis pro Zeile):**
+```json
+{ "v": 1, "ts": "2026-09-03T03:10:00Z", "student": "<slug>", "course": "rust-foundations", "module": "m1", "step": "m1-02-move",
+  "type": "step.open | step.done | check.run | check.pass | check.fail | hint.shown | question.asked | question.answered | predict.made | predict.compared | recall.answered | reflection.written | edit.metrics | session.start | session.end",
+  "data": { "taskId": "…", "checkType": "testSuite", "attempt": 2, "hintTier": 1, "durationMs": 1234, "bloom": "apply",
+            "question": "bereinigter Text", "grounded": true, "citations": 3, "verdict": "pass|weak|fail",
+            "typedChars": 120, "pastedChars": 900, "pasteEvents": 2, "outputExcerpt": "error[E0382] …" } }
+```
+Die Extension schreibt alle Events lokal (`~/.cads-tutor/events.jsonl`, zusätzlich zur SQLite) und sendet sie – wenn
+`CADS_TUTOR_TELEMETRY_URL` gesetzt ist – gebündelt (max. 100 Events / 10 s) per `POST <url>/ingest` mit Header
+`X-CaDS-Student: <slug>` und `X-CaDS-Token: <CADS_TUTOR_TELEMETRY_TOKEN>` (Container-Env, vom Broker je Container gesetzt).
+`edit.metrics` wird je Step beim Speichern aggregiert (getippte vs. eingefügte Zeichen aus `onDidChangeTextDocument`,
+Einfügungen > 200 Zeichen zählen als Paste). Ausfall des Portals darf die Extension nie stören (Queue auf Platte, Retry).
+
+**Portal (`deploy/portal/`, Python 3 Stdlib + SQLite, Host-Prozess wie der Broker, 127.0.0.1:3200):**
+- `POST /ingest` (Token-Prüfung, Idempotenz über `(student, ts, type, step, attempt)`), `GET /healthz`.
+- Web-UI (server-seitig gerendert, kein Framework, Diagramme als Inline-SVG) hinter dem Keycloak-Gate: `X-Gate-Email` →
+  Rolle aus `portal.json` (`teachers: { "<email>": { courses: [...], role: "teacher|admin" } }`); Lehrende sehen nur ihre Kurse.
+- Ansichten: **Kursübersicht** (Aktive, Fortschritt je Modul, Abschlussquote), **Fragen** (meistgestellte Fragen geclustert
+  nach normalisiertem Text + Token-Jaccard ≥ 0.6, ungrounded-Quote, Steps mit den meisten Fragen), **Schwierige Stellen**
+  (je Step: Fehlschlagquote beim ersten Versuch, mittlere Versuche, Hinweis-Tier-Verteilung, Zeit bis Bestehen, Abbruchquote),
+  **Auffälligkeiten** (z-Scores je Studierendem über Zeit/Step, Versuche, Hinweisnutzung, Fragenrate; Flags: „sehr gut“
+  (obere 10 % bei Erstversuch-Quote und geringer Hinweisnutzung, plausible Zeiten), „tut sich schwer“ (untere 10 %, viele
+  Tier-3-Hinweise, lange Zeiten, Abbrüche), „Betrugsverdacht“ (Check besteht ohne vorherigen Fehlschlag bei < 60 s Step-Zeit
+  UND Paste-Anteil > 80 %; identische Freitextantworten/Reflexionen zwischen Studierenden (Jaccard ≥ 0.9); Vorhersagen,
+  die exakt der Ausgabe entsprechen und nach der Ausführung geändert wurden; Aktivität außerhalb der Session)),
+  **Studierende** (Liste mit Flags) → **Tiefenanalyse** (Zeitstrahl, Mastery je Objective, Bloom-Abdeckung, Fragen,
+  Hinweise, Vorhersagen, Reflexionen, Editier-Metriken, Empfehlung an den Lehrenden), **Organisations-Board**
+  (Leistungsnachweise: je Studierendem × Kurs Steps/Checks/Reflexionen/Projekt, Status „offen/erreicht/bestätigt“,
+  Lehrenden-Sign-off mit Zeitstempel, Export CSV/JSON, Notizfeld), **Regeln** (Schwellwerte in `portal.json`, dokumentiert).
+- Alle Berechnungen deterministisch und testbar (Python-Modul `analytics.py` mit Unit-Tests).
+- **Simulator** `deploy/portal/simulate.py`: erzeugt synthetische Kohorten (N Studierende, Personas: exzellent, solide,
+  schwach, abbrechend, betrügend; je Kurs, mehrere Lehrende) als Event-Ströme mit realistischen Verteilungen und speist sie
+  per `/ingest` ein; Assertions, dass die Flags die Personas wiederfinden (Precision/Recall werden ausgegeben).
