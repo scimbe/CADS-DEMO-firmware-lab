@@ -231,11 +231,19 @@ USER coder
 
 # Open VSX: rust-analyzer ships the server binary in its platform VSIX
 # (linux-x64 / linux-arm64 are published), ESLint is universal.
+#
+# even-better-toml is not a nicety: neither code-server nor rust-analyzer
+# contributes a TOML grammar, so without it Cargo.toml opens as "Plain Text" -
+# no colours, no structure - in a course whose very first file is Cargo.toml.
+# It also brings the Cargo schema, so keys are completed and typos underlined.
 RUN set -eu; for ext in \
         rust-lang.rust-analyzer \
         dbaeumer.vscode-eslint \
+        tamasfe.even-better-toml \
     ; do code-server --install-extension "$ext"; done; \
-    test -x /home/coder/.local/share/code-server/extensions/rust-lang.rust-analyzer-*/server/rust-analyzer
+    test -x /home/coder/.local/share/code-server/extensions/rust-lang.rust-analyzer-*/server/rust-analyzer; \
+    # the TOML extension is only worth its size if it really claims .toml
+    grep -q '"toml"' /home/coder/.local/share/code-server/extensions/tamasfe.even-better-toml-*/package.json
 
 RUN set -eu; \
     case "${TARGETARCH}" in \
