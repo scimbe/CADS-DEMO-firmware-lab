@@ -15,6 +15,7 @@ extension, the user-settings policy and the CI shape.
 | Workspaces | `workspaces/rust-foundations`, `workspaces/javascript-foundations` → `/opt/cads-seed/<name>`, seeded to `/home/coder/workspace/<name>` on first start; `cads-tutor.code-workspace` (multi-root, both folders) is what code-server opens |
 | Build gate | the seed stage requires the Rust library and binaries to compile, then records test counts, clippy and rustfmt without failing the build. A starter workspace is the exercise *before* the solution, so its tests are red on purpose. Reference solutions (`workspaces/*/solutions`) are excluded from the image |
 | Port | container 8080, host loopback `127.0.0.1:8084` (lab) / `127.0.0.1:8089` (development machine) |
+| Entry links | one per language: `…/?folder=/home/coder/workspace/rust-foundations` and `…/?folder=/home/coder/workspace/javascript-foundations`. A bare URL reopens whatever that browser had open last; the image default is the multi-root workspace |
 | Env | `PASSWORD` (required), `TUTOR_LLM_BASE_URL` / `TUTOR_LLM_API_KEY` / `TUTOR_LLM_MODEL` (optional, LLM for the tutor; the base URL **must be `https://`**), `CADS_TUTOR_TELEMETRY_URL` / `CADS_TUTOR_TELEMETRY_TOKEN` (optional, SPEC A5 teacher portal; unset = events stay local, and `cads-tutor@0.1.0` does not read them yet) |
 | Size | 0.85 GB compressed (`docker save \| gzip`), 3.4 GB unpacked; a from-scratch build takes ≈4 min |
 
@@ -159,6 +160,30 @@ the new layout; **that deletes student work**, so only on a lab machine nobody i
 The telemetry pair is plumbed through compose and documented here, but the VSIX in this image
 (`cads.cads-tutor@0.1.0`) does not read it yet — that arrives with the portal stream. Setting it
 today is harmless and has no effect.
+
+### 4b. The two entry links
+
+The demo page gives each language its own address, and each address opens only that folder:
+
+```
+https://<host>/?folder=/home/coder/workspace/rust-foundations
+https://<host>/?folder=/home/coder/workspace/javascript-foundations
+```
+
+Verified: the window title names the folder, that folder is the Explorer's only root, no
+Restricted Mode. Two things to know when publishing them:
+
+- **A bare `https://<host>/` reopens whatever that browser had open last**, so after a student
+  follows the Rust link the bare host shows `rust-foundations`. That is code-server remembering
+  the last window, not a setting. Publish the two links; do not describe the bare host as
+  showing anything in particular.
+- **The tutor does not yet filter its course list by the open folder.** Both links currently
+  offer both courses and open the JavaScript one. The fix is in the tutor runtime, not the
+  image; until it ships, tell students which course belongs to their link.
+
+The multi-root workspace stays the image default (`cads-tutor.code-workspace` in the `CMD`) so a
+plain `docker run` shows both tracks and neither language is silently favoured. The file also
+stays for anyone who wants both at once.
 
 ### 5. Verify (about three minutes)
 
