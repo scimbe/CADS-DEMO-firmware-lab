@@ -169,7 +169,7 @@ docker compose logs tutor-lab | grep '\[cads-seed\]'    # ends with "ready: …/
 curl -sI http://127.0.0.1:8084/ | head -1                # HTTP/1.1 302 Found (→ ./login)
 docker exec tutor-lab bash -lc 'cargo --version; node --version'
 docker exec tutor-lab code-server --list-extensions --show-versions
-docker exec tutor-lab bash -lc 'cd ~/workspace/rust-foundations && cargo test --test m0-02-first-test'
+docker exec tutor-lab bash -lc 'cd ~/workspace/rust-foundations && cargo test --no-fail-fast 2>&1 | tail -5'
 docker exec tutor-lab bash -lc 'cd ~/workspace/javascript-foundations && node --test'
 docker exec tutor-lab ls /opt/cads-tutor/courses
 ```
@@ -181,10 +181,13 @@ Expected: `cargo 1.98.0` or newer and `node v22.x`; the extension list contains
 **Both test commands exit non-zero, and that is correct.** A starter workspace is the exercise
 before the solution: the Rust exercises are `todo!()`, the JavaScript ones throw or carry the bug
 their step is about. On a fresh volume expect 2 of 122 Rust tests and 8 of 74 JavaScript tests to
-pass. What must hold is that each runner *starts and prints a summary* in seconds. Name a step's
-target as above rather than running a bare `cargo test`: that stops at the first failing target
-(3 summaries of 27 today), and while a step leaves a target that does not compile it reports
-nothing at all.
+pass. What must hold is that each runner *starts and prints a summary* in seconds.
+
+`--no-fail-fast` matters: a bare `cargo test` stops at the first failing target and shows a
+fraction of the suite, and while any step leaves a target that does not compile it reports
+nothing at all. A student checking one step runs that step's target
+(`cargo test --test <step>`), which is also what the tutor's `testSuite` check does — but do not
+put a step name in a runbook, the course renames them.
 
 In the browser (through the usual tunnel or an SSH port-forward to `127.0.0.1:8084`):
 
