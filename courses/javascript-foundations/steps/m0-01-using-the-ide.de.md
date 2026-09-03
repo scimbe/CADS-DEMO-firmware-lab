@@ -21,7 +21,7 @@ tasks:
     check: { type: testSuite, runner: node-test, expectPass: ["m0-01 the workspace is ready"], minPass: 1 }
   - id: where-things-are
     title: Sag, wo die Ausgabe erschienen ist
-    check: { type: question, prompt: { en: "Name the route you used, where the output appeared, and the file you edited. One sentence each.", de: "Nenne den benutzten Weg, wo die Ausgabe erschien, und die geänderte Datei. Je ein Satz." }, rubric: "Three sentences, one per part. Route: the integrated terminal, the command palette via F1, or Terminal > Run Task. Place: the panel at the bottom of the window. File: src/m0/ready.js. Does not pass: a file under test/ named as the one edited, an answer that names fewer than three parts, or 'the terminal' alone without saying it is the bottom panel.", bloom: understand, minChars: 60 }
+    check: { type: question, prompt: { en: "Name the route you used, where the output appeared, and the file you edited. One sentence each.", de: "Nenne den benutzten Weg, wo die Ausgabe erschien, und die geänderte Datei. Je ein Satz." }, rubric: "Three sentences, one per part: which of the three ways was taken, which region of the window carried the result, and which of the two folders the edit landed in. Does not pass: an edit placed in the folder holding the marking scheme, fewer than three parts answered, or a region named so loosely it could be the whole window.", bloom: understand, minChars: 60 }
 socratic:
   - trigger: "task:node-runs:failed"
     question: { en: "Nothing came back. Is a terminal open, and does its prompt end in the exercise folder?", de: "Es kam nichts zurück. Ist ein Terminal offen, und endet sein Prompt auf den Übungsordner?" }
@@ -50,6 +50,8 @@ misconceptions:
 
 Bedien diesen Editor sicher genug für jeden Step: Terminal öffnen, Befehl ausführen, Ausgabe lesen, die richtige Datei ändern.
 
+Dieser Kurs setzt keine Programmiererfahrung und keinen vorherigen Kurs voraus; er braucht auch keine Installation über das hier Vorhandene hinaus.
+
 ## Das tust du zuerst
 
 **1. Terminal öffnen.** Menü **Terminal > New Terminal**, oder **F1** drücken und `Terminal: Create New Terminal` tippen. Es öffnet sich im Panel unten. Prüf, wo es steht:
@@ -76,18 +78,18 @@ node --test test/m0-01-using-the-ide.test.js
 
 **4. Die im Fehlschlag genannte Datei ändern** - [`src/m0/ready.js`](file:src/m0/ready.js) - von `false` auf `true`, mit **Strg+S** (**Cmd+S** auf dem Mac) speichern und den Befehl erneut ausführen. Die **Pfeil-nach-oben-Taste** holt ihn zurück, ohne ihn abzutippen.
 
-Dateien unter `test/` sind das Prüfschema. Eine davon zu ändern, damit sie besteht, ist der eine Handgriff, der in diesem Kurs nirgends hilft.
+Dateien unter `test/` sind das Prüfschema; eine davon zu ändern, damit sie besteht, hilft in diesem Kurs nirgends.
 
 ## Was auf deinem Bildschirm ist
 
-| Wo | Was es ist | Was du dort tust |
-|---|---|---|
-| Linker Rand, senkrechte Leiste | Aktivitätsleiste. Das Doktorhut-Symbol ist **CaDS Tutor**. | Tutor öffnen, Step wählen. |
-| Links, breite Spalte | Explorer: die Dateien von `javascript-foundations`. | `src/…`-Dateien per Klick öffnen. |
-| Mitte | Editor. Ein Tab je geöffneter Datei. | Code schreiben. |
-| Unten | Panel: **Terminal**, **Problems**, **Output**. Ein-/ausblenden über **View > Terminal**. | Befehle ausführen, Ausgabe lesen. |
+| Wo | Was es ist |
+|---|---|
+| Linker Rand, senkrechte Leiste | Aktivitätsleiste. Das Doktorhut-Symbol öffnet **CaDS Tutor**. |
+| Links, breite Spalte | Explorer: klick eine Datei unter `src/` an, um sie zu öffnen. |
+| Mitte | Editor, ein Tab je Datei. |
+| Unten | Panel: **Terminal**, **Problems**, **Output**. Umschalten über **View > Terminal**. |
 
-Dieser Step selbst ist das **Tutor-Panel**. Jede Aufgabe dort hat eine Prüf-Schaltfläche; ein Druck darauf führt die Prüfung aus und schreibt das Urteil daneben.
+Dieser Step selbst ist das **Tutor-Panel**: jede Aufgabe dort hat eine Prüf-Schaltfläche.
 
 ![Das Tutor-Panel neben dem Editor, links der Kursbaum, rechts die Abzeichen und der Text des Steps](tutor-panel-step.png)
 *Wo du bist: links der Kursbaum, rechts dieser Step. Die Abzeichen nennen Bloom-Stufe, Art der Anleitung und geschätzte Zeit.*
@@ -97,8 +99,6 @@ Dieser Step selbst ist das **Tutor-Panel**. Jede Aufgabe dort hat eine Prüf-Sch
 
 ## Drei Wege, etwas auszuführen
 
-Alle drei tun dasselbe; verschiedene Steps nennen verschiedene.
-
 ![Das Anwendungsmenü ist auf Terminal geöffnet und zeigt oben New Terminal und weiter unten Run Task](ide-terminal-menu.png)
 *Weg 1 und 3: die Menü-Schaltfläche links oben, dann **Terminal**. **New Terminal** öffnet eine Shell; **Run Task…** bietet vorbereitete Befehle, deren Ausgabe unter **Terminal** in einem nach dem Task benannten Tab erscheint.*
 
@@ -107,7 +107,7 @@ Alle drei tun dasselbe; verschiedene Steps nennen verschiedene.
 
 ## Einen fertigen Befehl von einem laufenden unterscheiden
 
-Während ein Befehl läuft, fehlt der Prompt; am Ende kommt er zurück. `node --test` gibt danach einen Block aus Zählern aus, und einer dieser Zähler ist das Urteil.
+Während ein Befehl läuft, fehlt der Prompt; am Ende kommt er zurück, und `node --test` gibt einen Block aus Zählern aus, von denen einer das Urteil ist.
 
 ![Das integrierte Terminal zeigt einen fehlschlagenden Test: die Assertion-Meldung, die Datei, aus der sie kam, und den Prompt am Ende](ide-test-failing.png)
 *Ein fehlgeschlagener Lauf: das Kreuz, die Assertion-Meldung, die Herkunftsdatei und der Prompt wieder da - fertig, nur nicht bestanden.*
@@ -118,7 +118,7 @@ Während ein Befehl läuft, fehlt der Prompt; am Ende kommt er zurück. `node --
 ![Das Terminal zeigt denselben Test bestanden, mit pass 1 und fail 0](ide-test-passing.png)
 *Erfolg: ein grüner Haken, und beide Zähler stehen.*
 
-Die Ausgabe bleibt nach dem Ende im Terminal stehen, scroll also zum Nachlesen hoch. Ein Terminal über das Papierkorb-Symbol zu schließen wirft sie weg - findest du nicht, was ein Befehl ausgab, prüf, ob du auf ein *neues*, leeres Terminal schaust.
+Die Ausgabe bleibt im Terminal, bis du es über das Papierkorb-Symbol schließt. Findest du nicht, was ein Befehl ausgab, prüf, ob du auf ein *neues*, leeres schaust.
 
 ![Das Terminal meldet, dass es die Testdatei nicht findet, weil es einen Ordner zu hoch steht](ide-wrong-folder.png)
 *`Could not find 'test/…'` heißt falscher Ordner: ein neues Terminal startet in `~/workspace`, eine Ebene über den Übungen.*

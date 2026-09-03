@@ -21,7 +21,7 @@ tasks:
     check: { type: testSuite, runner: node-test, expectPass: ["m0-01 the workspace is ready"], minPass: 1 }
   - id: where-things-are
     title: Say where the output appeared
-    check: { type: question, prompt: { en: "Name the route you used, where the output appeared, and the file you edited. One sentence each.", de: "Nenne den benutzten Weg, wo die Ausgabe erschien, und die geänderte Datei. Je ein Satz." }, rubric: "Three sentences, one per part. Route: the integrated terminal, the command palette via F1, or Terminal > Run Task. Place: the panel at the bottom of the window. File: src/m0/ready.js. Does not pass: a file under test/ named as the one edited, an answer that names fewer than three parts, or 'the terminal' alone without saying it is the bottom panel.", bloom: understand, minChars: 60 }
+    check: { type: question, prompt: { en: "Name the route you used, where the output appeared, and the file you edited. One sentence each.", de: "Nenne den benutzten Weg, wo die Ausgabe erschien, und die geänderte Datei. Je ein Satz." }, rubric: "Three sentences, one per part: which of the three ways was taken, which region of the window carried the result, and which of the two folders the edit landed in. Does not pass: an edit placed in the folder holding the marking scheme, fewer than three parts answered, or a region named so loosely it could be the whole window.", bloom: understand, minChars: 60 }
 socratic:
   - trigger: "task:node-runs:failed"
     question: { en: "Nothing came back. Is a terminal open, and does its prompt end in the exercise folder?", de: "Es kam nichts zurück. Ist ein Terminal offen, und endet sein Prompt auf den Übungsordner?" }
@@ -50,6 +50,8 @@ misconceptions:
 
 Operate this editor well enough to finish any step: open a terminal, run a command, read its output, and change the right file.
 
+This course assumes no programming experience and no prior course; it also needs nothing installed beyond what is already here.
+
 ## Do this first
 
 **1. Open a terminal.** Menu **Terminal > New Terminal**, or press **F1** and type `Terminal: Create New Terminal`. It opens in the panel at the bottom. Check where it is:
@@ -76,16 +78,16 @@ node --test test/m0-01-using-the-ide.test.js
 
 **4. Change the file the failure names** - [`src/m0/ready.js`](file:src/m0/ready.js) - from `false` to `true`, save with **Ctrl+S** (**Cmd+S** on a Mac), and run the command again. The **Up arrow** brings it back without retyping.
 
-Files under `test/` are the marking scheme. Editing one to make it pass is the single move that helps nowhere in this course.
+Files under `test/` are the marking scheme; editing one to make it pass helps nowhere in this course.
 
 ## What is on your screen
 
-| Where | What it is | What you do there |
-|---|---|---|
-| Left edge, vertical bar | Activity bar. The mortarboard icon is **CaDS Tutor**. | Open the tutor, pick a step. |
-| Left, wide column | Explorer: the files of `javascript-foundations`. | Open `src/…` files by clicking. |
-| Middle | Editor. One tab per open file. | Write code. |
-| Bottom | Panel: **Terminal**, **Problems**, **Output**. Hidden by **View > Terminal**. | Run commands, read output. |
+| Where | What it is |
+|---|---|
+| Left edge, vertical bar | Activity bar. The mortarboard icon opens **CaDS Tutor**. |
+| Left, wide column | Explorer: click a file under `src/` to open it. |
+| Middle | Editor, one tab per file. |
+| Bottom | Panel: **Terminal**, **Problems**, **Output**. Toggle with **View > Terminal**. |
 
 This step itself is the **tutor panel**. Each task there has a check button; pressing one runs the check and prints the verdict beside it.
 
@@ -97,8 +99,6 @@ This step itself is the **tutor panel**. Each task there has a check button; pre
 
 ## Three ways to run something
 
-All three do the same thing; different steps mention different ones.
-
 ![The application menu open on Terminal, showing New Terminal at the top and Run Task lower down](ide-terminal-menu.png)
 *Routes 1 and 3: the menu button top left, then **Terminal**. **New Terminal** opens a shell; **Run Task…** offers commands someone prepared for you, and their output appears under **Terminal** in a tab named after the task.*
 
@@ -107,7 +107,7 @@ All three do the same thing; different steps mention different ones.
 
 ## Telling a finished command from a running one
 
-The prompt disappears while a command runs and comes back when it ends. `node --test` then prints a block of counts, and one of those counts is the verdict.
+The prompt disappears while a command runs and returns when it ends; `node --test` then prints a block of counts, one of which is the verdict.
 
 ![The integrated terminal showing a failing test: the assertion message, the file it came from, and the prompt back at the bottom](ide-test-failing.png)
 *A failing run: the cross, the assertion message, the file it came from, and the prompt back - finished, just not passed.*
@@ -118,7 +118,7 @@ The prompt disappears while a command runs and comes back when it ends. `node --
 ![The terminal showing the same test passing, with pass 1 and fail 0](ide-test-passing.png)
 *Success: a green tick, and both counts settled.*
 
-Output stays in the terminal after a command ends, so scroll up to reread it. Closing a terminal with the bin icon throws it away - if you cannot find what a command printed, check whether you are looking at a *new*, empty terminal.
+Output stays in a terminal until you close it with the bin icon. If you cannot find what a command printed, check whether you are looking at a *new*, empty one.
 
 ![The terminal reporting Could not find the test file because it is one folder too high](ide-wrong-folder.png)
 *`Could not find 'test/…'` means the wrong folder: a new terminal starts in `~/workspace`, one level above the exercises.*

@@ -16,12 +16,17 @@ sources: [src/m7/report-tool.js, examples/m7-pipeline.js, test/m7-02-capstone-bu
 tasks:
   - id: guess-pipeline
     title: Predict what the naive pipeline produces
-    check: { type: predict, prompt: { en: "examples/m7-pipeline.js parses three lines, one of which has a non-numeric amount, then sums them and formats the sum. Write down the parsed array, the sum, the formatted sum and the guarded sum before running it.", de: "examples/m7-pipeline.js parst drei Zeilen, davon eine mit nicht-numerischem Betrag, summiert sie und formatiert die Summe. Schreib das geparste Array, die Summe, die formatierte Summe und die abgesicherte Summe auf, bevor du es ausführst." }, then: { type: command, command: "node examples/m7-pipeline.js", expectExitCode: 0, expectStdout: "guarded" }, rubric: "Recognises that Number('abc') is NaN, that one NaN poisons the whole reduce so the sum is NaN, that NaN.toFixed(2) is the string 'NaN' rather than an error, and that filtering with Number.isFinite before reducing is what keeps the bad row from destroying the total.", bloom: evaluate }
+    check: { type: predict, prompt: { en: "Read examples/m7-pipeline.js. Write down all four values it prints before you run it.", de: "Lies examples/m7-pipeline.js. Schreib alle vier ausgegebenen Werte auf, bevor du es ausführst." }, then: { type: command, command: "node examples/m7-pipeline.js", expectExitCode: 0, expectStdout: "guarded" }, rubric: "Sets the four predicted values against the printed ones and names the earliest point at which the pipeline went wrong. Does not pass: reporting the four values without identifying where the damage began.", bloom: evaluate }
   - id: design-decisions
     title: Decide how bad input is handled
-    check: { type: question, prompt: { en: "The tool must handle a malformed line. Compare three designs: skip the line silently, collect the errors and report them at the end, or throw a ReportError on the first bad line. Say which the given tests demand, what each design costs the caller, and how you would decide if you owned the requirement.", de: "Das Werkzeug muss mit einer fehlerhaften Zeile umgehen. Vergleiche drei Entwürfe: die Zeile still überspringen, die Fehler sammeln und am Ende melden, oder beim ersten Fehler einen ReportError werfen. Sag, welchen die vorgegebenen Tests verlangen, was jeder Entwurf den Aufrufer kostet, und wie du entscheiden würdest, wenn dir die Anforderung gehörte." }, rubric: "Identifies that the given tests demand throwing a ReportError carrying the offending line, and that a comment or blank line is not an error but an ignored line. Weighs the alternatives honestly: silent skipping produces a plausible but wrong total with no way to notice; collecting errors suits batch processing where partial results are useful; failing fast suits a file that is meant to be correct. Connects the choice to the caller's ability to act on the information, and may reference the Promise.all against allSettled trade-off from m6-04.", bloom: evaluate, minChars: 150 }
+    check: { type: question, prompt: { en: "Three ways to treat a bad line. Which do the tests demand, and what do the other two cost?", de: "Drei Umgänge mit einer fehlerhaften Zeile. Welchen verlangen die Tests, und was kosten die anderen?" }, rubric: "Derives from the assertions which of the three the suite requires, and keeps an unreadable record apart from one meant to be passed over. Prices the two rejected options against what the operator would and would not learn. Does not pass: naming the requirement with no price attached to the alternatives, or treating a passed-over record as a fault.", bloom: evaluate, minChars: 80 }
 socratic:
-  - { trigger: "task:guess-pipeline:failed", question: { en: "Did the script run from the workspace folder?", de: "Lief das Skript aus dem Workspace-Ordner heraus?" }, hints: [ { en: "node examples/m7-pipeline.js, started in javascript-foundations.", de: "node examples/m7-pipeline.js, gestartet in javascript-foundations." }, { en: "Write the prediction down before running - especially the third line.", de: "Schreib die Vorhersage vor dem Lauf auf - besonders die dritte Zeile." }, { en: "The interesting question is what toFixed does to a value that is not a number.", de: "Die interessante Frage ist, was toFixed mit einem Wert macht, der keine Zahl ist." } ] }
+  - trigger: "task:guess-pipeline:failed"
+    question: { en: "Which of the four values did you expect, and which one first went wrong?", de: "Welche der vier Werte hast du erwartet, und welcher ging zuerst schief?" }
+    hints: [ { en: "Three lines go in and one of them cannot become a number; follow that one through each stage.", de: "Drei Zeilen gehen hinein und eine kann keine Zahl werden; verfolge diese durch jede Stufe." }, { en: "Ask what the fold does once one of its inputs is not a number, and what it does on every pass after.", de: "Frag, was die Faltung tut, sobald eine Eingabe keine Zahl ist, und was sie in jedem weiteren Durchlauf tut." }, { en: "The formatting step accepts that result without complaint, which is why the damage reaches the output.", de: "Der Formatierungsschritt akzeptiert dieses Ergebnis anstandslos, deshalb erreicht der Schaden die Ausgabe." } ]
+  - trigger: "task:design-decisions:failed"
+    question: { en: "Does your answer say what each of the other two policies costs, or only which one the tests want?", de: "Sagt deine Antwort, was die anderen zwei Umgänge kosten, oder nur, welchen die Tests wollen?" }
+    hints: [ { en: "Read the assertions about malformed records and about comment lines; they are not the same case.", de: "Lies die Assertions über fehlerhafte Datensätze und über Kommentarzeilen; das sind nicht dieselben Fälle." }, { en: "For each policy, ask what the person running the tool learns and what they can do about it.", de: "Frag für jeden Umgang, was die ausführende Person erfährt und was sie dagegen tun kann." }, { en: "One of the three always produces a number, and that is exactly what makes it dangerous.", de: "Einer der drei liefert immer eine Zahl, und genau das macht ihn gefährlich." } ]
 misconceptions:
   - pattern: "NaN"
     question: { en: "One bad row turned the whole total into NaN. At which step could it have been stopped?", de: "Eine schlechte Zeile hat die ganze Summe zu NaN gemacht. An welcher Stelle hätte man sie aufhalten können?" }
@@ -72,13 +77,14 @@ Every module of this course has a fingerprint on this problem. Find them before 
 
 ## The decision this step asks for
 
-There are three defensible ways to treat a malformed line:
+There are three defensible ways to treat a malformed line, and this step asks you to weigh them:
 
-1. **Skip it silently.** The tool always produces a number. The number may be wrong, and nobody finds out.
-2. **Collect errors and report them at the end.** Good for batch work where a partial result is useful - the `allSettled` shape from [m6-04](step:m6-04-concurrency).
-3. **Throw on the first bad line, naming it.** Good for a file that is supposed to be correct; the caller learns exactly which line to fix.
+1. **Skip it silently.**
+2. **Collect the errors and report them at the end.**
+3. **Stop at the first bad line and name it.**
 
-The given tests demand the third, and they demand that a comment or a blank line is *not* an error but an ignored line. The second task asks you to defend that choice and to say what it costs.
+Which one the tests require is not written here. It is in
+[`test/m7-02-capstone-build.test.js`](file:test/m7-02-capstone-build.test.js) - read the assertions about malformed records, and separately those about comments and blank lines, and work out what each policy would do to them. Then say what the two you did not pick would cost the person running the tool.
 
 ## The exercise
 
