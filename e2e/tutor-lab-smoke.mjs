@@ -239,7 +239,7 @@ try {
   if (!tutorInstalled) {
     ok("cads-tutor is NOT installed in this image (no VSIX at build time) - tutor checks skipped");
   } else {
-    await runCommand(page, "CaDS Tutor: Tutor öffnen / Open Tutor");
+    const opened = await runCommandMatching(page, "CaDS Tutor", /open tutor|tutor öffnen/i);
     await sleep(5000);
     const tutorUi = await page.evaluate(() => ({
       sidebar: document.querySelector(".sidebar .composite.title h2")?.innerText.trim() ?? "",
@@ -425,6 +425,32 @@ function stripAnsi(text) {
     .replace(/\u001b\][^\u0007\u001b]*(?:\u0007|\u001b\\)?/g, "")
     .replace(/\u001b\[[0-9;?]*[ -/]*[@-~]/g, "")
     .replace(/[\u0007]/g, "");
+}
+
+// Pick a palette entry by pattern rather than by an exact title: the tutor's
+// command titles are localised (they used to read "Tutor öffnen / Open Tutor"
+// and now resolve per UI language), and a hard-coded title turns a working
+// image into a red test the day someone improves the wording.
+async function runCommandMatching(page, filter, pattern) {
+  await page.keyboard.press("Escape");
+  await sleep(300);
+  await page.keyboard.press("F1");
+  const input = page.locator('.quick-input-widget input[placeholder*="command" i]');
+  await input.waitFor({ state: "visible" });
+  await input.fill(">" + filter);
+  await sleep(1200);
+  const rows = page.locator(".quick-input-list .monaco-list-row");
+  const count = await rows.count();
+  for (let i = 0; i < count; i++) {
+    const label = (await rows.nth(i).getAttribute("aria-label")) ?? "";
+    if (pattern.test(label)) {
+      await rows.nth(i).click();
+      return label;
+    }
+  }
+  const seen = [];
+  for (let i = 0; i < Math.min(count, 8); i++) seen.push(await rows.nth(i).getAttribute("aria-label"));
+  throw new Error(`no command matching ${pattern} under "${filter}"; the palette offered ${JSON.stringify(seen)}`);
 }
 
 async function runCommand(page, command) {
