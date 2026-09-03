@@ -1,117 +1,162 @@
 # CaDS Firmware Lab
 
-Browser IDE ([code-server](https://github.com/coder/code-server), VS Code 1.135) in which
+Browser IDE ([code-server](https://github.com/coder/code-server) 4.135, VS Code 1.135) in which
 students build, flash and debug the **CaDS Zero** firmware
 ([scimbe/cads-zero](https://github.com/scimbe/cads-zero), STM32F429ZI / ITSboard) with the
-board plugged into **their own computer**. The container has no USB: the ST-Link is driven
-from the browser via WebUSB/WebSerial (`cads-probe`), bridged into the container by
-`cads-board-bridge` (GDB server 3333, serial 3334, HTTP shim API 3335), with a course-driven
-tutor (`cads-tutor`). The binding architecture and all interfaces are in
-[`docs/SPEC.md`](docs/SPEC.md).
+board plugged into **their own computer**, guided by a course tutor. The container has no USB:
+the ST-Link is driven from the browser (WebUSB/WebSerial) and bridged into the container.
 
-This README describes the **image and workspace** part (SPEC §4). The three extensions and the
-courses are built by their own streams under `extensions/` and `courses/`.
+- **User documentation** (students, course authors): [CADS-DEMO-firmware-lab-docs](https://github.com/scimbe/CADS-DEMO-firmware-lab-docs)
+  (tutorials, how-to, reference, explanation; DE/EN).
+- **Developer documentation** (this repository): [`docs/index.md`](docs/index.md) — specification,
+  ADRs, per-stream notes.
+- **Operator runbooks**: the private ops-docs site.
 
-## What the image contains
+## Architecture
 
-| Piece | Detail |
-|---|---|
-| Base | `codercom/code-server:latest` (Debian 13, multi-arch amd64/arm64) |
-| Toolchain | ARM GNU Toolchain **13.3.rel1** (official tarball per `TARGETARCH`, SHA-256 verified) in `/opt/arm-gnu-toolchain`, `CADS_ARM_TOOLCHAIN_BIN` set, on `PATH` |
-| Build tools | cmake 3.31, ninja, gcc (host preset), python3 + pyserial, clang-format, clangd 19, gdb-multiarch, binutils, socat, git |
-| Workspace seed | `/opt/cads-seed/cads-zero`: shallow clone of cads-zero at the pinned commit (`CADS_ZERO_REF`, default `e882fab`) with submodules, **built once during the image build** (`cmake --preset itsboard` → `cads-zero.bin`; `host` preset + `ctest` as a second smoke test). `build/itsboard` incl. `compile_commands.json` ships in the seed. |
-| Shims | `/usr/local/bin/st-flash`, `st-info`: Python HTTP clients for the bridge API on `127.0.0.1:3335`. `erase` is refused (lab policy, no mass erase), writes stay inside `0x08000000–0x080FFFFF`. Without a connected board they print `Board-Bridge nicht aktiv – Board im Browser verbinden (CaDS Board Panel)`. |
-| Extensions (Open VSX) | cortex-debug, peripheral-viewer, debug-tracker, memory-view, rtos-views, cmake-tools, vscode-clangd, python, plus every `extensions/*/dist/*.vsix` present at build time |
-| Settings | User settings (`workbench.startupEditor=none`, workspace trust off, CMake presets, clangd args, `cadsTutor.autoOpen`, …) in the image; workspace `.vscode/{settings,tasks,launch,extensions}.json` + `.clangd` written by the entrypoint |
-| CMD | `--bind-addr 0.0.0.0:8080 --app-name "CaDS Firmware Lab" --disable-workspace-trust --disable-telemetry --disable-update-check /home/coder/workspace/cads-zero` – complete, so a plain `docker run` is correct |
+```
+Student's browser                                      Container (code-server, lab/services host)
+┌────────────────────────────────────────┐  WebSocket  ┌──────────────────────────────────────────┐
+│ VS Code workbench (code-server UI)     │◄───────────►│ Node extension host                       │
+│  ├─ web-worker extension host          │executeCommand│  ├─ cads-board-bridge (Node)               │
+│  │   └─ cads-probe (web extension)     │ (both ways) │  │   ├─ GDB-RSP server   127.0.0.1:3333     │
+│  │       ├─ WebUSB  → ST-Link (SWD)    │             │  │   ├─ serial PTY + TCP 127.0.0.1:3334     │
+│  │       └─ WebSerial → VCP console    │             │  │   ├─ HTTP shim API    127.0.0.1:3335     │
+│  └─ webviews (tutor step panel)        │             │  │   └─ status bar, flash/reset commands    │
+└────────────────────────────────────────┘             │  ├─ cads-tutor (Node)  ← course packs      │
+        ▲ USB                                          │  ├─ cortex-debug (servertype external)     │
+   ST-Link + ITSboard                                  │  ├─ clangd, cmake-tools, peripheral-viewer │
+                                                       │  └─ shims: st-flash, st-info → :3335       │
+                                                       │ workspace: /home/coder/workspace/cads-zero │
+                                                       └──────────────────────────────────────────┘
+```
 
-**Not** in the image: OpenOCD, st-util, `/dev/bus/usb`, device cgroup rules. Server-side USB is
-architecturally wrong here (the board is at the student) and does not work under Docker Desktop
-on macOS anyway.
+Three extensions (separate VSIX, one monorepo), all interfaces in [`docs/SPEC.md`](docs/SPEC.md),
+decisions in [`docs/ADRS.md`](docs/ADRS.md):
 
-### Start-up: `image/entrypoint.d/10-seed-workspace.sh`
+| Extension | Host | Role |
+|---|---|---|
+| `cads-probe` | web worker in the browser | WebUSB ST-Link driver (TypeScript port of the hardware-verified webstlink driver: halt instead of reset before flash), WebSerial console, reconnect after replug |
+| `cads-board-bridge` | Node, container | GDB remote server, serial TCP/PTY, HTTP API for the shims, connect/flash/reset/console commands, status bar, cortex-debug configuration provider, exports API |
+| `cads-tutor` | Node, container | course-pack loader, session/progress, step webview, course tree, checks, Socratic hints, "ask the tutor" (tutor-platform grounding), proactive check-ins |
 
-code-server's entrypoint runs every executable in `/entrypoint.d` before starting the server.
-The seed script copies `/opt/cads-seed/cads-zero` to `/home/coder/workspace/cads-zero` if no
-`.git` exists there (student work is never overwritten), then writes the container variants of
-`.vscode/*.json` and `.clangd` (refreshed on every start, marked `skip-worktree` so `git status`
-stays clean), picks the GDB for cortex-debug (toolchain `arm-none-eabi-gdb` if it runs, else
-`gdb-multiarch`), and removes a CMake build tree whose cache points at a different source path.
-It always exits 0.
+All three extensions are on `next` since the bridge merge (`9161df0`); the image tag
+`next-8a20ec9` predates it and contains `cads-tutor` only. The bridge's hardware verification
+(flash, F5, stepping, replug, measurements) is recorded in [`docs/BRIDGE-NOTES.md`](docs/BRIDGE-NOTES.md).
 
-### Tasks and debug configuration in the workspace
+## Repository layout
 
-| Task | Command |
-|---|---|
-| `CaDS: Build` (default build) | `cmake --preset itsboard && cmake --build build/itsboard` |
-| `CaDS: Flash` | `st-flash write build/itsboard/cads-zero.bin 0x08000000 && st-flash reset` |
-| `CaDS: Build + Flash` | both, in sequence |
-| `CaDS: Host tests` (default test) | `cmake --preset host && cmake --build build/host && ctest --test-dir build/host -E '^golden_'` (headless SDL2) |
-| `CaDS: Golden images (informativ)` | the two golden-image tests, expected to differ by SDL rounding in the container (see notes) |
-| `CaDS: RAM budget` | `python3 scripts/check_ram_budget.py build/itsboard/cads-zero.elf` |
+```
+Dockerfile, docker-compose.yml, .dockerignore   image (SPEC §4); compose is for local runs only
+image/entrypoint.d/10-seed-workspace.sh         workspace seed + .vscode/.clangd templates
+image/vscode-templates/                         settings/tasks/launch/extensions.json, clangd.yaml
+image/settings/user-settings.json               code-server user settings baked into the image
+image/shims/st-flash, st-info                   bridge HTTP shims (+ cads_shim_common.py)
+extensions/cads-probe, cads-board-bridge        bridge stream (web + node extension)
+extensions/cads-tutor                           tutor extension
+courses/cads-zero-foundations, cads-zero-projects   course packs (data only), courses/README.md
+deploy/multiuser/                               multi-user stack: fl-broker (host process), Caddy gate, compose, systemd/watchdog
+scripts/run-local.sh, validate-courses.py, tutor-e2e-container.sh
+tests/shims/                                    unittest suite for the shims
+e2e/image-smoke.mjs, e2e/tutor/                 Playwright checks against a running container
+docs/                                           SPEC, ADRs, IMAGE-NOTES, TUTOR-NOTES, MULTIUSER, COURSE-AUTHORING
+example-firmware/, vscode-extension/, webusb-flash/   history: the previous OpenOCD/USB-passthrough lab (see below)
+```
 
-`launch.json`: **Debug CaDS Zero (Board im Browser)** – cortex-debug, `servertype: external`,
-`gdbTarget: 127.0.0.1:3333`, SVD `targets/itsboard/STM32F429.svd`, `preLaunchTask: CaDS: Build + Flash`,
-`overrideLaunchCommands: ["monitor reset halt"]`, `runToEntryPoint: main`; plus an attach variant.
+## Build and test per component
 
-## Building and running locally
+### Image
 
-Requires Docker with BuildKit and a GitHub login (`gh auth login`) that can read the private
-cads-zero repo. The token is passed as a build secret and never stored in the image.
+Needs Docker with BuildKit and a GitHub login (`gh auth login`) that can read the private
+cads-zero repository; the token is passed as a BuildKit secret and never stored in a layer.
 
 ```sh
-cp .env.example .env          # set FIRMWARE_LAB_PASSWORD
-scripts/run-local.sh          # build + run on http://127.0.0.1:8084
-scripts/run-local.sh --fresh  # re-seed the workspace volume
+cp .env.example .env                 # FIRMWARE_LAB_PASSWORD, optional TUTOR_LLM_*
+scripts/run-local.sh                 # package VSIX (if npm is present), build, run on http://127.0.0.1:8084
+scripts/run-local.sh --fresh         # re-seed the workspace volume
 scripts/run-local.sh --stop
 ```
 
-Or with compose: `GH_TOKEN=$(gh auth token) docker compose build && docker compose up -d`.
-
-Manual build: `GH_TOKEN=$(gh auth token) docker build --secret id=gh_token,env=GH_TOKEN -t cads-firmware-lab .`
+Manual: `GH_TOKEN=$(gh auth token) docker build --secret id=gh_token,env=GH_TOKEN -t cads-firmware-lab .`
 Build args: `CADS_ZERO_REF` (commit to seed), `CADS_SKIP_HOST_BUILD=1`, `CADS_KEEP_HOST_BUILD=1`.
+The image build itself is a test: it runs `cmake --preset itsboard`, the host preset and
+`ctest -E '^golden_'`; a failing build fails the image. Results, size, timings and every
+deviation from the spec: [`docs/IMAGE-NOTES.md`](docs/IMAGE-NOTES.md).
 
-The build takes a while (toolchain download ≈150 MB, firmware and host builds); on the 2-CPU
-Docker Desktop VM used for development it is 20–40 minutes, on the lab host a few minutes.
+- Shims: `python3 -m unittest discover -s tests/shims -v` (mock HTTP bridge, no Docker).
+- Browser smoke test against a running container:
+  `CADS_LAB_PASSWORD=… node e2e/image-smoke.mjs` (login, workspace, `CaDS: Build`, `st-info --probe`).
 
-CI: `.github/workflows/image.yml` builds amd64 and arm64 natively and pushes a multi-arch
-manifest to `ghcr.io/scimbe/cads-firmware-lab` (`<branch>-<shortsha>`, `<branch>`, `latest` on
-`main`). It needs the repository secret `CADS_ZERO_TOKEN` (see `docs/IMAGE-NOTES.md`).
+### Extensions
 
-Lab deployment (`docker run`, no compose, port `127.0.0.1:8083`; add
-`-e CMAKE_BUILD_PARALLEL_LEVEL=<n>` on small hosts):
+Each of `extensions/*` is a TypeScript strict / Node 22 project with the same scripts:
+
+```sh
+npm ci
+npm run typecheck
+npm test               # node:test, no VS Code needed
+npm run package        # esbuild bundle + vsce package --no-dependencies → dist/*.vsix
+```
+
+`dist/` and `*.vsix` are git-ignored; `scripts/run-local.sh` and the CI package them before the
+image build, so a Docker build from a bare checkout yields "CaDS extensions installed: 0" by
+design. Tutor notes and deviations: [`docs/TUTOR-NOTES.md`](docs/TUTOR-NOTES.md); the tutor's
+container integration test: `scripts/tutor-e2e-container.sh <cads-zero>` (see `e2e/tutor/README.md`).
+
+### Courses
+
+Course packs are data (`course.json` + Markdown steps with front matter), see
+[`docs/COURSE-AUTHORING.md`](docs/COURSE-AUTHORING.md) and [`courses/README.md`](courses/README.md).
+Validate before committing:
+
+```sh
+scripts/validate-courses.py /path/to/cads-zero --nm /path/to/arm-none-eabi-nm
+```
+
+### Multi-user stack
+
+```sh
+python3 -m unittest deploy/multiuser/broker/test_fl_broker.py   # broker, simulated Docker
+deploy/multiuser/broker/it_local.sh                             # broker against real local Docker
+```
+
+Design: [`docs/MULTIUSER.md`](docs/MULTIUSER.md); operation and local end-to-end test with a stub
+gate: [`deploy/multiuser/README.md`](deploy/multiuser/README.md).
+
+## CI and registry
+
+`.github/workflows/image.yml` builds amd64 and arm64 natively on every push to `next`/`main`
+that touches the image, extensions or courses, packages the VSIX, and pushes a multi-arch
+manifest to `ghcr.io/scimbe/cads-firmware-lab` tagged `<branch>-<shortsha>`, `<branch>` and
+(`main` only) `latest`. Required repository secret: `CADS_ZERO_TOKEN` (read-only token for
+cads-zero, see IMAGE-NOTES). Deploy immutable tags.
+
+## Running the image
+
+The image's `CMD` carries every flag that matters (`--disable-workspace-trust` included, ADR-006),
+so a plain `docker run` is correct; do not append arguments after the image name.
 
 ```sh
 docker run -d --name firmware-lab -p 127.0.0.1:8083:8080 \
-  -e PASSWORD=... -e TUTOR_LLM_BASE_URL=... -e TUTOR_LLM_API_KEY=... -e TUTOR_LLM_MODEL=... \
-  -v firmware-lab-workspace:/home/coder/workspace cads-firmware-lab
+  -e PASSWORD=… -e TUTOR_LLM_BASE_URL=… -e TUTOR_LLM_API_KEY=… -e TUTOR_LLM_MODEL=… \
+  -v firmware-lab-workspace:/home/coder/workspace ghcr.io/scimbe/cads-firmware-lab:<tag>
 ```
 
-## Tests
+Add `-e CMAKE_BUILD_PARALLEL_LEVEL=<n>` on small hosts. The workspace volume is seeded on the
+first start only and never overwritten by a new image.
 
-- Shims: `python3 -m unittest discover -s tests/shims -v` (mock HTTP bridge, no Docker).
-- Image: the firmware build and host `ctest` run inside `docker build`; a failing build fails the image.
-- Browser: see `docs/IMAGE-NOTES.md` for the Playwright checks done against the local container.
+## History
 
-## Status and known gaps
+`example-firmware/`, `vscode-extension/codereview-tutor.vsix` and `webusb-flash/` belong to the
+previous lab (OpenOCD in the container, server-side USB pass-through, a separate WebUSB flash
+tab). They are excluded from the build context and not used by the image; server-side USB was
+dropped because the board is at the student (ADR-001) and it does not work under Docker
+Desktop on macOS anyway. `webusb-flash/vendor/webstlink-src` remains the hardware-verified
+driver source that `cads-probe` ports from. Removing the directories is a `next`-branch decision.
 
-See [`docs/IMAGE-NOTES.md`](docs/IMAGE-NOTES.md) for verification results, image size, build
-times, and every deviation from the spec. Legacy directories from the previous OpenOCD-based
-lab (`example-firmware/`, `vscode-extension/codereview-tutor.vsix`) are not used by the image
-anymore; `webusb-flash/vendor/webstlink-src` is the hardware-verified driver source the
-`cads-probe` stream ports from.
+## Conventions (SPEC §7)
 
-## Repository layout (SPEC §7)
-
-```
-Dockerfile, docker-compose.yml, .dockerignore
-image/entrypoint.d/10-seed-workspace.sh   workspace seed + .vscode/.clangd templates
-image/vscode-templates/                   settings/tasks/launch/extensions.json, clangd.yaml
-image/settings/user-settings.json         code-server user settings
-image/shims/st-flash, st-info             bridge HTTP shims (+ cads_shim_common.py)
-tests/shims/                              unittest suite for the shims
-scripts/run-local.sh                      build + run on 127.0.0.1:8084
-extensions/                               cads-probe, cads-board-bridge, cads-tutor (other streams)
-courses/                                  course packs (other stream)
-docs/SPEC.md, docs/IMAGE-NOTES.md
-```
+TypeScript strict, Node 22, `npm test` per extension, small conventional commits
+(`feat(bridge): …`), no secrets in the repository, hardware tests only on the bridge stream
+(one ST-Link). "Done" means built, tested, verified in the local container with Playwright,
+and for hardware paths verified with the real board.
