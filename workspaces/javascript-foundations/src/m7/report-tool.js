@@ -1,4 +1,4 @@
-// m7-01-capstone-design / m7-02-capstone-build
+// m7-02-capstone-build (designed in m7-01-capstone-design)
 //
 // A small data-processing tool. Everything here is yours to write; the tests in
 // test/m7-02-capstone-build.test.js define the contract exactly.
@@ -38,6 +38,8 @@
 // ReportError extends Error, has name "ReportError", an optional .line, and
 // forwards the standard error options so `new ReportError(msg, undefined,
 // { cause })` keeps the original error reachable as .cause.
+
+import "../course-hint.js"; // prints guidance if this file is run directly
 
 export class ReportError extends Error {
   constructor(message, line, options) {

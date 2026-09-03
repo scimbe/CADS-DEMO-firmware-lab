@@ -35,6 +35,9 @@ misconceptions:
   - pattern: "Set READY to true"
     question: { en: "The test is still reading false. Was the file saved, and was it the file under src/?", de: "Der Test liest weiterhin false. Wurde die Datei gespeichert, und war es die Datei unter src/?" }
     hints: [ { en: "An unsaved file shows a dot instead of a cross on its editor tab. Ctrl+S (Cmd+S) saves it.", de: "Eine ungespeicherte Datei zeigt auf ihrem Editor-Tab einen Punkt statt eines Kreuzes. Strg+S (Cmd+S) speichert sie." }, { en: "Check the path in the tab: it must be src/m0/ready.js, not test/m0-01-using-the-ide.test.js.", de: "Prüfe den Pfad im Tab: er muss src/m0/ready.js sein, nicht test/m0-01-using-the-ide.test.js." }, { en: "Node reads the file from disk at every run, so an unsaved change cannot be seen.", de: "Node liest die Datei bei jedem Lauf von der Platte, eine ungespeicherte Änderung ist also unsichtbar." } ]
+  - pattern: "is an exercise, not a program"
+    question: { en: "You ran the exercise file itself. Which folder holds the files that actually check your work?", de: "Du hast die Übungsdatei selbst ausgeführt. In welchem Ordner liegen die Dateien, die deine Arbeit wirklich prüfen?" }
+    hints: [ { en: "Files under src/ only export functions; on their own they compute nothing and print nothing.", de: "Dateien unter src/ exportieren nur Funktionen; für sich allein berechnen sie nichts und geben nichts aus." }, { en: "The reminder you just saw names the exact command - it ends in test/<step-id>.test.js.", de: "Der eben gezeigte Hinweis nennt den genauen Befehl - er endet auf test/<step-id>.test.js." }, { en: "In this course you run files under test/ and edit files under src/, never the other way round.", de: "In diesem Kurs führst du Dateien unter test/ aus und änderst Dateien unter src/, nie umgekehrt." } ]
 ---
 ## Learning goal
 
@@ -139,6 +142,14 @@ If instead you see `Could not find 'test/…'`, the terminal is in the wrong fol
 
 
 Files under `test/` are the marking scheme. Editing one to make it pass is the one move that will not help you anywhere in this course.
+
+One more thing worth trying once, because the answer is not obvious:
+
+```bash
+node src/m0/ready.js
+```
+
+Running an exercise file directly does **not** check anything. Exercise files only export functions for a test to call, so on their own they compute nothing and print nothing. Rather than leave you staring at an empty terminal, each one prints a reminder naming the command that does check your work. The rule behind it: in this course you run files under `test/`, never files under `src/`.
 
 ## How you know it worked
 

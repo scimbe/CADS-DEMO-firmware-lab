@@ -5,6 +5,8 @@
 //   arguments object (an arrow function has no arguments object).
 // Both currently throw.
 
+import "../course-hint.js"; // prints guidance if this file is run directly
+
 export function joinWords(separator, ...words) {
   throw new Error("TODO: default the separator and join the rest parameter");
 }

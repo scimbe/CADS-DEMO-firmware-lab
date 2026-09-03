@@ -1,4 +1,6 @@
 // m5-03-arrays (reference solution)
+
+import "../course-hint.js"; // prints guidance if this file is run directly
 export function addTask(list, task) {
   return [...list, task];
 }

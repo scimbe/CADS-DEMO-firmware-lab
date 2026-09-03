@@ -4,6 +4,8 @@
 // Both functions currently return wrong answers without throwing. Run the
 // test, look at the actual values, and explain each one before fixing it.
 
+import "../course-hint.js"; // prints guidance if this file is run directly
+
 export function sumStrings(list) {
   let total = 0;
   for (const item of list) {

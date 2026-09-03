@@ -4,6 +4,8 @@
 //                        twice on wait(ms) - no async/await in this step
 // Neither returns a Promise yet, so the caller has nothing to await.
 
+import "../course-hint.js"; // prints guidance if this file is run directly
+
 export function wait(ms) {
   throw new Error("TODO: return a Promise that resolves after ms");
 }

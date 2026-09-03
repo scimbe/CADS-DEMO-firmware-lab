@@ -10,6 +10,8 @@
 // that initialises it onward. Move exactly what has to move - do not turn the
 // arrow function into a declaration.
 
+import "../course-hint.js"; // prints guidance if this file is run directly
+
 export const DEFAULT_BANNER = buildBanner("world");
 
 export function buildBanner(name) {

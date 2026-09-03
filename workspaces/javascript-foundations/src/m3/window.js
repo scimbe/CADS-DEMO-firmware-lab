@@ -5,6 +5,8 @@
 // Both functions have an off-by-one error. Run the test first and read the
 // TypeError before you change a comparison operator.
 
+import "../course-hint.js"; // prints guidance if this file is run directly
+
 export function lastThree(list) {
   const out = [];
   for (let i = list.length - 3; i <= list.length; i++) {

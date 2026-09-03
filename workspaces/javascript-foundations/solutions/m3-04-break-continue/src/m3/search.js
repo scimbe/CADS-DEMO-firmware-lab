@@ -1,4 +1,6 @@
 // m3-04-break-continue (reference solution)
+
+import "../course-hint.js"; // prints guidance if this file is run directly
 export function stripComments(lines) {
   const out = [];
   for (const line of lines) {

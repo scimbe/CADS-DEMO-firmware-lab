@@ -1,4 +1,6 @@
 // m7-02-capstone-build (reference solution)
+
+import "../course-hint.js"; // prints guidance if this file is run directly
 export class ReportError extends Error {
   constructor(message, line, options) {
     super(message, options);

@@ -1,4 +1,6 @@
 // m3-01-for-and-while (reference solution)
+
+import "../course-hint.js"; // prints guidance if this file is run directly
 export function countUp(n) {
   const out = [];
   for (let i = 1; i <= n; i++) {

@@ -8,6 +8,8 @@
 //    - user.age is not a number between 0 and 150 (field "age")
 //    and returns the user unchanged otherwise.
 
+import "../course-hint.js"; // prints guidance if this file is run directly
+
 export function validateUser(user) {
   throw new Error("TODO: validate name and age, throw ValidationError");
 }

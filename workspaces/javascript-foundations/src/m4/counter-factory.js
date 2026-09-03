@@ -4,6 +4,8 @@
 // makeAdders(list) -> one function per number in the list; adders[i](x)
 //   returns list[i] + x. The version below captures the wrong thing.
 
+import "../course-hint.js"; // prints guidance if this file is run directly
+
 export function makeCounter(start) {
   throw new Error("TODO: keep `start` in a closure");
 }
