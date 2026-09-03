@@ -57,6 +57,13 @@ If the bottom panel is not visible, the menu **View > Terminal** brings it back.
 
 ## Three ways to run something
 
+![The application menu open on Terminal, showing New Terminal at the top and Run Task lower down](ide-terminal-menu.png)
+*Route 1 and route 3 in one picture: the menu button at the top left, then **Terminal**. **New Terminal** opens a shell at the bottom; **Run Task…** offers the prepared commands.*
+
+![The command palette open with the text Terminal: Create New Terminal typed into it](ide-command-palette.png)
+*Route 2: **F1** opens the command palette. It arrives with a `>` already in the box - leave it there, type the first letters of the command, and press Enter.*
+
+
 All three do the same thing. Learn all three; different steps mention different ones.
 
 1. **The integrated terminal.** Menu **Terminal > New Terminal**. A shell opens at the bottom. Type the command and press Enter. This is the route this course uses by default, because you can see the exact command and its exact output together.
@@ -64,6 +71,10 @@ All three do the same thing. Learn all three; different steps mention different 
 3. **A task.** Menu **Terminal > Run Task…**, then pick one from the list. A task is a command someone has already written down for you; its output appears in the panel under **Terminal**, in a tab named after the task.
 
 ## How you know a command has finished
+
+![The integrated terminal showing a failing test: the assertion message, the file it came from, and the prompt back at the bottom](ide-test-failing.png)
+*What a failing run looks like: the terminal panel at the bottom, the cross and the assertion message, and the prompt back at the end - the command has finished, it simply did not pass.*
+
 
 Two signals, and they are worth learning now:
 
@@ -113,7 +124,19 @@ node --test test/m0-01-using-the-ide.test.js
 
 **4. Change the right file.** Open [`src/m0/ready.js`](file:src/m0/ready.js) in the Explorer, change `false` to `true` on the last line, and save with **Ctrl+S** (**Cmd+S** on a Mac). An unsaved tab shows a dot instead of a cross - Node reads the file from disk, so an unsaved change is invisible to it.
 
+![The editor with READY changed to true and a dot instead of a cross on the ready.js tab](ide-edit-unsaved.png)
+*The dot on the tab means the change is only in the editor. Node reads the file from disk, so save with **Ctrl+S** before running the command again.*
+
 Then run the same command again. Press the **Up arrow** in the terminal to bring it back rather than retyping it.
+
+![The terminal showing the same test passing, with pass 1 and fail 0](ide-test-passing.png)
+*What success looks like: a green tick, `pass 1` and `fail 0`, and the tab back to a cross because the file is saved.*
+
+If instead you see `Could not find 'test/…'`, the terminal is in the wrong folder - a new terminal starts in `~/workspace`, one level above the exercises:
+
+![The terminal reporting Could not find the test file because it is one folder too high](ide-wrong-folder.png)
+*The prompt says `~/workspace`, not `~/workspace/javascript-foundations`. `cd javascript-foundations` fixes it, and the Up arrow brings the command back.*
+
 
 Files under `test/` are the marking scheme. Editing one to make it pass is the one move that will not help you anywhere in this course.
 

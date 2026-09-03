@@ -57,6 +57,13 @@ Ist das untere Panel nicht sichtbar, holt es das Menü **View > Terminal** zurü
 
 ## Drei Wege, etwas auszuführen
 
+![Das Anwendungsmenü ist auf Terminal geöffnet und zeigt oben New Terminal und weiter unten Run Task](ide-terminal-menu.png)
+*Weg 1 und Weg 3 in einem Bild: die Menü-Schaltfläche links oben, dann **Terminal**. **New Terminal** öffnet unten eine Shell; **Run Task…** bietet die vorbereiteten Befehle an.*
+
+![Die Befehlspalette ist geöffnet, darin steht Terminal: Create New Terminal](ide-command-palette.png)
+*Weg 2: **F1** öffnet die Befehlspalette. Sie kommt mit einem `>` im Feld - lass es stehen, tippe die ersten Buchstaben des Befehls und drück Enter.*
+
+
 Alle drei tun dasselbe. Lern alle drei; verschiedene Steps nennen verschiedene.
 
 1. **Das integrierte Terminal.** Menü **Terminal > New Terminal**. Unten öffnet sich eine Shell. Befehl tippen, Enter drücken. Das ist der Standardweg dieses Kurses, weil du den genauen Befehl und seine genaue Ausgabe zusammen siehst.
@@ -64,6 +71,10 @@ Alle drei tun dasselbe. Lern alle drei; verschiedene Steps nennen verschiedene.
 3. **Ein Task.** Menü **Terminal > Run Task…**, dann einen aus der Liste wählen. Ein Task ist ein Befehl, den jemand für dich vorbereitet hat; seine Ausgabe erscheint im Panel unter **Terminal**, in einem nach dem Task benannten Tab.
 
 ## Woran du erkennst, dass ein Befehl fertig ist
+
+![Das integrierte Terminal zeigt einen fehlschlagenden Test: die Assertion-Meldung, die Datei, aus der sie kam, und den Prompt am Ende](ide-test-failing.png)
+*So sieht ein fehlgeschlagener Lauf aus: das Terminal-Panel unten, das Kreuz und die Assertion-Meldung, und der Prompt wieder da - der Befehl ist fertig, er ist nur nicht bestanden.*
+
 
 Zwei Signale, und die lohnen sich jetzt:
 
@@ -113,7 +124,19 @@ node --test test/m0-01-using-the-ide.test.js
 
 **4. Die richtige Datei ändern.** Öffne [`src/m0/ready.js`](file:src/m0/ready.js) im Explorer, ändere in der letzten Zeile `false` zu `true` und speichere mit **Strg+S** (**Cmd+S** auf dem Mac). Ein ungespeicherter Tab zeigt einen Punkt statt eines Kreuzes - Node liest die Datei von der Platte, eine ungespeicherte Änderung ist für Node also unsichtbar.
 
+![Der Editor zeigt READY auf true geändert und einen Punkt statt eines Kreuzes im Tab ready.js](ide-edit-unsaved.png)
+*Der Punkt im Tab heißt, dass die Änderung nur im Editor steht. Node liest die Datei von der Platte, also speichere mit **Strg+S**, bevor du den Befehl erneut ausführst.*
+
 Führ danach denselben Befehl erneut aus. Drück im Terminal die **Pfeil-nach-oben-Taste**, um ihn zurückzuholen, statt ihn abzutippen.
+
+![Das Terminal zeigt denselben Test bestanden, mit pass 1 und fail 0](ide-test-passing.png)
+*So sieht Erfolg aus: ein grüner Haken, `pass 1` und `fail 0`, und im Tab wieder ein Kreuz, weil die Datei gespeichert ist.*
+
+Siehst du stattdessen `Could not find 'test/…'`, steht das Terminal im falschen Ordner - ein neues Terminal startet in `~/workspace`, eine Ebene über den Übungen:
+
+![Das Terminal meldet, dass es die Testdatei nicht findet, weil es einen Ordner zu hoch steht](ide-wrong-folder.png)
+*Der Prompt zeigt `~/workspace`, nicht `~/workspace/javascript-foundations`. `cd javascript-foundations` behebt es, und die Pfeil-nach-oben-Taste holt den Befehl zurück.*
+
 
 Dateien unter `test/` sind das Prüfschema. Eine davon zu ändern, damit sie besteht, ist der eine Handgriff, der dir in diesem Kurs nirgends hilft.
 
