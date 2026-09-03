@@ -285,3 +285,119 @@ found`), aber beim Auslösen von `cads.probe.requestDevices({serial:true})` feue
 öffnet den Dialog an CDP vorbei. Damit ist die Automatisierung dieses einen Klicks endgültig
 ausgeschlossen; `16-board-console.png` entstand deshalb über die Mac-VCP in einem Labor-Terminal,
 und die Bildunterschrift in der Doku sagt das ausdrücklich.
+
+## Board-Verfügbarkeit, Selbstheilung und Poller-Drosselung (2026-09-03)
+
+Ausgelöst durch den Betrieb, nicht durch die Spezifikation: drei der vier Wege, auf denen dieses
+Board unbenutzbar wurde, treffen Studierende genauso wie den Testlauf. Sie sind jetzt behandelt.
+
+### 1. „Wer hält das Board?" – Web-Lock je Browserprofil
+
+WebUSB ist exklusiv **je Browserprozess**. Ein zweiter Lab-Tab scheiterte deshalb mit
+`NetworkError: Unable to claim interface` – ununterscheidbar von einem Hardwaredefekt. `cads-probe`
+nimmt jetzt vor dem ersten USB-Zugriff einen Web-Lock, benannt nach dem konkreten Gerät
+(`cads-board-<vendorId>-<productId>-<serial>`). Web-Locks gelten profilweit, also über alle Tabs
+und Worker hinweg, und die Entscheidung fällt, **bevor** das Gerät geöffnet wird.
+
+`ifAvailable: true` macht Prüfung und Erwerb zu einem Schritt. `navigator.locks.query()` wird nur
+für die Diagnose benutzt – ein reines query-dann-open hätte ein Zeitfenster, in dem zwei Tabs
+gleichzeitig zu dem Schluss kommen, das Board sei frei.
+
+### 2. Fehlerklassifikation statt DOMException
+
+`diagnoseOpenFailure()` bildet das rohe Scheitern auf einen Grund ab, `messages.ts` macht daraus
+deutschen und englischen Text mit **Ursache und nächstem Schritt**:
+
+| Grund | Woran erkannt | Was der Studierende liest (gekürzt) |
+|---|---|---|
+| `other-tab` | unser Web-Lock ist belegt | „…wird bereits in einem anderen Tab benutzt." → Tab schließen oder dort freigeben |
+| `other-app` | `Unable to claim interface`, `Access denied`, `NetworkError` | „Ein anderes Programm hält das Board." → st-flash/st-util/CubeProgrammer beenden |
+| `gone` | `NotFoundError`, `InvalidStateError`, „disconnected" | „Das Board ist nicht mehr da." → Kabel prüfen |
+| `denied` | `SecurityError`, `NotAllowedError` | „Freigabe zurückgezogen." → erneut verbinden, im Dialog auswählen |
+| `target-unresponsive` | core id / CPUID lesen 0 oder 0xffffffff | „Der Debug-Adapter reagiert nicht mehr." → Kabel neu stecken |
+
+Wichtig: **`other-tab` und `other-app` erzeugen im Browser exakt dieselbe Exception.** Der
+Web-Lock ist das einzige Signal, das sie trennt. Ohne ihn wäre die Unterscheidung geraten.
+
+Der Treiber bleibt frei von UI-Texten – er liefert nur den Code. Die Shims (`st-flash`, `st-info`)
+bekommen denselben Grund über `/status` und drucken ihn zweisprachig; `probeText()` behält dabei
+`Found 0 stlink programmers` als erste Zeile, damit Skripte, die darauf greppen, weiter laufen.
+
+### 3. Defensiver Wiedereinstieg statt Vertrauen auf sauberes Beenden
+
+Der häufigste Alltagsfall ist der Tab, der einfach geschlossen wird – dabei läuft **kein**
+Aufräumcode, in keinem Browser. Ein Sterbeprotokoll allein reicht deshalb nicht.
+
+`identifyWithRecovery()` nimmt beim Verbinden grundsätzlich an, dass die letzte Sitzung unsauber
+endete, und stellt den Zustand aktiv her (dieselbe Logik wie bei einer halboffenen
+TCP-Verbindung: nicht auf den Abbau hoffen, sondern den definierten Zustand herstellen):
+
+1. `leaveState()` + `enterDebugSwd()` + `readCoreId()` – die Software-Hälfte von
+   `--connect-under-reset`.
+2. Dasselbe mit **NRST auf low**, dazwischen `resetHalt()`, danach NRST wieder freigeben.
+3. Danach Schluss: `target-unresponsive`, und die Meldung mit Schaltfläche „Erneut verbinden".
+
+Höchstens zwei Versuche. Ein Treiber, der so etwas endlos wiederholt, hält nur einen kaputten
+Adapter beschäftigt und verdeckt die eigentliche Ursache.
+
+**Empirischer Stand, ehrlich:** Die Kette ist gegen den Mock verifiziert (Test „a desynchronised
+ST-Link is repaired by re-entering SWD, without a replug"), am **echten** gewedgten Adapter aber
+noch nicht durchgemessen – während dieses Laufs ist kein Wedge mehr aufgetreten. Was am realen
+Gerät im schweren Fall schon belegt ist: `clearHalt` auf beiden Pipes läuft durch und ändert
+nichts, `device.reset()` wirft `NetworkError: Unable to reset the device`, und
+`st-info --probe --connect-under-reset` half beim **leichten** Wedge (Versionszeile noch
+`V2J33S25`), beim schweren nicht (Versionszeile nur noch `V2`). Diese Versionszeile ist damit das
+brauchbarste Unterscheidungsmerkmal, und sie steht so auch in der Troubleshooting-Doku.
+`forget()` + erneutes `requestDevice()` ist ungetestet, weil es einen Chooser-Klick erfordert.
+
+Zusätzlich: Freigabe bei `deactivate()`, bei `onDidChangeWindowState` (unfokussiert), und
+optional nach Leerlauf (`cads.board.idleReleaseSeconds`, Default 0 = aus). `visibilitychange`
+und `pagehide` sind im Web-Worker-Extension-Host **nicht** erreichbar – dort gibt es kein
+`document`; `onDidChangeWindowState` ist das nächstliegende Äquivalent, das VS Code anbietet.
+
+### 4. Poller-Drosselung
+
+Der DHCSR-Poller lief mit festen 100 ms, solange ein Board verbunden war. In einer neunminütigen
+Leerlaufphase waren das rund 5000 USB-Transfers ohne jede Aussage, und am Ende fiel die
+Verbindung aus. **Zuordnung offen:** parallel dazu hat ein anderer Prozess mehrfach
+`st-info --probe` auf denselben ST-Link abgesetzt, was denselben Effekt erklärt. Der Poller ist
+damit *eine* plausible Ursache, nicht die bewiesene – sinnlos war der Verkehr in jedem Fall.
+
+Neu: Leiter 100 ms → 500 ms → 2 s, jeweils nach `POLL_STEPS_PER_RUNG` Ticks ohne Zustandswechsel;
+jeder Halt, Lockup oder `noteActivity()` setzt auf die schnellste Stufe zurück; unfokussiertes
+Fenster stoppt den Poller ganz. `usbTransfers` steht in `ProbeStatus` und in der Flash-Logzeile,
+damit sinnloser Verkehr künftig sichtbar ist, statt entdeckt zu werden, wenn es zu spät ist.
+
+### 5. Flash bleibt unantastbar
+
+`release()` verweigert die Arbeit, solange `isFlashing` gilt, und der Flash-Pfad setzt das Flag
+zwischen erstem Erase und `resetHalt()` in einem `try/finally`. Kein Freigabepfad – Kommando,
+Leerlauf-Timer, Fenster-Wechsel, Timeout-Recovery – kann ein halb geschriebenes Image hinterlassen.
+
+Nach einem Transfer-Timeout wird **genau einmal** neu verbunden (`recoverAfterTimeout()`).
+Scheitert das erneut, gilt das Board als getrennt und die Nutzerführung erscheint; endlose
+Wiederholungen halten nur den Adapter beschäftigt.
+
+### 6. Massenspeicher an der Wurzel
+
+`scripts/setup-host-macos.sh` trägt idempotent `LABEL=NOD_F429ZI none msdos rw,noauto` in
+`/etc/fstab` ein und nimmt das Volume von Spotlight aus; `--undo` nimmt beides zurück, und das
+Skript zeigt jede Änderung vorher an. `scripts/60-cads-stlink.rules` macht dasselbe unter Linux
+und erteilt zusätzlich die USB-Rechte, ohne die der Browser das Gerät nicht öffnen kann.
+**Ausgeführt wurde das Skript hier nicht** – ein Eingriff in `/etc/fstab` gehört dem Besitzer des
+Rechners.
+
+Zur Adapter-Firmware ohne Massenspeicher: STs Upgrade-Werkzeug STSW-LINK007 bietet eine solche
+Variante an. Auf diesem Rechner ist das Werkzeug **nicht installiert** (weder in `/Applications`
+noch als `STLinkUpgrade` im Pfad), und ich habe die ST-Link-Firmware **nicht** angefasst. Ein
+fehlgeschlagenes Adapter-Firmware-Update macht den Adapter unbrauchbar; das entscheidet der
+Operator. In der Doku steht die Rangfolge Firmware ohne Massenspeicher > fstab-Eintrag >
+Aushänge-Dienst, mit dem Firmware-Punkt ausdrücklich als „hier nicht verifiziert" markiert.
+
+### Tests
+
+`cads-probe` 35 (Lock-Konkurrenz, Namensstabilität, Verhalten ohne Web-Locks, fünf
+Klassifikationsfälle, geglückte und aufgegebene Recovery, `release()` gibt den Lock frei,
+Flash-Schutz, Poller-Backoff, Funkstille im Leerlauf), `cads-board-bridge` 34 (jede Meldung nennt
+Ursache und Schritt in beiden Sprachen, keine DOMException-Formulierung dringt durch, Shim-Text
+zweisprachig und leer bei verbundenem Board). Beide Extensions bauen.
