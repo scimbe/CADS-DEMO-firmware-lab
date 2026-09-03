@@ -122,6 +122,11 @@
         "command": "cads.tutor.showOutput",
         "title": "%commands.9.title%",
         "category": "CaDS Tutor"
+      },
+      {
+        "command": "cads.tutor.showOrientation",
+        "title": "%commands.10.title%",
+        "category": "CaDS Tutor"
       }
     ],
     "menus": {

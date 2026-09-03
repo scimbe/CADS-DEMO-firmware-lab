@@ -23,6 +23,7 @@ function baseView(extra: Partial<StepView> = {}): StepView {
     llmConfigured: true,
     bridgeAvailable: false,
     scaffold: "independent",
+    hasBoard: false,
     ...extra,
   };
 }

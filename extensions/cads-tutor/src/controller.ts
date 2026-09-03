@@ -7,6 +7,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { SERIAL_ERROR_PATTERNS, type BoardBridgeApi } from "./bridge";
+import { actionLabels, actionsForCheck, allowedActions, BOARD_COMMANDS, courseCapabilities, isBoardAction, type ActionKind } from "./actions";
 import { runCommand } from "./checks/commandRunner";
 import { failedTestNames } from "./checks/testParsers";
 import { DEFAULT_PREDICTION_MIN_CHARS, isLocalCheck, referencedFiles, runCheck, type CheckContext, type CheckResult } from "./checks/runner";
@@ -48,6 +49,7 @@ import {
   writeSession,
 } from "./session";
 import { eventTrigger, hintTierForFailures, selectInsight, selectTaskHint, type MatchedInsight } from "./socratic";
+import { TutorTerminal, type TerminalLike } from "./terminal";
 import { CoursesTreeProvider, type TreeNode } from "./tree";
 import { loc, stepKey, type Course, type Lang, type LoadDiagnostic, type SessionState, type Step, type StepContent, type TaskSpec, type TaskState, type TaskStatus } from "./types";
 import { DebugStopTracker, ensureBridge, runShellTask, runTaskByLabel } from "./vscodeChecks";
@@ -82,6 +84,11 @@ export class TutorController implements vscode.Disposable {
   private pendingNote: NoteView | undefined;
   private reloadTimer: NodeJS.Timeout | undefined;
   private disposed = false;
+  /** One terminal for the whole session, created lazily on the first Run in terminal. */
+  private readonly terminal = new TutorTerminal({
+    find: (name) => vscode.window.terminals.find((t) => t.name === name) as TerminalLike | undefined,
+    create: (name) => vscode.window.createTerminal({ name, cwd: this.terminalCwd() }) as TerminalLike,
+  });
 
   constructor(private readonly context: vscode.ExtensionContext) {
     this.panel = new StepPanel(context.extensionUri, () => this.courses.map((c) => vscode.Uri.file(c.dir)));
@@ -446,6 +453,7 @@ export class TutorController implements vscode.Disposable {
         manual,
         live: isLocalCheck(t.check),
         predict: t.check.type === "predict" ? this.predictView(t, state, lang) : undefined,
+        actions: this.actionViews(course, t, lang),
       };
     });
     const ref = (s: Step | undefined): StepRef | undefined => (s ? { stepId: s.id, title: this.contentFor(s).meta.title } : undefined);
@@ -484,7 +492,53 @@ export class TutorController implements vscode.Disposable {
       scaffold: enMeta.scaffold,
       recall: this.recallView(course, step, lang),
       reflection: this.reflectionView(course, step, lang),
+      orientation: this.orientationDue(course) ? { board: this.capabilitiesFor(course).has("board") } : undefined,
+      hasBoard: this.capabilitiesFor(course).has("board"),
+      nextAction: this.nextActionText(course, step, tasks, lang),
     };
+  }
+
+  private readonly capabilityCache = new Map<string, Set<"board">>();
+
+  /** A4 correction: board actions only where the course actually uses hardware. */
+  private capabilitiesFor(course: Course): Set<"board"> {
+    let caps = this.capabilityCache.get(course.manifest.id);
+    if (!caps) {
+      caps = courseCapabilities(course);
+      this.capabilityCache.set(course.manifest.id, caps);
+      this.log(`[${course.manifest.id}] capabilities: ${[...caps].join(", ") || "none"}`);
+    }
+    return caps;
+  }
+
+  /** The buttons a task offers, after capability and bridge gating. */
+  private actionViews(course: Course, task: TaskSpec, lang: Lang) {
+    const cfg = vscode.workspace.getConfiguration("cadsTutor");
+    const derived = actionsForCheck(task.check, { buildTaskLabel: cfg.get<string>("buildTaskLabel", "CaDS: Build") });
+    const allowed = allowedActions(derived, {
+      capabilities: this.capabilitiesFor(course),
+      bridgeAvailable: !!this.bridge,
+    });
+    return allowed.map((a) => ({ kind: a.kind, arg: a.arg, ...actionLabels(a, lang) }));
+  }
+
+  /**
+   * The single next thing to do, shown in the header and refreshed after every
+   * check. A student who is lost needs one instruction, not a status report.
+   */
+  private nextActionText(course: Course, step: Step, tasks: TaskView[], lang: Lang): string | undefined {
+    const s = ui(lang);
+    const open = tasks.find((t) => t.status !== "passed");
+    if (open) return s.nextTaskIs(open.title);
+    const next = adjacentStep(course, step.id, 1);
+    if (next) return s.nextStepIs(this.contentFor(next).meta.title);
+    return s.allTasksDone;
+  }
+
+  /** Orientation is shown once, before the first step of a session that has no progress. */
+  private orientationDue(course: Course): boolean {
+    if (this.session.orientationSeen) return false;
+    return Object.keys(this.session.steps).length === 0 && !!course;
   }
 
   /**
@@ -658,6 +712,12 @@ export class TutorController implements vscode.Disposable {
         case "reflection":
           await this.saveReflection(m.answers);
           return;
+        case "action":
+          await this.runAction(m.taskId, m.kind, m.arg);
+          return;
+        case "dismissOrientation":
+          this.dismissOrientation();
+          return;
         case "ask":
           await this.ask(m.question);
           return;
@@ -782,6 +842,7 @@ export class TutorController implements vscode.Disposable {
         hint = await this.escalate(cur, task, rec.state.failures, result.message, opts.silent ?? false, reason, result);
       }
       this.postTask(cur, task, result.status, result.message, hint);
+      this.postNextAction(cur);
       if (rec.stepCompleted || (!wasDone && stepStatus(this.session, cur.course, cur.step, this.courses) === "done")) {
         this.onStepCompleted(cur, rec.unlocked);
       }
@@ -792,6 +853,22 @@ export class TutorController implements vscode.Disposable {
     } finally {
       this.running.delete(key);
     }
+  }
+
+  /**
+   * Recomputes the one-line "what now" in the header. After a failed check this
+   * is the difference between "Fehler" and knowing which task to return to.
+   */
+  private postNextAction(cur: { course: Course; step: Step; content: StepContent }): void {
+    const view = this.panel.currentView;
+    if (!view || view.stepId !== cur.step.id || view.courseId !== cur.course.manifest.id) return;
+    const progress = getStepProgress(this.session, cur.course.manifest.id, cur.step.id);
+    const tasks: TaskView[] = cur.step.variants.en!.meta.tasks.map((t) => {
+      const localized = cur.content.meta.tasks.find((x) => x.id === t.id) ?? t;
+      return { id: t.id, title: loc(localized.title, this.lang), type: t.check.type, status: getTaskState(progress, t.id).status } as TaskView;
+    });
+    const text = this.nextActionText(cur.course, cur.step, tasks, this.lang);
+    this.panel.post({ type: "next", text: text ?? "" });
   }
 
   private postTask(cur: { course: Course; step: Step; content: StepContent }, task: TaskSpec, status: TaskStatus, message: string | undefined, hint?: HintView): void {
@@ -939,6 +1016,104 @@ export class TutorController implements vscode.Disposable {
    * A2: records the recall answer. Never blocking and never graded as a check -
    * it is a repetition prompt, so an empty answer simply dismisses the card.
    */
+  /** Where a terminal opened from the panel should start. */
+  private terminalCwd(): string | undefined {
+    const cur = this.current;
+    if (!cur) return this.workspaceRoot;
+    return resolveProjectRoot(cur.course, this.workspaceRoot) ?? this.workspaceRoot;
+  }
+
+  /**
+   * Performs what a task asks for. Everything goes through an existing VS Code or
+   * bridge command, or the tutor's terminal; nothing here runs a shell directly,
+   * so what happens is visible to the student and reproducible by hand.
+   */
+  async runAction(taskId: string, kind: ActionKind, arg?: string): Promise<void> {
+    const cur = this.current;
+    if (!cur) return;
+    const task = this.findTask(cur.step, taskId);
+    const s = ui(this.lang);
+
+    if (isBoardAction(kind)) {
+      // Belt and braces: the panel already hides these for language courses, but
+      // a stale webview must not be able to flash a board from a Rust course.
+      if (!this.capabilitiesFor(cur.course).has("board") || !this.bridge) {
+        this.log(`action ${kind} refused: course has no board capability or the bridge is missing`);
+        return;
+      }
+      const command = BOARD_COMMANDS[kind];
+      if (command) await vscode.commands.executeCommand(command);
+      return;
+    }
+
+    switch (kind) {
+      case "runTask": {
+        if (!arg) return;
+        this.log(`action: run task "${arg}"`);
+        this.panel.post({ type: "busy", busy: true });
+        try {
+          await runTaskByLabel(arg, 10 * 60 * 1000);
+        } finally {
+          this.panel.post({ type: "busy", busy: false });
+        }
+        // Re-check straight away so the student sees the effect of what they ran.
+        if (task) await this.runTask(taskId, { silent: true });
+        return;
+      }
+      case "runInTerminal": {
+        if (!arg) return;
+        const cwd = task && "cwd" in task.check ? (task.check as { cwd?: string }).cwd : undefined;
+        this.log(`action: run in terminal "${arg}"${cwd ? ` (cwd ${cwd})` : ""}`);
+        this.terminal.run(arg, cwd);
+        return;
+      }
+      case "copyCommand": {
+        if (!arg) return;
+        await vscode.env.clipboard.writeText(arg);
+        return;
+      }
+      case "openFile": {
+        if (!arg) return;
+        const root = resolveProjectRoot(cur.course, this.workspaceRoot) ?? this.workspaceRoot;
+        if (!root) return;
+        await this.openLink({ kind: "file", path: arg, line: this.lineForFile(task, arg) });
+        return;
+      }
+      default:
+        void vscode.window.showInformationMessage(s.howToTitle);
+    }
+  }
+
+  /** A debugStop check names a line; a file check does not. */
+  private lineForFile(task: TaskSpec | undefined, file: string): number | undefined {
+    if (!task) return undefined;
+    const find = (c: typeof task.check): number | undefined => {
+      if (c.type === "debugStop" && c.file === file) return c.line;
+      if (c.type === "all" || c.type === "any") {
+        for (const sub of c.checks) {
+          const l = find(sub);
+          if (l !== undefined) return l;
+        }
+      }
+      if (c.type === "predict") return find(c.then);
+      return undefined;
+    };
+    return find(task.check);
+  }
+
+  /** The orientation card was dismissed; the command brings it back. */
+  dismissOrientation(): void {
+    this.session.orientationSeen = true;
+    this.saveSession();
+    this.log("orientation dismissed");
+  }
+
+  showOrientation(): void {
+    this.session.orientationSeen = false;
+    this.saveSession();
+    this.renderCurrent(true);
+  }
+
   async answerRecall(text: string | undefined): Promise<void> {
     const cur = this.current;
     if (!cur) return;
