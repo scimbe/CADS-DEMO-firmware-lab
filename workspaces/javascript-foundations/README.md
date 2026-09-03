@@ -17,12 +17,12 @@ the built-in test runner (`node --test`) and `node:assert/strict`.
 | `test/<step-id>.test.js` | the checks for that step; every file runs on its own |
 | `examples/` | short scripts to predict before running |
 | `solutions/<step-id>/` | reference solutions, used to validate the course |
-| `package.json` | `"type": "module"`, `npm test` → `node --test` |
+| `package.json` | `"type": "module"`, `npm test` → `node --test test/*.test.js` |
 
 ## Running
 
 ```bash
-node --test                                   # every test in the workspace
+node --test test/*.test.js                    # every test in the workspace
 node --test test/m1-01-let-const.test.js      # one step
 node --test --test-reporter=tap test/m1-01-let-const.test.js   # machine-readable
 node examples/m1-typeof.js                    # run an example after predicting
@@ -30,6 +30,11 @@ node examples/m1-typeof.js                    # run an example after predicting
 
 A step is done when its own test file is green. Failing tests in later steps
 are expected — those exercises are still waiting for you.
+
+Pass `test/*.test.js` rather than running a bare `node --test`. Recent Node
+versions widen the default search and would also pick up the reference tests
+under `solutions/`, which are not yours to run; Node 22 does not. Naming the
+folder gives the same answer on every version.
 
 ## Reading a failure
 

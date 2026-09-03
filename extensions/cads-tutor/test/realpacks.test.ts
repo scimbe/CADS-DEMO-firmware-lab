@@ -56,10 +56,15 @@ describe("real course packs", { skip: REAL.length === 0 ? "courses/ not present"
 
   it("both packs load together; projects is locked behind foundations; pack objectives land in the curriculum", () => {
     const result = loadCourses({ workspaceRoot: os.tmpdir(), homeDir: os.tmpdir(), imageDir: COURSES });
-    assert.deepEqual(result.courses.map((c) => c.manifest.id).sort(), REAL.sort());
+    // The image ships every pack in courses/, which now includes the language tracks.
+    // This test is about the firmware packs, so assert they are all present rather than
+    // pinning the exact set, which would break each time a course is added.
+    const loaded = result.courses.map((c) => c.manifest.id);
+    for (const id of REAL) assert.ok(loaded.includes(id), `${id} loaded (got ${loaded.join(", ")})`);
     const foundations = result.courses.find((c) => c.manifest.id === "cads-zero-foundations")!;
     const projects = result.courses.find((c) => c.manifest.id === "cads-zero-projects");
-    assert.equal(foundations.curriculum.length, 27);
+    // Grows with the pack; pinned so an accidental loss of objectives is caught.
+    assert.equal(foundations.curriculum.length, 28);
     const session = newSession();
     assert.equal(stepStatus(session, foundations, orderedSteps(foundations)[0], result.courses), "open");
     if (projects) assert.equal(stepStatus(session, projects, orderedSteps(projects)[0], result.courses), "locked");

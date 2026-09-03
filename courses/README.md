@@ -22,7 +22,7 @@ The pack format, the check types and the front-matter schema are defined in
 This file is the map and the author's cheat-sheet; the specification is the
 contract.
 
-## Learning path
+## Firmware track: learning path
 
 ```mermaid
 graph TD

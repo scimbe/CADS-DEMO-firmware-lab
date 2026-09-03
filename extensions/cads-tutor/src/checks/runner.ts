@@ -71,7 +71,7 @@ const DEFAULT_DEBUG_TIMEOUT = 60 * 1000;
 /** A1 default for `command`/`testSuite`; a course pack overrides it with `timeoutMs`. */
 const DEFAULT_COMMAND_TIMEOUT = 120 * 1000;
 /** A1: "mindestens 10 Zeichen" - a prediction shorter than this is not a prediction. */
-const DEFAULT_PREDICTION_MIN_CHARS = 10;
+export const DEFAULT_PREDICTION_MIN_CHARS = 10;
 
 function bridgeMissing(lang: Lang): CheckResult {
   return {

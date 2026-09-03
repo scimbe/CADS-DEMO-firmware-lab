@@ -204,7 +204,9 @@ function link(v: unknown, path: string): StepLink {
   if (typeof v.doc === "string") return { doc: str(v.doc, `${path}.doc`), title };
   if (typeof v.url === "string") {
     const url = str(v.url, `${path}.url`);
-    if (!/^https?:\/\//.test(url)) fail(`${path}.url`, "must start with http:// or https://");
+    // command: URIs address a VS Code command (e.g. opening a walkthrough) and are rendered as
+    // buttons by the panel, which enables command URIs; everything else must be a real web address.
+    if (!/^(https?:\/\/|command:)/.test(url)) fail(`${path}.url`, "must start with http://, https:// or command:");
     return { url, title };
   }
   fail(path, "needs one of step/file/doc/url");

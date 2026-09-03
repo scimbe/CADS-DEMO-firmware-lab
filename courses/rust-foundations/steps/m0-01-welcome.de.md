@@ -15,10 +15,10 @@ sources: [ "README.md", "Cargo.toml", "src/lib.rs", "tests/m0-02-first-test.rs" 
 tasks:
   - id: version
     title: "cargo antwortet"
-    check: { type: "command", command: "cargo --version", expectExitCode: 0, expectStdout: "cargo \\d+\\.\\d+\\.\\d+", timeoutMs: 60000 }
+    check: { type: "command", command: "cargo --version", seedMustFail: false, expectExitCode: 0, expectStdout: "cargo \\d+\\.\\d+\\.\\d+", timeoutMs: 60000 }
   - id: build
     title: "Der Workspace kompiliert"
-    check: { type: "command", command: "cargo build", expectExitCode: 0, timeoutMs: 180000 }
+    check: { type: "command", command: "cargo build", seedMustFail: false, expectExitCode: 0, timeoutMs: 180000 }
   - id: orient
     title: "Du findest den Test des nächsten Steps"
     check: { type: "question", prompt: { en: "Name the file that holds the tests for the next step, m0-02-first-test, and the exact command that runs only those tests.", de: "Nenne die Datei, die die Tests des nächsten Steps m0-02-first-test enthält, und den genauen Befehl, der nur diese Tests ausführt." }, rubric: "Names tests/m0-02-first-test.rs as the file and `cargo test --test m0-02-first-test` as the command. Naming src/m0/m0_02_first_test.rs instead of the tests file, or plain `cargo test`, is incomplete.", bloom: "remember", minChars: 20 }

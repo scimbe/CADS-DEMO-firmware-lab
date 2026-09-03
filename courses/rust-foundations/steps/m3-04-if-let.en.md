@@ -6,7 +6,7 @@ objectives: [ "rust-ch06-03-if-let" ]
 requires: [ "m3-03-match" ]
 estimatedMinutes: 20
 scaffold: independent
-recallFrom: [ "m3-03-match" ]
+recallFrom: [ "m3-02-enums" ]
 links:
   - { step: "m4-01-vectors" }
   - { file: "src/m3/m3_04_if_let.rs" }
