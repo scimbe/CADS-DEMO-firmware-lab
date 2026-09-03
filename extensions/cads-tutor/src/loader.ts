@@ -319,3 +319,43 @@ export function resolveProjectRoot(course: Course, workspaceRoot: string | undef
   // The workspace may already BE the project (folder named like project.root or containing its files).
   return workspaceRoot;
 }
+
+// ---------------------------------------------------------------------------
+// Binding the visible courses to the opened workspace folders
+// ---------------------------------------------------------------------------
+
+/**
+ * True when a course's `project.root` names one of the opened folders. The
+ * comparison is by folder name or path suffix, because `project.root` is a
+ * workspace-relative name ("rust-foundations") while the folder is absolute
+ * ("/home/coder/workspace/rust-foundations").
+ */
+export function courseMatchesFolder(course: Course, folder: string): boolean {
+  const root = course.manifest.project?.root?.replace(/^\.?\//, "").replace(/\/+$/, "");
+  if (!root || root === ".") return false;
+  const normalized = folder.replace(/\\/g, "/").replace(/\/+$/, "");
+  const base = normalized.slice(normalized.lastIndexOf("/") + 1);
+  return base === root || normalized.endsWith(`/${root}`);
+}
+
+export interface VisibleCourses {
+  visible: Course[];
+  /** False when nothing matched and every course is shown as a fallback. */
+  matched: boolean;
+}
+
+/**
+ * The courses to show for the folders that are open.
+ *
+ * One deployment serves a link per track, each opening a single workspace
+ * folder, and each link must show only its own course. With several folders
+ * open, every matching course shows - that is the multi-root case.
+ *
+ * When nothing matches, every course is shown rather than none: an arbitrary
+ * workspace folder must stay usable, and an empty tutor would look broken.
+ */
+export function coursesForFolders(courses: Course[], folders: readonly string[]): VisibleCourses {
+  if (folders.length === 0) return { visible: courses, matched: false };
+  const visible = courses.filter((c) => folders.some((f) => courseMatchesFolder(c, f)));
+  return visible.length > 0 ? { visible, matched: true } : { visible: courses, matched: false };
+}

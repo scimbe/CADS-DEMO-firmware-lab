@@ -5,10 +5,12 @@
  */
 import {
   BLOOM_LEVELS,
+  CAPABILITIES,
   CHECK_TYPES,
   SCAFFOLD_LEVELS,
   TEST_RUNNERS,
   type BloomLevel,
+  type Capability,
   type CheckSpec,
   type CourseManifest,
   type CourseModule,
@@ -145,6 +147,16 @@ export function validateCourseManifest(raw: unknown): ValidationResult<CourseMan
       grounding = { pack: optStr(raw.grounding.pack, "grounding.pack"), threshold: optNum(raw.grounding.threshold, "grounding.threshold") };
     }
 
+    let capabilities: Capability[] | undefined;
+    if (raw.capabilities !== undefined && raw.capabilities !== null) {
+      if (!Array.isArray(raw.capabilities)) fail("capabilities", `must be an array of ${CAPABILITIES.join("|")}`);
+      capabilities = raw.capabilities.map((c: unknown, i: number) => {
+        const v = str(c, `capabilities[${i}]`);
+        if (!(CAPABILITIES as readonly string[]).includes(v)) fail(`capabilities[${i}]`, `unknown capability "${v}" (known: ${CAPABILITIES.join(", ")})`);
+        return v as Capability;
+      });
+    }
+
     if (!Array.isArray(raw.modules) || raw.modules.length === 0) fail("modules", "must be a non-empty array");
     const modules: CourseModule[] = [];
     const seenModules = new Set<string>();
@@ -174,13 +186,13 @@ export function validateCourseManifest(raw: unknown): ValidationResult<CourseMan
       modules.push({ id: mid, title: mtitle, steps, reflection });
     });
 
-    const known = new Set(["id", "version", "schema", "title", "description", "project", "prerequisites", "grounding", "modules", "$schema", "_comment"]);
+    const known = new Set(["id", "version", "schema", "title", "description", "project", "prerequisites", "grounding", "capabilities", "modules", "$schema", "_comment"]);
     for (const key of Object.keys(raw)) {
       if (!known.has(key)) warnings.push(`course.json: unknown field "${key}" ignored`);
     }
 
     return {
-      value: { id: courseId, version, schema: 1, title, description, project, prerequisites, grounding, modules },
+      value: { id: courseId, version, schema: 1, title, description, project, prerequisites, grounding, capabilities, modules },
       errors: [],
       warnings,
     };

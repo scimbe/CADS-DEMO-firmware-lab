@@ -6,6 +6,7 @@ import { randomBytes } from "node:crypto";
 import { ui } from "./i18n";
 import { escapeHtml, tutorLinkAttrs, type TutorLink } from "./markdown";
 import type { Citation } from "./platform";
+import type { ActionKind } from "./actions";
 import type { BloomLevel, CheckType, Lang, Scaffold, StepStatus, TaskStatus } from "./types";
 
 export interface HintView {
@@ -24,6 +25,14 @@ export interface PredictView {
   feedback?: string;
   /** True once a prediction long enough to run the check exists. */
   ran: boolean;
+}
+
+export interface ActionView {
+  kind: ActionKind;
+  label: string;
+  /** One line naming the equivalent manual route; empty for Copy. */
+  manual: string;
+  arg?: string;
 }
 
 export interface TaskView {
@@ -50,6 +59,8 @@ export interface TaskView {
   manual: boolean;
   /** true when the task's check runs automatically on save (fileMatches & co.). */
   live: boolean;
+  /** Buttons that perform what the task asks for, derived from its check type. */
+  actions?: ActionView[];
 }
 
 export interface LinkView {
@@ -93,6 +104,17 @@ export interface StepView {
   recall?: RecallView;
   /** A3: shown when this step completed its module. */
   reflection?: ReflectionView;
+  /** Orientation card, shown before the first step of a fresh session. */
+  orientation?: OrientationView;
+  /** Whether this course may show hardware actions at all. */
+  hasBoard: boolean;
+  /** The single next thing to do, always visible in the header. */
+  nextAction?: string;
+}
+
+export interface OrientationView {
+  /** Board-specific lines are omitted entirely for language courses. */
+  board: boolean;
 }
 
 export interface RecallView {
@@ -126,6 +148,8 @@ export type ToWebview =
   /** `html` is produced by renderRecall / renderReflection on the extension side. */
   | { type: "recall"; html: string }
   | { type: "reflection"; html: string }
+  /** The one line in the header saying what to do next; recomputed after each check. */
+  | { type: "next"; text: string }
   | { type: "ask"; outcome: AskView }
   | { type: "note"; note: NoteView }
   | { type: "stepDone"; unlocked: StepRef[] }
@@ -154,7 +178,9 @@ export type FromWebview =
   | { type: "predict"; taskId: string; text: string }
   | { type: "recallAnswer"; text: string }
   | { type: "recallSkip" }
-  | { type: "reflection"; answers: string[] };
+  | { type: "reflection"; answers: string[] }
+  | { type: "action"; taskId: string; kind: ActionKind; arg?: string; cwd?: string }
+  | { type: "dismissOrientation" };
 
 /**
  * A two-way choice with the ACTIVE language marked, not a toggle labelled with
@@ -249,6 +275,63 @@ export function renderReflection(r: ReflectionView, lang: Lang): string {
   </div>`;
 }
 
+/**
+ * The buttons that perform what a task asks for, each with the manual route it
+ * corresponds to underneath. The note is the point: the student should end the
+ * course able to do it without the button.
+ */
+export function renderActions(t: TaskView, lang: Lang): string {
+  const actions = t.actions ?? [];
+  if (actions.length === 0) return "";
+  const buttons = actions
+    .map(
+      (a) =>
+        `<button class="btn action" data-task="${escapeHtml(t.id)}" data-kind="${escapeHtml(a.kind)}"${
+          a.arg !== undefined ? ` data-arg="${escapeHtml(a.arg)}"` : ""
+        }>${escapeHtml(a.label)}</button>`,
+    )
+    .join(" ");
+  const notes = actions
+    .filter((a) => a.manual)
+    .map((a) => `<div class="action-manual">${escapeHtml(a.manual)}</div>`)
+    .join("");
+  return `<div class="actions"><div class="row">${buttons}</div>${notes}</div>`;
+}
+
+/** The three manual routes, spelled out once per step, collapsed by default. */
+export function renderHowTo(lang: Lang): string {
+  const s = ui(lang);
+  return `<details class="howto">
+    <summary>${escapeHtml(s.howToTitle)}</summary>
+    <div class="howto-body">
+      <p>${escapeHtml(s.howToIntro)}</p>
+      <ol>
+        <li>${escapeHtml(s.howToPalette)}</li>
+        <li>${escapeHtml(s.howToMenu)}</li>
+        <li>${escapeHtml(s.howToTerminal)}</li>
+      </ol>
+    </div>
+  </details>`;
+}
+
+/**
+ * Shown once, before the first step of a fresh session. Two variants: the board
+ * paragraph exists only for hardware courses, so a Rust student is never told
+ * about flashing.
+ */
+export function renderOrientation(view: OrientationView, lang: Lang): string {
+  const s = ui(lang);
+  const lines: string[] = [s.orientationLeft, s.orientationBottom, s.orientationPanel, s.orientationRun, s.orientationSuccess];
+  if (view.board) lines.push(s.orientationBoard);
+  return `<div class="card orientation" id="orientation">
+    <div class="card-head">${escapeHtml(s.orientationTitle)}</div>
+    <div class="card-sub">${escapeHtml(s.orientationIntro)}</div>
+    <ul>${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>
+    ${renderHowTo(lang)}
+    <div class="row"><button class="btn primary" id="orientation-dismiss">${escapeHtml(s.orientationDismiss)}</button></div>
+  </div>`;
+}
+
 function renderTask(t: TaskView, lang: Lang): string {
   const s = ui(lang);
   const canCheck = !t.manual || t.type === "question";
@@ -273,6 +356,7 @@ function renderTask(t: TaskView, lang: Lang): string {
     </div>
     ${t.description ? `<div class="task-desc">${escapeHtml(t.description)}</div>` : ""}
     ${renderPredict(t, lang)}
+    ${renderActions(t, lang)}
     ${answerBox}
     <div class="task-msg">${t.message ? escapeHtml(t.message) : escapeHtml(s.taskStatus[t.status])}</div>
     <div class="row task-actions">${buttons.join(" ")}</div>
@@ -349,6 +433,16 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
   .ask-row { display: flex; gap: 0.5em; } .ask-row input { flex: 1; }
   .answer-box { margin-top: 0.6em; padding: 0.6em 0.8em; border-radius: 4px; border: 1px solid var(--vscode-panel-border); white-space: pre-wrap; } .answer-box[hidden] { display: none; }
   /* Addendum v1.1: scaffold badge, predict panel, recall and reflection cards. */
+  .actions { margin-top: 0.5em; }
+  .action-manual { font-size: 0.88em; opacity: 0.75; margin-top: 0.25em; }
+  .howto { margin: 0.9em 0; border: 1px solid var(--vscode-panel-border); border-radius: 4px; padding: 0.4em 0.7em; }
+  .howto > summary { cursor: pointer; font-weight: 600; }
+  .howto-body ol { margin: 0.4em 0 0.2em 1.2em; padding: 0; }
+  .howto-body li { margin: 0.3em 0; }
+  .card.orientation ul { margin: 0.3em 0 0.5em 1.2em; padding: 0; }
+  .card.orientation li { margin: 0.25em 0; }
+  .next-line { margin: 0.3em 0 0.6em; font-weight: 600; color: var(--vscode-textLink-foreground); }
+  .next-line:empty { display: none; }
   .lang-group { display: inline-flex; gap: 0; border: 1px solid var(--vscode-panel-border); border-radius: 4px; overflow: hidden; }
   .lang-group .btn.lang-choice { border: none; border-radius: 0; margin: 0; opacity: 0.75; }
   .lang-group .btn.lang-choice + .btn.lang-choice { border-left: 1px solid var(--vscode-panel-border); }
@@ -399,6 +493,8 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
   </div>
   ${lockedBanner}
   ${doneBanner}
+  <div class="next-line" id="next-line">${view.nextAction ? escapeHtml(view.nextAction) : ""}</div>
+  <div id="orientation-area">${view.orientation ? renderOrientation(view.orientation, view.lang) : ""}</div>
   <div id="note-area">${view.note ? renderNote(view.note, view.lang) : ""}</div>
   <div id="recall-area">${view.recall ? renderRecall(view.recall, view.lang) : ""}</div>
   <div class="scaffold-note">${escapeHtml(s.scaffoldHint[view.scaffold])}</div>
@@ -406,6 +502,7 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
   ${links}
   <h2>${s.tasks}</h2>
   <ul class="tasks" id="tasks">${view.tasks.map((t) => renderTask(t, view.lang)).join("")}</ul>
+  ${renderHowTo(view.lang)}
   <div id="reflection-area">${view.reflection ? renderReflection(view.reflection, view.lang) : ""}</div>
   <div class="ask">
     <h2 style="border:none;margin-top:0">${s.ask}</h2>
@@ -429,6 +526,8 @@ function clientScript(view: StepView): string {
     // The panel no longer toggles to "the other" language; it names both and
     // marks the active one, so the client only needs to know which is active.
     thinking: ui(view.lang).askThinking,
+    copied: ui(view.lang).copied,
+    copyLabel: view.lang === "de" ? "Kopieren" : "Copy",
     running: ui(view.lang).running,
     sources: ui(view.lang).sources,
     hintTier: ui(view.lang).hintTier(0).replace("0", "{n}"),
@@ -470,6 +569,16 @@ function clientScript(view: StepView): string {
       setRunning(taskId); post({ type: "predict", taskId, text: ta ? ta.value : "" });
     }
     else if (b.classList.contains("predict-self")) { post({ type: "predict", taskId, text: b.getAttribute("data-outcome") === "correct" ? "__self:correct" : "__self:deviated" }); }
+    else if (b.classList.contains("action")) {
+      const kind = b.getAttribute("data-kind");
+      post({ type: "action", taskId, kind, arg: b.getAttribute("data-arg") || undefined });
+      if (kind === "copyCommand") { b.textContent = S.copied; setTimeout(() => { b.textContent = S.copyLabel; }, 1500); }
+    }
+    else if (b.id === "orientation-dismiss") {
+      const card = document.getElementById("orientation");
+      if (card) card.remove();
+      post({ type: "dismissOrientation" });
+    }
     else if (b.id === "recall-submit") { const ta = document.getElementById("recall-answer"); post({ type: "recallAnswer", text: ta ? ta.value : "" }); }
     else if (b.id === "recall-skip") post({ type: "recallSkip" });
     else if (b.id === "reflection-submit") {
@@ -529,6 +638,9 @@ function clientScript(view: StepView): string {
         if (old) old.outerHTML = t.predictHtml;
         else li.querySelector(".task-head").insertAdjacentHTML("afterend", t.predictHtml);
       }
+    } else if (m.type === "next") {
+      const line = document.getElementById("next-line");
+      if (line) line.textContent = m.text || "";
     } else if (m.type === "recall") {
       document.getElementById("recall-area").innerHTML = m.html;
     } else if (m.type === "reflection") {

@@ -90,6 +90,8 @@ export interface TestCaseResult {
   depth: number;
   /** False for a parent test that only groups subtests (node --test files/suites). */
   leaf: boolean;
+  /** The entry is a whole test FILE that node reported as failed (it could not be loaded). */
+  file?: boolean;
 }
 
 /** Checks that need nothing but the file system / the workspace and are cheap to re-run on save. */
@@ -183,6 +185,10 @@ export interface CourseModule {
   reflection?: { prompts: Localized[] };
 }
 
+/** A5/A4: what a course may offer. Board actions are hardware-course only. */
+export type Capability = "board";
+export const CAPABILITIES: readonly Capability[] = ["board"];
+
 export interface CourseManifest {
   id: string;
   version: string;
@@ -192,6 +198,12 @@ export interface CourseManifest {
   project?: { root?: string; repo?: string };
   prerequisites: string[];
   grounding?: { pack?: string; threshold?: number };
+  /**
+   * What the course may offer in the panel. Omitted means "derive it from the
+   * check types the pack uses", so existing firmware packs keep their board
+   * actions and a language track never gains them by accident.
+   */
+  capabilities?: Capability[];
   modules: CourseModule[];
 }
 
@@ -282,6 +294,8 @@ export interface SessionState {
   reflections?: Record<string, ReflectionRecord>;
   /** keyed by "<courseId>/<stepId>" (the step that showed the card) */
   recall?: Record<string, RecallRecord>;
+  /** The orientation card has been dismissed; it is reachable again by command. */
+  orientationSeen?: boolean;
 }
 
 export type StepStatus = "locked" | "open" | "active" | "done" | "unavailable";

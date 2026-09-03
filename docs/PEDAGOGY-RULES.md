@@ -36,10 +36,14 @@ es in ein Terminal oder in eine Geräte-Konsole gehört. „Führe den Task X au
 in 18 von 27 Steps — die Regel muss für den ganzen Kurs gelten, nicht nur für das Einstiegsmodul.*
 
 **R1.4 — Ein Step wächst nicht unbegrenzt.** Mehr Erklärung ist nicht automatisch besser: was hinter dem
-Leseabbruch liegt, wirkt nicht. Richtwert 600 Wörter; darüber gehört der Step geteilt, und die Regel, an der die
-meisten scheitern, gehört nach vorn.
-*Herkunft: `m0-01` wuchs von 399 auf 987 Wörter, der Primer auf 1234; S− las in beiden nur den Anfang, und die
-Abschnitte, die alle drei Aufgaben tragen, lagen dahinter (Runde 2).*
+Leseabbruch liegt, wirkt nicht. **Richtwert 600 Wörter, harte Grenze 900.** Darüber gehört der Step geteilt oder
+gekürzt, und die Regel, an der die meisten scheitern, gehört in jedem Fall nach vorn — nicht hinter neunzig Zeilen
+Herleitung.
+Die harte Grenze ist bewusst höher als der Richtwert: 21 der 48 Steps dieses Kurses liegen über 600 Wörtern, und
+für die meisten ist das vertretbar, weil sie eine Fallstudie tragen. Vertretbar ist es nicht mehr, wenn ein Step
+zwei Themen behandelt oder wenn seine Aufgaben von Abschnitten getragen werden, die hinter dem Leseabbruch liegen.
+*Herkunft: `m0-01` wuchs von 399 auf 1009 Wörter, der Primer auf 1435; S− las in beiden nur den Anfang, und die
+Abschnitte, die alle drei Aufgaben tragen, lagen dahinter (Runde 2).* **[Validator]**
 
 **R1.5 — Ein Step hat ein bis drei Aufgaben.** Mehr macht ihn unübersichtlich und erzeugt eine
 Validator-Warnung.
@@ -347,6 +351,7 @@ den Validator-Strang.
 | R7.5 | Modul ohne `predict` ⇒ Warnung |
 | R10.3 | DE/EN mit ungleicher Abschnitts- oder Aufgabenmenge ⇒ Fehler |
 | R1.5 | mehr als drei Tasks je Step ⇒ Warnung (**umgesetzt**) |
+| R1.4 | Fließtext über 900 Wörter ⇒ Warnung |
 | R3.6 | Check-Typ nicht in `extensions/cads-tutor/src/types.ts` ⇒ Warnung (**umgesetzt**) |
 
 Zusätzlich empfohlen, weil beide Runden es gebraucht hätten: eine Warnung für jeden Backtick-Pfad im Fließtext,
@@ -362,8 +367,8 @@ German text above carries those references. Rules marked **[V]** are machine-che
 **Step shape.** The first five lines say what to do; anything buried in prose counts as unread. A course's first
 step answers three questions before any prose: what am I looking at, what do I do first, how do I know it worked.
 Every instruction names the place — window, menu path, shortcut, and for a command whether it belongs in a terminal
-or a device console. Steps do not grow without limit; past roughly 600 words, split them and move the rule people
-trip over to the front. One to three tasks per step **[V]**.
+or a device console. Steps do not grow without limit: aim for 600 words, hard ceiling 900. Past that, split or cut, and
+in any case move the rule people trip over to the front **[V]**. One to three tasks per step **[V]**.
 
 **Honest Bloom levels.** The declared level must be evidenced by a check that measures it; a free-text question
 alone never evidences `apply` or above. One level per step — a closing reflection may sit one level higher, but it

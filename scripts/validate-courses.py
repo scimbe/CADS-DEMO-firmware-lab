@@ -42,8 +42,11 @@ Usage:
     scripts/validate-courses.py PROJECT_ROOT [--courses-dir DIR] [--elf PATH] [--nm PATH]
                                 [--solutions DIR] [--only COURSE]
 
-PROJECT_ROOT is the checkout of the firmware (github.com/scimbe/cads-zero) or,
-for the Rust/JavaScript tracks, the seed workspace (workspaces/<track>/).
+PROJECT_ROOT is the default project directory. Each pack that declares
+`project.root` in its course.json is resolved against THAT directory instead,
+looked up next to PROJECT_ROOT and inside the repo, so one run without --only
+checks the firmware, Rust and JavaScript packs each against its own project.
+A pack without `project.root` uses PROJECT_ROOT unchanged.
 """
 
 from __future__ import annotations
@@ -295,6 +298,33 @@ DEFAULT_PROBE_TIMEOUT_MS = 120000
 
 FM_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 
+# --- runtime cross-check ----------------------------------------------------
+# A pack may legally use a check type from SPEC addendum v1.1 that the shipped
+# runtime has not implemented yet - but today that is not a soft gap: schema.ts
+# fails the check, loader.ts skips the file, and the student silently gets a
+# SHORTER COURSE with no error anywhere. That cost a whole day once. So read the
+# runtime's own list and warn per check, rather than keeping a second list here
+# that would drift. Warning, not error: the gap belongs to the runtime, and the
+# warnings disappear by themselves once it catches up.
+RUNTIME_TYPES_TS = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "extensions", "cads-tutor", "src", "types.ts",
+)
+_RUNTIME_TYPES = None
+
+
+def runtime_check_types(path=RUNTIME_TYPES_TS):
+    """Parse CHECK_TYPES out of the runtime's types.ts. None if unreadable."""
+    try:
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+    except OSError:
+        return None
+    m = re.search(r"CHECK_TYPES\s*:\s*readonly\s+CheckType\[\]\s*=\s*\[(.*?)\]", text, re.DOTALL)
+    if not m:
+        return None
+    return set(re.findall(r'"([A-Za-z]+)"', m.group(1))) or None
+
 
 class Report:
     def __init__(self):
@@ -411,6 +441,13 @@ def validate_check(check, where, task_id, report, depth=0):
     if ctype not in CHECK_TYPES:
         report.error(where, f"{label} check type '{ctype}' unknown")
         return None
+    if _RUNTIME_TYPES is not None and ctype not in _RUNTIME_TYPES:
+        report.warn(
+            where,
+            f"{label} uses check type '{ctype}', which "
+            f"extensions/cads-tutor/src/types.ts does not list - the runtime "
+            f"will DROP this whole step until it implements the type",
+        )
     if ctype in ("fileMatches", "fileNotMatches", "serialExpect"):
         if not check.get("pattern"):
             report.error(where, f"{label}: {ctype} needs 'pattern'")
@@ -536,6 +573,50 @@ def load_manifest(course_dir, report):
             if not _is_localized(pr):
                 report.error(where, f"prompts[{k}] must be a string or {{de, en}}")
     return manifest
+
+
+
+def resolve_project_root(course_dir, default_root, repo):
+    """The directory a pack's `file`/`doc`/`elf` paths are relative to.
+
+    Several packs with different projects now live in one repo (firmware, Rust,
+    JavaScript). Resolving them all against one directory made every path of one
+    pack a spurious error in another's project, so a single run without --only
+    could not be trusted. Each pack is therefore resolved against the directory
+    named in its own course.json `project.root`, searched next to the given root
+    and inside the repo. The argument stays the fallback, so a pack without its
+    own setting behaves exactly as before.
+
+    Returns (root, note) where note explains the choice for the log.
+    """
+    course_json = os.path.join(course_dir, "course.json")
+    declared = None
+    try:
+        with open(course_json, encoding="utf-8") as fh:
+            declared = (json.load(fh).get("project") or {}).get("root")
+    except (OSError, ValueError):
+        return default_root, "course.json unreadable; using the given root"
+    if not declared or declared == ".":
+        return default_root, "no project.root; using the given root"
+    declared = declared.strip("/")
+    # The given root may already BE that project (the usual firmware invocation).
+    if os.path.basename(os.path.normpath(default_root)) == declared:
+        return default_root, f"project.root '{declared}' is the given root"
+    # Searched next to the given root, inside the pack's OWN repo (the parent of
+    # its courses directory, so any repo layout works, not just this one), and
+    # inside the validator's repo.
+    pack_repo = os.path.dirname(os.path.dirname(os.path.normpath(course_dir)))
+    for candidate in (
+        os.path.join(default_root, declared),
+        os.path.join(pack_repo, declared),
+        os.path.join(pack_repo, "workspaces", declared),
+        os.path.join(repo, declared),
+        os.path.join(repo, "workspaces", declared),
+        os.path.join(os.path.dirname(os.path.normpath(default_root)), declared),
+    ):
+        if os.path.isdir(candidate):
+            return os.path.abspath(candidate), f"project.root '{declared}'"
+    return default_root, f"project.root '{declared}' not found; falling back to the given root"
 
 
 def validate_course(course_dir, root, symbols, report, probes=None):
@@ -736,7 +817,9 @@ def validate_course(course_dir, root, symbols, report, probes=None):
 # --- solution probes (--solutions) -----------------------------------------
 
 _TAP_RE = re.compile(r"^\s*(not ok|ok)\b\s*(\d+)?\s*-?\s*(.*?)\s*(#.*)?$")
-_CARGO_RE = re.compile(r"^test (\S+) \.\.\. (ok|FAILED|ignored)")
+# A #[should_panic] test prints "test <name> - should panic ... ok"; without the
+# optional group the line is dropped and expectPass reports the test as missing.
+_CARGO_RE = re.compile(r"^test\s+(\S+)(?:\s+-\s+should\s+panic)?\s+\.\.\.\s+(ok|FAILED|ignored)\b")
 
 
 def _parse_tests(output, runner):
@@ -751,7 +834,7 @@ def _parse_tests(output, runner):
             m = _CARGO_RE.match(line.strip())
             if m:
                 status = {"ok": "passed", "FAILED": "failed"}.get(m.group(2), "skipped")
-                out.append({"name": m.group(1), "path": m.group(1), "status": status, "leaf": True})
+                out.append({"name": m.group(1), "path": m.group(1), "status": status, "leaf": True, "file": False})
         return out
     stack = []  # frames: [indent, name, child_count]
     for line in output.splitlines():
@@ -785,6 +868,9 @@ def _parse_tests(output, runner):
             "path": " > ".join([f[1] for f in stack] + [name]),
             "status": status,
             "leaf": (frame[2] if frame else 0) == 0,
+            # node --test reports a whole test FILE as failed when it cannot be
+            # loaded; its named tests then never run.
+            "file": bool(re.search(r"[\\/]", name) and re.search(r"\.(?:test\.)?[cm]?[jt]s$", name)),
         })
     return out
 
@@ -820,13 +906,21 @@ def _suite_passed(check, code, output):
     are excluded from the count so a nesting suite is not double-counted."""
     tests = _parse_tests(output, check.get("runner"))
     idx = _index_tests(tests)
-    leaves = [t for t in tests if t["leaf"]]
+    leaves = [t for t in tests if t["leaf"] and not t.get("file")]
     n_pass = sum(1 for t in leaves if t["status"] == "passed")
     problems = []
+    broken = [t["name"] for t in tests if t.get("file") and t["status"] == "failed"]
     for name in check.get("expectPass") or []:
         t = idx.get(name)
         if t is None:
-            problems.append(f"expected test '{name}' to pass, but no test of that name ran")
+            if broken:
+                problems.append(
+                    f"expected test '{name}' to pass, but it never ran: "
+                    + ", ".join(broken[:3])
+                    + " could not be loaded (check the error above - a syntax error or a missing export stops the whole file)"
+                )
+            else:
+                problems.append(f"expected test '{name}' to pass, but no test of that name ran")
         elif t["status"] != "passed":
             problems.append(f"expected test '{name}' to pass, but it {'failed' if t['status'] == 'failed' else 'was skipped'}")
     for name in check.get("expectFail") or []:
@@ -979,12 +1073,13 @@ def run_solution_probes(probes, root, solutions_dir, report):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("project_root", help="Checkout of the cads-zero firmware repo (or the seed workspace of a track)")
+    ap.add_argument("project_root", help="Default project directory; a pack with its own project.root is resolved against that instead")
     ap.add_argument("--courses-dir", default=None, help="Directory holding the course packs")
     ap.add_argument("--elf", default=None, help="Path to cads-zero.elf")
     ap.add_argument("--nm", default=None, help="Path to arm-none-eabi-nm")
     ap.add_argument("--solutions", default=None, help="Reference-solution directory (mirrors PROJECT_ROOT); runs command/testSuite checks with and without it")
     ap.add_argument("--only", default=None, help="Validate only the course pack directory with this name")
+    ap.add_argument("--no-runtime-check", action="store_true", help="Skip the cross-check of check types against extensions/cads-tutor/src/types.ts")
     args = ap.parse_args()
 
     root = os.path.abspath(args.project_root)
@@ -1007,6 +1102,12 @@ def main():
     print(f"  elf          : {elf} {'[loaded]' if symbols is not None else '[unavailable]'}")
     if symbols is not None:
         print(f"  symbols read : {len(symbols)}")
+    global _RUNTIME_TYPES
+    _RUNTIME_TYPES = None if args.no_runtime_check else runtime_check_types()
+    if _RUNTIME_TYPES is None:
+        print("  runtime types: [not checked]")
+    else:
+        print(f"  runtime types: {len(_RUNTIME_TYPES)} from extensions/cads-tutor/src/types.ts")
     print()
 
     course_dirs = sorted(
@@ -1019,9 +1120,21 @@ def main():
         print(f"error: no course pack named '{args.only}' under {courses_dir}", file=sys.stderr)
         return 2
     probes = [] if args.solutions else None
+    # Symbols are per project: only the pack whose project root actually holds the
+    # ELF gets them, so a `symbolInElf` check is never judged against another
+    # project's binary.
+    symbol_cache = {root: symbols}
     for cdir in course_dirs:
-        validate_course(cdir, root, symbols, report, probes)
+        croot, note = resolve_project_root(cdir, root, repo)
+        print(f"  {os.path.basename(cdir):28} -> {croot}  ({note})")
+        if croot not in symbol_cache:
+            candidate_elf = os.path.join(croot, "build", "itsboard", "cads-zero.elf")
+            symbol_cache[croot] = collect_symbols(nm, candidate_elf) if os.path.exists(candidate_elf) else None
+        validate_course(cdir, croot, symbol_cache[croot], report, probes)
+    print()
     if args.solutions:
+        # --solutions applies to a single track, so it uses the root given on the
+        # command line rather than a per-pack one.
         run_solution_probes(probes, root, os.path.abspath(args.solutions), report)
 
     for w in report.warnings:

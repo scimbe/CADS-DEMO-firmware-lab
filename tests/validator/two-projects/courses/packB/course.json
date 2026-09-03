@@ -1,0 +1,3 @@
+{ "id": "packB", "version": "1.0.0", "schema": 1, "title": {"de":"B","en":"B"},
+  "description": {"de":"d","en":"e"}, "project": { "root": "projB" }, "prerequisites": [],
+  "modules": [ { "id": "m1", "title": {"de":"M","en":"M"}, "steps": ["s1"] } ] }

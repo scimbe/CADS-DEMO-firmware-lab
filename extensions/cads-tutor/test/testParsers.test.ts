@@ -154,3 +154,75 @@ describe("default suite commands", () => {
     assert.equal(defaultSuiteCommand("cargo", "cargo test --all"), "cargo test --all");
   });
 });
+
+describe("cargo #[should_panic] tests", () => {
+  // rust2's report: the marker between the name and the dots made the parser
+  // drop the line, so expectPass naming such a test reported it as never run.
+  const SP = fs.readFileSync(path.join(FIXTURES, "cargo-should-panic.txt"), "utf8");
+  const tests = parseCargo(SP);
+
+  it("reads a should-panic test that passed", () => {
+    const t = tests.find((x) => x.name === "m5_01_panic_vs_result::element_at_panics_with_a_useful_message");
+    assert.ok(t, `parsed: ${tests.map((x) => x.name).join(", ")}`);
+    assert.equal(t!.status, "passed");
+  });
+  it("reads a should-panic test that failed", () => {
+    assert.equal(tests.find((x) => x.name === "m5_01_panic_vs_result::broken_should_panic")!.status, "failed");
+  });
+  it("reads a should-panic test that was ignored", () => {
+    assert.equal(tests.find((x) => x.name === "m5_01_panic_vs_result::ignored_case")!.status, "skipped");
+  });
+  it("finds every one of the eight printed lines, marked or not", () => {
+    assert.equal(tests.length, 6, `got ${tests.length}: ${tests.map((x) => x.name).join(", ")}`);
+  });
+  it("lets expectPass name a should-panic test", () => {
+    const v = evaluateSuite(tests, { expectPass: ["m5_01_panic_vs_result::divide_panics_on_zero"] });
+    assert.equal(v.passed, true, v.message);
+  });
+  it("keeps the marker out of the test name", () => {
+    // One test is genuinely called broken_should_panic, so look for the marker
+    // itself rather than the word.
+    assert.ok(!tests.some((t) => / - should panic/.test(t.name)));
+    assert.ok(tests.some((t) => t.name === "m5_01_panic_vs_result::broken_should_panic"));
+  });
+});
+
+describe("a test file that could not be loaded", () => {
+  // node reports the whole FILE as a failed test; its named tests never run.
+  // "no test of that name ran" is true but useless to a beginner.
+  const OUT = [
+    "TAP version 13",
+    "# Subtest: test/m0-04-modules.test.js",
+    "not ok 1 - test/m0-04-modules.test.js",
+    "  ---",
+    "  error: 'test failed'",
+    "  ...",
+    "# Subtest: m0-01 the workspace is ready",
+    "ok 2 - m0-01 the workspace is ready",
+    "1..2",
+  ].join("\n");
+  const tests = parseTap(OUT);
+
+  it("marks the file entry as a file, not as a test the student wrote", () => {
+    const f = tests.find((t) => t.name === "test/m0-04-modules.test.js")!;
+    assert.equal(f.file, true);
+    const real = tests.find((t) => t.name === "m0-01 the workspace is ready")!;
+    assert.equal(real.file, false);
+  });
+  it("explains that the file failed to load instead of denying the test exists", () => {
+    const v = evaluateSuite(tests, { expectPass: ["m0-04 named exports square and cube"] });
+    assert.equal(v.passed, false);
+    assert.match(v.message, /never ran/);
+    assert.match(v.message, /test\/m0-04-modules\.test\.js could not be loaded/);
+    assert.doesNotMatch(v.message, /no test of that name ran/);
+  });
+  it("still says so plainly when nothing failed to load", () => {
+    const clean = parseTap("ok 1 - something else\n");
+    assert.match(evaluateSuite(clean, { expectPass: ["absent"] }).message, /no test of that name ran/);
+  });
+  it("does not count a file entry towards minPass", () => {
+    const v = evaluateSuite(tests, { minPass: 2 });
+    assert.equal(v.passed, false, "only one real test passed");
+    assert.equal(evaluateSuite(tests, { minPass: 1 }).passed, true);
+  });
+});

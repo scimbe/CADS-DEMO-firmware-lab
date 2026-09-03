@@ -27,13 +27,46 @@ const STATUS_ICONS: Record<StepStatus, vscode.ThemeIcon> = {
   unavailable: new vscode.ThemeIcon("circle-slash", new vscode.ThemeColor("disabledForeground")),
 };
 
+/** The tree-wide unique key of a node; also the TreeItem id VS Code caches by. */
+export function nodeKey(node: TreeNode): string {
+  switch (node.kind) {
+    case "course":
+      return `course:${node.course.manifest.id}`;
+    case "module":
+      return `module:${node.course.manifest.id}/${node.moduleId}`;
+    case "step":
+      return `step:${node.course.manifest.id}/${node.step.id}`;
+  }
+}
+
 export class CoursesTreeProvider implements vscode.TreeDataProvider<TreeNode> {
   private readonly emitter = new vscode.EventEmitter<TreeNode | undefined>();
   readonly onDidChangeTreeData = this.emitter.event;
+  /**
+   * One object per node, reused across getChildren / getParent / nodeFor.
+   *
+   * `reveal()` walks getParent and matches the result against what getChildren
+   * returned. Handing out a fresh object each time makes those two disagree,
+   * and a revealed node can then be attached under the wrong parent - which is
+   * how a second course ended up showing the first course's step titles. Keying
+   * by course id as well as element id also guarantees two packs that share
+   * module ids (both tracks use m0..m7) never collide.
+   */
+  private readonly nodes = new Map<string, TreeNode>();
 
   constructor(private readonly state: TreeState) {}
 
+  private intern(node: TreeNode): TreeNode {
+    const key = nodeKey(node);
+    const existing = this.nodes.get(key);
+    if (existing) return existing;
+    this.nodes.set(key, node);
+    return node;
+  }
+
   refresh(): void {
+    // Courses may have been reloaded, so the interned objects are stale.
+    this.nodes.clear();
     this.emitter.fire(undefined);
   }
 
@@ -45,7 +78,7 @@ export class CoursesTreeProvider implements vscode.TreeDataProvider<TreeNode> {
       case "course": {
         const p = courseProgress(session, node.course);
         const item = new vscode.TreeItem(loc(node.course.manifest.title, lang), vscode.TreeItemCollapsibleState.Expanded);
-        item.id = `course:${node.course.manifest.id}`;
+        item.id = nodeKey(node);
         item.description = `${p.done}/${p.total}`;
         item.tooltip = `${loc(node.course.manifest.description, lang)}\n${node.course.origin}: ${node.course.dir}`;
         item.iconPath = new vscode.ThemeIcon(p.done === p.total && p.total > 0 ? "verified-filled" : "book");
@@ -58,7 +91,7 @@ export class CoursesTreeProvider implements vscode.TreeDataProvider<TreeNode> {
         const done = steps.filter((st) => stepStatus(session, node.course, st, this.state.courses()) === "done").length;
         const active = session.courseId === node.course.manifest.id && mod.steps.includes(session.stepId ?? "");
         const item = new vscode.TreeItem(loc(mod.title, lang), active || done < steps.length ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.Collapsed);
-        item.id = `module:${node.course.manifest.id}/${mod.id}`;
+        item.id = nodeKey(node);
         item.description = `${done}/${steps.length}`;
         item.iconPath = new vscode.ThemeIcon(done === steps.length && steps.length > 0 ? "folder-active" : "folder");
         item.contextValue = "module";
@@ -68,7 +101,7 @@ export class CoursesTreeProvider implements vscode.TreeDataProvider<TreeNode> {
         const meta = (node.step.variants[lang] ?? node.step.variants.en)!.meta;
         const status = stepStatus(session, node.course, node.step, this.state.courses());
         const item = new vscode.TreeItem(meta.title, vscode.TreeItemCollapsibleState.None);
-        item.id = `step:${node.course.manifest.id}/${node.step.id}`;
+        item.id = nodeKey(node);
         item.iconPath = STATUS_ICONS[status];
         item.description = status === "active" ? s.status.active : meta.estimatedMinutes ? s.minutes(meta.estimatedMinutes) : undefined;
         item.tooltip = `${meta.title}\n${s.bloom}: ${s.bloomLabel[meta.bloom]} · ${s.status[status]}${meta.requires.length ? `\nrequires: ${meta.requires.join(", ")}` : ""}`;
@@ -80,25 +113,32 @@ export class CoursesTreeProvider implements vscode.TreeDataProvider<TreeNode> {
   }
 
   getChildren(node?: TreeNode): TreeNode[] {
-    if (!node) return this.state.courses().map((course) => ({ kind: "course", course }));
-    if (node.kind === "course") return node.course.manifest.modules.map((m) => ({ kind: "module", course: node.course, moduleId: m.id }));
+    if (!node) return this.state.courses().map((course) => this.intern({ kind: "course", course }));
+    if (node.kind === "course") {
+      return node.course.manifest.modules.map((m) => this.intern({ kind: "module", course: node.course, moduleId: m.id }));
+    }
     if (node.kind === "module") {
-      const mod = node.course.manifest.modules.find((m) => m.id === node.moduleId)!;
-      return mod.steps.map((id) => node.course.steps.get(id)).filter((x): x is Step => !!x).map((step) => ({ kind: "step", course: node.course, step }));
+      const mod = node.course.manifest.modules.find((m) => m.id === node.moduleId);
+      if (!mod) return [];
+      // Steps are resolved from THIS course's own map, never by bare id.
+      return mod.steps
+        .map((id) => node.course.steps.get(id))
+        .filter((x): x is Step => !!x)
+        .map((step) => this.intern({ kind: "step", course: node.course, step }));
     }
     return [];
   }
 
   getParent(node: TreeNode): TreeNode | undefined {
-    if (node.kind === "step") return { kind: "module", course: node.course, moduleId: node.step.moduleId };
-    if (node.kind === "module") return { kind: "course", course: node.course };
+    if (node.kind === "step") return this.intern({ kind: "module", course: node.course, moduleId: node.step.moduleId });
+    if (node.kind === "module") return this.intern({ kind: "course", course: node.course });
     return undefined;
   }
 
   nodeFor(courseId: string, stepId: string): TreeNode | undefined {
     const course = this.state.courses().find((c) => c.manifest.id === courseId);
     const step = course?.steps.get(stepId);
-    return course && step ? { kind: "step", course, step } : undefined;
+    return course && step ? this.intern({ kind: "step", course, step }) : undefined;
   }
 
   allSteps(course: Course): Step[] {

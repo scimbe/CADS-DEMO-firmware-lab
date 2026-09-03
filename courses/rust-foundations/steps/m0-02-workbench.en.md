@@ -21,8 +21,9 @@ tasks:
     check: { type: "command", command: "cargo build", expectExitCode: 0, seedMustFail: false, timeoutMs: 180000 }
   - id: panels
     title: "You can say where output appears"
-    check: { type: "question", prompt: { en: "You ran cargo build and saw nothing. Name the three places at the bottom of the window where output can appear, say which one a terminal command writes to, and say how you can tell from the terminal alone that a command has finished rather than hung.", de: "Du hast cargo build ausgeführt und nichts gesehen. Nenne die drei Stellen unten im Fenster, an denen Ausgabe erscheinen kann, sage, in welche davon ein Terminalbefehl schreibt, und sage, woran du allein am Terminal erkennst, dass ein Befehl fertig ist und nicht hängt." }, rubric: "Names Terminal, Problems and Output as the three panel tabs, states that a command typed in the terminal writes to the Terminal tab only (Problems shows diagnostics collected by extensions, Output shows extension logs), and states that the shell prompt reappearing under the output is the finished signal - a cursor with no prompt means it is still running. Credit for noting that the Check button shows the same output inside the tutor panel.", bloom: "understand", minChars: 60 }
+    check: { type: "question", prompt: { en: "A classmate says a cargo command printed nothing. Give the three things you would have them check, in the order you would ask. One line each.", de: "Ein Kommilitone sagt, ein cargo-Befehl habe nichts ausgegeben. Nenne die drei Dinge, die du ihn prüfen ließest, in der Reihenfolge, in der du fragen würdest. Je eine Zeile." }, rubric: "Three ordered checks, each with a reason. Cheapest first is the mark of a good answer: whether the tab on screen is Terminal rather than Problems or Output, whether the prompt has come back or the command is still running, and whether the terminal sits in the crate folder rather than one level above it. Any three of those in a defensible order pass. Does not pass: listing the three panel tabs as if they were the three checks, or three checks with no order and no reason.", bloom: "understand", minChars: 60 }
 socratic:
+  - { trigger: "task:panels:failed", question: { en: "You are asked for an order, not a list. Which of your three checks costs the least to try?", de: "Gefragt ist eine Reihenfolge, keine Liste. Welche deiner drei Prüfungen kostet am wenigsten?" }, hints: [ { en: "A good order starts with what you can see without typing anything and ends with what needs a command.", de: "Eine gute Reihenfolge beginnt mit dem, was ohne Tippen zu sehen ist, und endet mit dem, was einen Befehl braucht." }, { en: "Three different situations all produce \"nothing happened\": you are looking somewhere else, it has not finished, or it never started in the right place.", de: "Drei verschiedene Lagen erzeugen alle \"es passiert nichts\": du schaust woanders hin, es ist nicht fertig, oder es hat nie an der richtigen Stelle begonnen." }, { en: "The third of those is what the instructions at the foot of every step warn about, and `pwd` settles it in one word.", de: "Das dritte davon ist das, wovor die Anweisungen am Fuß jedes Steps warnen, und `pwd` klärt es mit einem Wort." } ] }
   - { trigger: "task:build:failed", question: { en: "Which folder does the terminal say it is in, and is a Cargo.toml there?", de: "Welchen Ordner nennt das Terminal, und liegt dort eine Cargo.toml?" }, hints: [ { en: "Type `pwd` and press Enter; the answer must end in the rust-foundations folder.", de: "Tippe `pwd` und drücke die Eingabetaste; die Antwort muss auf den Ordner rust-foundations enden." }, { en: "Close the terminal with the bin icon on its right-hand side and open a fresh one with Terminal → New Terminal; a new terminal always starts in the workspace folder.", de: "Schließe das Terminal über das Papierkorbsymbol an seiner rechten Seite und öffne mit Terminal → Neues Terminal ein frisches; ein neues Terminal startet immer im Workspace-Ordner." }, { en: "If `cargo` itself is not found, the toolchain is missing from this container - that is an environment fault, not something you can fix in the editor.", de: "Wird `cargo` selbst nicht gefunden, fehlt die Toolchain in diesem Container - das ist ein Umgebungsfehler und nichts, was du im Editor beheben kannst." } ] }
   - { trigger: "task:toolchain:failed", question: { en: "Which of the three commands failed? Run them one at a time to find out.", de: "Welcher der drei Befehle ist gescheitert? Führe sie einzeln aus, um es herauszufinden." }, hints: [ { en: "`&&` stops at the first failure, so the last line you see is the one that broke.", de: "`&&` bricht beim ersten Fehlschlag ab, die letzte sichtbare Zeile ist also die gescheiterte." }, { en: "`cargo fmt --version` and `cargo clippy --version` need the rustfmt and clippy components; both belong in this image.", de: "`cargo fmt --version` und `cargo clippy --version` brauchen die Komponenten rustfmt und clippy; beide gehören in dieses Image." }, { en: "If one is genuinely absent, report it - the last step of the course checks formatting and lints with exactly these two.", de: "Fehlt eines wirklich, melde es - der letzte Step des Kurses prüft Formatierung und Lints mit genau diesen beiden." } ] }
 misconceptions:
@@ -48,11 +49,7 @@ The **CaDS Tutor** panel shows the step you are reading, the tasks with a **Chec
 
 This is the single most common way to lose ten minutes:
 
-- **Terminal** shows what a command you typed prints. Everything in this course goes here.
-- **Problems** shows diagnostics that an extension collected, in a list. It stays empty in this course; do not wait for it.
-- **Output** shows the logs of the extensions themselves. Nothing you run appears here.
-
-If a command "printed nothing", check that you are looking at **Terminal**.
+Click each of **Terminal**, **Problems** and **Output** once now, with nothing running, and note what is in them. One of the three is where a command you typed prints; the other two hold things no command of yours will ever write. Which is which is worth finding out here rather than in the middle of a failing step.
 
 ## Three ways to run the same thing
 
@@ -70,13 +67,15 @@ Without it, cargo answers `could not find Cargo.toml in /home/coder/workspace or
 
 To close a terminal, press the bin icon on its right-hand edge, or type `exit`. Nothing is lost - a terminal holds no state you need. Open a new one the same way and you are back where you were.
 
-## Pictures of these steps
+## The palette, in command mode
 
-*Screenshots of the window, the palette in command mode and a terminal after
-the `cd` belong here and are not in yet.* They were captured from a real lab
-container but cannot be shipped while the tutor panel opens the wrong course;
-`courses/rust-foundations/assets/README.md` names the four files and the
-defect. Everything they would show is written out above.
+![The command palette open over the editor. The input reads
+'>Terminal: Create New Terminal' and the first result of the same name is
+selected; the explorer on the left lists the rust-foundations
+folder.](palette-new-terminal.png)
+
+Note the `>` at the very start of the input, and that the top result is the
+command you want. Without the `>` this same list reads *No matching results*.
 
 ## How you know a command has finished
 
@@ -110,5 +109,9 @@ The **Check** button next to the task above runs exactly these commands for you 
 **How long:** a few seconds the first time, because the crate is compiled once; well under a second on every later run.
 
 **Finished when:** the shell prompt reappears below the output. Until it does, the command is still running - a blinking cursor with no prompt is not a hang.
+
+![A terminal in the panel at the bottom: the prompt reads coder@…:~/workspace/rust-foundations, then the cargo command, then its output.](terminal-run-a-step.png)
+
+*The three moves are the same in every step of this course - open a terminal, `cd` into the crate, run the command. Only the last line differs, and this step's version of it is in the block above.*
 
 **If something is off:** the output is in the **Terminal** tab at the bottom, not in **Problems** and not in **Output** - those two show different things and are the usual reason for "nothing happened". If you closed the terminal by accident, open a new one the same way; nothing is lost. If cargo answers `could not find Cargo.toml`, this terminal never got the `cd` above - run it and try again.
