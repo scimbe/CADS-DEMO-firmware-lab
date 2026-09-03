@@ -4,21 +4,17 @@ use rust_foundations::m1::m1_03_copy_types::{Point, mirror, sum_twice};
 mod m1_03_copy_types {
     use super::*;
 
-    fn assert_is_copy<T: Copy>() {}
-
     #[test]
     fn sum_twice_doubles() {
         assert_eq!(sum_twice(21), 42);
     }
 
-    #[test]
-    fn point_is_copy() {
-        // Only compiles once Point implements Copy.
-        assert_is_copy::<Point>();
-        let p = Point { x: 1, y: 2 };
-        let q = p;
-        assert_eq!(p, q);
-    }
+    // Whether `Point` is `Copy` is a compile-time fact, and a test that asserted
+    // it with a `T: Copy` bound would stop this whole file from compiling until
+    // you added the derive - taking every other step's tests down with it. The
+    // step checks the derive by reading the source instead, and `mirror` below
+    // is what proves the semantics: it uses `p` twice without cloning, which
+    // only your own file can be made to compile.
 
     #[test]
     fn mirror_negates_x() {
