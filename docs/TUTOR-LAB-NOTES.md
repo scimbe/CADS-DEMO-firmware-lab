@@ -56,6 +56,10 @@ full pass, `PASS: tutor-lab smoke test`:
 | `node --test` in `javascript-foundations` | exit 0, `# pass 4`, `# fail 0` ✔ |
 
 Screenshots of that run: `e2e/out/tutor-lab/{01-workbench,01b-after-startup,01c-explorer,02-tutor,03-terminal}.png`.
+The run was repeated against the `--no-cache` image on a fresh volume and passed identically;
+the container sits at **1.13 GiB** with a browser attached, an extension host, rust-analyzer and
+a terminal running, so it is far less demanding than the firmware image (which needed a 5.8 GB
+Docker VM to stop being OOM-killed).
 
 **Tutor panel with a real course pack.** Because no rust/javascript pack exists yet, the panel
 itself was verified once by copying the firmware pack into a running container
@@ -64,6 +68,21 @@ local probe only, nothing of it is in the image): the side bar switched to `CADS
 views *Kurse / Courses* and *Fortschritt / Progress*, the status bar item became
 `🎓 Tutor: Welcome to the CaDS firmware lab` and the step opened as an editor tab. So the
 mechanism works; only the content is missing.
+
+**amd64 was not built here – its pins were verified instead.** Everything above is an arm64
+build on a Mac; labor and the CI amd64 runner are x86-64, and the Dockerfile carries separate
+checksums per architecture, which is exactly the kind of thing that is wrong until someone
+looks. Checked against upstream on 2026-09-03:
+
+- `node-v22.23.2-linux-x64.tar.xz` → `d60acfe0…03f307`, matches `NODE_SHA256_AMD64` (and the
+  arm64 line matches `NODE_SHA256_ARM64`); source is nodejs.org's own `SHASUMS256.txt`.
+- `codelldb-linux-x64.vsix` v1.12.3 downloaded and hashed → `1cd7f386…fd1be1`, matches
+  `CODELLDB_SHA256_AMD64` (55 571 094 B).
+- Open VSX publishes `rust-lang.rust-analyzer` for both `linux-x64` and `linux-arm64`, and the
+  linux-x64 VSIX contains `extension/server/rust-analyzer` (41.9 MB) – so the Dockerfile's
+  `test -x …/server/rust-analyzer` assertion holds on amd64 too.
+
+The first amd64 image itself is built by CI.
 
 ## Image size (target: under 1.5 GB compressed)
 
