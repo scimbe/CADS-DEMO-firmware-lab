@@ -12,6 +12,8 @@ the ST-Link is driven from the browser (WebUSB/WebSerial) and bridged into the c
   ADRs, per-stream notes.
 - **Operator runbooks**: the private ops-docs site.
 
+**User documentation:** [https://scimbe.github.io/CADS-DEMO-firmware-lab-docs/](https://scimbe.github.io/CADS-DEMO-firmware-lab-docs/) (DE/EN).
+
 ## Architecture
 
 ```

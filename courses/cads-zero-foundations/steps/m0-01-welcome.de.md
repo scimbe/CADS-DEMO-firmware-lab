@@ -48,6 +48,10 @@ CaDS Zero hält sich an eine harte Regel: **der Displaybus ist nur beschreibbar*
 
 Jeder Step beginnt mit seinem Lernziel in einem Satz, gibt dir einen kompakten Text und stellt dir dann ein bis drei Aufgaben mit automatischen Checks. Lies `docs/ROADMAP.md`, wenn du die laufende Selbstbeschreibung des Projekts willst — es ist das Gedächtnis der Firmware über sich selbst.
 
+## Dokumentation
+
+Das Labor hat ein eigenes Handbuch mit Tutorials, How-tos und Troubleshooting: [https://scimbe.github.io/CADS-DEMO-firmware-lab-docs/de/](https://scimbe.github.io/CADS-DEMO-firmware-lab-docs/de/). Halte es in einem zweiten Tab offen; jeder Tutor-Step, der das Board berührt, verlinkt die passende Seite.
+
 ## Deine Aufgabe
 
 Bestätige, dass der Tutor offen ist, und beantworte dann eine Frage zur Hardware aus dem eben Gelesenen. Es gibt noch nichts zu bauen — der nächste Step verbindet das Board.

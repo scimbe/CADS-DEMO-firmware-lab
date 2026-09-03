@@ -48,6 +48,10 @@ CaDS Zero holds itself to a hard rule: **the display bus is write-only**, so sof
 
 Each step opens with its learning goal in one sentence, gives you a compact reading, and then hands you one to three tasks with automatic checks. Read `docs/ROADMAP.md` if you want the project's own running account of what is done and why; it is the firmware's memory of itself.
 
+## Documentation
+
+The lab has its own handbook with tutorials, how-tos and troubleshooting: [https://scimbe.github.io/CADS-DEMO-firmware-lab-docs/en/](https://scimbe.github.io/CADS-DEMO-firmware-lab-docs/en/). Keep it open in a second tab; every tutor step that touches the board links to the matching page.
+
 ## Your task
 
 Confirm the tutor is open, then answer one question about the hardware from what you have just read. There is nothing to build yet — the next step connects the board.
