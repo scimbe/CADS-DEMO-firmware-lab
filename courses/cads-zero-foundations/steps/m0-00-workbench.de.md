@@ -13,7 +13,7 @@ links:
 sources: [scripts/check_ram_budget.py, docs/reference/measurements.md]
 tasks:
   - id: ran-a-task
-    title: Du hast den Task „CaDS: RAM budget“ ausgeführt
+    title: "Du hast den Task „CaDS: RAM budget“ ausgeführt"
     check: { type: task, label: "CaDS: RAM budget", expectExitCode: 0 }
   - id: read-the-output
     title: Lies die Zahl aus der Ausgabe
