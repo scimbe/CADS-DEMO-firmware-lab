@@ -23,7 +23,7 @@ tasks:
 socratic:
   - { trigger: "task:robust:failed", question: { en: "Is a Promise being reported as the value, or is the rejection escaping the catch?", de: "Wird ein Promise als Wert gemeldet, oder entkommt die Ablehnung dem catch?" }, hints: [ { en: "try { const value = fn(); } does not wait, so the block ends before the promise settles.", de: "try { const value = fn(); } wartet nicht, der Block endet also, bevor das Promise besiegelt ist." }, { en: "await inside the try is what turns a rejection into a throw the catch can see.", de: "Erst das await im try macht aus einer Ablehnung ein throw, das das catch sehen kann." }, { en: "For mustLoad: throw new Error(`load failed: ${error.message}`, { cause: error });", de: "Für mustLoad: throw new Error(`load failed: ${error.message}`, { cause: error });" } ] }
 misconceptions:
-  - pattern: "ERR_UNHANDLED_REJECTION|Unhandled"
+  - pattern: "unhandledRejection"
     question: { en: "A rejected promise reached the top of the program. Which call was not awaited and not caught?", de: "Ein abgelehntes Promise ist an der Programmspitze angekommen. Welcher Aufruf wurde weder awaited noch gefangen?" }
     hints: [ { en: "Node terminates the process on an unhandled rejection; it is not a warning.", de: "Node beendet den Prozess bei einer unbehandelten Ablehnung; das ist keine Warnung." }, { en: "Every promise needs an await, a .catch, or a caller that takes responsibility for it.", de: "Jedes Promise braucht ein await, ein .catch oder einen Aufrufer, der die Verantwortung übernimmt." }, { en: "Awaiting inside a try block satisfies both at once.", de: "Ein await innerhalb eines try-Blocks erledigt beides auf einmal." } ]
   - pattern: "Promise \\{|ok: true"
