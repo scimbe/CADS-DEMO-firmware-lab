@@ -61,7 +61,9 @@ deploy/multiuser/                               multi-user stack: fl-broker (hos
 scripts/run-local.sh, validate-courses.py, tutor-e2e-container.sh
 tests/shims/                                    unittest suite for the shims
 e2e/image-smoke.mjs, e2e/tutor/                 Playwright checks against a running container
-docs/                                           SPEC, ADRs, IMAGE-NOTES, TUTOR-NOTES, MULTIUSER, COURSE-AUTHORING
+images/tutor-lab/                               second image (SPEC A4): Rust/JavaScript tracks, ghcr.io/scimbe/cads-tutor-lab
+workspaces/rust-foundations, javascript-foundations   starter workspaces seeded by that image
+docs/                                           SPEC, ADRs, IMAGE-NOTES, TUTOR-LAB-NOTES, TUTOR-NOTES, MULTIUSER, COURSE-AUTHORING
 example-firmware/, vscode-extension/, webusb-flash/   history: the previous OpenOCD/USB-passthrough lab (see below)
 ```
 
@@ -88,6 +90,30 @@ deviation from the spec: [`docs/IMAGE-NOTES.md`](docs/IMAGE-NOTES.md).
 - Shims: `python3 -m unittest discover -s tests/shims -v` (mock HTTP bridge, no Docker).
 - Browser smoke test against a running container:
   `CADS_LAB_PASSWORD=… node e2e/image-smoke.mjs` (login, workspace, `CaDS: Build`, `st-info --probe`).
+
+### Tutor-lab image (Rust / JavaScript)
+
+The second image needs no secret at all – the build context is the repository root and
+everything it downloads is public and checksum-pinned.
+
+```sh
+TUTOR_LAB_PASSWORD=… scripts/run-local-tutor-lab.sh    # package VSIX, build, run on http://127.0.0.1:8089
+scripts/run-local-tutor-lab.sh --build-only
+scripts/run-local-tutor-lab.sh --fresh                 # re-seed the workspace volume
+docker build -f images/tutor-lab/Dockerfile -t cads-tutor-lab:dev .
+```
+
+Build args: `RUST_TOOLCHAIN` (default `stable`), `NODE_VERSION` + `NODE_SHA256_*`,
+`CODELLDB_VERSION` + `CODELLDB_SHA256_*`. The build is a test too: the seed stage runs
+`cargo build --all-targets`, `cargo test` and `node --test` in the starter workspaces at the
+runtime path, so a broken workspace fails the image.
+
+- Browser smoke test against a running container:
+  `CADS_LAB_PASSWORD=… CADS_LAB_URL=http://127.0.0.1:8089 CADS_LAB_CONTAINER=tutor-lab-local node e2e/tutor-lab-smoke.mjs`
+  (login, multi-root workspace, no Restricted Mode, no notifications, tutor, terminal with
+  `cargo test` and `node --test`).
+- Results, sizes, deviations: [`docs/TUTOR-LAB-NOTES.md`](docs/TUTOR-LAB-NOTES.md);
+  deployment: [`images/tutor-lab/README.md`](images/tutor-lab/README.md).
 
 ### Extensions
 
@@ -133,6 +159,13 @@ manifest to `ghcr.io/scimbe/cads-firmware-lab` tagged `<branch>-<shortsha>`, `<b
 (`main` only) `latest`. Required repository secret: `CADS_ZERO_TOKEN` (read-only token for
 cads-zero, see IMAGE-NOTES). Deploy immutable tags.
 
+`.github/workflows/image-tutor-lab.yml` does the same for the second image,
+`ghcr.io/scimbe/cads-tutor-lab` (`images/tutor-lab/Dockerfile`, the Rust and JavaScript tracks),
+with the same tag scheme and **no repository secret** – everything it downloads is public and
+pinned. See [docs/TUTOR-LAB-NOTES.md](docs/TUTOR-LAB-NOTES.md) and
+[images/tutor-lab/README.md](images/tutor-lab/README.md), which also covers deploying it on the
+lab host.
+
 ## Running the image
 
 The image's `CMD` carries every flag that matters (`--disable-workspace-trust` included, ADR-006),
@@ -146,6 +179,16 @@ docker run -d --name firmware-lab -p 127.0.0.1:8083:8080 \
 
 Add `-e CMAKE_BUILD_PARALLEL_LEVEL=<n>` on small hosts. The workspace volume is seeded on the
 first start only and never overwritten by a new image.
+
+The tutor-lab image works the same way, on its own port and volume:
+
+```sh
+docker run -d --name tutor-lab -p 127.0.0.1:8084:8080 \
+  -e PASSWORD=… -e TUTOR_LLM_BASE_URL=… -e TUTOR_LLM_API_KEY=… -e TUTOR_LLM_MODEL=… \
+  -v tutor-lab-workspace:/home/coder/workspace ghcr.io/scimbe/cads-tutor-lab:<tag>
+```
+
+`TUTOR_LLM_BASE_URL` must be an `https://` URL – the tutor's LLM client rejects anything else.
 
 ## History
 
