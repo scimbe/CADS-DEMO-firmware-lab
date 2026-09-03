@@ -1,10 +1,11 @@
 ---
 id: m8-04-capstone
-title: Capstone – a reviewable change with a passing test
+title: Capstone - a reviewable change with a passing test
 bloom: create
 objectives: [cz.quality.capstone]
 requires: [m8-03-clean-room-pr]
 estimatedMinutes: 30
+scaffold: independent
 links:
   - { doc: "docs/how-to/agent-workflow.md" }
   - { file: "tests/unit/CMakeLists.txt", line: 23 }
@@ -12,17 +13,19 @@ links:
   - { step: m8-03-clean-room-pr }
 sources: [docs/how-to/agent-workflow.md, tests/unit/CMakeLists.txt, tests/unit/test_str.c, modules/toolbox/include/cads/toolbox/str.h, scripts/check_ram_budget.py]
 tasks:
+  - id: tests-touched
+    title: Your change is under tests/unit
+    check: { type: command, cwd: ".", command: "git status --porcelain -- tests/unit | grep -q .", expectExitCode: 0, bloom: create }
   - id: tests-green
-    title: Your new test is in the suite and the suite passes
-    check: { type: task, label: "CaDS: Host tests", expectExitCode: 0 }
+    title: The suite passes with your test
+    check: { type: task, label: "CaDS: Host tests", expectExitCode: 0, bloom: create }
   - id: self-review
-    title: Self-review in the shape of a PR description
-    check: { type: question, prompt: { en: "Write the self-review a reviewer would read first: what exactly changed and where, what your new test proves that the existing tests did not, how you confirmed both targets still build, and why the RAM budget is unaffected.", de: "Schreibe das Selbst-Review, das ein Reviewer zuerst liest: was genau sich wo geändert hat, was dein neuer Test beweist, den die vorhandenen nicht bewiesen, wie du bestätigt hast, dass beide Targets noch bauen, und warum das RAM-Budget unberührt ist." }, rubric: "Names the test file and the CMake registration line added; states a concrete behaviour the new case asserts (e.g. a parser boundary of cads_str_to_uint/cads_str_to_hex, or a truncation contract) that no existing case covered; reports that CaDS: Host tests (ctest) and CaDS: Build (itsboard) both succeed; explains that a host-only test adds no code or data to the firmware image, so __cads_heap_size and the check_ram_budget.py margin are unchanged; keeps the change limited to the test and its registration.", bloom: create }
-  - id: pr-summary
-    title: Assemble the PR-shaped summary per the agent workflow
-    check: { type: manual }
+    title: Self-review of the assertion
+    check: { type: question, prompt: { en: "Which documented behaviour does your new case assert that no existing case covered?", de: "Welches dokumentierte Verhalten sichert dein neuer Fall zu, das kein vorhandener Fall abdeckte?" }, rubric: "Names exactly three things: the function together with its input, the promised return value, and the promised side effect - for instance that cads_str_to_uint returns false and leaves *value untouched on a 0x prefix with no digits after it, or that end points at the first non-digit so a command loop can read several arguments from one line. And says how you established that no existing case already covers it. A case that repeats an existing assertion does not pass this task, however green it is.", bloom: create }
 socratic:
-  - { trigger: "task:tests-green:failed", question: { en: "ctest prints the failing subject's name first. Is it your new binary - and if so, did it fail to compile, fail an assertion, or never get registered?", de: "ctest druckt zuerst den Namen des scheiternden Subjekts. Ist es dein neues Binary - und falls ja, kompilierte es nicht, scheiterte eine Zusicherung oder wurde es nie registriert?" }, hints: [ { en: "A new test needs both the .c file and a cads_add_unit_test + target_link_libraries pair in tests/unit/CMakeLists.txt, then a reconfigure.", de: "Ein neuer Test braucht sowohl die .c-Datei als auch ein Paar cads_add_unit_test + target_link_libraries in tests/unit/CMakeLists.txt, dann eine Neukonfiguration." }, { en: "Every RUN_TEST must appear in main() between UNITY_BEGIN() and UNITY_END(); a case that is defined but not run passes vacuously.", de: "Jedes RUN_TEST muss in main() zwischen UNITY_BEGIN() und UNITY_END() stehen; ein definierter, aber nicht ausgeführter Fall besteht leer." }, { en: "Read the assertion's expected/actual line: the str parsers deliberately return false and leave *value untouched on no digit or overflow - assert on that contract, not a guessed zero.", de: "Lies die Expected/Actual-Zeile der Zusicherung: die str-Parser geben absichtlich false zurück und lassen *value bei fehlender Ziffer oder Überlauf unverändert - prüfe diesen Vertrag, nicht eine geratene Null." } ] }
+  - { trigger: "task:tests-touched:failed", question: { en: "The check looks for a change under tests/unit. Did your edit land somewhere else, or has it already been committed away?", de: "Der Check sucht eine Änderung unter tests/unit. Ist deine Änderung woanders gelandet, oder schon wegkommittiert?" }, hints: [ { en: "Both routes from the step text touch tests/unit: a new case in an existing file, or a new file plus its registration.", de: "Beide Wege aus dem Steptext berühren tests/unit: ein neuer Fall in einer vorhandenen Datei oder eine neue Datei samt Registrierung." }, { en: "A brand new file must be visible to git; an untracked file counts, a file outside the directory does not.", de: "Eine ganz neue Datei muss für git sichtbar sein; eine nicht verfolgte Datei zählt, eine Datei außerhalb des Verzeichnisses nicht." }, { en: "This check only sees that you changed the tests, not that the change is good - the other two tasks are for that.", de: "Dieser Check sieht nur, dass du die Tests geändert hast, nicht dass die Änderung gut ist - dafür sind die beiden anderen Aufgaben da." } ] }
+  - { trigger: "task:tests-green:failed", question: { en: "ctest prints the failing subject's name first. Is it your test - and if so, did it fail to compile, fail an assertion, or never get registered?", de: "ctest druckt zuerst den Namen des scheiternden Subjekts. Ist es dein Test - und falls ja, kompilierte er nicht, scheiterte eine Zusicherung oder wurde er nie registriert?" }, hints: [ { en: "A new subject needs both a registration and a link line in tests/unit/CMakeLists.txt, then a reconfigure.", de: "Ein neues Subjekt braucht sowohl eine Registrierung als auch eine Link-Zeile in tests/unit/CMakeLists.txt, dann eine Neukonfiguration." }, { en: "Every RUN_TEST must appear in main() between UNITY_BEGIN() and UNITY_END(); a case defined but not run passes vacuously.", de: "Jedes RUN_TEST muss in main() zwischen UNITY_BEGIN() und UNITY_END() stehen; ein definierter, aber nicht ausgeführter Fall besteht leer." }, { en: "Read the expected/actual line before changing the assertion: the header documents what the parsers do on failure, and it is not what most people guess.", de: "Lies die Expected/Actual-Zeile, bevor du die Zusicherung änderst: der Header dokumentiert, was die Parser im Fehlerfall tun, und das ist nicht, was die meisten raten." } ] }
+  - { trigger: "question:self-review:weak", question: { en: "Point at the sentence in the header that documents the behaviour, then at the existing test file. What is in the first and not in the second?", de: "Zeig auf den Satz im Header, der das Verhalten dokumentiert, und dann auf die vorhandene Testdatei. Was steht im ersten und nicht in der zweiten?" }, hints: [ { en: "A contract has edges: an empty input, a prefix without digits, a value one past the maximum, an unusual leading character.", de: "Ein Vertrag hat Ränder: eine leere Eingabe, ein Präfix ohne Ziffern, ein Wert eins über dem Maximum, ein ungewöhnliches führendes Zeichen." }, { en: "Name the assertion, not the feeling - which function, which input, which promised return value and which promised side effect.", de: "Nenne die Zusicherung, nicht das Gefühl - welche Funktion, welche Eingabe, welcher versprochene Rückgabewert und welche versprochene Nebenwirkung." }, { en: "A test that only re-checks a case the suite already has is honest work but does not answer this question.", de: "Ein Test, der nur einen Fall nachprüft, den die Suite schon hat, ist ehrliche Arbeit, beantwortet diese Frage aber nicht." } ] }
 ---
 ## Learning goal
 
@@ -54,4 +57,4 @@ Run **CaDS: Host tests**. ctest must list your test and end green. Then run **Ca
 
 ## Your task
 
-Add the test, make the suite pass, write the self-review answering the four questions in the check, and assemble the PR-shaped summary. This closes the foundations course; the projects course builds on exactly this discipline at larger scale.
+Add the test — the first check only looks that something of yours is under `tests/unit`, the second that the suite stays green with it. Then answer which documented promise your case newly covers. Finally write the PR-shaped summary per `docs/how-to/agent-workflow.md`: a title in the `[M<n>] ...` form, a body naming the file, the contract tested and the two green runs, and the sentence about the untouched RAM budget. This closes the foundations course; the projects course builds on exactly this discipline at larger scale.
