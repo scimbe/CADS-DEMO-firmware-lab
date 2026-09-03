@@ -44,7 +44,10 @@
   "chat.disableAIFeatures": true,
   "workbench.secondarySideBar.defaultVisibility": "hidden",
   "cmake.showOptionsMovedNotification": false,
-  "cmake.options.statusBarVisibility": "visible",
+  // CMake Tools' six status bar items (preset/build/ctest/cpack/workflow) are
+  // noise for students; the CaDS tasks cover the workflow. Enum in cmake-tools
+  // 1.23: visible | compact | icon | hidden.
+  "cmake.options.statusBarVisibility": "hidden",
   "terminal.integrated.defaultProfile.linux": "bash",
   "git.openRepositoryInParentFolders": "never",
   "files.autoSave": "off"
