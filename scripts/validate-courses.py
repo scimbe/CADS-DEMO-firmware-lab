@@ -25,9 +25,12 @@ What it checks, per the task brief:
      `modules[].reflection.prompts` in course.json.
   8. `--solutions DIR`: every top-level `testSuite`/`command` check is executed
      twice in a scratch copy of PROJECT_ROOT - without the solution it must FAIL,
-     with DIR overlaid (same relative paths) it must PASS. Skipped with a note
-     when the toolchain binary the command runs (leading `VAR=value`
-     assignments skipped) is not installed.
+     with DIR overlaid it must PASS. DIR may mirror the project root directly, or
+     hold one directory per step id (SPEC v1.1 A4), in which case every step
+     directory is overlaid. A check that is meant to pass on the untouched seed -
+     a toolchain probe such as `node --version` - declares `seedMustFail: false`.
+     Skipped with a note when the toolchain binary the command runs (leading
+     `VAR=value` assignments skipped) is not installed.
      A check that legitimately passes on the seed opts out with
      `seedMustFail: false`.
 
@@ -87,6 +90,10 @@ except ImportError:
                     i += 1
                 if i < n and s[i] == "}":
                     return obj, i + 1
+                if i >= n:
+                    # Unterminated flow map (usually an unbalanced quote in the
+                    # front matter). Return what we have instead of spinning.
+                    return obj, i
                 key, i = _parse_flow_scalar(s, i, stop=":")
                 while i < n and s[i] in " \t":
                     i += 1
@@ -103,8 +110,13 @@ except ImportError:
                     i += 1
                 if i < n and s[i] == "]":
                     return arr, i + 1
+                if i >= n:
+                    return arr, i
+                before = i
                 val, i = _parse_flow(s, i)
                 arr.append(val)
+                if i == before:
+                    return arr, i
         return _parse_flow_scalar(s, i, stop=",]}")
 
     def _parse_flow_scalar(s: str, i: int, stop: str):
@@ -188,9 +200,26 @@ except ImportError:
             key = m.group(1).strip()
             rest = m.group(2).strip()
             if rest == "":
-                # nested block
-                val, idx = _parse_block(lines, idx + 1, indent + 1)
-                obj[key] = val
+                # Nested block. The child's indent is DISCOVERED from its first
+                # significant line, not assumed to be indent + 1: a block map
+                # under `check:` is normally indented by two, and assuming one
+                # made _parse_map bail out immediately and yield {} - so every
+                # block-style check parsed as type None. A sequence may also sit
+                # at the key's own indent, which is legal YAML.
+                j = idx + 1
+                while j < len(lines) and (not lines[j].strip() or lines[j].lstrip().startswith("#")):
+                    j += 1
+                if j < len(lines):
+                    child = _indent(lines[j])
+                    is_seq = lines[j].lstrip().startswith("- ")
+                    if child > indent or (is_seq and child == indent):
+                        val, idx = _parse_block(lines, idx + 1, child)
+                        obj[key] = val
+                        continue
+                # A key with nothing under it is an explicit null, as in PyYAML.
+                obj[key] = None
+                idx += 1
+                continue
             elif rest[0] in "[{":
                 val, _ = _parse_flow(rest, 0)
                 obj[key] = val
@@ -330,7 +359,14 @@ def iter_check_paths(check):
             yield ("elf", check["elf"])
         if check.get("symbol"):
             yield ("symbol", check["symbol"])
-    for key in ("all", "any"):
+    if t == "predict" and isinstance(check.get("then"), dict):
+        yield from iter_check_paths(check["then"])
+    # Composite checks. The runtime (extensions/cads-tutor/src/schema.ts) puts
+    # sub-checks under "checks:"; "all:"/"any:" is accepted as an alias so an
+    # older pack still validates. Without the "checks" key nothing inside a
+    # composite was ever checked - that is how three project steps came to name
+    # symbols that are in no ELF and in no creates: list.
+    for key in ("checks", "all", "any"):
         sub = check.get(key)
         if isinstance(sub, list):
             for c in sub:
@@ -704,39 +740,67 @@ _CARGO_RE = re.compile(r"^test (\S+) \.\.\. (ok|FAILED|ignored)")
 
 
 def _parse_tests(output, runner):
-    """Minimal twin of the extension's parsers: returns {name: passed?} for
-    leaf tests; nested TAP names are keyed by both leaf name and 'a > b'."""
-    results = {}
+    """Twin of extensions/cads-tutor/src/checks/testParsers.ts. Returns a list of
+    {name, path, status, leaf} so this validator and the runtime reach the same
+    verdict on the same output - an author must not see a check pass here and
+    fail in the tutor. Keep the two in step when either changes."""
+    out = []
     if runner == "cargo":
+        # libtest prints one flat line per test; every case is a leaf.
         for line in output.splitlines():
-            m = _CARGO_RE.match(line)
-            if m and m.group(2) != "ignored":
-                results[m.group(1)] = m.group(2) == "ok"
-        return results
-    stack = []  # (indent, name) from "# Subtest:" lines
+            m = _CARGO_RE.match(line.strip())
+            if m:
+                status = {"ok": "passed", "FAILED": "failed"}.get(m.group(2), "skipped")
+                out.append({"name": m.group(1), "path": m.group(1), "status": status, "leaf": True})
+        return out
+    stack = []  # frames: [indent, name, child_count]
     for line in output.splitlines():
         indent = len(line) - len(line.lstrip(" "))
         st = line.strip()
-        sm = re.match(r"^# Subtest: (.*)$", st)
+        sm = re.match(r"^#\s*Subtest:\s*(.*)$", st)
         if sm:
             while stack and stack[-1][0] >= indent:
                 stack.pop()
-            stack.append((indent, sm.group(1)))
+            if stack:
+                stack[-1][2] += 1
+            stack.append([indent, sm.group(1).strip(), 0])
             continue
-        m = _TAP_RE.match(line)
-        if not m or not st.startswith(("ok", "not ok")):
+        if not st.startswith(("ok", "not ok")):
             continue
-        while stack and stack[-1][0] >= indent:
+        m = _TAP_RE.match(st)
+        if not m:
+            continue
+        while stack and stack[-1][0] > indent:
             stack.pop()
-        name = m.group(3)
+        frame = stack.pop() if stack and stack[-1][0] == indent else None
+        rest = m.group(3) or ""
         directive = (m.group(4) or "").lower()
+        name = rest.strip() or (frame[1] if frame else "")
         if "skip" in directive or "todo" in directive:
-            continue
-        passed = m.group(1) == "ok"
-        path = " > ".join([n for _, n in stack] + [name])
-        results[name] = passed
-        results[path] = passed
-    return results
+            status = "skipped"
+        else:
+            status = "passed" if m.group(1) == "ok" else "failed"
+        out.append({
+            "name": name,
+            "path": " > ".join([f[1] for f in stack] + [name]),
+            "status": status,
+            "leaf": (frame[2] if frame else 0) == 0,
+        })
+    return out
+
+
+def _index_tests(tests):
+    """Addressable by leaf name and by full path; a failure beats an earlier
+    same-named pass, so expectPass stays honest when a name repeats."""
+    idx = {}
+    for t in tests:
+        for key in (t["name"], t["path"]):
+            if not key:
+                continue
+            prev = idx.get(key)
+            if prev is None or (prev["status"] == "passed" and t["status"] != "passed"):
+                idx[key] = t
+    return idx
 
 
 def _suite_command(check):
@@ -751,22 +815,37 @@ def _suite_command(check):
 
 
 def _suite_passed(check, code, output):
+    """Mirror of evaluateSuite() in testParsers.ts: every expectPass test passed,
+    every expectFail test failed, and at least minPass LEAF tests passed. Parents
+    are excluded from the count so a nesting suite is not double-counted."""
     tests = _parse_tests(output, check.get("runner"))
+    idx = _index_tests(tests)
+    leaves = [t for t in tests if t["leaf"]]
+    n_pass = sum(1 for t in leaves if t["status"] == "passed")
+    problems = []
     for name in check.get("expectPass") or []:
-        if not tests.get(name, False):
-            return False, f"expected test '{name}' to pass ({'missing' if name not in tests else 'failed'})"
+        t = idx.get(name)
+        if t is None:
+            problems.append(f"expected test '{name}' to pass, but no test of that name ran")
+        elif t["status"] != "passed":
+            problems.append(f"expected test '{name}' to pass, but it {'failed' if t['status'] == 'failed' else 'was skipped'}")
     for name in check.get("expectFail") or []:
-        if name not in tests or tests[name]:
-            return False, f"expected test '{name}' to fail ({'missing' if name not in tests else 'passed'})"
+        t = idx.get(name)
+        if t is None:
+            problems.append(f"expected test '{name}' to fail, but no test of that name ran")
+        elif t["status"] == "passed":
+            problems.append(f"expected test '{name}' to fail, but it passed")
     min_pass = check.get("minPass")
-    n_pass = sum(1 for k, v in tests.items() if v and " > " not in k)
     if isinstance(min_pass, int) and n_pass < min_pass:
-        return False, f"minPass {min_pass} not reached ({n_pass} passed)"
+        problems.append(f"only {n_pass} of the required {min_pass} tests passed")
     if not (check.get("expectPass") or check.get("expectFail") or min_pass):
         if not tests:
-            return False, "no test results parsed"
-        if any(not v for v in tests.values()):
-            return False, "a test failed"
+            return False, "no test results could be parsed from the output"
+        failed = [t for t in leaves if t["status"] == "failed"]
+        if failed:
+            return False, f"{len(failed)} test(s) failed: " + ", ".join(t["path"] or t["name"] for t in failed[:5])
+    if problems:
+        return False, "; ".join(problems)
     return True, f"{n_pass} test(s) passed"
 
 
@@ -835,6 +914,28 @@ def _copy_tree(src, dst):
     shutil.copytree(src, dst, symlinks=True, ignore=shutil.ignore_patterns(".git", "node_modules", "target"), dirs_exist_ok=True)
 
 
+def _overlay_solutions(solutions_dir, dst, step_ids):
+    """Lay the reference solutions over a copy of the seed workspace.
+
+    Two layouts are in use and both are valid. A solutions directory may mirror
+    the project root directly (solutions/src/... over <root>/src/...), or it may
+    be split into one directory per step (SPEC v1.1 A4: solutions/<step-id>/src/...),
+    which is what the rust-foundations and javascript-foundations workspaces ship
+    so that a single step's solution can be inspected on its own. Anything that is
+    not a step directory - a README, for instance - is left alone.
+
+    Returns the number of per-step directories applied (0 for the flat layout).
+    """
+    entries = sorted(e for e in os.listdir(solutions_dir) if not e.startswith("."))
+    per_step = [e for e in entries if e in step_ids and os.path.isdir(os.path.join(solutions_dir, e))]
+    if not per_step:
+        _copy_tree(solutions_dir, dst)
+        return 0
+    for entry in per_step:
+        _copy_tree(os.path.join(solutions_dir, entry), dst)
+    return len(per_step)
+
+
 def run_solution_probes(probes, root, solutions_dir, report):
     """Seed copy must fail each check, seed+solutions copy must pass it."""
     if not probes:
@@ -848,7 +949,10 @@ def run_solution_probes(probes, root, solutions_dir, report):
     solved = os.path.join(tmp, "solved")
     _copy_tree(root, seed)
     _copy_tree(root, solved)
-    _copy_tree(solutions_dir, solved)
+    step_ids = {where.rsplit("/", 1)[-1] for where, _, _ in probes}
+    n_step_dirs = _overlay_solutions(solutions_dir, solved, step_ids)
+    if n_step_dirs:
+        print(f"solutions: {n_step_dirs} per-step solution director{'y' if n_step_dirs == 1 else 'ies'} applied")
     n_ok = n_skip = 0
     try:
         for where, task_id, check in probes:

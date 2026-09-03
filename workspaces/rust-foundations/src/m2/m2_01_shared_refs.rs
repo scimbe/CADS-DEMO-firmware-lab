@@ -2,6 +2,9 @@
 
 /// Returns the length of `s` without taking ownership (Listing 4-6 in the
 /// book). The caller keeps its `String`.
+// `&String` on purpose: this is Listing 4-5 of the book verbatim, and
+// `count_char` below shows why `&str` is the better parameter type.
+#[allow(clippy::ptr_arg)]
 pub fn calculate_length(s: &String) -> usize {
     todo!()
 }

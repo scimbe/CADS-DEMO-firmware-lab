@@ -28,7 +28,10 @@ mod m1_02_move_vs_clone {
 
     #[test]
     fn with_suffix_appends() {
-        assert_eq!(with_suffix(String::from("hello"), ", world"), "hello, world");
+        assert_eq!(
+            with_suffix(String::from("hello"), ", world"),
+            "hello, world"
+        );
         assert_eq!(with_suffix(String::new(), ""), "");
     }
 }

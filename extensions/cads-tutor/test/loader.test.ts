@@ -17,23 +17,40 @@ describe("loader", () => {
     assert.ok(course, diagnostics.map((d) => d.message).join("\n"));
     assert.equal(diagnostics.filter((d) => d.level === "error").length, 0, diagnostics.map((d) => d.message).join("\n"));
     assert.equal(course.manifest.id, "example-course");
-    assert.equal(course.steps.size, 4);
+    assert.equal(course.steps.size, 6);
     const steps = orderedSteps(course).map((s) => s.id);
-    assert.deepEqual(steps, ["m0-01-welcome", "m0-02-build", "m1-01-board", "m1-02-reflect"]);
+    assert.deepEqual(steps, ["m0-01-welcome", "m0-02-build", "m1-01-board", "m1-02-reflect", "m2-01-command", "m2-02-predict"]);
     for (const s of course.steps.values()) {
       assert.ok(s.variants.en, `${s.id} has en`);
       assert.ok(s.variants.de, `${s.id} has de`);
     }
     const types = new Set<string>();
-    const collect = (c: { type: string; checks?: { type: string }[] }) => {
+    const collect = (c: { type: string; checks?: { type: string }[]; then?: { type: string } }) => {
       types.add(c.type);
       c.checks?.forEach(collect);
+      if (c.then) collect(c.then as never);
     };
     for (const s of course.steps.values()) for (const t of s.variants.en!.meta.tasks) collect(t.check as never);
-    for (const expected of ["board", "task", "build", "fileMatches", "fileNotMatches", "symbolInElf", "flash", "serialExpect", "debugStop", "question", "manual", "all", "any"]) {
+    // The example pack is the authoring template, so it must demonstrate every
+    // check type the schema accepts - including the v1.1 additions.
+    for (const expected of ["board", "task", "build", "fileMatches", "fileNotMatches", "symbolInElf", "flash", "serialExpect", "debugStop", "question", "manual", "all", "any", "command", "testSuite", "predict"]) {
       assert.ok(types.has(expected), `example course uses check type ${expected}`);
     }
     assert.equal(course.curriculum.length, 1);
+  });
+
+  it("the example pack demonstrates every v1.1 step field", () => {
+    const { course } = loadCoursePack(EXAMPLE, "test");
+    const metas = [...course!.steps.values()].map((s) => s.variants.en!.meta);
+    assert.ok(metas.some((m) => m.scaffold === "worked"), "a worked example");
+    assert.ok(metas.some((m) => m.scaffold === "faded"), "a faded step");
+    assert.ok(metas.some((m) => m.recallFrom.length > 0), "a recallFrom target");
+    assert.ok(metas.some((m) => m.misconceptions.length > 0), "a misconception");
+    assert.ok(metas.some((m) => m.socratic.some((h) => h.trigger.startsWith("output:"))), "an output: trigger");
+    assert.ok(metas.some((m) => m.socratic.some((h) => h.trigger.startsWith("test:"))), "a test: trigger");
+    const reflection = course!.manifest.modules.find((m) => m.reflection);
+    assert.ok(reflection, "a module reflection");
+    assert.ok(reflection!.reflection!.prompts.length >= 1);
   });
 
   it("orders sources: extensions, image, user, workspace, extra", () => {
@@ -81,7 +98,7 @@ describe("loader", () => {
     assert.match(err!.message, /must be one of remember\|understand/);
     // The broken step is missing; the module still references it → error listed, other steps intact.
     assert.ok(diagnostics.some((d) => /has no valid step file/.test(d.message)));
-    assert.equal(course!.steps.size, 3);
+    assert.equal(course!.steps.size, 5);
   });
 
   it("rejects a course.json with the wrong schema version", () => {

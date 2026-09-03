@@ -1,0 +1,80 @@
+---
+id: m7-01-wordstat
+title: "wordstat bauen"
+bloom: create
+objectives: [ "rust-project-cli" ]
+requires: [ "m6-04-lifetimes" ]
+estimatedMinutes: 90
+scaffold: independent
+recallFrom: [ "m5-04-custom-error", "m4-04-collections-report", "m4-03-hash-maps" ]
+links:
+  - { step: "m7-02-review" }
+  - { file: "src/project/wordstat.rs" }
+  - { file: "src/bin/wordstat.rs" }
+  - { file: "samples/fox.txt" }
+  - { url: "https://doc.rust-lang.org/book/ch09-02-recoverable-errors-with-result.html", title: "The Book, 9.2: Recoverable Errors with Result" }
+sources: [ "src/project/wordstat.rs", "src/bin/wordstat.rs", "tests/m7-01-wordstat.rs", "samples/fox.txt", "README.md" ]
+tasks:
+  - id: library
+    title: "Die Bibliothek besteht ihre Tests"
+    check: { type: "testSuite", runner: "cargo", command: "cargo test --test m7-01-wordstat", expectPass: [ "m7_01_wordstat::normalize_strips_punctuation_and_lowercases", "m7_01_wordstat::count_words_uses_normalized_words", "m7_01_wordstat::report_counts_and_ranks", "m7_01_wordstat::report_with_zero_top_is_still_counted", "m7_01_wordstat::report_display_is_aligned", "m7_01_wordstat::run_reads_the_sample_file", "m7_01_wordstat::run_reports_a_missing_file_as_io", "m7_01_wordstat::run_reports_an_empty_file_as_no_words", "m7_01_wordstat::wordstat_error_displays" ], minPass: 9, timeoutMs: 240000 }
+  - id: cli
+    title: "Das Kommandozeilenwerkzeug laeuft auf der Beispieldatei"
+    check: { type: "command", command: "cargo run --quiet --bin wordstat -- samples/fox.txt 3", expectExitCode: 0, expectStdout: "words: 24\\nunique: 12\\n  7  the\\n  4  fox\\n  3  dog", timeoutMs: 240000 }
+  - id: cli-error
+    title: "Eine fehlende Datei scheitert sauber"
+    check: { type: "command", command: "cargo run --quiet --bin wordstat -- samples/nope.txt", expectExitCode: 1, expectStderr: "wordstat: cannot read file:", timeoutMs: 240000 }
+socratic:
+  - { trigger: "task:library:failed", question: { en: "Which test fails? If it is report_display_is_aligned, count the spaces: the width is three and there are two spaces between the count and the word.", de: "Welcher Test scheitert? Ist es report_display_is_aligned, zaehle die Leerzeichen: die Breite ist drei, und zwischen Anzahl und Wort stehen zwei Leerzeichen." }, hints: [ { en: "`writeln!(f, \"{count:>3}  {word}\")` right-aligns in a field of three and adds the newline.", de: "`writeln!(f, \"{count:>3}  {word}\")` richtet rechtsbuendig in einem Feld der Breite drei aus und ergaenzt den Zeilenumbruch." }, { en: "`normalize` trims characters that are not alphanumeric from both ends only: `trim_matches(|c: char| !c.is_alphanumeric())` keeps the apostrophe inside `don't`.", de: "`normalize` entfernt nicht-alphanumerische Zeichen nur an beiden Enden: `trim_matches(|c: char| !c.is_alphanumeric())` behaelt den Apostroph in `don't`." }, { en: "`total_words` is the sum of the counts, `unique_words` is the number of keys - both come from the same map.", de: "`total_words` ist die Summe der Anzahlen, `unique_words` die Zahl der Schluessel - beide stammen aus derselben Map." } ] }
+  - { trigger: "task:cli:failed", question: { en: "Does the library test pass but the binary print something different? Compare your Display output with the expected block byte for byte.", de: "Besteht der Bibliothekstest, das Binary gibt aber anderes aus? Vergleiche deine Display-Ausgabe Byte fuer Byte mit dem erwarteten Block." }, hints: [ { en: "The binary uses `print!`, not `println!`, because `Display` already ends every line - a second newline would break the check.", de: "Das Binary nutzt `print!`, nicht `println!`, weil `Display` bereits jede Zeile beendet - ein zweiter Umbruch braeche den Check." }, { en: "The sample file has 25 whitespace-separated tokens but 24 words: `--` normalizes to `None`.", de: "Die Beispieldatei hat 25 durch Leerraum getrennte Token, aber 24 Woerter: `--` normalisiert zu `None`." }, { en: "Ties are broken alphabetically, so the ranking is reproducible; without that the third line would vary.", de: "Gleichstaende werden alphabetisch aufgeloest, damit die Rangfolge reproduzierbar ist; ohne das schwankte die dritte Zeile." } ] }
+misconceptions:
+  - { pattern: "the trait bound `.*: From<std::io::Error>` is not satisfied|`\\?` couldn't convert the error", question: { en: "? cannot turn the I/O error into yours. Which impl is missing, and is the read really the line that needs it?", de: "? kann den E/A-Fehler nicht in deinen wandeln. Welches Impl fehlt, und ist das Lesen wirklich die Zeile, die es braucht?" }, hints: [ { en: "`impl From<std::io::Error> for WordstatError` is what makes `std::fs::read_to_string(path)?` compile in `run`.", de: "`impl From<std::io::Error> for WordstatError` macht `std::fs::read_to_string(path)?` in `run` uebersetzbar." }, { en: "This is the same pattern as m5-04's From<ParseIntError>, with a different source type.", de: "Das ist dasselbe Muster wie From<ParseIntError> in m5-04, nur mit einem anderen Quelltyp." }, { en: "The variant should carry the original error so the message can print it.", de: "Die Variante sollte den urspruenglichen Fehler tragen, damit die Meldung ihn ausgeben kann." } ] }
+  - { pattern: "error\\[E0507\\]: cannot move out of|error\\[E0502\\]", question: { en: "You are moving or mutating through a borrow of the map. Do you still need the map after building the ranking?", de: "Du verschiebst oder aenderst durch eine Leihe der Map hindurch. Brauchst du die Map nach dem Bau der Rangfolge noch?" }, hints: [ { en: "`counts.into_iter()` consumes the map and hands you owned keys, which avoids cloning every word.", de: "`counts.into_iter()` verbraucht die Map und liefert besitzende Schluessel, was das Klonen jedes Worts erspart." }, { en: "Compute `total_words` and `unique_words` from the map *before* you consume it.", de: "Berechne `total_words` und `unique_words`, *bevor* du die Map verbrauchst." }, { en: "`counts.iter().map(|(w, c)| (w.clone(), *c))` is the borrowing alternative when you must keep the map.", de: "`counts.iter().map(|(w, c)| (w.clone(), *c))` ist die leihende Alternative, wenn du die Map behalten musst." } ] }
+---
+## Lernziel
+
+Baue ein funktionierendes Kommandozeilenwerkzeug aus den Bausteinen von M1 bis M6 und weise mit den mitgelieferten Tests nach, dass es funktioniert.
+
+## Was du baust
+
+```bash
+cargo run --bin wordstat -- samples/fox.txt 3
+```
+
+```text
+words: 24
+unique: 12
+  7  the
+  4  fox
+  3  dog
+```
+
+`src/bin/wordstat.rs` - Argumente, Ausgabe, Exit-Codes - ist **bereits geschrieben**. Lies es; es ist der Aufrufer all dessen, was du schreibst, und es zeigt, was die Bibliothek bieten soll. Deine Arbeit ist `src/project/wordstat.rs`.
+
+## Die Bausteine und woher jeder stammt
+
+**Eine Struktur fuer das Ergebnis** (M3). `Report` haelt die beiden Zahlen und die Rangliste. Drei benannte Felder schlagen ein `(usize, usize, Vec<(String, usize)>)`, das jeder Leser entschluesseln muss.
+
+**Ein Fehler-Enum mit zwei Varianten** (M3, M5). `WordstatError::Io` traegt den zugrunde liegenden `std::io::Error`; `NoWords` traegt nichts. `Display` schreibt die Meldung, die ein Nutzer sieht, und `impl From<std::io::Error>` erlaubt `run`:
+
+```rust
+let text = std::fs::read_to_string(path)?;
+```
+
+ohne `map_err` - dasselbe Muster wie m5-04, nur mit anderem Quelltyp.
+
+**`Display` fuer `Report`** (M6). Ein Standard-Trait fuer den eigenen Typ zu implementieren ist es, was `print!("{report}")` im Binary funktionieren laesst. Das Format ist genau: `{count:>3}` richtet rechtsbuendig in einem Feld der Breite drei aus, dann **zwei** Leerzeichen, dann das Wort, und `writeln!` beendet jede Zeile - deshalb nutzt das Binary `print!` und nicht `println!`.
+
+**Normalisierung** (M4, M2). `normalize` setzt auf Kleinschreibung und entfernt fuehrende und abschliessende nicht-alphanumerische Zeichen. `trim_matches` mit einem Closure erledigt beide Enden zugleich, und weil es nur die Enden abschneidet, behaelt `don't` seinen Apostroph, waehrend `--` zu `None` wird. Das ist der Unterschied zwischen den 25 Leerraum-Token der Beispieldatei und ihren 24 Woertern.
+
+**Zaehlen und Rangfolge** (M4). `count_words` ist das `entry`-Idiom. `report` summiert die Werte fuer `total_words`, nimmt `len()` fuer `unique_words`, sortiert dann absteigend nach Anzahl mit dem Wort aufsteigend als Gleichstandsregel und schneidet ab - m4-04 unveraendert angewandt.
+
+**Ownership zum Schluss** (M1). `counts.into_iter()` verbraucht die Map und liefert besitzende Schluessel, es wird also nichts geklont. Das heisst auch, dass du `total_words` und `unique_words` *vor* dieser Zeile lesen musst.
+
+## Die drei Checks
+
+Der erste fuehrt die neun Bibliothekstests aus. Der zweite fuehrt das echte Binary auf `samples/fox.txt` aus und vergleicht die ersten fuenf Zeilen. Der dritte fuehrt es auf einer nicht existierenden Datei aus und verlangt Exit-Code 1 mit `wordstat: cannot read file:` auf stderr - ein Werkzeug, das eine fehlende Datei sauber meldet, gehoert zum Lieferumfang und ist keine Zugabe.
+
+## Deine Aufgabe
+
+Implementiere alles in `src/project/wordstat.rs`. Arbeite von innen nach aussen: zuerst `normalize`, dann `count_words`, dann `report`, dann die beiden `Display`-Impls, dann `run`. Fuehre nach jedem Schritt die Tests des Steps aus. Der letzte Step nimmt das Gebaute unter die Lupe.

@@ -5,8 +5,9 @@
 // Repair both signatures by adding the lifetime annotations they need. Do not
 // change the bodies, do not return `String`, and do not clone anything.
 //
-// Check it with:
-//   rustc --edition 2024 --emit=metadata -o /dev/null repair/m6_04_missing_lifetime.rs
+// Build and run it with one command (the check does exactly this):
+//   mkdir -p target/check && rustc --edition 2024 -o target/check/m6_04 \
+//     repair/m6_04_missing_lifetime.rs && target/check/m6_04
 
 struct Excerpt {
     part: &str,

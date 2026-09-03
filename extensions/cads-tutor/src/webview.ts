@@ -6,12 +6,24 @@ import { randomBytes } from "node:crypto";
 import { ui } from "./i18n";
 import { escapeHtml, tutorLinkAttrs, type TutorLink } from "./markdown";
 import type { Citation } from "./platform";
-import type { BloomLevel, CheckType, Lang, StepStatus, TaskStatus } from "./types";
+import type { BloomLevel, CheckType, Lang, Scaffold, StepStatus, TaskStatus } from "./types";
 
 export interface HintView {
   tier: number;
   question: string;
   hint: string;
+}
+
+export interface PredictView {
+  /** The prompt the student answers before the observed check runs. */
+  prompt: string;
+  prediction?: string;
+  /** Output of the observed check, once it ran. */
+  actual?: string;
+  outcome?: "correct" | "deviated";
+  feedback?: string;
+  /** True once a prediction long enough to run the check exists. */
+  ran: boolean;
 }
 
 export interface TaskView {
@@ -23,6 +35,15 @@ export interface TaskView {
   message?: string;
   answer?: string;
   hint?: HintView;
+  /** A2/A1: set for `predict` tasks; drives the predict-then-observe panel. */
+  predict?: PredictView;
+  /**
+   * The predict panel, rendered on the extension side and patched into the DOM.
+   * Rendering here rather than in the webview keeps the decision of whether the
+   * observed output may be revealed on the side that knows the session state.
+   * Every interpolated value goes through escapeHtml.
+   */
+  predictHtml?: string;
   /** `question` tasks need a free-text answer before the check can run. */
   needsAnswer: boolean;
   /** `manual` tasks (and `question` tasks without LLM) are confirmed by the student. */
@@ -66,6 +87,30 @@ export interface StepView {
   bridgeAvailable: boolean;
   /** A note from the tutor to show on load (e.g. a proactive check-in or a contextual question). */
   note?: NoteView;
+  /** A2: worked / faded / independent, shown as a badge with a one-line explanation. */
+  scaffold: Scaffold;
+  /** A2: a short recall question from an earlier, completed step. */
+  recall?: RecallView;
+  /** A3: shown when this step completed its module. */
+  reflection?: ReflectionView;
+}
+
+export interface RecallView {
+  fromStepId: string;
+  fromTitle: string;
+  taskId: string;
+  prompt: string;
+  answer?: string;
+  /** True once answered or skipped; the card then shows only an acknowledgement. */
+  settled: boolean;
+}
+
+export interface ReflectionView {
+  moduleId: string;
+  moduleTitle: string;
+  prompts: string[];
+  answers?: string[];
+  saved: boolean;
 }
 
 export interface NoteView {
@@ -78,6 +123,9 @@ export interface NoteView {
 
 export type ToWebview =
   | { type: "task"; task: TaskView }
+  /** `html` is produced by renderRecall / renderReflection on the extension side. */
+  | { type: "recall"; html: string }
+  | { type: "reflection"; html: string }
   | { type: "ask"; outcome: AskView }
   | { type: "note"; note: NoteView }
   | { type: "stepDone"; unlocked: StepRef[] }
@@ -102,13 +150,86 @@ export type FromWebview =
   | { type: "setLang"; lang: Lang }
   | { type: "confirm"; taskId: string }
   | { type: "answer"; taskId: string; text: string }
-  | { type: "hint"; taskId: string };
+  | { type: "hint"; taskId: string }
+  | { type: "predict"; taskId: string; text: string }
+  | { type: "recallAnswer"; text: string }
+  | { type: "recallSkip" }
+  | { type: "reflection"; answers: string[] };
 
 export function nonce(): string {
   return randomBytes(16).toString("hex");
 }
 
 const STATUS_ICON: Record<TaskStatus, string> = { pending: "○", running: "◌", passed: "✔", failed: "✘", unavailable: "–" };
+
+/**
+ * A1: the predict-then-observe panel. Before a prediction exists the observed
+ * output is not rendered at all - not merely hidden - so it cannot be read out
+ * of the DOM, which would defeat the exercise.
+ */
+export function renderPredict(t: TaskView, lang: Lang): string {
+  const p = t.predict;
+  if (!p) return "";
+  const s = ui(lang);
+  const id = escapeHtml(t.id);
+  const input = `<div class="predict-input">
+      <textarea class="prediction" data-task="${id}" rows="3" placeholder="${escapeHtml(s.predictPlaceholder)}">${escapeHtml(p.prediction ?? "")}</textarea>
+      <div class="row"><button class="btn primary submit-predict" data-task="${id}">${escapeHtml(s.predictSubmit)}</button></div>
+    </div>`;
+  if (!p.ran || p.actual === undefined) {
+    return `<div class="predict"><div class="predict-head">${escapeHtml(s.predictTitle)}</div>
+      <div class="predict-prompt">${escapeHtml(p.prompt)}</div>${input}</div>`;
+  }
+  const verdict =
+    p.outcome === "correct"
+      ? `<div class="predict-verdict match">${escapeHtml(s.predictMatch)}</div>`
+      : p.outcome === "deviated"
+        ? `<div class="predict-verdict differ">${escapeHtml(s.predictDiffer)}</div>`
+        : `<div class="predict-verdict">${escapeHtml(s.predictReflect)}
+             <div class="row">
+               <button class="btn predict-self" data-task="${id}" data-outcome="correct">${escapeHtml(s.predictSelfMatch)}</button>
+               <button class="btn predict-self" data-task="${id}" data-outcome="deviated">${escapeHtml(s.predictSelfDiffer)}</button>
+             </div>
+           </div>`;
+  return `<div class="predict"><div class="predict-head">${escapeHtml(s.predictTitle)}</div>
+    <div class="predict-prompt">${escapeHtml(p.prompt)}</div>
+    <div class="predict-compare">
+      <div class="predict-col"><div class="predict-label">${escapeHtml(s.predictYours)}</div><pre>${escapeHtml(p.prediction ?? "")}</pre></div>
+      <div class="predict-col"><div class="predict-label">${escapeHtml(s.predictActual)}</div><pre>${escapeHtml(p.actual)}</pre></div>
+    </div>
+    ${verdict}
+    ${p.feedback ? `<div class="predict-feedback">${escapeHtml(p.feedback)}</div>` : ""}
+    ${input}</div>`;
+}
+
+/** A2: the recall card - one question from an earlier step, never blocking. */
+export function renderRecall(r: RecallView, lang: Lang): string {
+  const s = ui(lang);
+  if (r.settled) {
+    return `<div class="card recall settled"><div class="card-head">${escapeHtml(s.recallTitle)}</div><div>${escapeHtml(s.recallThanks)}</div></div>`;
+  }
+  return `<div class="card recall"><div class="card-head">${escapeHtml(s.recallTitle)}</div>
+    <div class="card-sub">${escapeHtml(s.recallFrom(r.fromTitle))}</div>
+    <div class="card-prompt">${escapeHtml(r.prompt)}</div>
+    <textarea id="recall-answer" rows="2" placeholder="${escapeHtml(s.reflectionPlaceholder)}">${escapeHtml(r.answer ?? "")}</textarea>
+    <div class="row"><button class="btn primary" id="recall-submit">${escapeHtml(s.recallSubmit)}</button><button class="btn" id="recall-skip">${escapeHtml(s.recallSkip)}</button></div>
+  </div>`;
+}
+
+/** A3: the module reflection card, shown after a module's last step is done. */
+export function renderReflection(r: ReflectionView, lang: Lang): string {
+  const s = ui(lang);
+  const boxes = r.prompts
+    .map((q, i) => `<div class="reflect-item"><div class="card-prompt">${escapeHtml(q)}</div>
+      <textarea class="reflect-answer" data-index="${i}" rows="3" placeholder="${escapeHtml(s.reflectionPlaceholder)}">${escapeHtml(r.answers?.[i] ?? "")}</textarea></div>`)
+    .join("");
+  return `<div class="card reflection"><div class="card-head">${escapeHtml(s.reflectionTitle)}</div>
+    <div class="card-sub">${escapeHtml(s.reflectionIntro(r.moduleTitle))}</div>
+    ${boxes}
+    <div class="row"><button class="btn primary" id="reflection-submit">${escapeHtml(s.reflectionSubmit)}</button>
+      <span id="reflection-state">${r.saved ? escapeHtml(s.reflectionSaved) : ""}</span></div>
+  </div>`;
+}
 
 function renderTask(t: TaskView, lang: Lang): string {
   const s = ui(lang);
@@ -118,7 +239,9 @@ function renderTask(t: TaskView, lang: Lang): string {
        <div class="row"><button class="btn primary submit-answer" data-task="${escapeHtml(t.id)}">${s.submitAnswer}</button></div>`
     : "";
   const buttons: string[] = [];
-  if (canCheck && !t.needsAnswer) buttons.push(`<button class="btn primary run-check" data-task="${escapeHtml(t.id)}">${s.check}</button>`);
+  // A predict task is run from its own "save prediction and run" button, so the
+  // plain Check button would let the student skip the prediction.
+  if (canCheck && !t.needsAnswer && !t.predict) buttons.push(`<button class="btn primary run-check" data-task="${escapeHtml(t.id)}">${s.check}</button>`);
   if (t.manual) buttons.push(`<button class="btn confirm" data-task="${escapeHtml(t.id)}">${s.markDone}</button>`);
   buttons.push(`<button class="btn hint-btn" data-task="${escapeHtml(t.id)}">${s.showHint}</button>`);
   const hint = t.hint
@@ -131,6 +254,7 @@ function renderTask(t: TaskView, lang: Lang): string {
       <span class="task-type">${t.type}${t.live ? " · live" : ""}</span>
     </div>
     ${t.description ? `<div class="task-desc">${escapeHtml(t.description)}</div>` : ""}
+    ${renderPredict(t, lang)}
     ${answerBox}
     <div class="task-msg">${t.message ? escapeHtml(t.message) : escapeHtml(s.taskStatus[t.status])}</div>
     <div class="row task-actions">${buttons.join(" ")}</div>
@@ -206,6 +330,27 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
   .ask { border-top: 1px solid var(--vscode-panel-border); margin-top: 1.5em; padding-top: 0.8em; }
   .ask-row { display: flex; gap: 0.5em; } .ask-row input { flex: 1; }
   .answer-box { margin-top: 0.6em; padding: 0.6em 0.8em; border-radius: 4px; border: 1px solid var(--vscode-panel-border); white-space: pre-wrap; } .answer-box[hidden] { display: none; }
+  /* Addendum v1.1: scaffold badge, predict panel, recall and reflection cards. */
+  .meta-item.scaffold { border-color: var(--vscode-textLink-foreground); }
+  .scaffold-note { margin: 0.4em 0 0.8em; opacity: 0.85; font-style: italic; }
+  .predict { margin-top: 0.6em; padding: 0.6em 0.8em; border-left: 3px solid var(--vscode-textLink-foreground); background: var(--vscode-textBlockQuote-background); border-radius: 3px; }
+  .predict-head { font-weight: 600; }
+  .predict-prompt { margin: 0.3em 0 0.5em; }
+  .predict-compare { display: flex; gap: 0.8em; flex-wrap: wrap; margin: 0.5em 0; }
+  .predict-col { flex: 1 1 16em; min-width: 0; }
+  .predict-label { font-size: 0.9em; opacity: 0.8; margin-bottom: 0.2em; }
+  .predict-col pre { margin: 0; padding: 0.4em 0.6em; max-height: 14em; overflow: auto; white-space: pre-wrap; word-break: break-word; background: var(--vscode-editor-background); border: 1px solid var(--vscode-panel-border); border-radius: 3px; }
+  .predict-verdict { margin: 0.4em 0; }
+  .predict-verdict.match { color: var(--vscode-testing-iconPassed, var(--vscode-charts-green)); }
+  .predict-verdict.differ { color: var(--vscode-charts-yellow); }
+  .predict-feedback { margin: 0.3em 0; opacity: 0.9; }
+  .card { margin: 0.8em 0; padding: 0.7em 0.9em; border: 1px solid var(--vscode-panel-border); border-radius: 4px; background: var(--vscode-textBlockQuote-background); }
+  .card-head { font-weight: 600; }
+  .card-sub { font-size: 0.92em; opacity: 0.85; margin: 0.2em 0 0.5em; }
+  .card-prompt { margin: 0.35em 0 0.3em; }
+  .card textarea, .predict textarea { width: 100%; box-sizing: border-box; font-family: var(--vscode-editor-font-family); background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, var(--vscode-panel-border)); border-radius: 3px; padding: 0.4em; }
+  .card.recall.settled { opacity: 0.8; }
+  #reflection-state { align-self: center; opacity: 0.85; }
   .answer-box.refused { border-color: var(--vscode-inputValidation-infoBorder); } .answer-box.llm-error, .answer-box.unconfigured { border-color: var(--vscode-inputValidation-warningBorder); }
   .citations { margin-top: 0.5em; font-size: 0.88em; } .citations ol { padding-left: 1.3em; margin: 0.2em 0; } .cite-excerpt { opacity: 0.7; } .citations-title { opacity: 0.7; }
   .note { border: 1px solid var(--vscode-focusBorder); background: var(--vscode-editorWidget-background); border-radius: 4px; padding: 0.6em 0.8em; margin: 0.8em 0; }
@@ -224,6 +369,7 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
   <h1 id="step-title">${escapeHtml(view.title)}</h1>
   <div class="meta">
     <span class="meta-item bloom" title="${s.bloom}">${escapeHtml(s.bloom)}: ${escapeHtml(s.bloomLabel[view.bloom])}</span>
+    <span class="meta-item scaffold scaffold-${view.scaffold}" title="${escapeHtml(s.scaffoldHint[view.scaffold])}">${escapeHtml(s.scaffold[view.scaffold])}</span>
     ${view.estimatedMinutes ? `<span class="meta-item">${escapeHtml(s.minutes(view.estimatedMinutes))}</span>` : ""}
     ${objectives}
     ${creates}
@@ -232,10 +378,13 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
   ${lockedBanner}
   ${doneBanner}
   <div id="note-area">${view.note ? renderNote(view.note, view.lang) : ""}</div>
+  <div id="recall-area">${view.recall ? renderRecall(view.recall, view.lang) : ""}</div>
+  <div class="scaffold-note">${escapeHtml(s.scaffoldHint[view.scaffold])}</div>
   <div class="body">${view.bodyHtml}</div>
   ${links}
   <h2>${s.tasks}</h2>
   <ul class="tasks" id="tasks">${view.tasks.map((t) => renderTask(t, view.lang)).join("")}</ul>
+  <div id="reflection-area">${view.reflection ? renderReflection(view.reflection, view.lang) : ""}</div>
   <div class="ask">
     <h2 style="border:none;margin-top:0">${s.ask}</h2>
     <div class="ask-row"><input id="question" type="text" maxlength="800" placeholder="${escapeHtml(s.askPlaceholder)}" /><button class="btn primary" id="ask-btn">${s.askButton}</button></div>
@@ -293,6 +442,17 @@ function clientScript(view: StepView): string {
       const ta = document.querySelector('textarea.answer[data-task="' + CSS.escape(taskId) + '"]');
       setRunning(taskId); post({ type: "answer", taskId, text: ta ? ta.value : "" });
     }
+    else if (b.classList.contains("submit-predict")) {
+      const ta = document.querySelector('textarea.prediction[data-task="' + CSS.escape(taskId) + '"]');
+      setRunning(taskId); post({ type: "predict", taskId, text: ta ? ta.value : "" });
+    }
+    else if (b.classList.contains("predict-self")) { post({ type: "predict", taskId, text: b.getAttribute("data-outcome") === "correct" ? "__self:correct" : "__self:deviated" }); }
+    else if (b.id === "recall-submit") { const ta = document.getElementById("recall-answer"); post({ type: "recallAnswer", text: ta ? ta.value : "" }); }
+    else if (b.id === "recall-skip") post({ type: "recallSkip" });
+    else if (b.id === "reflection-submit") {
+      const answers = Array.from(document.querySelectorAll("textarea.reflect-answer")).map((ta) => ta.value);
+      post({ type: "reflection", answers });
+    }
     else if (b.id === "run-all") { document.querySelectorAll("li.task").forEach((li) => setRunning(li.getAttribute("data-task"))); post({ type: "runAll" }); }
     else if (b.id === "lang-toggle") post({ type: "setLang", lang: S.otherLang });
     else if (b.id === "ask-btn") ask();
@@ -336,6 +496,19 @@ function clientScript(view: StepView): string {
       const actions = li.querySelector(".task-actions");
       if (t.status === "passed") li.querySelector(".task-hint").innerHTML = "";
       if (t.hint) li.querySelector(".task-hint").innerHTML = '<div class="hint"><div class="hint-tier">' + esc(S.hintTier.replace("{n}", t.hint.tier)) + '</div><div class="hint-q">' + esc(t.hint.question) + '</div><div class="hint-h">' + esc(t.hint.hint) + '</div></div>';
+      // The predict panel is re-rendered by the extension, which is the only side
+      // that knows whether a prediction exists and may therefore reveal the output.
+      if (t.predictHtml !== undefined) {
+        const old = li.querySelector(".predict");
+        if (old) old.outerHTML = t.predictHtml;
+        else li.querySelector(".task-head").insertAdjacentHTML("afterend", t.predictHtml);
+      }
+    } else if (m.type === "recall") {
+      document.getElementById("recall-area").innerHTML = m.html;
+    } else if (m.type === "reflection") {
+      const area = document.getElementById("reflection-area");
+      area.innerHTML = m.html;
+      area.scrollIntoView({ behavior: "smooth", block: "nearest" });
     } else if (m.type === "ask") {
       const box = document.getElementById("answer");
       box.hidden = false; box.className = "answer-box " + m.outcome.kind;

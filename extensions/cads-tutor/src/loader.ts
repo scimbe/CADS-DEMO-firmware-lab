@@ -191,6 +191,14 @@ export function loadCoursePack(dir: string, origin: string): { course?: Course; 
       for (const l of en.meta.links) {
         if ("step" in l && !steps.has(l.step)) diagnostics.push({ level: "warning", file: en.file, message: `step "${sid}" links to unknown step "${l.step}"` });
       }
+      for (const r of en.meta.recallFrom) {
+        const target = steps.get(r);
+        if (!target) {
+          diagnostics.push({ level: "error", file: en.file, message: `step "${sid}" recalls from unknown step "${r}"` });
+        } else if (!(target.variants.en ?? target.variants.de)!.meta.tasks.some((t) => t.check.type === "question")) {
+          diagnostics.push({ level: "warning", file: en.file, message: `step "${sid}" recalls from "${r}", which has no question task – the recall card will never show` });
+        }
+      }
     }
   }
   // Drop steps that ended up without any variant.

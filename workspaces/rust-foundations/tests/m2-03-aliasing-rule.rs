@@ -1,5 +1,7 @@
 //! Tests for step m2-03-aliasing-rule. Run: `cargo test --test m2-03-aliasing-rule`
-use rust_foundations::m2::m2_03_aliasing::{double_all_and_sum, first_then_push, longest_len_then_clear};
+use rust_foundations::m2::m2_03_aliasing::{
+    double_all_and_sum, first_then_push, longest_len_then_clear,
+};
 
 mod m2_03_aliasing_rule {
     use super::*;

@@ -15,6 +15,9 @@ pub fn append_twice(s: &mut String, suffix: &str) {
 /// vectors stay unchanged. Hint: taking two `&mut` into the same vector at
 /// once is error E0499 – there is a method on `Vec` for exactly this job,
 /// or you can copy through a temporary (`i32` is `Copy`).
+// `&mut Vec` rather than `&mut [i32]`: the exercise is about the
+// mutable reference to the collection itself.
+#[allow(clippy::ptr_arg)]
 pub fn swap_ends(v: &mut Vec<i32>) {
     todo!()
 }

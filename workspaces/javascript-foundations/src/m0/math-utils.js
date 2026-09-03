@@ -1,4 +1,4 @@
-// m0-03-modules
+// m0-04-modules
 // This file is an ES module (package.json says "type": "module"), but nothing
 // is exported yet. The test imports { square, cube } and the default export
 // (an object { name: "math-utils" }). Add the export statements.

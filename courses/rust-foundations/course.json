@@ -1,0 +1,112 @@
+{
+  "id": "rust-foundations",
+  "version": "1.0.0",
+  "schema": 1,
+  "title": {
+    "de": "Rust – Grundlagen",
+    "en": "Rust – Foundations"
+  },
+  "description": {
+    "de": "Vom ersten cargo-Aufruf bis zu Generics, Traits und Lifetimes: Ownership, Referenzen, Structs und Enums, Collections und Fehlerbehandlung – jeder Schritt an echtem Code, den der Compiler auf deinem Rechner prüft. Abschluss ist ein kleines Kommandozeilenwerkzeug mit Tests.",
+    "en": "From your first cargo command to generics, traits and lifetimes: ownership, references, structs and enums, collections and error handling – every step on real code that the compiler checks on your machine. It ends with a small command-line tool of your own, with tests."
+  },
+  "project": {
+    "root": "rust-foundations",
+    "repo": "https://doc.rust-lang.org/book/"
+  },
+  "prerequisites": [],
+  "grounding": {
+    "pack": "rust",
+    "threshold": 9.0
+  },
+  "modules": [
+    {
+      "id": "m0",
+      "title": { "de": "M0 – Werkzeug und erstes Programm", "en": "M0 – Tooling and your first program" },
+      "steps": ["m0-01-welcome", "m0-02-first-test", "m0-03-predict-output", "m0-04-compiler-errors"],
+      "reflection": {
+        "prompts": [
+          { "de": "Welcher der vier cargo-Befehle aus diesem Modul war dir vorher unbekannt, und wofür wirst du ihn ab jetzt benutzen?", "en": "Which of this module's four cargo commands was new to you, and what will you use it for from now on?" },
+          { "de": "Du hast in m0-04 drei Compilerfehler repariert. Woran hast du im Fehlertext erkannt, welche Zeile du ändern musstest?", "en": "You repaired three compiler errors in m0-04. What in the diagnostic told you which line to change?" }
+        ]
+      }
+    },
+    {
+      "id": "m1",
+      "title": { "de": "M1 – Ownership", "en": "M1 – Ownership" },
+      "steps": ["m1-01-scope-and-move", "m1-02-move-vs-clone", "m1-03-copy-types", "m1-04-ownership-and-functions"],
+      "reflection": {
+        "prompts": [
+          { "de": "Formuliere die drei Ownership-Regeln in eigenen Worten, ohne nachzuschlagen.", "en": "State the three ownership rules in your own words, without looking them up." },
+          { "de": "Wann ist ein clone() die richtige Antwort auf E0382 – und wann verdeckt es nur, dass die Funktionssignatur falsch ist?", "en": "When is a clone() the right answer to E0382, and when does it merely paper over a wrong function signature?" }
+        ]
+      }
+    },
+    {
+      "id": "m2",
+      "title": { "de": "M2 – Referenzen und Borrowing", "en": "M2 – References and borrowing" },
+      "steps": ["m2-01-shared-references", "m2-02-mutable-references", "m2-03-aliasing-rule", "m2-04-slices"],
+      "reflection": {
+        "prompts": [
+          { "de": "Die Aliasing-Regel verbietet Programme, die zur Laufzeit funktionieren würden. Nenne einen Fehler, den sie im Gegenzug unmöglich macht.", "en": "The aliasing rule rejects programs that would work at runtime. Name one bug it makes impossible in exchange." },
+          { "de": "Wo im Modul hättest du &String statt &str geschrieben, und warum ist &str fast immer die bessere Wahl?", "en": "Where in this module would you have written &String instead of &str, and why is &str almost always the better choice?" }
+        ]
+      }
+    },
+    {
+      "id": "m3",
+      "title": { "de": "M3 – Structs und Enums", "en": "M3 – Structs and enums" },
+      "steps": ["m3-01-structs", "m3-02-enums", "m3-03-match", "m3-04-if-let"],
+      "reflection": {
+        "prompts": [
+          { "de": "Beschreibe eine Datenstruktur aus einem eigenen Projekt, die als Enum besser aufgehoben wäre als als Struct mit Typ-Feld. Was gewinnst du?", "en": "Describe a data structure from a project of your own that an enum would model better than a struct with a kind field. What do you gain?" },
+          { "de": "Wann ist if let die ehrlichere Wahl als match – und wann verbirgt es einen Fall, den du hättest behandeln müssen?", "en": "When is if let the more honest choice than match, and when does it hide a case you should have handled?" }
+        ]
+      }
+    },
+    {
+      "id": "m4",
+      "title": { "de": "M4 – Collections", "en": "M4 – Collections" },
+      "steps": ["m4-01-vectors", "m4-02-strings", "m4-03-hash-maps", "m4-04-collections-report"],
+      "reflection": {
+        "prompts": [
+          { "de": "Warum darfst du einen String nicht mit s[0] indizieren? Erkläre es jemandem, der aus Python oder C kommt.", "en": "Why can you not index a String with s[0]? Explain it to someone coming from Python or C." },
+          { "de": "In welcher deiner Funktionen war die Iterationsreihenfolge einer HashMap ein Problem, und wie hast du das Ergebnis reproduzierbar gemacht?", "en": "In which of your functions was a HashMap's iteration order a problem, and how did you make the result reproducible?" }
+        ]
+      }
+    },
+    {
+      "id": "m5",
+      "title": { "de": "M5 – Fehlerbehandlung", "en": "M5 – Error handling" },
+      "steps": ["m5-01-panic-vs-result", "m5-02-result", "m5-03-question-mark", "m5-04-custom-error"],
+      "reflection": {
+        "prompts": [
+          { "de": "Nenne eine Stelle in deinem Code, an der unwrap() vertretbar ist, und begründe sie gegenüber einem Reviewer.", "en": "Name a place in your code where unwrap() is defensible, and justify it to a reviewer." },
+          { "de": "Was gewinnt der Aufrufer dadurch, dass parse_config einen eigenen Fehlertyp liefert statt String?", "en": "What does the caller gain from parse_config returning its own error type instead of a String?" }
+        ]
+      }
+    },
+    {
+      "id": "m6",
+      "title": { "de": "M6 – Generics, Traits und Lifetimes", "en": "M6 – Generics, traits and lifetimes" },
+      "steps": ["m6-01-generics", "m6-02-traits", "m6-03-trait-bounds", "m6-04-lifetimes"],
+      "reflection": {
+        "prompts": [
+          { "de": "Eine Lifetime-Annotation ändert nicht, wie lange ein Wert lebt. Was ändert sie dann?", "en": "A lifetime annotation does not change how long a value lives. What does it change, then?" },
+          { "de": "Wo würdest du in deinem eigenen Code einen Trait statt einer konkreten Struct als Parameter nehmen – und wo wäre das übertrieben?", "en": "Where in code of your own would you take a trait rather than a concrete struct as a parameter, and where would that be overkill?" }
+        ]
+      }
+    },
+    {
+      "id": "m7",
+      "title": { "de": "M7 – Abschlussprojekt", "en": "M7 – Final project" },
+      "steps": ["m7-01-wordstat", "m7-02-review"],
+      "reflection": {
+        "prompts": [
+          { "de": "Welches Konzept aus M1–M6 hat dir beim Bauen von wordstat am meisten geholfen, und an welcher Stelle konkret?", "en": "Which concept from M1–M6 helped you most while building wordstat, and where exactly?" },
+          { "de": "Was würdest du an wordstat ändern, wenn die Eingabedatei 10 GB groß wäre?", "en": "What would you change about wordstat if the input file were 10 GB?" }
+        ]
+      }
+    }
+  ]
+}

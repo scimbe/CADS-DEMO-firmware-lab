@@ -396,7 +396,7 @@ class Portal:
             "now": now,
             "thresholds": th,
             "metrics": metrics,
-            "flags": an.compute_flags(events, metrics, self.settings.thresholds, now),
+            "flags": an.compute_flags(events, metrics, self.settings.thresholds, now, course),
             "zscores": an.cohort_zscores(metrics),
             "overview": an.course_overview(events, course, now, self.settings.thresholds),
             "questions": an.question_overview(events, th["questionJaccard"]),
@@ -562,6 +562,14 @@ TEXT = {
     "of": ("von", "of"),
     "forbidden": ("Kein Zugriff auf diesen Kurs.", "No access to this course."),
     "showing": ("Angezeigt", "Showing"),
+    "sidenote": ("Randnotiz (kein Signal)", "Side note (not a signal)"),
+    "outside_session": (
+        "Ereignisse außerhalb einer aufgezeichneten Session. Das ist keine Auffälligkeit und geht in keine "
+        "Bewertung ein: Eine abgestürzte Sitzung ohne session.end hinterlässt dieselbe Spur. Steht hier nur, "
+        "damit eine Lücke im Zeitstrahl erklärbar ist.",
+        "Events outside any recorded session. This is not an anomaly and enters no assessment: a crashed "
+        "session with no session.end leaves the same trace. It is here only so that a gap in the timeline "
+        "can be made sense of."),
     "all_events": ("Alle Ereignisse anzeigen", "Show all events"),
 }
 
@@ -639,8 +647,8 @@ pre{background:var(--card);border:1px solid var(--line);border-radius:8px;paddin
 border:1px solid transparent;white-space:nowrap}
 .badge.excellent{background:rgba(46,125,79,.14);color:var(--good);border-color:var(--good)}
 .badge.struggling{background:rgba(181,106,18,.14);color:var(--warn);border-color:var(--warn)}
-.badge.cheat{background:rgba(168,50,31,.14);color:var(--bad);border-color:var(--bad)}
-.badge.review{background:var(--chip);color:var(--muted);border-color:var(--line)}
+.badge.followup{background:rgba(181,106,18,.14);color:var(--warn);border-color:var(--warn)}
+.badge.notice{background:var(--chip);color:var(--muted);border-color:var(--line)}
 .badge.dropped{background:var(--chip);color:var(--muted);border-color:var(--line)}
 .badge.confirmed{background:rgba(46,125,79,.14);color:var(--good);border-color:var(--good)}
 .badge.achieved{background:rgba(47,93,138,.14);color:var(--accent);border-color:var(--accent)}
@@ -657,6 +665,10 @@ button{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:.2
 font-size:.85rem;cursor:pointer}
 button.ghost{background:var(--chip);color:var(--fg)}
 ul.reasons{margin:.2rem 0;padding-left:1.1rem}
+.counter{display:block;color:var(--muted);font-size:.82rem;margin:.1rem 0 .3rem}
+.counter::before{content:"Gegenhypothese: ";font-weight:600}
+html[lang="en"] .counter::before{content:"Counter-hypothesis: "}
+ul.notes{margin:.2rem 0 .4rem;padding-left:1.1rem;color:var(--muted);font-size:.82rem}
 ul.reasons li{margin:.15rem 0}
 details summary{cursor:pointer;color:var(--muted);font-size:.82rem}
 .evidence{font-size:.78rem;color:var(--muted)}
@@ -912,16 +924,26 @@ def flag_badges(flags: list[dict], lang: str) -> str:
 
 
 def reasons_html(flags: list[dict], lang: str) -> str:
+    """Every reason is rendered with its counter-hypothesis and its evidence.
+
+    The counter-hypothesis is not optional decoration: a reason without the innocent reading
+    invites exactly the conclusion the rules forbid (RULES.md section 0).
+    """
+    key = "en" if lang == "en" else "de"
     out = []
     for f in flags:
         items = []
         for r in f["reasons"]:
             ev = esc(json.dumps(r["evidence"], sort_keys=True, ensure_ascii=False))
-            items.append(f'<li>{esc(r["text"]["en" if lang == "en" else "de"])}'
+            counter = r.get("counter")
+            counter_html = f'<span class="counter">{esc(counter[key])}</span>' if counter else ""
+            items.append(f'<li>{esc(r["text"][key])}{counter_html}'
                          f'<details><summary>{esc(t("evidence", lang))}</summary>'
                          f'<div class="evidence"><code>{ev}</code></div></details></li>')
-        out.append(f'{badge(f["flag"], f["label"]["en" if lang == "en" else "de"])}'
-                   f'<ul class="reasons">{"".join(items)}</ul>')
+        notes = "".join(f'<li>{esc(n["text"][key])}</li>' for n in f.get("notes") or [])
+        notes_html = f'<ul class="notes">{notes}</ul>' if notes else ""
+        out.append(f'{badge(f["flag"], f["label"][key])}'
+                   f'<ul class="reasons">{"".join(items)}</ul>{notes_html}')
     return "".join(out) or "–"
 
 
@@ -1037,7 +1059,7 @@ def page_anomalies(p: Portal, ctx: dict) -> str:
     metrics, flags, z = a["metrics"], a["flags"], a["zscores"]
     if not metrics:
         return f'<p class="hint">{esc(t("no_students", lang))}</p>'
-    order = {"cheat": 0, "struggling": 1, "review": 2, "dropped": 3, "excellent": 4}
+    order = {"followup": 0, "struggling": 1, "notice": 2, "dropped": 3, "excellent": 4}
     flagged = [s for s in metrics if flags.get(s)]
     flagged.sort(key=lambda s: (min(order.get(f["flag"], 9) for f in flags[s]), s))
     counts = {}
@@ -1142,6 +1164,13 @@ def page_student(p: Portal, ctx: dict) -> str:
         ("answers pass/weak/fail", f'{m["answers_pass"]}/{m["answers_weak"]}/{m["answers_fail"]}'),
         (t("hints", lang), f'{m["hints"]} (T3 {m["tier3"]})'),
     ]))
+    diag = a["thresholds"].get("diagnostics") or {}
+    outside = an.outside_session_events(ev, diag.get("outsideSessionGraceSeconds", 120.0)).get(slug, [])
+    if len(outside) >= diag.get("outsideSessionMinToShow", 3):
+        sample = ", ".join(f'{o["type"]} {o["ts"]}' for o in outside[:3])
+        body.append(f'<div class="note"><strong>{esc(t("sidenote", lang))}:</strong> '
+                    f'{len(outside)} {esc(t("outside_session", lang))} '
+                    f'<span class="evidence">{esc(sample)}</span></div>')
     body.append(f"<h2>{esc(t('timeline', lang))}</h2>")
     rows = an.timeline(ev)
     body.append(svg_timeline(rows, title=t("timeline", lang)))
@@ -1211,14 +1240,14 @@ RULE_ROWS = [
                          "Question clusters: two questions join the same cluster when their token sets (stop words removed) are at least this similar.")),
     ("activeDays", ("„Aktiv“ = irgendein Ereignis innerhalb dieser Anzahl Tage.",
                     "‚Active‘ = any event within this many days.")),
-    ("dropped", ("Abgebrochen? = so viele Tage ohne Ereignis bei unvollständigem Kurs.",
-                 "Dropped? = this many days without an event while the course is incomplete.")),
-    ("excellent", ("Sehr gut = Erstversuch-Quote im oberen Perzentil UND Hinweisnutzung höchstens im Median UND plausible (nicht zu kurze) mittlere Step-Zeit.",
-                   "Excellent = first-attempt pass rate in the top percentile AND hint usage at most median AND a plausible (not too short) median step time.")),
-    ("struggling", ("Tut sich schwer = mindestens so viele der Indikatoren (niedrige Erstversuch-Quote, viele Tier-3-Hinweise, lange Zeiten, Abbrüche).",
-                    "Struggling = at least this many indicators (low first-attempt pass rate, many tier-3 hints, long times, abandoned steps).")),
-    ("cheat", ("Betrugsverdacht = Check ohne vorherigen Fehlschlag unter der Zeitgrenze bei hohem Paste-Anteil, ODER identische Freitexte zwischen Studierenden, ODER Vorhersage exakt gleich der Ausgabe und nachträglich geändert. Ereignisse außerhalb einer Session sind nur ein schwaches Indiz.",
-               "Suspected cheating = a check passed with no prior failure below the time limit with a high paste share, OR identical free text between students, OR a prediction exactly equal to the output and edited afterwards. Events outside a session are a weak indication only.")),
+    ("dropped", ("Längere Zeit ohne Aktivität = so viele Tage ohne Ereignis bei unvollständigem Kurs. Sagt nichts über die Gründe.",
+                 "Inactive for a while = this many days without an event while the course is incomplete. It says nothing about the reasons.")),
+    ("excellent", ("Kriterien sicher erfüllt = absolute Kriterien: Erstversuch-Quote über der Mindestquote, höchstens so viele Hinweise je Step, plausible mittlere Step-Zeit, genug Checks. Das Perzentil der Kohorte erscheint nur als ergänzender, normbezogener Hinweis und entscheidet nichts.",
+                   "Criteria met with ease = absolute criteria: first-attempt pass rate above the floor, at most this many hints per step, a plausible median step time, enough checks. The cohort percentile appears only as a supplementary, norm-referenced note and decides nothing.")),
+    ("struggling", ("Kriterien noch nicht erreicht = mindestens so viele absolute Indikatoren: niedrige Erstversuch-Quote, viele Hinweise der Stufe 3, Steps mit mehreren Versuchen ohne Bestehen, Abbrüche. z-Werte und Perzentile sind ergänzende Hinweise und zählen nicht als Kriterium.",
+                    "Criteria not yet met = at least this many absolute indicators: low first-attempt pass rate, many tier-3 hints, steps with several attempts and no pass, abandoned steps. z-scores and percentiles are supplementary notes and do not count as criteria.")),
+    ("integrity", ("Auffällig – Rückfrage empfohlen = ein starkes Signal ODER mehrere schwache. Stark: Freitexte zweier Studierender, die deutlich ähnlicher sind als der Steptext selbst (Differenzmaß, nicht absoluter Schwellwert); Vorhersage exakt gleich der Ausgabe und erst nach dem Lauf geschrieben. Schwach: nur schnelles Bestehen mit hohem Paste-Anteil, und auch das nur, wenn vorher kein Hinweis der Stufe 2 oder 3 gezeigt wurde und der Steptext die Lösung nicht nennt. Da dies die einzige verbliebene schwache Signalart ist und für eine Rückfrage zwei verschiedene Arten nötig sind, kann der Paste-Anteil allein nie zu einer Rückfrage führen. Ereignisse außerhalb einer Session wurden als Signal entfernt (ohne Trennschärfe, siehe RULES.md 5.5).",
+                   "Needs a conversation = one strong signal OR several weak ones. Strong: two students' free texts that are markedly more alike than the step's own text (a difference measure, not an absolute threshold); a prediction equal to the output and written only after the run. Weak: a fast pass with a high paste share, but only where no tier-2 or tier-3 hint had been shown and the step text does not state the answer; events outside any session.")),
     ("mastery", ("Gewichte für Mastery je Lernziel aus Checks, beantworteten Fragen und Vorhersagen.",
                  "Weights for mastery per objective from checks, answered questions and predictions.")),
 ]
@@ -1228,15 +1257,18 @@ def page_rules(p: Portal, ctx: dict) -> str:
     lang = ctx["lang"]
     th = an.deep_merge(an.DEFAULT_THRESHOLDS, p.settings.thresholds)
     crit = p.settings.credit(ctx["course_id"])
-    warn = ("Ein Flag ist ein Hinweis auf ein Muster in den Ereignisdaten – kein Nachweis. "
-            "Es beweist weder eine Täuschung noch mangelnde Leistung: Paste-Anteile entstehen auch durch "
-            "legitimes Kopieren aus dem Kursmaterial, kurze Zeiten durch Vorwissen, lange Zeiten durch Pausen "
-            "am offenen Editor. Vor jeder Konsequenz gehört das Gespräch mit der studierenden Person."
+    warn = ("Ein Flag ist ein Muster in Ereignisdaten – kein Nachweis, keine Note, und niemals allein die "
+            "Grundlage einer Bewertung. Kein Flag behauptet eine Täuschung. Zu jeder Begründung steht die "
+            "Gegenhypothese dabei, die dasselbe Muster harmlos erklärt: Der Kurs gibt selbst Code aus (die dritte "
+            "Hinweisstufe enthält die Lösungszeile, der Steptext die Rubrik), also ist Kopieren hier systemkonform; "
+            "kurze Zeiten entstehen durch Vorwissen, lange durch Pausen am offenen Editor. Ein Flag rechtfertigt "
+            "eine Rückfrage – mehr nicht."
             if lang == "de" else
-            "A flag points at a pattern in the event data – it is not proof. It establishes neither cheating "
-            "nor a lack of ability: paste shares also come from legitimately copying course material, short times "
-            "from prior knowledge, long times from breaks with the editor open. Talk to the student before any "
-            "consequence follows.")
+            "A flag is a pattern in event data. It is not proof, not a grade, and never on its own the basis for an "
+            "assessment. No flag asserts cheating. Every reason is shown with the counter-hypothesis that explains the "
+            "same pattern innocently: the course hands out code itself (the third hint tier contains the solution line, "
+            "the step text the rubric), so copying here is system-conform; short times come from prior knowledge, long "
+            "ones from breaks with the editor open. A flag warrants a question, nothing more.")
     body = [f'<div class="note"><strong>{esc("Was ein Flag NICHT beweist" if lang == "de" else "What a flag does NOT prove")}:</strong> {esc(warn)}</div>']
     rows = []
     for key, texts in RULE_ROWS:

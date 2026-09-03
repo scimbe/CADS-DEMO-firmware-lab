@@ -3,10 +3,9 @@
 //
 //   Ada is 36 years old and 1 metre 62 tall.
 //
-// Check it with:
-//   rustc --edition 2024 --emit=metadata -o /dev/null repair/m0_04_type_mismatch.rs
-// and run it with:
-//   rustc --edition 2024 -o /tmp/m0_04 repair/m0_04_type_mismatch.rs && /tmp/m0_04
+// Build and run it with one command (the check does exactly this):
+//   mkdir -p target/check && rustc --edition 2024 -o target/check/m0_04 \
+//     repair/m0_04_type_mismatch.rs && target/check/m0_04
 //
 // Change only what the compiler complains about. Keep every variable and
 // keep the printed sentence exactly as above.

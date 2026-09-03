@@ -5,8 +5,12 @@ bloom: analyze
 objectives: [firmware-safety]
 requires: [m1-01-board]
 estimatedMinutes: 10
+sources:
+  - docs/SAFETY.md
 links:
   - { doc: "docs/SAFETY.md" }
+  - { step: m2-01-command }
+  - { file: "apps/desktop/cads_desktop.c" }
 tasks:
   - id: reflect
     title: Why must the flash tool never mass-erase this board?

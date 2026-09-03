@@ -1,0 +1,32 @@
+{
+  "_comment": "Course-local objectives. The platform pack 'rust' indexes The Rust Programming Language chapters 4, 5, 6, 8, 9 and 10, and content-packs/curriculum.json already carries one objective per indexed section; those 15 rust-ch* ids are reused unchanged by this course. The three objectives below cover what the course teaches but the pack does not index: the cargo toolchain (book ch. 1), reading rustc diagnostics, and the final project. Their sourceDocIds are deliberately empty - inventing chunk ids that do not exist in the pack would break grounding, and citing ownership chunks for a cargo objective would be dishonest. The consequence is stated in docs/SPEC.md 3.3: an objective without grounding drives mastery and progress but no proactive check-in.",
+  "rust": [
+    {
+      "id": "rust-tooling-cargo",
+      "track": "rust",
+      "unitId": "rust-tooling-cargo",
+      "bloomLevel": "apply",
+      "statement": "Student can build, run and test a Rust package with cargo and locate the file a failing test points at.",
+      "sourceDocIds": [],
+      "prerequisiteObjectiveIds": []
+    },
+    {
+      "id": "rust-tooling-diagnostics",
+      "track": "rust",
+      "unitId": "rust-tooling-diagnostics",
+      "bloomLevel": "analyze",
+      "statement": "Student can read a rustc diagnostic - error code, primary span, note and help - and act on it instead of guessing.",
+      "sourceDocIds": [],
+      "prerequisiteObjectiveIds": ["rust-tooling-cargo"]
+    },
+    {
+      "id": "rust-project-cli",
+      "track": "rust",
+      "unitId": "rust-project-cli",
+      "bloomLevel": "create",
+      "statement": "Student can build a small command-line tool that combines structs, collections, its own error type and a trait implementation, and prove it works with tests.",
+      "sourceDocIds": [],
+      "prerequisiteObjectiveIds": ["rust-ch10-03-lifetime-syntax"]
+    }
+  ]
+}

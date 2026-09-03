@@ -5,11 +5,17 @@ Generates event streams for three courses and five personas, feeds them through
 ``POST /ingest`` and then scores the flags that analytics.py derives from the
 result against the personas that produced it:
 
-    excellent   -> flag "excellent"
+    excellent   -> flag "excellent"   (criteria met with ease)
     solid       -> no flag
-    weak        -> flag "struggling"
-    dropping    -> flag "dropped"
-    cheating    -> flag "cheat"
+    weak        -> flag "struggling"   (criteria not yet met)
+    dropping    -> flag "dropped"      (inactive for a while)
+    copying     -> flag "followup"     (an anomaly that warrants a question)
+
+The flags are criterion-referenced, so a persona has to be built against the criteria, not
+against the rest of the cohort.  The "copying" persona reproduces the two strong integrity
+signals the rules still accept: free text far more alike than the step's own wording, and a
+prediction written only after the run.  The paste-share signal is deliberately NOT what makes
+it detectable, because in a course whose hints contain the solution that signal is worthless.
 
 Usage::
 
@@ -47,14 +53,22 @@ TEACHERS = {
 }
 ADMIN = "admin@hs.example"
 
-# persona -> share of the cohort.  "excellent" stays at the top decile because the rule
-# itself is a percentile rule: a larger excellent group could not all be in the top 10 %.
-PERSONA_MIX = (("excellent", 0.10), ("solid", 0.45), ("weak", 0.20),
-               ("dropping", 0.15), ("cheating", 0.10))
+# persona -> share of the cohort.
+PERSONA_MIX = (("excellent", 0.10), ("solid", 0.35), ("weak", 0.20),
+               ("dropping", 0.15), ("copying", 0.10), ("distractor", 0.10))
+# The persona name "copying" describes what the generator does, not a verdict about a person.
+# Its expected flag is "followup": an anomaly that warrants a question (see RULES.md 5.3).
 EXPECTED_FLAG = {"excellent": "excellent", "solid": None, "weak": "struggling",
-                 "dropping": "dropped", "cheating": "cheat"}
-SCORED_FLAGS = ("excellent", "struggling", "dropped", "cheat")
-TARGETS = {"cheat": {"precision": 0.8, "recall": 0.7},
+                 "dropping": "dropped", "copying": "followup", "distractor": None}
+# The distractor group is the honest half of this script: it produces the SURFACE features of
+# copying without the cause.  Fast, correct, first-try passes, almost everything pasted (from
+# the course material, which this course hands out on purpose), reflections that quote the
+# step's own wording, and sessions that crash without a session.end.  Every follow-up flag it
+# collects is a false accusation of a person who did nothing wrong, and that number says more
+# about the rules than any precision figure measured against the generator's own patterns.
+DISTRACTOR = "distractor"
+SCORED_FLAGS = ("excellent", "struggling", "dropped", "followup")
+TARGETS = {"followup": {"precision": 0.8, "recall": 0.7},
            "excellent": {"precision": 0.7, "recall": 0.7},
            "struggling": {"precision": 0.7, "recall": 0.7},
            "dropped": {"precision": 0.7, "recall": 0.7}}
@@ -62,16 +76,23 @@ TARGETS = {"cheat": {"precision": 0.8, "recall": 0.7},
 # Per persona: first-attempt pass probability, hints per step, tier-3 share of those hints,
 # seconds per step, question probability per step.
 PROFILE = {
-    "excellent": {"pass1": (0.90, 1.00), "hints": (0.0, 0.15), "tier3": 0.0,
+    # Now that the flags are criterion-referenced, the personas have to sit on one side of the
+    # criterion or the other.  A "solid" student who genuinely reaches an 0.85 first-attempt
+    # rate is not a false positive of the rule - the archetype was simply drawn too close to it.
+    "excellent": {"pass1": (0.92, 1.00), "hints": (0.0, 0.15), "tier3": 0.0,
                   "secs": (300, 700), "q": 0.12, "paste": (0.05, 0.25)},
-    "solid":     {"pass1": (0.48, 0.72), "hints": (0.35, 1.00), "tier3": 0.10,
+    "solid":     {"pass1": (0.45, 0.62), "hints": (0.35, 1.00), "tier3": 0.10,
                   "secs": (420, 1500), "q": 0.30, "paste": (0.05, 0.35)},
     "weak":      {"pass1": (0.10, 0.35), "hints": (1.20, 2.40), "tier3": 0.45,
                   "secs": (1500, 3600), "q": 0.55, "paste": (0.10, 0.40)},
     "dropping":  {"pass1": (0.45, 0.70), "hints": (0.30, 0.90), "tier3": 0.10,
                   "secs": (500, 1600), "q": 0.30, "paste": (0.05, 0.35)},
-    "cheating":  {"pass1": (0.45, 0.70), "hints": (0.0, 0.20), "tier3": 0.0,
+    "copying":   {"pass1": (0.45, 0.70), "hints": (0.0, 0.20), "tier3": 0.0,
                   "secs": (400, 1200), "q": 0.15, "paste": (0.05, 0.30)},
+    # Prior knowledge from work: fast and right, pastes the offered scaffold, needs no hints.
+    # Deliberately below the "excellent" criterion so it cannot be confused with that flag.
+    "distractor": {"pass1": (0.70, 0.82), "hints": (0.0, 0.10), "tier3": 0.0,
+                   "secs": (30, 55), "q": 0.10, "paste": (0.85, 0.95)},
 }
 
 QUESTION_POOL = {
@@ -116,11 +137,19 @@ REFLECTION_SENTENCES = [
     "Ich notiere mir die Schritte fuer spaeter",
     "Die Doku hat die offene Frage beantwortet",
 ]
-# A stolen reflection: the cheating pair submits exactly this text.
+# The shared reflection: the copying pair hands in exactly this text on the same step.
 COPIED_REFLECTION = ("Das Modul war insgesamt gut machbar und die Aufgaben bauten sauber aufeinander auf "
                      "sodass am Ende alles zusammenpasste")
 
 DAY = 86400.0
+
+
+def _reference_words(course: dict, step: str, n: int) -> list[str]:
+    """The first n words of what the step itself says (its rubric and body)."""
+    text = coursemeta.reference_text(course, step) or ""
+    words = [w for w in text.split() if not w.startswith(("#", "-", "|", "`"))]
+    return words[:n] or ["kein", "Referenztext", "vorhanden", "in", "diesem", "Schritt",
+                         "also", "eigene", "Formulierung", "notiert"]
 
 
 def slug_for(email: str) -> str:
@@ -161,15 +190,15 @@ class Cohort:
     # ---------------------------------------------------------------- generation
     def events(self) -> list[dict]:
         out: list[dict] = []
-        cheaters = [s for s in self.students if s["persona"] == "cheating"]
-        copy_pair = {s["slug"] for s in cheaters[:2]}
-        pred_faker = cheaters[2]["slug"] if len(cheaters) > 2 else (cheaters[0]["slug"] if cheaters else "")
+        copiers = [s for s in self.students if s["persona"] == "copying"]
+        copy_pair = {s["slug"] for s in copiers[:2]}
+        pred_faker = {s["slug"] for s in copiers[2:]} or {s["slug"] for s in copiers[:1]}
         for st in self.students:
             out += self._student_events(st, copy_pair, pred_faker)
         out.sort(key=lambda e: (e["ts"], e["student"]))
         return out
 
-    def _student_events(self, st: dict, copy_pair: set, pred_faker: str) -> list[dict]:
+    def _student_events(self, st: dict, copy_pair: set, pred_faker: set) -> list[dict]:
         rng = self.rng
         course = self.course
         cid = course["id"]
@@ -211,27 +240,34 @@ class Cohort:
         span_days = rng.uniform(20.0, 40.0)
         start = self.now - (last_gap + span_days) * DAY
         end = self.now - last_gap * DAY
-        # cheaters cheat on a minority of steps: the ones they could not do themselves
-        cheat_steps = set(rng.sample(steps, min(len(steps), rng.randint(3, 5)))) if persona == "cheating" else set()
+        # the copying persona copies on a minority of steps: the ones it could not do itself
+        copied_steps = set(rng.sample(steps, min(len(steps), rng.randint(3, 5)))) if persona == "copying" else set()
+        copy_step = steps[2] if len(steps) > 2 else (steps[-1] if steps else "")
+        # A student who is genuinely struggling does not eventually pass everything: some steps
+        # are attempted repeatedly and left unfinished.  That is the "stuck" criterion.
+        stuck_steps = (set(rng.sample(steps[1:], min(len(steps) - 1, rng.randint(2, 4))))
+                       if persona == "weak" and len(steps) > 3 else set())
 
         t = start
         step_gap = (end - start) / max(1, len(steps))
         modules_seen: set[str] = set()
         for idx, sid in enumerate(steps):
             t = start + idx * step_gap + rng.uniform(0, step_gap * 0.3)
-            cheated = sid in cheat_steps
+            copied = sid in copied_steps
             last_of_all = idx == len(steps) - 1
             abandons = persona == "dropping" and last_of_all
             meta = course["steps"].get(sid, {})
             bloom = meta.get("bloom") or "apply"
 
-            if cheated:
+            if copied:
                 secs = rng.uniform(22.0, 52.0)
                 typed, pasted = rng.randint(15, 60), rng.randint(700, 1600)
                 hints, tier3s, first_pass = 0, 0, True
             else:
                 secs = rng.uniform(*prof["secs"])
-                share = min(0.6, max(0.0, rng.gauss(paste_rate, 0.06)))
+                # cap near 1.0, not at 0.6: the distractor group is supposed to reach a paste
+                # share above the rule's threshold, otherwise it never tests the rule at all
+                share = min(0.97, max(0.0, rng.gauss(paste_rate, 0.06)))
                 total = rng.randint(700, 2600)
                 pasted = int(total * share)
                 typed = total - pasted
@@ -251,9 +287,9 @@ class Cohort:
                 out.append(ev(sid, "question.answered", t + secs * 0.45, bloom=bloom,
                               verdict=_verdict(rng, persona)))
             # predictions: honest students commit before the run, the faker afterwards
-            if rng.random() < 0.3 or (slug == pred_faker and cheated):
+            if rng.random() < 0.3 or (slug in pred_faker and copied):
                 output = f"error[E0382]: borrow of moved value at {sid}"
-                if slug == pred_faker and cheated:
+                if slug in pred_faker and copied:
                     out.append(ev(sid, "check.run", t + secs * 0.5, taskId=sid, checkType="command"))
                     out.append(ev(sid, "predict.made", t + secs * 0.6, taskId=sid, prediction=output))
                     out.append(ev(sid, "predict.compared", t + secs * 0.65, taskId=sid, prediction=output,
@@ -271,27 +307,46 @@ class Cohort:
                               outputExcerpt="assertion failed"))
                 out.append(ev("", "session.end", t + secs))
                 break
-            attempts = 1 if first_pass else rng.randint(2, 5 if persona == "weak" else 3)
+            gets_stuck = sid in stuck_steps
+            attempts = 1 if (first_pass and not gets_stuck) else rng.randint(3 if gets_stuck else 2,
+                                                                             5 if persona == "weak" else 3)
             for a in range(1, attempts + 1):
-                passed = a == attempts
+                passed = a == attempts and not gets_stuck
                 out.append(ev(sid, "check.run", t + secs * (0.55 + 0.08 * a), attempt=a, checkType="testSuite",
                               taskId=sid))
                 out.append(ev(sid, "check.pass" if passed else "check.fail",
                               t + secs * (0.6 + 0.08 * a), attempt=a, checkType="testSuite", taskId=sid,
                               outputExcerpt=None if passed else "assertion failed: expected 3, got 5"))
-            out.append(ev(sid, "step.done", t + secs, bloom=bloom))
+            if not gets_stuck:
+                out.append(ev(sid, "step.done", t + secs, bloom=bloom))
             out.append(ev("", "session.end", t + secs + 30))
 
             mod = meta.get("module") or sid.split("-", 1)[0]
-            if mod not in modules_seen and idx > 0 and rng.random() < 0.7:
+            # The pair hands in the same text on the same step - two reflections on different
+            # steps are never compared, so a pair that drifts apart is simply invisible.
+            if persona == DISTRACTOR and mod not in modules_seen and idx > 0:
+                # quotes the step's own text: two of them look identical to each other without
+                # either having copied from the other
                 modules_seen.add(mod)
-                text = COPIED_REFLECTION if slug in copy_pair else self._reflection(st)
-                out.append(ev(sid, "reflection.written", t + secs + 120, text=text))
+                out.append(ev(sid, "reflection.written", t + secs + 120,
+                              text=" ".join(_reference_words(course, sid, 40))))
+            elif slug in copy_pair and sid == copy_step:
+                out.append(ev(sid, "reflection.written", t + secs + 120, text=COPIED_REFLECTION))
+                modules_seen.add(mod)
+            elif mod not in modules_seen and idx > 0 and rng.random() < 0.7:
+                modules_seen.add(mod)
+                out.append(ev(sid, "reflection.written", t + secs + 120, text=self._reflection(st)))
             if rng.random() < 0.4:
                 out.append(ev(sid, "recall.answered", t + secs + 60, bloom=bloom, verdict=_verdict(rng, persona)))
 
-        # cheaters also work outside any recorded session
-        if persona == "cheating" and steps:
+        # a crashed session leaves events outside any window - the same trace "working outside
+        # the session" leaves, which is why that signal is weak
+        if persona == DISTRACTOR and steps:
+            for k in range(4):
+                out.append(ev(steps[min(k, len(steps) - 1)], "question.asked", end + (k + 1) * 650,
+                              question=self._question(cid), grounded=True))
+        # copiers also work outside any recorded session
+        if persona == "copying" and steps:
             for k in range(4):
                 out.append(ev(steps[min(k, len(steps) - 1)], "question.asked", end + (k + 1) * 700,
                               question=self._question(cid), grounded=False))
@@ -324,6 +379,33 @@ def score(truth: dict[str, str], flags: dict[str, list[dict]]) -> dict[str, dict
                      "false_positives": sorted(f"{s}:{truth[s]}" for s in (got - expected)),
                      "false_negatives": sorted(s for s in (expected - got))}
     return out
+
+
+def distractor_report(truth: dict[str, str], flags: dict[str, list[dict]],
+                      metrics: dict[str, dict], course: dict, thresholds: dict) -> dict:
+    """How the rules treat people who look guilty and are not.
+
+    This is the number worth reading.  Precision against the personas is circular - the same
+    rule set writes the patterns and then finds them.  The distractor group is not circular:
+    it reproduces the surface of copying (fast first-try passes, almost everything pasted,
+    reflections that quote the step, events outside a session) with an entirely innocent cause.
+    Any follow-up flag it collects would land on a real person who did nothing wrong.
+
+    The "old rule" column applies the paste-share signal the way it worked before the review:
+    absolute thresholds, no check for what the tutor had already given away.
+    """
+    ig = thresholds["integrity"]
+    group = [s for s, persona in truth.items() if persona == DISTRACTOR]
+    flagged = {s: [f["flag"] for f in flags.get(s, [])] for s in group}
+    followup = [s for s in group if "followup" in flagged[s]]
+    notice = [s for s in group if "notice" in flagged[s]]
+    # what the pre-review rule would have said: paste share alone, no suppression at all
+    naive = fast = an.fast_paste_passes(metrics, None, ig["fastPassSeconds"], ig["pasteShare"])
+    naive_hits = [s for s in group if naive.get(s)]
+    return {"size": len(group), "followup": sorted(followup), "notice": sorted(notice),
+            "false_followup_rate": (len(followup) / len(group)) if group else 0.0,
+            "would_have_been_flagged_by_the_old_paste_rule": sorted(naive_hits),
+            "old_rule_rate": (len(naive_hits) / len(group)) if group else 0.0}
 
 
 # --------------------------------------------------------------------------- HTTP
@@ -448,9 +530,12 @@ def main(argv: list[str] | None = None) -> int:
         course = cohorts[cid].course
         normalized = [evs.normalize_event(e) for e in evlist]
         metrics = an.student_metrics(normalized, course["order"], now)
-        flags = an.compute_flags(normalized, metrics, None, now)
+        flags = an.compute_flags(normalized, metrics, None, now, course)
         truth = {s["slug"]: s["persona"] for s in cohorts[cid].students}
         result = score(truth, flags)
+        dist = distractor_report(truth, flags, metrics, course,
+                                 an.deep_merge(an.DEFAULT_THRESHOLDS, None))
+        result["_distractor"] = dist
         report["courses"][cid] = result
         print(f"\n{cid}")
         print(f"  {'flag':<12}{'support':>8}{'flagged':>9}{'TP':>4}{'FP':>4}{'FN':>4}"
@@ -464,18 +549,26 @@ def main(argv: list[str] | None = None) -> int:
                   f"{r['precision']:>11.2f}{r['recall']:>8.2f}   {'ok' if good else 'MISSED'}")
             if r["false_positives"]:
                 print(f"      false positives: {', '.join(r['false_positives'][:6])}")
+        d = result["_distractor"]
+        ok = ok and not d["followup"]
+        print(f"  distractor group (legitimately fast, heavy pasting, quotes the step): {d['size']} students")
+        print(f"    wrongly told 'needs a conversation': {len(d['followup'])} "
+              f"({d['false_followup_rate']:.0%})   {'ok' if not d['followup'] else 'MISSED'}")
+        print(f"    weak-signal notice only:             {len(d['notice'])}")
+        print(f"    the pre-review paste rule would have flagged: "
+              f"{len(d['would_have_been_flagged_by_the_old_paste_rule'])} "
+              f"({d['old_rule_rate']:.0%})")
 
     if args.verify_ui and not args.offline:
         for cid in all_events:
             email = TEACHERS.get(cid, ADMIN)
             status, body = fetch(args.url, f"/portal/anomalies?c={cid}", email)
-            cheats = {s for s, fl in an.compute_flags(
-                [evs.normalize_event(e) for e in all_events[cid]],
-                an.student_metrics([evs.normalize_event(e) for e in all_events[cid]],
-                                   cohorts[cid].course["order"], now), None, now).items()
-                if any(f["flag"] == "cheat" for f in fl)}
-            missing = [s for s in cheats if s not in body]
-            print(f"  ui {cid}: status {status}, {len(cheats)} cheat slugs expected, "
+            norm = [evs.normalize_event(e) for e in all_events[cid]]
+            course = cohorts[cid].course
+            fl = an.compute_flags(norm, an.student_metrics(norm, course["order"], now), None, now, course)
+            wanted = {s for s, f in fl.items() if any(x["flag"] == "followup" for x in f)}
+            missing = [s for s in wanted if s not in body]
+            print(f"  ui {cid}: status {status}, {len(wanted)} follow-up slugs expected, "
                   f"{len(missing)} missing on the anomalies page")
             if status != 200 or missing:
                 ok = False
