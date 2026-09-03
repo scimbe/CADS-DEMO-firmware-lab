@@ -3,10 +3,10 @@ id: m2-01-memory-map
 title: Die Speicherkarte lesen
 bloom: analyze
 objectives: [firmware-reference-memory-map]
-requires: [m2-00-mmio-primer]
+requires: [m2-00-register-names]
 estimatedMinutes: 15
 scaffold: faded
-recallFrom: [m2-00-mmio-primer]
+recallFrom: [m2-00-register-names]
 links:
   - { step: m2-02-mmio-gpio }
   - { doc: "docs/reference/memory-map.md" }

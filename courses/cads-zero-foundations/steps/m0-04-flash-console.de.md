@@ -6,7 +6,7 @@ objectives: [firmware-how-to-flash, firmware-how-to-board-test]
 requires: [m0-03-build]
 estimatedMinutes: 15
 scaffold: faded
-recallFrom: [m0-03-build]
+recallFrom: [m0-02-connect]
 links:
   - { step: m0-05-explorer }
   - { doc: "docs/how-to/board-test.md" }

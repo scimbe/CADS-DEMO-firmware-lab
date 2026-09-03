@@ -3,7 +3,7 @@ id: m0-01-welcome
 title: Welcome to the CaDS firmware lab
 bloom: remember
 objectives: [firmware-hardware]
-requires: []
+requires: [m0-00-workbench]
 estimatedMinutes: 10
 scaffold: worked
 links:
@@ -28,12 +28,7 @@ Understand what you are about to build on: the CaDS Zero firmware, the board it 
 
 ## What you are looking at right now
 
-You see a single browser window. Inside it sits a complete development environment — it looks like a program on your own computer, but it runs on a university server. You need four areas of it:
-
-- **Far left** is a narrow strip of icons, the *activity bar*. The graduation-cap icon opens the **CaDS Tutor** — the course list with its modules and steps.
-- **Here on the right** you are reading this text: the **tutor panel**. At the very bottom of this panel, under the heading *Tasks*, are the boxes you use to finish this step. Scroll down there once so you know where they are.
-- **In the middle** your source files will open later. The fastest way to open one is `Ctrl`/`Cmd`+`P`, then type the file name.
-- **At the bottom** the menu *Terminal → New Terminal* opens an input window — the **terminal**. Whenever this course says "run" or "send", it means either that terminal or the board console; every step says which of the two.
+The four areas of this window and the three ways to run something are what the previous step covered ([Working the window](step:m0-00-workbench)). As a reminder: the course tree is on the left in the side bar, this text is a tab in the middle, and the tasks with their buttons are at the very bottom of this text.
 
 ## What to do first
 
@@ -47,15 +42,15 @@ A finished task shows a green tick and its box turns green along the left edge. 
 
 If you want to see how to work the window once more at your own pace: press `F1`, type *Welcome: Open Walkthrough* and pick *CaDS Tutor*.
 
-**If you get stuck:** every task has a **Show hint** button. Use it after you have tried once yourself; each click makes it more concrete. If that does not help either, that is not a failure: ask in the lab and quote the step number from the header of this panel.
+**If you get stuck:** the **Show hint** button on each task gets more concrete with every click. Use it after trying once yourself. If that does not help, ask in the lab and quote the step number from the header.
 
 ## What this lab is
 
 You are working in a **browser IDE** — a development environment that runs inside a browser window instead of as a program on your machine (here: VS Code via code-server). It runs on a server, while **the board is plugged into your own computer**. **Flashing** (transferring your program into the microcontroller's memory), **debugging** (halting the running program step by step and inspecting it) and the **serial console** (a text channel to the board over which it reports and accepts commands) all reach the hardware through the browser.
 
-You do not need a local **toolchain** — that is the name for the bundle of compiler and helper programs that turns your C source into a file the microcontroller can execute. The **container** this environment runs in already carries it: the Arm GNU toolchain (the compiler for Arm processors), CMake and Ninja (the tools that drive the build).
+You do not need a local **toolchain** — the bundle of compiler and helper programs that turns your C source into a file the microcontroller can execute. This environment already carries it: the Arm GNU toolchain, plus CMake and Ninja, the tools that drive the build.
 
-The firmware you study and change is **CaDS Zero**. *Firmware* is the program that lives permanently on a device and makes it what it is — here: a clean-room firmware for the ITSboard, written along the lines of a Flipper Zero, with a small kernel, a GUI framework, a menu of self-contained apps, and a mascot, Leo the lion. It is not a copy of anything; every function name carries the `cads_` prefix, and the architecture is shaped by this board's real constraints.
+The firmware you study and change is **CaDS Zero**. *Firmware* is the program that lives permanently on a device and makes it what it is — here a clean-room firmware for the ITSboard along the lines of a Flipper Zero: a small kernel, a GUI framework, a menu of self-contained apps, and a mascot, Leo the lion. Every function name carries the `cads_` prefix, and the architecture is shaped by this board's real constraints.
 
 ## The hardware, once
 

@@ -6,7 +6,7 @@ objectives: [cz.arch.sim-vs-board]
 requires: [m1-02-hal-boundary]
 estimatedMinutes: 12
 scaffold: faded
-recallFrom: [m0-03-build]
+recallFrom: [m0-02-connect]
 links:
   - { step: m1-04-splash }
   - { doc: "docs/how-to/port-to-new-board.md" }

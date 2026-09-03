@@ -39,9 +39,16 @@ in 18 von 27 Steps — die Regel muss für den ganzen Kurs gelten, nicht nur fü
 Leseabbruch liegt, wirkt nicht. **Richtwert 600 Wörter, harte Grenze 900.** Darüber gehört der Step geteilt oder
 gekürzt, und die Regel, an der die meisten scheitern, gehört in jedem Fall nach vorn — nicht hinter neunzig Zeilen
 Herleitung.
-Die harte Grenze ist bewusst höher als der Richtwert: 21 der 48 Steps dieses Kurses liegen über 600 Wörtern, und
-für die meisten ist das vertretbar, weil sie eine Fallstudie tragen. Vertretbar ist es nicht mehr, wenn ein Step
-zwei Themen behandelt oder wenn seine Aufgaben von Abschnitten getragen werden, die hinter dem Leseabbruch liegen.
+Die harte Grenze ist bewusst höher als der Richtwert: viele Steps dieses Kurses liegen über 600 Wörtern, und für
+die meisten ist das vertretbar, weil sie eine Fallstudie tragen. Vertretbar ist es nicht mehr, wenn ein Step zwei
+Themen behandelt oder wenn seine Aufgaben von Abschnitten getragen werden, die hinter dem Leseabbruch liegen — dann
+wird geteilt. Genau das war beim MMIO-Primer der Fall: 1386 Wörter, drei Themen, und alle drei Aufgaben hinter dem
+Leseabbruch; er ist jetzt in drei Steps von 450 bis 580 Wörtern geteilt, jeder mit einem Thema und einer Aufgabe.
+
+**Gemessen wird die Prosa der deutschen Fassung**, ohne Bildunterschriften, Codeblöcke und Kommentare — das ist,
+was ein Studierender tatsächlich liest. Die englische Fassung derselben Inhalte fällt regelmäßig etwa ein Zehntel
+länger aus; ihr gilt dieselbe Grenze plus diese zehn Prozent. Messskript: `scripts/` oder der Einzeiler aus dem
+Validator-Auftrag unten.
 *Herkunft: `m0-01` wuchs von 399 auf 1009 Wörter, der Primer auf 1435; S− las in beiden nur den Anfang, und die
 Abschnitte, die alle drei Aufgaben tragen, lagen dahinter (Runde 2).* **[Validator]**
 

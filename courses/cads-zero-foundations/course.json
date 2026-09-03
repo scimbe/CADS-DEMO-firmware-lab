@@ -27,6 +27,7 @@
         "en": "M0 – Orientation"
       },
       "steps": [
+        "m0-00-workbench",
         "m0-01-welcome",
         "m0-02-connect",
         "m0-03-build",
@@ -54,7 +55,9 @@
         "en": "M2 – Memory-mapped I/O & GPIO"
       },
       "steps": [
+        "m2-00-hex-and-bits",
         "m2-00-mmio-primer",
+        "m2-00-register-names",
         "m2-01-memory-map",
         "m2-02-mmio-gpio",
         "m2-03-buttons",

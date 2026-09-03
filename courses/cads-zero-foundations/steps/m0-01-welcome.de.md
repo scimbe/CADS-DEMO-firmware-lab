@@ -3,7 +3,7 @@ id: m0-01-welcome
 title: Willkommen im CaDS-Firmware-Labor
 bloom: remember
 objectives: [firmware-hardware]
-requires: []
+requires: [m0-00-workbench]
 estimatedMinutes: 10
 scaffold: worked
 links:
@@ -28,12 +28,7 @@ Verstehe, worauf du gleich aufbaust: die Firmware CaDS Zero, das Board, auf dem 
 
 ## Was du gerade vor dir hast
 
-Du siehst ein einziges Browser-Fenster. Darin steckt eine vollständige Programmier-Umgebung — sie sieht aus wie ein Programm auf deinem Rechner, läuft aber auf einem Server der Hochschule. Vier Bereiche brauchst du:
-
-- **Ganz links** ist eine schmale Leiste mit Symbolen, die *Activity Bar*. Das Symbol mit dem Doktorhut öffnet den **CaDS Tutor** — die Kursliste mit Modulen und Steps.
-- **Hier rechts** liest du gerade diesen Text: das **Tutor-Panel**. Ganz unten in diesem Panel stehen unter der Überschrift *Aufgaben* die Kästen, mit denen du diesen Step abschließt. Scroll ruhig einmal bis dorthin, damit du weißt, wo sie sind.
-- **In der Mitte** öffnen sich später deine Quelltextdateien. Eine Datei öffnest du am schnellsten mit `Strg`/`Cmd`+`P`, dann den Dateinamen tippen.
-- **Unten** kannst du über das Menü *Terminal → New Terminal* ein Eingabefenster aufklappen — das **Terminal**. Immer wenn in diesem Kurs steht „führe aus“ oder „sende“, ist entweder dieses Terminal oder die Board-Konsole gemeint; der Step sagt jedes Mal dazu, welches von beiden.
+Die vier Bereiche dieses Fensters und die drei Wege, etwas auszuführen, hast du im Step davor kennengelernt ([Die Oberfläche bedienen](step:m0-00-workbench)). Kurz zur Erinnerung: der Kursbaum steht links in der Seitenleiste, dieser Text ist ein Reiter in der Mitte, und ganz unten in diesem Text stehen die Aufgaben mit ihren Knöpfen.
 
 ## Was du als Allererstes tust
 
@@ -47,7 +42,7 @@ Vor einer erledigten Aufgabe steht ein grüner Haken, und der linke Rand ihres K
 
 Wenn du die Bedienung des Fensters noch einmal in Ruhe sehen willst: drücke `F1`, tippe *Welcome: Open Walkthrough* und wähle *CaDS Tutor*.
 
-**Wenn du nicht weiterkommst:** Bei jeder Aufgabe gibt es einen Knopf **Hinweis anzeigen**. Nutze ihn erst, wenn du es einmal selbst versucht hast — er wird mit jedem Klick konkreter. Hilft auch das nicht, ist das kein Scheitern: frag im Labor nach und nenne dabei die Step-Nummer aus der Kopfzeile dieses Panels.
+**Wenn du nicht weiterkommst:** Der Knopf **Hinweis anzeigen** an jeder Aufgabe wird mit jedem Klick konkreter. Nutze ihn erst nach einem eigenen Versuch. Hilft auch das nicht, frag im Labor nach und nenne die Step-Nummer aus der Kopfzeile.
 
 ## Was dieses Labor ist
 
