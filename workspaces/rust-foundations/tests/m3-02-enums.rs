@@ -1,5 +1,5 @@
 //! Tests for step m3-02-enums. Run: `cargo test --test m3-02-enums`
-use rust_foundations::m3::m3_02_enums::{first_char, make_move, make_write, safe_div, Command};
+use rust_foundations::m3::m3_02_enums::{Command, first_char, make_move, make_write, safe_div};
 
 mod m3_02_enums {
     use super::*;

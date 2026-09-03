@@ -40,14 +40,14 @@ pub fn square(side: u32) -> Rectangle {
     todo!()
 }
 
-/// Scales width and height by `factor`, leaving everything else as it was.
+/// A rectangle `factor` times as wide, with the same height.
 ///
-/// Write this with the *struct update syntax*: name the fields you change,
-/// then `..*r` for the rest. That only compiles because the remaining fields
-/// are `Copy`; a `String` field could not be taken out of a reference like
-/// this (that is error E0507).
-pub fn scaled(r: &Rectangle, factor: u32) -> Rectangle {
-    todo!("use the struct update syntax: named fields first, then ..*r")
+/// Write this with the *struct update syntax*: name the field you change,
+/// then `..*r` for the rest. That only compiles because the remaining field
+/// is `Copy`; a `String` field could not be taken out of a shared reference
+/// like this (that is error E0507).
+pub fn widened(r: &Rectangle, factor: u32) -> Rectangle {
+    todo!("use the struct update syntax: the changed field first, then ..*r")
 }
 
 /// Enrols a new student under the given name and matriculation number.

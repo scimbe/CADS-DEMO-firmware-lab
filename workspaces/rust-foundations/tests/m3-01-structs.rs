@@ -1,6 +1,6 @@
 //! Tests for step m3-01-structs. Run: `cargo test --test m3-01-structs`
 use rust_foundations::m3::m3_01_structs::{
-    area, deactivate, enrol, new_rectangle, scaled, square, Rectangle, Student,
+    Rectangle, Student, area, deactivate, enrol, new_rectangle, square, widened,
 };
 
 mod m3_01_structs {
@@ -11,7 +11,13 @@ mod m3_01_structs {
         let r = new_rectangle(30, 50);
         assert_eq!(r.width, 30);
         assert_eq!(r.height, 50);
-        assert_eq!(r, Rectangle { width: 30, height: 50 });
+        assert_eq!(
+            r,
+            Rectangle {
+                width: 30,
+                height: 50
+            }
+        );
     }
 
     #[test]
@@ -31,10 +37,18 @@ mod m3_01_structs {
     }
 
     #[test]
-    fn scaled_keeps_the_shape() {
+    fn widened_changes_only_the_width() {
         let r = new_rectangle(3, 4);
-        assert_eq!(scaled(&r, 2), Rectangle { width: 6, height: 8 });
-        assert_eq!(scaled(&r, 1), r);
+        assert_eq!(
+            widened(&r, 2),
+            Rectangle {
+                width: 6,
+                height: 4
+            }
+        );
+        assert_eq!(widened(&r, 1), r);
+        // r was borrowed, not moved:
+        assert_eq!(r.width, 3);
     }
 
     #[test]
@@ -42,7 +56,11 @@ mod m3_01_structs {
         let s = enrol(String::from("Ada"), 4711);
         assert_eq!(
             s,
-            Student { name: String::from("Ada"), matriculation: 4711, active: true }
+            Student {
+                name: String::from("Ada"),
+                matriculation: 4711,
+                active: true
+            }
         );
     }
 

@@ -6,7 +6,10 @@ mod m1_04_ownership_and_functions {
 
     #[test]
     fn join_concatenates() {
-        assert_eq!(join_owned(String::from("foo"), String::from("bar")), "foobar");
+        assert_eq!(
+            join_owned(String::from("foo"), String::from("bar")),
+            "foobar"
+        );
     }
 
     #[test]
@@ -18,12 +21,18 @@ mod m1_04_ownership_and_functions {
     #[test]
     fn longer_picks_longer() {
         assert_eq!(longer_owned(String::from("ab"), String::from("abc")), "abc");
-        assert_eq!(longer_owned(String::from("abcd"), String::from("abc")), "abcd");
+        assert_eq!(
+            longer_owned(String::from("abcd"), String::from("abc")),
+            "abcd"
+        );
     }
 
     #[test]
     fn longer_tie_returns_first() {
-        assert_eq!(longer_owned(String::from("one"), String::from("two")), "one");
+        assert_eq!(
+            longer_owned(String::from("one"), String::from("two")),
+            "one"
+        );
     }
 
     #[test]
