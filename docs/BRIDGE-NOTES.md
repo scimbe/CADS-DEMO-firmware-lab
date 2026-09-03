@@ -401,3 +401,44 @@ Klassifikationsfälle, geglückte und aufgegebene Recovery, `release()` gibt den
 Flash-Schutz, Poller-Backoff, Funkstille im Leerlauf), `cads-board-bridge` 34 (jede Meldung nennt
 Ursache und Schritt in beiden Sprachen, keine DOMException-Formulierung dringt durch, Shim-Text
 zweisprachig und leer bei verbundenem Board). Beide Extensions bauen.
+
+### Offen: „Could not read registers; remote failure reply '01'" (2026-09-03)
+
+Beim Beenden einer Debugsitzung erschien **einmal** eine rote Zeile in der Debug-Konsole:
+
+```
+Breakpoint 1, main () at /home/coder/workspace/cads-zero/targets/itsboard/main.c:14
+14          cads_bringup_run();
+Could not read registers; remote failure reply '01'
+```
+
+Sie ist in einem Screenshot festgehalten (das Bild wurde aus der Doku wieder entfernt – ein
+Tutorialbild darf keinen Fehler zeigen, den der Text nicht erklärt). Die Sitzung selbst war in
+Ordnung: Board danach `verbunden · läuft`, Firmware lief weiter.
+
+**Ursache unbekannt.** Vier Reproduktionsversuche auf echter Hardware (ein voller
+Launch-Zyklus, drei Attach-Zyklen mit absichtlich kurzem Abstand zwischen Continue und Stop)
+blieben sauber, die Konsole endete jedes Mal mit `GDB session ended. exit-code: 0`.
+
+Die naheliegende Erklärung ist **widerlegt**: `k` und `D` geben das Target frei, bevor sie den
+Socket schließen, also schien ein Zeitfenster zu existieren, in dem GDBs letztes `g` auf einen
+wieder laufenden Kern trifft und nur mit `E01` beantwortet werden kann. Das kann nicht passieren –
+`feed()` reiht **jedes** Paket über `enqueue()` in eine einzige serialisierte Queue ein, ein
+`g` wird also erst nach dem Ende des `k`-Handlers bearbeitet, und `send()` schweigt, sobald
+`close()` gelaufen ist. Eine testweise Umstellung (erst schließen, dann freigeben) wurde deshalb
+**zurückgenommen**: sie behebt nichts und macht das Resume-on-Disconnect unsicherer, weil ein in
+diesem Moment abgeräumter Extension-Host den Kern angehalten zurücklassen könnte – genau das, was
+der Resume verhindern soll.
+
+Geblieben ist ein Charakterisierungstest (`GdbSession teardown answers nothing once it has
+accepted a kill or detach`), der die Serialisierung festnagelt, damit niemand die widerlegte
+Erklärung nachträglich wahr macht, indem er die Paketbearbeitung nebenläufig macht.
+
+**Zweite Beobachtung, ebenfalls offen:** Im selben Lauf kam 130 ms *nach* `GDB client
+disconnected` noch ein `event debug-stop {"reason":"halt","pc":3758157104}`. `3758157104` ist
+`0xE000ED30`, die Adresse des DFSR – kein plausibler Programmzähler. Das sieht nach einem
+verschobenen Lesevorgang aus (Antwort einer anderen Transaktion), also nach genau der Art von
+Desynchronisation, die später als Datenmüll auffällt. Einmal gesehen, nicht reproduziert.
+
+Beides ist bewusst als **offen** notiert statt als behoben: ein spekulativer Fix für ein
+unverstandenes Symptom ist schlimmer als eine ehrliche Lücke.
