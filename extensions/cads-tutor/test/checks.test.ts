@@ -6,6 +6,7 @@ import { describe, it } from "node:test";
 import type { BoardBridgeApi } from "../src/bridge";
 import { findSymbol, lookupSymbol, parseElf32Symbols } from "../src/checks/elf";
 import { fileMatches, fileNotMatches, resolveInRoot } from "../src/checks/fileChecks";
+import { evaluateCommand, runCommand } from "../src/checks/commandRunner";
 import { isLocalCheck, referencedFiles, runCheck, type CheckContext } from "../src/checks/runner";
 
 const ELF = path.resolve(__dirname, "..", "..", "test", "fixtures", "cads-zero.elf");
@@ -34,6 +35,8 @@ function ctx(root: string, extra: Partial<CheckContext> = {}): CheckContext {
     manualConfirmed: () => false,
     buildTaskLabel: "CaDS: Build",
     env: { PATH: "/nonexistent" },
+    runCommand: (command, cwd, timeoutMs) => runCommand({ command, root, cwd, timeoutMs }),
+    predictionFor: () => undefined,
     ...extra,
   };
 }
@@ -157,5 +160,189 @@ describe("check runner", () => {
     assert.deepEqual(referencedFiles({ type: "all", checks: [{ type: "fileMatches", file: "a", pattern: "x" }, { type: "symbolInElf", elf: "b", symbol: "s" }, { type: "manual" }] }), ["a", "b"]);
     assert.equal(isLocalCheck({ type: "all", checks: [{ type: "fileMatches", file: "a", pattern: "x" }] }), true);
     assert.equal(isLocalCheck({ type: "any", checks: [{ type: "fileMatches", file: "a", pattern: "x" }, { type: "board" }] }), false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Addendum v1.1 A1: command, testSuite and predict checks.
+// ---------------------------------------------------------------------------
+
+describe("command check", () => {
+  it("passes on exit code 0 and captures the output", async () => {
+    const root = project();
+    const r = await runCheck({ type: "command", command: "echo hello from the check" }, "t", ctx(root));
+    assert.equal(r.status, "passed");
+    assert.match(r.output ?? "", /hello from the check/);
+  });
+  it("fails on a non-zero exit code and reports both codes", async () => {
+    const root = project();
+    const r = await runCheck({ type: "command", command: "exit 3" }, "t", ctx(root));
+    assert.equal(r.status, "failed");
+    assert.match(r.message, /exited with 3, expected 0/);
+  });
+  it("honours a non-zero expectExitCode", async () => {
+    const root = project();
+    assert.equal((await runCheck({ type: "command", command: "exit 3", expectExitCode: 3 }, "t", ctx(root))).status, "passed");
+  });
+  it("applies expectStdout and expectStderr to the right stream", async () => {
+    const root = project();
+    const ok = await runCheck({ type: "command", command: "echo out; echo err >&2", expectStdout: "^out$", expectStderr: "^err$" }, "t", ctx(root));
+    assert.equal(ok.status, "passed");
+    const crossed = await runCheck({ type: "command", command: "echo out", expectStderr: "out" }, "t", ctx(root));
+    assert.equal(crossed.status, "failed");
+    assert.match(crossed.message, /expectStderr/);
+  });
+  it("runs in cwd relative to the project root", async () => {
+    const root = project();
+    const r = await runCheck({ type: "command", command: "pwd", cwd: "apps/desktop" }, "t", ctx(root));
+    assert.equal(r.status, "passed");
+    assert.match(r.output ?? "", /apps\/desktop/);
+  });
+  it("refuses a cwd that escapes the project root", async () => {
+    const root = project();
+    const r = await runCheck({ type: "command", command: "pwd", cwd: "../.." }, "t", ctx(root));
+    assert.equal(r.status, "failed");
+    assert.match(r.message, /outside the project root/);
+  });
+  it("fails rather than hangs when the command exceeds its timeout", async () => {
+    const root = project();
+    const started = Date.now();
+    const r = await runCheck({ type: "command", command: "sleep 30", timeoutMs: 400 }, "t", ctx(root));
+    assert.equal(r.status, "failed");
+    assert.match(r.message, /timed out/);
+    assert.ok(Date.now() - started < 10_000, "the timeout must actually kill the process");
+  });
+  it("caps the captured output and keeps the end, where the error is", async () => {
+    const root = project();
+    const r = await runCheck({ type: "command", command: "for i in $(seq 1 20000); do echo padding-line-$i; done; echo FINAL-MARKER" }, "t", ctx(root));
+    assert.equal(r.status, "passed");
+    assert.ok((r.output ?? "").length <= 64 * 1024, `output was ${(r.output ?? "").length} bytes`);
+    assert.match(r.output ?? "", /FINAL-MARKER/);
+  });
+});
+
+describe("testSuite check", () => {
+  function suiteProject(tapBody: string): string {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cads-suite-"));
+    fs.writeFileSync(path.join(dir, "fake-runner.sh"), `#!/bin/sh\ncat <<'TAPEOF'\n${tapBody}\nTAPEOF\nexit 1\n`);
+    fs.chmodSync(path.join(dir, "fake-runner.sh"), 0o755);
+    return dir;
+  }
+
+  it("passes when the named tests passed, ignoring the runner's exit code", async () => {
+    // The fake runner exits 1 on purpose: a suite with an expected failure is
+    // non-zero by design, so the parsed results must be the authority.
+    const root = suiteProject("TAP version 13\nok 1 - alpha\nnot ok 2 - beta\n1..2");
+    const r = await runCheck({ type: "testSuite", runner: "tap", command: "./fake-runner.sh", expectPass: ["alpha"], expectFail: ["beta"] }, "t", ctx(root));
+    assert.equal(r.status, "passed");
+    assert.equal(r.tests?.length, 2);
+  });
+  it("fails and names the test when an expected pass did not pass", async () => {
+    const root = suiteProject("TAP version 13\nnot ok 1 - alpha\n1..1");
+    const r = await runCheck({ type: "testSuite", runner: "tap", command: "./fake-runner.sh", expectPass: ["alpha"] }, "t", ctx(root));
+    assert.equal(r.status, "failed");
+    assert.match(r.message, /"alpha" to pass, but it failed/);
+  });
+  it("exposes parsed cases so the test:<name>:failed trigger can fire", async () => {
+    const root = suiteProject("TAP version 13\nok 1 - alpha\nnot ok 2 - beta\n1..2");
+    const r = await runCheck({ type: "testSuite", runner: "tap", command: "./fake-runner.sh" }, "t", ctx(root));
+    assert.equal(r.status, "failed");
+    assert.deepEqual(r.tests?.map((t) => [t.name, t.status]), [["alpha", "passed"], ["beta", "failed"]]);
+  });
+  it("reports unparseable output instead of passing silently", async () => {
+    const root = suiteProject("this is not TAP at all");
+    const r = await runCheck({ type: "testSuite", runner: "tap", command: "./fake-runner.sh" }, "t", ctx(root));
+    assert.equal(r.status, "failed");
+    assert.match(r.message, /no test results could be parsed/);
+  });
+  it("is unavailable when a tap/custom runner has no command", async () => {
+    const root = project();
+    const r = await runCheck({ type: "testSuite", runner: "custom" } as never, "t", ctx(root));
+    assert.equal(r.status, "unavailable");
+  });
+});
+
+describe("predict check", () => {
+  const inner = { type: "command", command: "echo 42" } as const;
+
+  it("does not run the observed check before a prediction exists", async () => {
+    const root = project();
+    const marker = path.join(root, "ran.txt");
+    const r = await runCheck(
+      { type: "predict", prompt: { en: "what prints?" }, then: { type: "command", command: `touch ${JSON.stringify(marker)}` } },
+      "t",
+      ctx(root, { predictionFor: () => undefined }),
+    );
+    assert.equal(r.status, "pending");
+    assert.equal(fs.existsSync(marker), false, "the observed check must not run before the prediction");
+  });
+  it("rejects a prediction that is too short to be one", async () => {
+    const root = project();
+    const r = await runCheck({ type: "predict", prompt: { en: "p" }, then: inner }, "t", ctx(root, { predictionFor: () => "no" }));
+    assert.equal(r.status, "pending");
+    assert.match(r.message, /at least 10 characters/);
+  });
+  it("runs the observed check once a prediction is in and reports its output", async () => {
+    const root = project();
+    const r = await runCheck({ type: "predict", prompt: { en: "p" }, then: inner }, "t", ctx(root, { predictionFor: () => "I think it prints 42" }));
+    assert.equal(r.status, "passed");
+    assert.equal(r.prediction, "I think it prints 42");
+    assert.match(r.output ?? "", /42/);
+  });
+  it("passes on a wrong prediction as long as the observed check passed", async () => {
+    // Being wrong and seeing why is the exercise; the outcome is recorded, not a gate.
+    const root = project();
+    const r = await runCheck(
+      { type: "predict", prompt: { en: "p" }, rubric: "prediction matches the output", then: inner },
+      "t",
+      ctx(root, { predictionFor: () => "I predict it prints 99", gradeAnswer: async () => ({ kind: "fail", feedback: "you said 99, it printed 42" }) }),
+    );
+    assert.equal(r.status, "passed");
+    assert.equal(r.predictionOutcome, "deviated");
+    assert.match(r.detail ?? "", /printed 42/);
+  });
+  it("records a matching prediction as correct", async () => {
+    const root = project();
+    const r = await runCheck(
+      { type: "predict", prompt: { en: "p" }, rubric: "r", then: inner },
+      "t",
+      ctx(root, { predictionFor: () => "I predict it prints 42", gradeAnswer: async () => ({ kind: "pass", feedback: "right" }) }),
+    );
+    assert.equal(r.predictionOutcome, "correct");
+  });
+  it("leaves the outcome open when no LLM graded it, without failing the check", async () => {
+    const root = project();
+    const r = await runCheck({ type: "predict", prompt: { en: "p" }, rubric: "r", then: inner }, "t", ctx(root, { predictionFor: () => "a long enough prediction" }));
+    assert.equal(r.status, "passed");
+    assert.equal(r.predictionOutcome, undefined);
+  });
+  it("fails when the observed check fails, keeping the prediction", async () => {
+    const root = project();
+    const r = await runCheck(
+      { type: "predict", prompt: { en: "p" }, then: { type: "command", command: "exit 1" } },
+      "t",
+      ctx(root, { predictionFor: () => "a long enough prediction" }),
+    );
+    assert.equal(r.status, "failed");
+    assert.equal(r.prediction, "a long enough prediction");
+  });
+});
+
+describe("command outcomes that are not plain exits", () => {
+  it("reports a timeout as a timeout, not as a failure to start", async () => {
+    // A timeout kills the process, so it also arrives as a signal exit. The
+    // timeout must win, otherwise the student is told the command "could not run".
+    const root = project();
+    const r = await runCheck({ type: "command", command: "sleep 30", timeoutMs: 300 }, "t", ctx(root));
+    assert.match(r.message, /timed out/);
+    assert.doesNotMatch(r.message, /could not run/);
+  });
+  it("distinguishes a kill from a spawn failure", async () => {
+    const root = project();
+    const outcome = await runCommand({ command: "kill -TERM $$", root });
+    assert.equal(outcome.exitCode, undefined);
+    assert.equal(outcome.spawnError, undefined);
+    assert.equal(outcome.terminatedBy, "SIGTERM");
+    assert.match(evaluateCommand(outcome, {}).message, /terminated by SIGTERM/);
   });
 });

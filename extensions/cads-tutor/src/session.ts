@@ -10,7 +10,7 @@ import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { orderedSteps } from "./loader";
-import { stepKey, type Course, type Lang, type SessionState, type Step, type StepProgress, type StepStatus, type TaskState, type TaskStatus } from "./types";
+import { stepKey, type Course, type Lang, type PredictionOutcome, type SessionState, type Step, type StepProgress, type StepStatus, type TaskState, type TaskStatus, type TestCaseResult } from "./types";
 
 export function newSession(now = new Date()): SessionState {
   const iso = now.toISOString();
@@ -105,6 +105,14 @@ export interface RecordResult {
  * Records a check result. Consecutive failures are counted for the Socratic hint tier; a pass
  * resets them. `unavailable` (e.g. Board-Bridge missing) neither counts as a failure nor resets.
  */
+export interface TaskRunExtras {
+  output?: string;
+  tests?: TestCaseResult[];
+  prediction?: string;
+  predictionOutcome?: PredictionOutcome;
+  predictionFeedback?: string;
+}
+
 export function recordTaskResult(
   session: SessionState,
   course: Course,
@@ -113,7 +121,10 @@ export function recordTaskResult(
   status: TaskStatus,
   message: string | undefined,
   allCourses: Course[],
-  now = new Date()
+  now = new Date(),
+  /** Addendum v1.1: what a command/testSuite/predict check produced, kept for triggers,
+   *  the progress view and the telemetry events. */
+  extra: TaskRunExtras = {}
 ): RecordResult {
   const wasDone = isStepDone(session, step);
   const lockedBefore = new Set(orderedSteps(course).filter((s) => !isStepUnlocked(session, course, s, allCourses)).map((s) => s.id));
@@ -122,6 +133,15 @@ export function recordTaskResult(
   const state: TaskState = { ...prev, status, message, checkedAt: now.toISOString() };
   if (status === "failed") state.failures = prev.failures + 1;
   else if (status === "passed") state.failures = 0;
+  // `attempts` counts every completed run, so "passed on the first try" is
+  // attempts === 1 && hintTier === 0. A pending run (a predict still waiting for
+  // its prediction) is not an attempt - nothing was checked yet.
+  if (status === "passed" || status === "failed") state.attempts = (prev.attempts ?? 0) + 1;
+  if (extra.output !== undefined) state.output = extra.output;
+  if (extra.tests !== undefined) state.tests = extra.tests;
+  if (extra.prediction !== undefined) state.prediction = extra.prediction;
+  if (extra.predictionOutcome !== undefined) state.predictionOutcome = extra.predictionOutcome;
+  if (extra.predictionFeedback !== undefined) state.predictionFeedback = extra.predictionFeedback;
   progress.tasks[taskId] = state;
   session.updatedAt = now.toISOString();
 
@@ -190,4 +210,76 @@ export function defaultStart(courses: Course[]): { course: Course; step: Step } 
 export function courseProgress(session: SessionState, course: Course): { done: number; total: number } {
   const steps = orderedSteps(course);
   return { done: steps.filter((s) => isStepDone(session, s)).length, total: steps.length };
+}
+
+// ---------------------------------------------------------------------------
+// Addendum v1.1 A3: per-module progress for the progress view.
+// ---------------------------------------------------------------------------
+
+export interface ModuleProgress {
+  moduleId: string;
+  stepsTotal: number;
+  stepsDone: number;
+  /** Checks that passed on the first attempt with no hint shown. */
+  firstTry: number;
+  /** Checks that passed, but only after another attempt or a hint. */
+  assisted: number;
+  /** Checks in this module that have not passed yet. */
+  open: number;
+  predictionsCorrect: number;
+  predictionsDeviated: number;
+  /** Predictions made but never compared (no LLM graded them and the student did not self-assess). */
+  predictionsOpen: number;
+  /** A3: whether the module's reflection card has been filled in. */
+  reflection: boolean;
+  /** True when the module declares no reflection prompts at all. */
+  reflectionOffered: boolean;
+}
+
+/**
+ * A3: "Steps erledigt, Checks bestanden beim ersten Versuch vs. mit Hinweisen,
+ * Vorhersagen korrekt/abweichend, Reflexion vorhanden."
+ *
+ * "First try" deliberately requires BOTH a single attempt and no hint: a check
+ * that passed on attempt one after reading a tier-3 hint is not independent work.
+ * Sessions written before v1.1 have no `attempts`, and are read as one attempt so
+ * old progress is not retroactively reported as assisted.
+ */
+export function moduleProgress(course: Course, moduleId: string, session: SessionState): ModuleProgress {
+  const mod = course.manifest.modules.find((m) => m.id === moduleId);
+  const stepIds = mod?.steps ?? [];
+  const out: ModuleProgress = {
+    moduleId,
+    stepsTotal: stepIds.length,
+    stepsDone: 0,
+    firstTry: 0,
+    assisted: 0,
+    open: 0,
+    predictionsCorrect: 0,
+    predictionsDeviated: 0,
+    predictionsOpen: 0,
+    reflection: session.reflections?.[stepKey(course.manifest.id, moduleId)] !== undefined,
+    reflectionOffered: (mod?.reflection?.prompts.length ?? 0) > 0,
+  };
+  for (const stepId of stepIds) {
+    const step = course.steps.get(stepId);
+    if (!step) continue;
+    if (isStepDone(session, step)) out.stepsDone += 1;
+    const progress = getStepProgress(session, course.manifest.id, stepId);
+    for (const task of step.variants.en?.meta.tasks ?? []) {
+      const state = progress?.tasks?.[task.id];
+      if (!state || state.status !== "passed") {
+        out.open += 1;
+      } else if ((state.attempts ?? 1) <= 1 && state.hintTier === 0) {
+        out.firstTry += 1;
+      } else {
+        out.assisted += 1;
+      }
+      if (task.check.type !== "predict") continue;
+      if (state?.predictionOutcome === "correct") out.predictionsCorrect += 1;
+      else if (state?.predictionOutcome === "deviated") out.predictionsDeviated += 1;
+      else if (state?.prediction) out.predictionsOpen += 1;
+    }
+  }
+  return out;
 }
