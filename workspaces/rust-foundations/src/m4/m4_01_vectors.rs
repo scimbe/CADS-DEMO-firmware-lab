@@ -22,6 +22,7 @@ pub fn get_at(v: &[i32], i: usize) -> Option<i32> {
 
 /// Doubles every element in place. Iterate with `for x in v.iter_mut()`
 /// (or `for x in &mut *v`) and write through the mutable reference with `*x`.
+#[allow(clippy::ptr_arg)] // `&mut Vec` is the point of the exercise
 pub fn double_in_place(v: &mut Vec<i32>) {
     todo!()
 }

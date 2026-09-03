@@ -10,8 +10,14 @@ mod m4_04_collections_report {
     fn group_by_initial_keeps_input_order() {
         let groups = group_by_initial(&["ant", "bee", "arc", "", "bat"]);
         assert_eq!(groups.len(), 2);
-        assert_eq!(groups.get(&'a'), Some(&vec![String::from("ant"), String::from("arc")]));
-        assert_eq!(groups.get(&'b'), Some(&vec![String::from("bee"), String::from("bat")]));
+        assert_eq!(
+            groups.get(&'a'),
+            Some(&vec![String::from("ant"), String::from("arc")])
+        );
+        assert_eq!(
+            groups.get(&'b'),
+            Some(&vec![String::from("bee"), String::from("bat")])
+        );
     }
 
     #[test]

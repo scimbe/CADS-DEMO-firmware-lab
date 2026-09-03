@@ -27,6 +27,10 @@ pub fn value_or(o: Option<i32>, default: i32) -> i32 {
 
 /// `Some(n + 1)` for `Some(n)`, and `None` for `None` – the example from the
 /// book's "Matching with `Option<T>`".
+// Written out as a `match` on purpose - this is Listing 6-5. Clippy
+// would rather see `o.map(|n| n + 1)`, and clippy is right about the
+// production version; here the long form is the lesson.
+#[allow(clippy::manual_map)]
 pub fn increment(o: Option<i32>) -> Option<i32> {
     todo!()
 }

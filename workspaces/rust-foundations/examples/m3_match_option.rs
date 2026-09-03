@@ -24,6 +24,7 @@ fn value_in_cents(coin: &Coin) -> u8 {
     }
 }
 
+#[allow(clippy::manual_map)] // Listing 6-5, spelled out on purpose
 fn plus_one(x: Option<i32>) -> Option<i32> {
     match x {
         None => None,

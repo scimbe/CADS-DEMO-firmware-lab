@@ -1,5 +1,5 @@
 //! Tests for step m1-03-copy-types. Run: `cargo test --test m1-03-copy-types`
-use rust_foundations::m1::m1_03_copy_types::{mirror, sum_twice, Point};
+use rust_foundations::m1::m1_03_copy_types::{Point, mirror, sum_twice};
 
 mod m1_03_copy_types {
     use super::*;
