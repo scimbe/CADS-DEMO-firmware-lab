@@ -273,56 +273,40 @@ TextMate grammar requested during it can take a minute to arrive. The highlighti
 therefore open Markdown, JSON, JavaScript and TOML before Rust, which is also how a student
 works – one file at a time, not five in three seconds.
 
-## Blocked: the tutor extension is a schema version behind the courses (2026-09-03)
+## Resolved: both courses load, full smoke pass (2026-09-03)
 
-With the real content merged (`next` 5f54794 for both workspaces, plus the first
-`courses/javascript-foundations` pack) the image builds and both workspaces seed, but **the
-tutor loads no course at all** and reports *"No course packs found"*. The pack is intact in the
-image – 14 files, byte-identical to the repository. The reason is in the CaDS Tutor output
-channel:
+For most of the day the image shipped the course packs and the tutor loaded none of them: the
+content is written against SPEC Addendum v1.1 and `cads-tutor` still implemented v1, so every
+step's first check (`command`, `testSuite`, `predict`) was an unknown type, every step file was
+invalid, and both courses were dropped with *"No course packs found"*. That is fixed in the
+extension (`CHECK_TYPES` in `extensions/cads-tutor/src/types.ts` now carries the three new
+types); the image needed no change for it, only a repackaged VSIX.
 
-```
-ERROR …/steps/m0-01-first-run.de.md: tasks[0].check.type: unknown check type "command"
-  (known: board, task, build, fileMatches, fileNotMatches, symbolInElf, flash, serialExpect,
-   debugStop, question, manual, all, any)
-ERROR …/steps/m0-02-read-a-test.de.md: tasks[0].check.type: unknown check type "testSuite"
-ERROR …/steps/m0-04-predict-output.de.md: tasks[0].check.type: unknown check type "predict"
-ERROR course "javascript-foundations": step "m0-01-first-run" … has no valid step file
-```
+`extensions/cads-tutor/dist/*.vsix` is a build artefact and gitignored, so a stale local VSIX
+looks exactly like a broken image. `scripts/run-local-tutor-lab.sh` and the CI `extension` job
+package it; do that before judging a course problem.
 
-`command`, `testSuite` and `predict` are the SPEC Addendum v1.1 check types. The course content
-is written against v1.1; `cads-tutor` still implements v1 – `CHECK_TYPES` in
-`extensions/cads-tutor/src/types.ts` lists the thirteen old types and none of the three new
-ones, so the packaged VSIX is not stale, the feature is simply not built yet. Every step's
-first check uses one of the three, so every step file is invalid, so every declared step has no
-valid file, so the course is dropped and the tutor sees nothing.
-
-Corroboration that the content is right and the extension is behind:
-`scripts/validate-courses.py` on `next` (956596c) does know `command`, `testSuite` and
-`predict` and raises no unknown-check-type error for the same pack.
-
-**Update, both packs now on `next`.** `courses/rust-foundations` (62 files) and
-`courses/javascript-foundations` (75 files) are both in the image and both are rejected the same
-way: 78 `testSuite`, 34 `predict` and 10 `command` checks that the extension does not know, 90
-of the errors from the Rust pack alone. The Rust starter now carries 27 test targets (26
-compile, `m1-03-copy-types` deliberately does not) and 119 tests of which 1 passes; JavaScript
-has 74 tests of which 8 pass.
-
-**Nothing about the image changes because of this.** The pack is copied correctly, the
-workspaces seed, the toolchains work. What is missing is the check types in the tutor
-extension, which belongs to the tutor stream. The smoke test fails on purpose in this state and
-prints the rejection reason from the output channel, so the break is diagnosed rather than
-guessed at; it turns green by itself once the extension speaks v1.1.
-
-Everything on the workspace side of the same build was verified:
+**Full pass, fresh volume, both packs complete** (`rust-foundations` 30 steps, 62 files;
+`javascript-foundations` 31 steps, 75 files):
 
 | Check | Result |
 |---|---|
-| Course pack in the image | `javascript-foundations`, 14 files ✔ (rust pack not written yet) |
+| Course packs in the image | both, 62 + 75 files ✔ |
+| Reference solutions | **absent** from image, seed and workspace, although `workspaces/*/solutions` exists in the repo (`.dockerignore` plus the seed stage) – asserted, because shipping them would quietly end the exercises ✔ |
 | Workspace seeds | both real, 0 placeholders ✔ |
-| Rust per-step check `cargo test --test m0-02-first-test` | 1 passed, 2 failed, < 1 s ✔ (starter) |
-| JavaScript `node --test` | 73 tests, 8 passed, 65 failed, 1 s ✔ (starter) |
-| Extensions and PATH | the four expected, no board tooling ✔ |
+| Tutor side bar | `CADS TUTOR` with *Kurse / Courses* and *Fortschritt / Progress* ✔ |
+| Course tree | **both courses listed**, JavaScript – Foundations 0/31 with M0–M6, Rust Foundations below it ([screenshot](evidence/tutorlab-15-tutor-tree-both-courses.png)) ✔ |
+| First step opens | window title and editor tab `CaDS Tutor: Operating the interface`, Bloom badge, task list, *Run all checks*, DE/EN toggle ([screenshot](evidence/tutorlab-14-tutor-first-step.png)) ✔ |
+| Rust test run | `cargo test --test m0-02-first-test` → 1 passed, 2 failed in 1 s ✔ |
+| JavaScript test run | `node --test` → 74 tests, 8 passed, 66 failed in 1 s ✔ |
+| Startup noise | no prompt, no chat bar, no notification at 18 s or 30 s ✔ |
+| Language-lab details | all green, see the section above ✔ |
+
+Both suites are red by design – the exercises are unsolved. What the check requires is that the
+runner starts, prints a summary and gets at least one test through; see the starter-workspace
+section below.
+
+Build time for that image: 95 s incremental, 0.85 GB compressed, 3.43 GB unpacked.
 
 ## Open dependencies (streams `rust` / `js`)
 

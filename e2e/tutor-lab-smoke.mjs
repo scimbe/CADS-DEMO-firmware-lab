@@ -139,6 +139,15 @@ const expected = ["cads.cads-tutor", "dbaeumer.vscode-eslint", "rust-lang.rust-a
 const missing = expected.filter((e) => !installed.includes(e));
 ok(`extensions: ${JSON.stringify(installed)}${missing.length ? ` (not installed: ${JSON.stringify(missing)})` : ""}; no board/probe extension, no firmware tooling on PATH`);
 
+// 0c. reference solutions must never reach a student's container. Both the
+// .dockerignore and the seed stage drop workspaces/*/solutions; if either is
+// ever loosened, the exercises stop being exercises.
+const solutions = dexec(
+  `find /opt/cads-seed ${ROOT} /opt/cads-tutor -iname '*solution*' 2>/dev/null | head -20 || true`
+).trim();
+if (solutions) fail(`reference solutions are in the image or the workspace:\n${solutions}`);
+ok("no reference solutions in the image, the seed or the workspace");
+
 const pwPath = findPlaywright();
 const pwModule = await import(pathToFileURL(join(pwPath, "index.js")).href);
 const chromium = pwModule.chromium ?? pwModule.default?.chromium;

@@ -11,9 +11,9 @@ extension, the user-settings policy and the CI shape.
 | Base | `codercom/code-server:latest` (Debian 13), multi-arch amd64 + arm64 |
 | Toolchains | rustup `stable` (profile minimal + rustfmt, clippy, rust-src; no rust-docs), Node 22 (official tarball, SHA-256 checked), build-essential, pkg-config, libssl-dev, python3, git |
 | Extensions | `rust-lang.rust-analyzer` (Open VSX, platform VSIX with bundled server), `dbaeumer.vscode-eslint` (Open VSX), `tamasfe.even-better-toml` (Open VSX – nothing else in code-server claims `.toml`, so `Cargo.toml` would open as plain text), `vadimcn.vscode-lldb` (CodeLLDB 1.12.3, platform VSIX from the GitHub release, SHA-256 pinned – Open VSX only has the bootstrap that downloads at runtime), `cads.cads-tutor` (VSIX from `extensions/cads-tutor/dist`) |
-| Course packs | `courses/rust-foundations`, `courses/javascript-foundations` → `/opt/cads-tutor/courses/` (the firmware packs are **not** in this image) |
+| Course packs | `courses/rust-foundations` (30 steps, M0–M7) and `courses/javascript-foundations` (31 steps, M0–M7) → `/opt/cads-tutor/courses/`; the tutor tree lists both and the student picks. The firmware packs are **not** in this image |
 | Workspaces | `workspaces/rust-foundations`, `workspaces/javascript-foundations` → `/opt/cads-seed/<name>`, seeded to `/home/coder/workspace/<name>` on first start; `cads-tutor.code-workspace` (multi-root, both folders) is what code-server opens |
-| Warm caches | the image build runs `cargo build --all-targets && cargo test` in the Rust seed and `node --test` (plus `npm ci` when there is a lock file) in the JavaScript seed; `target/` and `~/.cargo/registry` ship in the image |
+| Build gate | the seed stage requires the Rust library and binaries to compile, then records test counts, clippy and rustfmt without failing the build. A starter workspace is the exercise *before* the solution, so its tests are red on purpose. Reference solutions (`workspaces/*/solutions`) are excluded from the image |
 | Port | container 8080, host loopback `127.0.0.1:8084` (lab) / `127.0.0.1:8089` (development machine) |
 | Env | `PASSWORD` (required), `TUTOR_LLM_BASE_URL` / `TUTOR_LLM_API_KEY` / `TUTOR_LLM_MODEL` (optional, LLM for the tutor; the base URL **must be `https://`**), `CADS_TUTOR_TELEMETRY_URL` / `CADS_TUTOR_TELEMETRY_TOKEN` (optional, SPEC A5 teacher portal; unset = events stay local, and `cads-tutor@0.1.0` does not read them yet) |
 | Size | 0.85 GB compressed (`docker save \| gzip`), 3.4 GB unpacked; a from-scratch build takes ≈4 min |
@@ -169,14 +169,22 @@ docker compose logs tutor-lab | grep '\[cads-seed\]'    # ends with "ready: …/
 curl -sI http://127.0.0.1:8084/ | head -1                # HTTP/1.1 302 Found (→ ./login)
 docker exec tutor-lab bash -lc 'cargo --version; node --version'
 docker exec tutor-lab code-server --list-extensions --show-versions
-docker exec tutor-lab bash -lc 'cd ~/workspace/rust-foundations && cargo test'
+docker exec tutor-lab bash -lc 'cd ~/workspace/rust-foundations && cargo test --test m0-02-first-test'
 docker exec tutor-lab bash -lc 'cd ~/workspace/javascript-foundations && node --test'
 docker exec tutor-lab ls /opt/cads-tutor/courses
 ```
 
 Expected: `cargo 1.98.0` or newer and `node v22.x`; the extension list contains
-`cads.cads-tutor`, `rust-lang.rust-analyzer`, `dbaeumer.vscode-eslint`, `vadimcn.vscode-lldb`;
-both test commands are green in seconds.
+`cads.cads-tutor`, `rust-lang.rust-analyzer`, `dbaeumer.vscode-eslint`,
+`tamasfe.even-better-toml`, `vadimcn.vscode-lldb`; `ls /opt/cads-tutor/courses` shows both packs.
+
+**Both test commands exit non-zero, and that is correct.** A starter workspace is the exercise
+before the solution: the Rust exercises are `todo!()` and one test target does not compile until
+the student writes the code, the JavaScript ones throw or carry the bug their step is about. On a
+fresh volume expect roughly 1 of 119 Rust tests and 8 of 74 JavaScript tests to pass. What must
+hold is that each runner *starts and prints a summary* in seconds. A plain `cargo test` in the
+workspace root prints nothing at all, because the one target that does not compile aborts the run
+before any test executes — run a single step's target as above.
 
 In the browser (through the usual tunnel or an SSH port-forward to `127.0.0.1:8084`):
 
@@ -184,10 +192,12 @@ In the browser (through the usual tunnel or an SSH port-forward to `127.0.0.1:80
 2. The Explorer shows **both** folders, *Rust Foundations* and *JavaScript Foundations*. One
    folder only means the `command:` line is still in the compose file (step 2).
 3. **No "Restricted Mode"** banner, no notification a minute after the workbench loads.
-4. The CaDS Tutor icon is in the activity bar; opening it lists the courses *rust-foundations*
-   and *javascript-foundations* and a step opens as an editor tab. If the image was built before
-   those course packs merged, the tutor says *"No course packs found"* instead — correct for that
-   image, and the sign that you need a newer tag.
+4. The CaDS Tutor icon is in the activity bar. Opening it shows *Kurse / Courses* with **both**
+   courses, *JavaScript – Foundations* `0/31` and *Rust Foundations* `0/30`, each with its
+   modules M0–M7, and the first step opens as an editor tab (`CaDS Tutor: Operating the
+   interface`) with its task list, a *Run all checks* button and a German/English toggle.
+   A tutor that says *"No course packs found"* means the image predates the course packs or was
+   built with an outdated `cads-tutor` VSIX — take a newer tag.
 5. `F1 → Terminal: Create New Terminal` opens a terminal **without** asking for a working
    directory; `cargo --version` and `node --version` answer, and `cd rust-foundations &&
    cargo test` passes.
