@@ -134,10 +134,10 @@ USER coder
 WORKDIR /home/coder/workspace
 
 # Rust. A STARTER workspace must not pass its own tests - the exercises are
-# `todo!()` bodies and, where the step is about a trait, a type that does not
-# yet compile (m1-03 wants the student to add `#[derive(Copy)]`, so that test
-# target fails with E0277 until they do). So "cargo test is green" is the wrong
-# gate; it would mean the exercises were already solved.
+# `todo!()` bodies, and a step whose subject is a trait can leave a test target
+# that does not even compile until the student writes the code (m1-03 did until
+# the rust stream reworked it). So "cargo test is green" is the wrong gate; it
+# would mean the exercises were already solved.
 #
 # The gate is that the LIBRARY and the binaries compile: a starter whose
 # src/ does not build is broken for everyone and must fail the image build.
