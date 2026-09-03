@@ -6,15 +6,20 @@
 import {
   BLOOM_LEVELS,
   CHECK_TYPES,
+  SCAFFOLD_LEVELS,
+  TEST_RUNNERS,
   type BloomLevel,
   type CheckSpec,
   type CourseManifest,
   type CourseModule,
   type Localized,
+  type Misconception,
+  type Scaffold,
   type SocraticHint,
   type StepFrontMatter,
   type StepLink,
   type TaskSpec,
+  type TestRunner,
 } from "./types";
 
 export class ValidationError extends Error {
@@ -62,6 +67,26 @@ function optBloom(v: unknown, path: string): BloomLevel | undefined {
     fail(path, `must be one of ${BLOOM_LEVELS.join("|")}`);
   }
   return v as BloomLevel;
+}
+
+function optBool(v: unknown, path: string): boolean | undefined {
+  if (v === undefined || v === null) return undefined;
+  if (typeof v !== "boolean") fail(path, "must be true or false");
+  return v;
+}
+
+function regex(pattern: string, path: string, flags?: string): void {
+  try {
+    new RegExp(pattern, flags);
+  } catch (err) {
+    fail(path, `invalid regular expression: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+function optRegex(v: unknown, path: string): string | undefined {
+  const s = optStr(v, path);
+  if (s !== undefined) regex(s, path);
+  return s;
 }
 
 function id(v: unknown, path: string): string {
@@ -138,7 +163,15 @@ export function validateCourseManifest(raw: unknown): ValidationResult<CourseMan
         seenSteps.add(sid);
         return sid;
       });
-      modules.push({ id: mid, title: mtitle, steps });
+      let reflection: CourseModule["reflection"];
+      if (m.reflection !== undefined && m.reflection !== null) {
+        if (!isRecord(m.reflection)) fail(`${p}.reflection`, "must be an object { prompts: [...] }");
+        if (!Array.isArray(m.reflection.prompts) || m.reflection.prompts.length === 0) fail(`${p}.reflection.prompts`, "must be a non-empty array of prompts ({de, en} or string)");
+        const prompts = m.reflection.prompts.map((q: unknown, k: number) => localized(q, `${p}.reflection.prompts[${k}]`));
+        if (prompts.length > 3) warnings.push(`${p}.reflection.prompts: ${prompts.length} prompts; the reflection card is meant for 1-3`);
+        reflection = { prompts };
+      }
+      modules.push({ id: mid, title: mtitle, steps, reflection });
     });
 
     const known = new Set(["id", "version", "schema", "title", "description", "project", "prerequisites", "grounding", "modules", "$schema", "_comment"]);
@@ -229,6 +262,45 @@ export function validateCheck(v: unknown, path: string): CheckSpec {
       if (!Array.isArray(v.checks) || v.checks.length === 0) fail(`${path}.checks`, "must be a non-empty array of checks");
       return { type: type as "all", checks: v.checks.map((c: unknown, i: number) => validateCheck(c, `${path}.checks[${i}]`)) };
     }
+    case "command": {
+      const command = str(v.command, `${path}.command`);
+      const cwd = optStr(v.cwd, `${path}.cwd`);
+      if (cwd !== undefined && (cwd.startsWith("/") || cwd.split(/[\\/]/).includes(".."))) fail(`${path}.cwd`, "must be a relative path inside the project root");
+      return {
+        type: "command",
+        command,
+        cwd,
+        expectExitCode: optNum(v.expectExitCode, `${path}.expectExitCode`),
+        expectStdout: optRegex(v.expectStdout, `${path}.expectStdout`),
+        expectStderr: optRegex(v.expectStderr, `${path}.expectStderr`),
+        timeoutMs: optNum(v.timeoutMs, `${path}.timeoutMs`),
+        seedMustFail: optBool(v.seedMustFail, `${path}.seedMustFail`),
+      };
+    }
+    case "testSuite": {
+      const runner = str(v.runner, `${path}.runner`);
+      if (!(TEST_RUNNERS as readonly string[]).includes(runner)) fail(`${path}.runner`, `must be one of ${TEST_RUNNERS.join("|")}`);
+      const command = optStr(v.command, `${path}.command`);
+      if ((runner === "tap" || runner === "custom") && !command) fail(`${path}.command`, `is required for runner "${runner}"`);
+      const cwd = optStr(v.cwd, `${path}.cwd`);
+      if (cwd !== undefined && (cwd.startsWith("/") || cwd.split(/[\\/]/).includes(".."))) fail(`${path}.cwd`, "must be a relative path inside the project root");
+      const expectPass = strArray(v.expectPass, `${path}.expectPass`);
+      const expectFail = strArray(v.expectFail, `${path}.expectFail`);
+      const minPass = optNum(v.minPass, `${path}.minPass`);
+      if (minPass !== undefined && (minPass < 0 || !Number.isInteger(minPass))) fail(`${path}.minPass`, "must be a non-negative integer");
+      const dup = expectPass.find((n) => expectFail.includes(n));
+      if (dup) fail(`${path}.expectFail`, `"${dup}" is listed in both expectPass and expectFail`);
+      return { type: "testSuite", runner: runner as TestRunner, cwd, command, expectPass, minPass, expectFail, timeoutMs: optNum(v.timeoutMs, `${path}.timeoutMs`), seedMustFail: optBool(v.seedMustFail, `${path}.seedMustFail`) };
+    }
+    case "predict": {
+      const prompt = localized(v.prompt, `${path}.prompt`);
+      if (v.then === undefined || v.then === null) fail(`${path}.then`, "is required (the check that runs after the prediction, e.g. { type: command, ... })");
+      const then = validateCheck(v.then, `${path}.then`);
+      if (then.type === "predict") fail(`${path}.then.type`, "a predict check cannot nest another predict check");
+      if (then.type === "question" || then.type === "manual") fail(`${path}.then.type`, `"${then.type}" cannot be the observed check of a prediction – use a command, testSuite, task, build or hardware check`);
+      const minChars = optNum(v.minChars, `${path}.minChars`);
+      return { type: "predict", prompt, then, rubric: optStr(v.rubric, `${path}.rubric`), bloom: optBloom(v.bloom, `${path}.bloom`), minChars };
+    }
   }
 }
 
@@ -242,18 +314,56 @@ function task(v: unknown, path: string): TaskSpec {
   return { id: tid, title, check, description };
 }
 
-export const KNOWN_TRIGGER_RE = /^(\*|task:[^:\s]+:(failed|stuck)|question:[^:\s]+:weak|event:[a-z-]+)$/;
+export const KNOWN_TRIGGER_RE = /^(\*|task:[^:\s]+:(failed|stuck)|question:[^:\s]+:weak|event:[a-z-]+|test:.+:failed|output:.+)$/s;
+
+/** Parses `output:<regex>` / `test:<name>:failed` triggers; `undefined` for the classic ones. */
+export function parseTrigger(trigger: string): { kind: "output"; pattern: string } | { kind: "test"; name: string } | undefined {
+  if (trigger.startsWith("output:")) return { kind: "output", pattern: trigger.slice("output:".length) };
+  const m = /^test:(.+):failed$/s.exec(trigger);
+  if (m) return { kind: "test", name: m[1] };
+  return undefined;
+}
+
+function hintsList(v: unknown, path: string): Localized[] {
+  if (!Array.isArray(v) || v.length === 0) fail(path, "must be a non-empty array (max 3 tiers)");
+  return v.map((h: unknown, i: number) => localized(h, `${path}[${i}]`));
+}
 
 function socratic(v: unknown, path: string): SocraticHint {
   if (!isRecord(v)) fail(path, "must be an object");
   const trigger = str(v.trigger, `${path}.trigger`);
   if (!KNOWN_TRIGGER_RE.test(trigger)) {
-    fail(`${path}.trigger`, `"${trigger}" is not a known trigger (task:<taskId>:failed|stuck, question:<taskId>:weak, event:<name>, *)`);
+    fail(`${path}.trigger`, `"${trigger}" is not a known trigger (task:<taskId>:failed|stuck, question:<taskId>:weak, test:<name>:failed, output:<regex>, event:<name>, *)`);
   }
+  const parsed = parseTrigger(trigger);
+  if (parsed?.kind === "output") regex(parsed.pattern, `${path}.trigger`);
   const question = localized(v.question, `${path}.question`);
-  if (!Array.isArray(v.hints) || v.hints.length === 0) fail(`${path}.hints`, "must be a non-empty array (max 3 tiers)");
-  const hints = v.hints.map((h: unknown, i: number) => localized(h, `${path}.hints[${i}]`));
+  const hints = hintsList(v.hints, `${path}.hints`);
   return { trigger, question, hints };
+}
+
+function misconception(v: unknown, path: string): Misconception {
+  if (!isRecord(v)) fail(path, "must be an object { pattern, question, hints }");
+  const pattern = str(v.pattern, `${path}.pattern`);
+  const flags = optStr(v.flags, `${path}.flags`);
+  regex(pattern, `${path}.pattern`, flags);
+  const question = localized(v.question, `${path}.question`);
+  const hints = hintsList(v.hints, `${path}.hints`);
+  return { pattern, flags, question, hints };
+}
+
+function optScaffold(v: unknown, path: string): Scaffold {
+  if (v === undefined || v === null) return "independent";
+  if (typeof v !== "string" || !(SCAFFOLD_LEVELS as readonly string[]).includes(v)) fail(path, `must be one of ${SCAFFOLD_LEVELS.join("|")}`);
+  return v as Scaffold;
+}
+
+/** True if `spec` or any nested check (all/any/predict.then) has the given type. */
+export function hasCheckType(spec: CheckSpec, type: CheckSpec["type"]): boolean {
+  if (spec.type === type) return true;
+  if (spec.type === "all" || spec.type === "any") return spec.checks.some((c) => hasCheckType(c, type));
+  if (spec.type === "predict") return hasCheckType(spec.then, type);
+  return false;
 }
 
 export function validateStepFrontMatter(raw: unknown, expectedId?: string): ValidationResult<StepFrontMatter> {
@@ -277,14 +387,26 @@ export function validateStepFrontMatter(raw: unknown, expectedId?: string): Vali
     const socraticHints: SocraticHint[] = raw.socratic === undefined ? [] : Array.isArray(raw.socratic) ? raw.socratic.map((s: unknown, i: number) => socratic(s, `socratic[${i}]`)) : fail("socratic", "must be an array");
     const creates = strArray(raw.creates, "creates");
     const sources = strArray(raw.sources, "sources");
+    const scaffold = optScaffold(raw.scaffold, "scaffold");
+    const recallFrom = strArray(raw.recallFrom, "recallFrom").map((r, i) => id(r, `recallFrom[${i}]`));
+    if (recallFrom.includes(sid)) fail("recallFrom", "a step cannot recall from itself");
+    const misconceptions: Misconception[] = raw.misconceptions === undefined ? [] : Array.isArray(raw.misconceptions) ? raw.misconceptions.map((m: unknown, i: number) => misconception(m, `misconceptions[${i}]`)) : fail("misconceptions", "must be an array");
     for (const s of socraticHints) {
       const m = /^(?:task|question):([^:]+):(?:failed|stuck|weak)$/.exec(s.trigger);
       if (m && !seen.has(m[1])) warnings.push(`socratic trigger "${s.trigger}" references unknown task "${m[1]}"`);
       if (s.hints.length > 3) warnings.push(`socratic trigger "${s.trigger}" has ${s.hints.length} hints; only the first 3 tiers are used`);
+      if (s.trigger.startsWith("test:") && !tasks.some((t) => hasCheckType(t.check, "testSuite"))) warnings.push(`socratic trigger "${s.trigger}" needs a testSuite task in this step to ever fire`);
+      if (s.trigger.startsWith("output:") && !tasks.some((t) => hasCheckType(t.check, "command") || hasCheckType(t.check, "testSuite"))) warnings.push(`socratic trigger "${s.trigger}" needs a command/testSuite task in this step to ever fire`);
+    }
+    for (const m of misconceptions) {
+      if (m.hints.length > 3) warnings.push(`misconception /${m.pattern}/ has ${m.hints.length} hints; only the first 3 tiers are used`);
+    }
+    if (misconceptions.length > 0 && !tasks.some((t) => hasCheckType(t.check, "command") || hasCheckType(t.check, "testSuite"))) {
+      warnings.push(`step "${sid}" declares misconceptions but has no command/testSuite task whose output they could match`);
     }
     if (objectives.length === 0) warnings.push(`step "${sid}" has no objectives – mastery tracking and check-ins are disabled for it`);
 
-    return { value: { id: sid, title, bloom, objectives, requires, estimatedMinutes, links, tasks, socratic: socraticHints, creates, sources }, errors: [], warnings };
+    return { value: { id: sid, title, bloom, objectives, requires, estimatedMinutes, links, tasks, socratic: socraticHints, creates, sources, scaffold, recallFrom, misconceptions }, errors: [], warnings };
   } catch (err) {
     return { errors: [err instanceof Error ? err.message : String(err)], warnings };
   }
