@@ -143,8 +143,8 @@ A starter workspace is the exercise *before* it is solved:
 |---|---|---|
 | Exercise bodies | `todo!()` – compiles, panics when run | `throw new Error("TODO: …")` or the bug the step is about |
 | `cargo build` (lib + bins) | **succeeds** | n/a |
-| Test targets (2026-09-03, final content) | 27, all compile | n/a |
-| Whole suite | 2 of 122 tests pass | 8 of 74 tests pass |
+| Test targets (2026-09-03, final content) | 30 summaries, all compile | n/a |
+| Whole suite (`--no-fail-fast`) | 2 of 122 tests pass | 8 of 74 tests pass |
 
 Earlier in the day 1 of 18 Rust test targets (`m1-03-copy-types`) did not compile at all – the
 step wanted the student to add `#[derive(Copy)]`, so the target failed with E0277 until they
@@ -303,7 +303,7 @@ package it; do that before judging a course problem.
 | Tutor side bar | `CADS TUTOR` with *Kurse / Courses* and *Fortschritt / Progress* ✔ |
 | Course tree | **both courses listed**, JavaScript – Foundations 0/31 with M0–M6, Rust Foundations below it ([screenshot](evidence/tutorlab-15-tutor-tree-both-courses.png)) ✔ |
 | First step opens | window title and editor tab `CaDS Tutor: Operating the interface`, Bloom badge, task list, *Run all checks*, DE/EN toggle ([screenshot](evidence/tutorlab-14-tutor-first-step.png)) ✔ |
-| Rust test run | `cargo test --test m0-02-first-test` → 1 passed, 2 failed in 1 s ✔ (whole starter: 27 targets, 2 of 122 tests pass) |
+| Rust test run | one step's target → 1 passed, 2 failed in 1 s ✔ (whole starter with `--no-fail-fast`: 2 of 122 pass) |
 | JavaScript test run | `node --test` → 74 tests, 8 passed, 66 failed in 1 s ✔ |
 | Startup noise | no prompt, no chat bar, no notification at 18 s or 30 s ✔ |
 | Language-lab details | all green, see the section above ✔ |
@@ -313,6 +313,14 @@ runner starts, prints a summary and gets at least one test through; see the star
 section below.
 
 Build time for that image: 95 s incremental, 0.85 GB compressed, 3.43 GB unpacked.
+
+**The smoke test names no course file.** The courses rename their files as they are written -
+`m0-02-first-test` became `m0-03-first-test`, `src/m0/m0_02_first_test.rs` moved - and a test
+that hard-codes such a name reports a broken image the next morning. It now discovers a Rust and
+a JavaScript source at run time, hovers over whichever identifier is there, and checks the
+JavaScript language service against a scratch file it writes itself (`const` reassigned, removed
+afterwards) rather than hoping a course file still carries a bug. The same rule applies to the
+runbooks: they say `cargo test --no-fail-fast`, never a step name.
 
 ## Open dependencies (streams `rust` / `js`)
 

@@ -448,6 +448,11 @@ async function runCommand(page, command) {
 async function languageLabChecks(page) {
   const shot = (n) => page.screenshot({ path: join(OUT, `${n}.png`) });
 
+  // Written first so the file watcher and the quick-open index have the whole
+  // highlighting and rust-analyzer section to notice it.
+  const jsProbe = `${JS_WS}/src/e2e-diagnostics-probe.js`;
+  dexec(`printf 'const probe = 1;\\nprobe = 2;\\nexport { probe };\\n' > ${jsProbe}`);
+
   async function openFile(name) {
     // Ctrl+P is swallowed by the browser; go through the command palette.
     await runCommand(page, "Go to File...");
@@ -500,6 +505,15 @@ async function languageLabChecks(page) {
   }
 
   // --- 5a. syntax highlighting per language ---------------------------------
+  // File names come from the courses and the courses rename them, so pick a
+  // real source file of each language at run time instead of hard-coding one.
+  const pick = (cmd, fallback) => {
+    const out = dexec(`${cmd} 2>/dev/null | head -1 || true`).trim();
+    return out ? out.split("/").pop() : fallback;
+  };
+  const rustFile = pick(`find ${RUST_WS}/src -name '*.rs' ! -name 'mod.rs' ! -name 'lib.rs'`, "lib.rs");
+  const jsFile = pick(`find ${JS_WS}/src -name '*.js'`, "hello.js");
+
   // Rust goes last on purpose: opening a .rs file starts rust-analyzer, which
   // saturates the extension host while it indexes, and a TextMate grammar
   // asked for during that wait can take a minute to arrive. A student opens
@@ -508,9 +522,9 @@ async function languageLabChecks(page) {
   const wanted = [
     ["README.md", "Markdown"],
     ["package.json", "JSON"],
-    ["hello.js", "JavaScript"],
+    [jsFile, "JavaScript"],
     ["Cargo.toml", "TOML"],
-    ["m0_02_first_test.rs", "Rust"],
+    [rustFile, "Rust"],
   ];
   const hl = [];
   // The clock for rust-analyzer starts when the first Rust file is opened -
@@ -534,7 +548,7 @@ async function languageLabChecks(page) {
   ok(`syntax highlighting: ${hl.join(", ")}`);
 
   // --- 5b. rust-analyzer ----------------------------------------------------
-  await openFile("m0_02_first_test.rs");
+  await openFile(rustFile);
   if (raStart === null) raStart = Date.now();
   let raReady = false;
   for (let i = 0; i < 120; i++) {
@@ -555,7 +569,9 @@ async function languageLabChecks(page) {
       .map((o) => ({ t: o.t, x: Math.round(o.r.x + o.r.width / 2), y: Math.round(o.r.y + o.r.height / 2) }))
   );
   let hover = null;
-  for (const c of idents.filter((i) => ["add", "greet", "i32", "String"].includes(i.t)).slice(0, 4)) {
+  // any identifier will do - the point is that the server answers, not which
+  // symbol the course happens to define today
+  for (const c of idents.filter((i) => i.t.length > 2 && !/^(pub|fn|let|mod|use|impl)$/.test(i.t)).slice(0, 6)) {
     await page.mouse.move(10, 10);
     await sleep(400);
     await page.mouse.move(c.x, c.y);
@@ -567,7 +583,7 @@ async function languageLabChecks(page) {
     if (hover) break;
   }
   await shot("11-rust-hover");
-  if (!hover) problem("rust-analyzer gave no hover for any identifier in the first Rust file");
+  if (!hover) problem(`rust-analyzer gave no hover for any identifier in ${rustFile}`);
 
   // completion: a fresh function at the end of the file, so nothing else in
   // the file has to parse for the request to make sense
@@ -615,22 +631,29 @@ async function languageLabChecks(page) {
   );
 
   // --- 5c. JavaScript -------------------------------------------------------
-  await openFile("counter.js");
+  // Which of the course's own files carries a deliberate bug is the course's
+  // business and it changes. What must be true is that the built-in language
+  // service checks plain JavaScript at all, so put an unambiguous error in a
+  // scratch file inside the workspace and require it to be reported. Without
+  // checkJs in effect a .js file gets no semantic diagnostics whatsoever, so
+  // this is exactly the failure that would otherwise go unnoticed.
   let squigglies = 0;
-  for (let i = 0; i < 30; i++) {
+  await openFile("e2e-diagnostics-probe.js");
+  for (let i = 0; i < 25; i++) {
     squigglies = await page.evaluate(
       () => document.querySelectorAll(".monaco-editor .squiggly-error, .monaco-editor .squiggly-warning").length
     );
     if (squigglies > 0) break;
     await sleep(1000);
   }
+  const jsFileWithDiag = squigglies > 0 ? "the scratch probe (assignment to a const)" : null;
   await runCommand(page, "View: Focus Problems");
   await sleep(2500);
   const jsRows = await page.evaluate(() =>
     [...document.querySelectorAll(".markers-panel .monaco-list-row")].map((r) => r.innerText.replace(/\n/g, " ").slice(0, 130))
   );
   await shot("14-javascript-diagnostics");
-  const jsDiag = jsRows.filter((r) => /\bts\b|counter\.js/.test(r));
+  const jsDiag = jsRows.filter((r) => /\bts\b|\.js\b/.test(r));
   // The starter file carries the bugs its step is about, so the built-in
   // service MUST have something to say. checkJs is window-scoped and only
   // works from the image's user settings - if it ever moves back into a
@@ -657,8 +680,9 @@ async function languageLabChecks(page) {
         `${JSON.stringify(implicitAny[0])}) - js/ts.implicitProjectConfig.strict should be off`
     );
   }
+  dexec(`rm -f ${jsProbe}`);
   ok(
-    `javascript: ${squigglies} squiggle(s), ${jsDiag.length} diagnostic row(s) ` +
+    `javascript: ${squigglies} squiggle(s) in ${jsFileWithDiag ?? "(nothing reported)"}, ${jsDiag.length} diagnostic row(s) ` +
       `${JSON.stringify(jsDiag.slice(0, 2))}; ESLint config files=${eslintCfg}, eslint.enable=${eslintEnabled !== "0"}`
   );
 
@@ -667,6 +691,8 @@ async function languageLabChecks(page) {
   // disk opens clean, and "File: Save" on a clean document is a no-op, so
   // nothing would be formatted and the check would lie.
   const fmt = [];
+  const jsFmtPath = dexec(`find ${JS_WS}/src -name '*.js' | head -1`).trim();
+  const jsFmtFile = jsFmtPath.split("/").pop();
   async function formatOnSave({ file, type, expect, what }) {
     await openFile(file);
     await sleep(2500);
@@ -680,7 +706,7 @@ async function languageLabChecks(page) {
     const dirty = await page.evaluate(() => !!document.querySelector(".editor-group-container .tab.active.dirty"));
     await runCommand(page, "File: Save");
     await sleep(5000);
-    const onDisk = dexec(`tail -4 ${file === "lib.rs" ? `${RUST_WS}/src/lib.rs` : `${JS_WS}/src/m0/hello.js`}`);
+    const onDisk = dexec(`tail -4 ${file === "lib.rs" ? `${RUST_WS}/src/lib.rs` : jsFmtPath}`);
     if (expect.test(onDisk)) fmt.push(what);
     else problem(`${what} did not happen on save (document was dirty: ${dirty}); the file ends with:\n${onDisk}`);
     await runCommand(page, "File: Revert File");
@@ -695,13 +721,13 @@ async function languageLabChecks(page) {
   await shot("15-format-rust");
   dexec(`sed -i '/fmt_probe/,+2d' ${RUST_WS}/src/lib.rs; true`);
   await formatOnSave({
-    file: "hello.js",
+    file: jsFmtFile,
     type: "export function fmtProbe(  a,b ){return a+b}",
     expect: /export function fmtProbe\(a, b\)/,
     what: "the built-in JavaScript formatter on save",
   });
   await shot("16-format-javascript");
-  dexec(`sed -i '/fmtProbe/d' ${JS_WS}/src/m0/hello.js; true`);
+  dexec(`sed -i '/fmtProbe/d' ${jsFmtPath}; true`);
   ok(`formatting works with no setup: ${fmt.join(", ") || "(nothing)"}`);
 
   // --- 5e. the small things -------------------------------------------------
