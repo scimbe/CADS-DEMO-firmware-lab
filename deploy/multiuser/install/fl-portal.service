@@ -1,0 +1,49 @@
+# systemd unit for the CaDS teacher portal (host process, loopback only).
+#
+# Install (on cads-lambda, as root):
+#   install -d -o becke -g becke /opt/firmware-lab /var/lib/cads
+#   cp deploy/portal/*.py /opt/firmware-lab/portal/
+#   install -m 600 -o becke portal.env /opt/firmware-lab/fl-portal.env
+#   install -m 640 -o becke portal.json /etc/cads/portal.json
+#   cp deploy/multiuser/install/fl-portal.service /etc/systemd/system/
+#   systemctl daemon-reload && systemctl enable --now fl-portal
+#   journalctl -u fl-portal -f
+#
+# fl-portal.env (mode 600, never in git) sets at least:
+#   FL_PORTAL_TOKEN=<same value as CADS_TUTOR_TELEMETRY_TOKEN in fl-broker.env>
+#   FL_PORTAL_DB=/var/lib/cads/portal.sqlite3
+#   FL_PORTAL_CONFIG=/etc/cads/portal.json
+#   FL_PORTAL_COURSES=/opt/firmware-lab/courses
+#   FL_PORTAL_ROSTER=/etc/cads/roster.json          # optional, clear names
+#   FL_PORTAL_RETENTION_DAYS=180
+# Without FL_PORTAL_TOKEN the portal refuses every /ingest request and says so on start-up.
+#
+# Unlike the broker this process never talks to Docker, so it needs no docker group and
+# no socket; it only listens on 127.0.0.1:3200 and writes its SQLite database.
+[Unit]
+Description=CaDS Firmware Lab teacher portal (fl-portal)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=becke
+Group=becke
+EnvironmentFile=/opt/firmware-lab/fl-portal.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /opt/firmware-lab/portal/portal.py
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+# The database is the only thing this service may write.
+ReadWritePaths=/var/lib/cads
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
