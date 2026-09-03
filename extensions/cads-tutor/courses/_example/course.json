@@ -1,0 +1,17 @@
+{
+  "id": "example-course",
+  "version": "1.0.0",
+  "schema": 1,
+  "title": { "de": "Beispielkurs (Format v1)", "en": "Example course (format v1)" },
+  "description": {
+    "de": "Zeigt jeden Check-Typ und das Pack-Format – Vorlage für Kursautoren.",
+    "en": "Demonstrates every check type and the pack format – a template for course authors."
+  },
+  "project": { "root": "cads-zero", "repo": "https://github.com/scimbe/cads-zero" },
+  "prerequisites": [],
+  "grounding": { "pack": "firmware", "threshold": 8.0 },
+  "modules": [
+    { "id": "m0", "title": { "de": "Orientierung", "en": "Orientation" }, "steps": ["m0-01-welcome", "m0-02-build"] },
+    { "id": "m1", "title": { "de": "Board & Reflexion", "en": "Board & reflection" }, "steps": ["m1-01-board", "m1-02-reflect"] }
+  ]
+}

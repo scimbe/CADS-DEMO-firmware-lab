@@ -1,0 +1,11 @@
+[
+  {
+    "id": "example.orientation",
+    "track": "firmware",
+    "unitId": "m0",
+    "bloomLevel": "understand",
+    "statement": "The student can locate the desktop app source and the build artifacts of CaDS Zero.",
+    "sourceDocIds": ["cads-zero-docs-scimbe-github-io-cads-zero-how-to-build-0"],
+    "prerequisiteObjectiveIds": []
+  }
+]

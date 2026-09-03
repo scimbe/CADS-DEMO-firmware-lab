@@ -1,0 +1,146 @@
+{
+  "id": "cads-zero-foundations",
+  "version": "1.0.0",
+  "schema": 1,
+  "title": {
+    "de": "CaDS Zero – Grundlagen",
+    "en": "CaDS Zero – Foundations"
+  },
+  "description": {
+    "de": "Der Pflichtkurs: von der Browser-IDE über Build, Flash und Debugging bis zu FreeRTOS, Grafik, Speicher, Konfiguration, Netzwerk und Qualitätssicherung – durchgehend an der echten Firmware CaDS Zero auf dem ITSboard.",
+    "en": "The core course: from the browser IDE through build, flash and debugging to FreeRTOS, graphics, storage, configuration, networking and quality assurance – all on the real CaDS Zero firmware running on the ITSboard."
+  },
+  "project": {
+    "root": "cads-zero",
+    "repo": "https://github.com/scimbe/cads-zero"
+  },
+  "prerequisites": [],
+  "grounding": {
+    "pack": "firmware",
+    "threshold": 5.0
+  },
+  "modules": [
+    {
+      "id": "m0",
+      "title": {
+        "de": "M0 – Orientierung",
+        "en": "M0 – Orientation"
+      },
+      "steps": [
+        "m0-01-welcome",
+        "m0-02-connect",
+        "m0-03-build",
+        "m0-04-flash-console",
+        "m0-05-explorer"
+      ]
+    },
+    {
+      "id": "m1",
+      "title": {
+        "de": "M1 – Firmware-Architektur",
+        "en": "M1 – Firmware architecture"
+      },
+      "steps": [
+        "m1-01-module-layout",
+        "m1-02-hal-boundary",
+        "m1-03-sim-vs-board",
+        "m1-04-splash"
+      ]
+    },
+    {
+      "id": "m2",
+      "title": {
+        "de": "M2 – Memory-mapped I/O & GPIO",
+        "en": "M2 – Memory-mapped I/O & GPIO"
+      },
+      "steps": [
+        "m2-01-memory-map",
+        "m2-02-mmio-gpio",
+        "m2-03-buttons",
+        "m2-04-safety",
+        "m2-05-explorer-command"
+      ]
+    },
+    {
+      "id": "m3",
+      "title": {
+        "de": "M3 – Debugging als Handwerk",
+        "en": "M3 – Debugging as a craft"
+      },
+      "steps": [
+        "m3-01-gdb-breakpoints",
+        "m3-02-registers-svd",
+        "m3-03-fault-forensics",
+        "m3-04-stack-guard",
+        "m3-05-spi-mutex"
+      ]
+    },
+    {
+      "id": "m4",
+      "title": {
+        "de": "M4 – FreeRTOS",
+        "en": "M4 – FreeRTOS"
+      },
+      "steps": [
+        "m4-01-freertos-tasks",
+        "m4-02-ram-budget",
+        "m4-03-mutex-spi-bus",
+        "m4-04-iwdg-watchdog",
+        "m4-05-stack-sizing"
+      ]
+    },
+    {
+      "id": "m5",
+      "title": {
+        "de": "M5 – Display & GUI",
+        "en": "M5 – Display & GUI"
+      },
+      "steps": [
+        "m5-01-canvas-draw",
+        "m5-02-view-dispatcher",
+        "m5-03-own-app",
+        "m5-04-dirty-rect-eval"
+      ]
+    },
+    {
+      "id": "m6",
+      "title": {
+        "de": "M6 – Storage & Konfiguration",
+        "en": "M6 – Storage & configuration"
+      },
+      "steps": [
+        "m6-01-littlefs",
+        "m6-02-config-file",
+        "m6-03-config-option",
+        "m6-04-build-profiles"
+      ]
+    },
+    {
+      "id": "m7",
+      "title": {
+        "de": "M7 – Netzwerk",
+        "en": "M7 – Networking"
+      },
+      "steps": [
+        "m7-01-lwip-netif",
+        "m7-02-udp-hello",
+        "m7-03-dhcp-stack-lesson",
+        "m7-04-recon-tools",
+        "m7-05-pa7-network-eval"
+      ]
+    },
+    {
+      "id": "m8",
+      "title": {
+        "de": "M8 – Qualität",
+        "en": "M8 – Quality"
+      },
+      "steps": [
+        "m8-01-unit-tests",
+        "m8-02-golden-images",
+        "m8-03-clean-room-pr",
+        "m8-04-capstone"
+      ]
+    }
+  ]
+}

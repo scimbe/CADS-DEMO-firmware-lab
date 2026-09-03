@@ -1,0 +1,178 @@
+#!/usr/bin/env python3
+"""st-flash shim for the CaDS Firmware Lab (SPEC.md §3.2).
+
+Accepts the subset of the stlink `st-flash` command line that cads-zero's
+scripts, docs and the "CaDS: Flash" task use, and forwards it to the
+cads-board-bridge HTTP API on 127.0.0.1:3335 (override: CADS_BRIDGE_URL):
+
+    st-flash [--serial <id>] [--reset] write <file.bin> <addr>   -> POST /flash?addr=<addr>
+    st-flash reset                                               -> POST /reset
+    st-flash erase                                               -> refused (lab policy)
+
+`--serial`, `--connect-under-reset`, `--freq` and friends are accepted and
+ignored: there is exactly one board per student, the one connected in the
+browser. Writes are limited to 0x08000000-0x080FFFFF (firmware bank), mirroring
+docs/SAFETY.md; the bridge enforces the same limit independently.
+"""
+
+from __future__ import annotations
+
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import cads_shim_common as shim  # noqa: E402
+
+VERSION = "st-flash 1.8.0 (CaDS lab shim, board-bridge HTTP)"
+USAGE = """usage: st-flash [options] write <file.bin> <addr>
+       st-flash [options] reset
+       st-flash --version
+
+options (accepted for compatibility):
+  --serial <id>          ignored - the board connected in the browser is used
+  --reset                reset the target after a successful write
+  --connect-under-reset  ignored
+  --freq <kHz>           ignored
+  --format binary        only 'binary' is supported (no ihex)
+
+Not available in the lab: 'erase' (mass erase is forbidden, see docs/SAFETY.md),
+'read' and option-byte access.
+"""
+
+IGNORED_FLAGS_WITH_VALUE = {"--serial", "--freq", "--flash", "--area", "--opt"}
+IGNORED_FLAGS = {"--connect-under-reset", "--hot-plug", "--debug", "-v", "--verbose", "--enable-udp"}
+
+
+def parse_args(argv: list[str]) -> tuple[dict, list[str]]:
+    opts = {"reset": False, "format": "binary"}
+    positional: list[str] = []
+    i = 0
+    while i < len(argv):
+        arg = argv[i]
+        if arg in ("-h", "--help"):
+            opts["help"] = True
+        elif arg == "--version":
+            opts["version"] = True
+        elif arg == "--reset":
+            opts["reset"] = True
+        elif arg.startswith("--format="):
+            opts["format"] = arg.split("=", 1)[1]
+        elif arg == "--format":
+            i += 1
+            opts["format"] = argv[i] if i < len(argv) else ""
+        elif arg in IGNORED_FLAGS_WITH_VALUE:
+            i += 1  # swallow the value
+        elif any(arg.startswith(f + "=") for f in IGNORED_FLAGS_WITH_VALUE):
+            pass
+        elif arg in IGNORED_FLAGS or arg.startswith("-v"):
+            pass
+        elif arg.startswith("-"):
+            raise ValueError(f"unknown option {arg}")
+        else:
+            positional.append(arg)
+        i += 1
+    return opts, positional
+
+
+def parse_address(text: str) -> int:
+    try:
+        return int(text, 0)
+    except ValueError:
+        raise ValueError(f"invalid address {text!r} (expected e.g. 0x08000000)") from None
+
+
+def do_write(path: str, addr_text: str, reset_after: bool) -> int:
+    addr = parse_address(addr_text)
+    try:
+        with open(path, "rb") as fh:
+            data = fh.read()
+    except OSError as exc:
+        return shim.fail(f"cannot read {path}: {exc.strerror}")
+    if not data:
+        return shim.fail(f"{path} is empty")
+    if addr < shim.FLASH_BASE or addr + len(data) > shim.FLASH_LIMIT:
+        return shim.fail(
+            f"refusing to write {len(data)} bytes at 0x{addr:08X}: the lab only programs "
+            f"the firmware bank 0x{shim.FLASH_BASE:08X}-0x{shim.FLASH_LIMIT - 1:08X} "
+            "(docs/SAFETY.md)"
+        )
+
+    print(f"{VERSION}")
+    print(f"Writing {len(data)} bytes from {path} to 0x{addr:08X} via board bridge ...")
+    sys.stdout.flush()
+    try:
+        body = shim.request(
+            "POST",
+            f"/flash?addr=0x{addr:08X}",
+            body=data,
+            content_type="application/octet-stream",
+            timeout=600.0,
+        )
+    except shim.BridgeOffline:
+        return shim.fail_offline()
+    except shim.BridgeError as exc:
+        return shim.fail(f"flash failed: {exc}")
+    err = shim.check_result(body)
+    if err:
+        return shim.fail(f"flash failed: {err}")
+    print("Flash written and verified! jolly good!")
+
+    if reset_after:
+        return do_reset()
+    return 0
+
+
+def do_reset() -> int:
+    try:
+        body = shim.request("POST", "/reset", body=b"", timeout=30.0)
+    except shim.BridgeOffline:
+        return shim.fail_offline()
+    except shim.BridgeError as exc:
+        return shim.fail(f"reset failed: {exc}")
+    err = shim.check_result(body)
+    if err:
+        return shim.fail(f"reset failed: {err}")
+    print("Target reset")
+    return 0
+
+
+def main(argv: list[str]) -> int:
+    try:
+        opts, positional = parse_args(argv)
+    except ValueError as exc:
+        print(USAGE, file=sys.stderr)
+        return shim.fail(str(exc))
+
+    if opts.get("help"):
+        print(USAGE)
+        return 0
+    if opts.get("version"):
+        print(VERSION)
+        return 0
+    if not positional:
+        print(USAGE, file=sys.stderr)
+        return 1
+
+    command, args = positional[0], positional[1:]
+    if command == "erase":
+        return shim.fail("erase is not permitted by CaDS lab policy (no mass erase, docs/SAFETY.md)")
+    if command == "reset":
+        return do_reset()
+    if command == "write":
+        if opts["format"] not in ("binary", "bin"):
+            return shim.fail(f"--format {opts['format']} is not supported by the lab shim (binary only)")
+        if len(args) != 2:
+            print(USAGE, file=sys.stderr)
+            return shim.fail("write needs exactly <file.bin> <addr>")
+        try:
+            return do_write(args[0], args[1], opts["reset"])
+        except ValueError as exc:
+            return shim.fail(str(exc))
+    if command in ("read", "verify"):
+        return shim.fail(f"'{command}' is not available in the lab shim")
+    print(USAGE, file=sys.stderr)
+    return shim.fail(f"unknown command {command!r}")
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

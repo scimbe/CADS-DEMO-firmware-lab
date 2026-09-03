@@ -1,0 +1,27 @@
+# Keep the build context small and secret-free.
+.git
+.env
+.env.*
+!.env.example
+docs
+tests
+scripts
+e2e
+README.md
+.github
+# courses/: course packs go to /opt/cads-tutor/courses, minus test fixtures.
+courses/**/_example*
+courses/**/node_modules
+courses/**/*.test.*
+webusb-flash
+example-firmware
+vscode-extension
+**/node_modules
+**/.vscode-test
+**/build
+# extensions/: only the packaged VSIX files from the other streams go into the
+# image, never sources or node_modules. .gitkeep keeps the directory present
+# so `COPY extensions/` cannot fail on a checkout without any VSIX yet.
+extensions/**
+!extensions/.gitkeep
+!extensions/*/dist/*.vsix

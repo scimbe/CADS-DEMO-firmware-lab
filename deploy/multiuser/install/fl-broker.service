@@ -1,0 +1,34 @@
+# systemd unit for the CaDS Firmware Lab session broker (host process, loopback only).
+#
+# Install (on cads-lambda, as root):
+#   install -d -o becke -g becke /opt/firmware-lab
+#   cp deploy/multiuser/broker/fl_broker.py /opt/firmware-lab/
+#   install -m 600 -o becke .env /opt/firmware-lab/fl-broker.env      # from .env.example
+#   cp deploy/multiuser/install/fl-broker.service /etc/systemd/system/
+#   systemctl daemon-reload && systemctl enable --now fl-broker
+#   journalctl -u fl-broker -f
+# The user must be allowed to run `docker` (group docker).
+[Unit]
+Description=CaDS Firmware Lab session broker (fl-broker)
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=becke
+Group=becke
+EnvironmentFile=/opt/firmware-lab/fl-broker.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /opt/firmware-lab/fl_broker.py
+Restart=always
+RestartSec=3
+# Loopback-only service; no need for anything beyond the docker socket.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/opt/firmware-lab
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

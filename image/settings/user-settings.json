@@ -1,0 +1,66 @@
+{
+  // CaDS Firmware Lab - user settings baked into the image (SPEC.md §4),
+  // ~/.local/share/code-server/User/settings.json. Workspace settings in
+  // cads-zero/.vscode/settings.json (container variant) refine these.
+  "workbench.startupEditor": "none",
+  "security.workspace.trust.enabled": false,
+  "cmake.useCMakePresets": "always",
+  // No configure-on-open: it prompts every student for a preset before they
+  // have done anything. IntelliSense comes from the seeded
+  // build/itsboard/compile_commands.json via clangd, the CaDS tasks call cmake
+  // themselves; CMake Tools stays available for those who want it.
+  "cmake.configureOnOpen": false,
+  "cmake.automaticReconfigure": false,
+  // Presets are the only mechanism here; the kit scan on first activation
+  // ends in "It is recommended to reconfigure after upgrading to a new kits
+  // definition [Configure Now]" ~15 s after load (scanForKitsIfNeeded:
+  // kitsVersionSaved != 2 -> scan -> notification). Off = skip-and-update-version.
+  "cmake.enableAutomaticKitScan": false,
+  "cadsTutor.autoOpen": true,
+  "editor.formatOnSave": true,
+  "clangd.path": "/usr/bin/clangd",
+  // -j/pch-storage: one container per student on a shared host - cap clangd's
+  // indexing workers and keep precompiled headers on disk instead of RAM.
+  "clangd.arguments": [
+    "--compile-commands-dir=build/itsboard",
+    "--query-driver=/opt/arm-gnu-toolchain/bin/arm-none-eabi-*",
+    "--background-index-priority=background",
+    "--pch-storage=disk",
+    "-j=4"
+  ],
+  "clangd.checkUpdates": false,
+  "cortex-debug.armToolchainPath": "/opt/arm-gnu-toolchain/bin",
+
+  // No network-dependent noise for students: no update checks, no telemetry,
+  // no "install recommended extensions" prompts (they are all pre-installed).
+  "extensions.autoUpdate": false,
+  "extensions.autoCheckUpdates": false,
+  "extensions.ignoreRecommendations": true,
+  "telemetry.telemetryLevel": "off",
+  "update.mode": "none",
+  "update.showReleaseNotes": false,
+  "workbench.tips.enabled": false,
+  "workbench.welcomePage.walkthroughs.openOnInstall": false,
+  "workbench.enableExperiments": false,
+  // No Copilot chat UI in the lab (the tutor has its own views); the
+  // secondary side bar otherwise opens with an empty "Build with Agent" chat.
+  // (chat.commandCenter.enabled does not exist in Code 1.135 - checked
+  // against workbench.web.main.internal.js - so it is not set here.)
+  "chat.disableAIFeatures": true,
+  "workbench.secondarySideBar.defaultVisibility": "hidden",
+  "cmake.showOptionsMovedNotification": false,
+  // CMake Tools' six status bar items (preset/build/ctest/cpack/workflow) are
+  // noise for students; the CaDS tasks cover the workflow. Enum in cmake-tools
+  // 1.23: visible | compact | icon | hidden.
+  "cmake.options.statusBarVisibility": "hidden",
+  // build/launch/debug buttons default to "inherit" with inheritDefault
+  // "visible" and stayed on the status bar (verified) - hide them explicitly.
+  "cmake.options.advanced": {
+    "build": { "statusBarVisibility": "hidden" },
+    "launch": { "statusBarVisibility": "hidden" },
+    "debug": { "statusBarVisibility": "hidden" }
+  },
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "git.openRepositoryInParentFolders": "never",
+  "files.autoSave": "off"
+}

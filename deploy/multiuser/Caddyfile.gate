@@ -1,0 +1,105 @@
+# Keycloak gate + path router in front of the CaDS Firmware Lab (multi-user).
+#
+# Same proven shape as CADS-kali-desktop/Caddyfile.gate (CADS-DEMO-sort lineage), including its
+# two hard-won gotchas:
+#   1. route{} is REQUIRED - Caddy runs directives in its own priority order, not textual order;
+#      without route{} the header strip could run AFTER forward_auth set the real identity.
+#   2. request_header -X-Gate-Email runs FIRST so a client-supplied copy never reaches anything.
+#
+# Request flow (docs/MULTIUSER.md):
+#   strip X-Gate-Email -> forward_auth /gate/check (edge) -> copy X-Gate-Email
+#     /                     -> broker /_broker/enter   (302 -> /s/<slug>/?folder=...)
+#     /s/<slug>/...         -> forward_auth broker /_broker/resolve?slug=<slug>
+#                              (403 unless the identity owns the slug; starts a stopped container)
+#                              copy X-FL-Upstream -> strip /s/<slug> -> reverse_proxy to it
+#     /admin[...]           -> broker /_broker/admin[...]  (allow-list enforced by the broker)
+#     /logout               -> edge /gate/logout
+#
+# Measured 2026-09-02 (caddy:2-alpine = v2.11.4): `reverse_proxy {http.request.header.X-FL-Upstream}`
+# works - the dial address is a runtime placeholder (Caddy replaces it per request; no health
+# checks apply).  The alternative `reverse_proxy host:{http.request.header.X-FL-Port}` was
+# measured working too; the broker sends BOTH headers, so either line can be used.
+#
+# Network placement decides three env values (see compose.yml / compose.desktop.yml):
+#   FL_GATE_LISTEN   127.0.0.1:3000 with network_mode: host (Linux)  |  :3000 in a bridged container
+#   FL_BROKER_ADDR   127.0.0.1:3100 (host network)  |  host.docker.internal:3100 (Docker Desktop/Colima)
+#   The broker's FL_UPSTREAM_HOST must match the same choice.
+# CT_GATE_SCHEME / CT_GATE_PUBLIC_URL only matter for the local stub gate (http, 127.0.0.1:3900).
+{
+	auto_https off
+}
+
+{$FL_GATE_LISTEN:127.0.0.1:3000} {
+	encode gzip
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	# Real logout = end the gate session at the edge. Not gated, so it works from a broken session.
+	# CT_GATE_PUBLIC_URL is the BROWSER-facing address of the gate (defaults to the production
+	# edge); it differs from CT_GATE_UPSTREAM_HOST only in the local stub setup, where Caddy
+	# reaches the stub via host.docker.internal but the browser via 127.0.0.1.
+	handle /logout* {
+		redir {$CT_GATE_PUBLIC_URL:https://bunsenbrenner.org}/gate/logout 302
+	}
+
+	handle {
+		route {
+			# Never trust identity or routing headers from the client.
+			request_header -X-Gate-Email
+			request_header -X-FL-Upstream
+			request_header -X-FL-Port
+
+			forward_auth {$CT_GATE_SCHEME:https}://{$CT_GATE_UPSTREAM_HOST} {
+				uri /gate/check
+				copy_headers X-Gate-Email
+				lb_try_duration 20s
+				lb_try_interval 250ms
+			}
+			# Fail closed: a 200 from the edge without an identity admits nobody.
+			@no_identity not header X-Gate-Email *
+			respond @no_identity "No identity from gate. Visit /logout and sign in again." 403
+
+			# /s/<slug>  (no trailing slash) -> /s/<slug>/  so code-server's relative URLs resolve.
+			@sess_noslash path_regexp ^/s/[a-f0-9]{12}$
+			redir @sess_noslash {path}/ 302
+
+			# Per-student session: ownership check + upstream lookup in the broker, then proxy
+			# (HTTP and WebSocket upgrade alike) with the /s/<slug> prefix removed.
+			@sess path_regexp sess ^/s/([a-f0-9]{12})(/.*)?$
+			handle @sess {
+				forward_auth {$FL_BROKER_ADDR:127.0.0.1:3100} {
+					uri /_broker/resolve?slug={re.sess.1}
+					copy_headers X-FL-Upstream X-FL-Port
+					lb_try_duration 10s
+					lb_try_interval 250ms
+				}
+				uri strip_prefix /s/{re.sess.1}
+				reverse_proxy {http.request.header.X-FL-Upstream} {
+					# A container that just (re)started may refuse the first dial; retry briefly.
+					lb_try_duration 5s
+					lb_try_interval 250ms
+				}
+			}
+
+			# Operator view (broker enforces FL_ADMIN_EMAILS against the gate-verified identity).
+			handle /admin* {
+				rewrite * /_broker{uri}
+				reverse_proxy {$FL_BROKER_ADDR:127.0.0.1:3100}
+			}
+
+			# Entry point: ensure the caller's session and redirect into it.
+			handle / {
+				rewrite * /_broker/enter
+				reverse_proxy {$FL_BROKER_ADDR:127.0.0.1:3100}
+			}
+
+			# Everything else (including direct /_broker/* attempts) does not exist.
+			handle {
+				respond "Not found" 404
+			}
+		}
+	}
+}

@@ -1,0 +1,294 @@
+{
+  "name": "cads-tutor",
+  "displayName": "CaDS Tutor",
+  "description": "Kurs-Tutor für die CaDS-Zero-Firmware: Kurse als Plugins, Fortschritt, automatische Checks, sokratische Begleitung (Bloom-Taxonomie).",
+  "version": "0.1.0",
+  "publisher": "cads",
+  "license": "MIT",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/scimbe/CADS-DEMO-firmware-lab.git"
+  },
+  "engines": {
+    "vscode": "^1.100.0",
+    "node": ">=22"
+  },
+  "categories": [
+    "Education",
+    "Other"
+  ],
+  "keywords": [
+    "cads",
+    "tutor",
+    "firmware",
+    "stm32",
+    "education"
+  ],
+  "icon": "media/icon.png",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "extensionKind": [
+    "workspace"
+  ],
+  "contributes": {
+    "cadsTutorCourses": [],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "cads-tutor",
+          "title": "CaDS Tutor",
+          "icon": "media/tutor.svg"
+        }
+      ]
+    },
+    "views": {
+      "cads-tutor": [
+        {
+          "id": "cadsTutor.courses",
+          "name": "Kurse / Courses",
+          "icon": "media/tutor.svg",
+          "contextualTitle": "CaDS Tutor"
+        },
+        {
+          "id": "cadsTutor.progress",
+          "name": "Fortschritt / Progress",
+          "icon": "media/tutor.svg",
+          "contextualTitle": "CaDS Tutor",
+          "visibility": "collapsed"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "cadsTutor.courses",
+        "contents": "Keine Kurse gefunden. / No courses found.\n\nKurse werden aus Extensions (contributes.cadsTutorCourses), /opt/cads-tutor/courses, ~/.cads-tutor/courses und <workspace>/.cads-tutor/courses geladen.\n[Kurse neu laden / Reload courses](command:cads.tutor.reloadCourses)"
+      }
+    ],
+    "commands": [
+      {
+        "command": "cads.tutor.open",
+        "title": "Tutor öffnen / Open Tutor",
+        "category": "CaDS Tutor",
+        "icon": "$(mortar-board)"
+      },
+      {
+        "command": "cads.tutor.gotoStep",
+        "title": "Zu Step springen / Go to step",
+        "category": "CaDS Tutor"
+      },
+      {
+        "command": "cads.tutor.runChecks",
+        "title": "Checks des aktuellen Steps ausführen / Run checks",
+        "category": "CaDS Tutor",
+        "icon": "$(run-all)"
+      },
+      {
+        "command": "cads.tutor.ask",
+        "title": "Frag den Tutor / Ask the tutor",
+        "category": "CaDS Tutor",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "cads.tutor.reloadCourses",
+        "title": "Kurse neu laden / Reload courses",
+        "category": "CaDS Tutor",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "cads.tutor.resetProgress",
+        "title": "Fortschritt zurücksetzen / Reset progress",
+        "category": "CaDS Tutor"
+      },
+      {
+        "command": "cads.tutor.setLanguage",
+        "title": "Sprache wählen / Set language",
+        "category": "CaDS Tutor",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "cads.tutor.nextStep",
+        "title": "Nächster Step / Next step",
+        "category": "CaDS Tutor"
+      },
+      {
+        "command": "cads.tutor.prevStep",
+        "title": "Vorheriger Step / Previous step",
+        "category": "CaDS Tutor"
+      },
+      {
+        "command": "cads.tutor.showOutput",
+        "title": "Tutor-Log anzeigen / Show tutor log",
+        "category": "CaDS Tutor"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "cads.tutor.reloadCourses",
+          "when": "view == cadsTutor.courses",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cads.tutor.setLanguage",
+          "when": "view == cadsTutor.courses",
+          "group": "navigation@2"
+        },
+        {
+          "command": "cads.tutor.runChecks",
+          "when": "view == cadsTutor.courses",
+          "group": "navigation@3"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "cads.tutor.gotoStep",
+          "when": "false"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "CaDS Tutor",
+      "properties": {
+        "cadsTutor.autoOpen": {
+          "type": "boolean",
+          "default": true,
+          "description": "Beim ersten Start (ohne Session) das Tutor-Panel mit dem ersten Step automatisch öffnen. / Open the tutor panel with the first step on first start."
+        },
+        "cadsTutor.language": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "de",
+            "en"
+          ],
+          "default": "auto",
+          "description": "Sprache der Kursinhalte (auto = VS-Code-Sprache). / Course language (auto = VS Code display language)."
+        },
+        "cadsTutor.checkInOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Beim Speichern lokale Checks des aktuellen Steps erneut ausführen und (falls LLM konfiguriert) ein proaktives Check-in anfordern. / Re-run local checks and request a proactive check-in on save."
+        },
+        "cadsTutor.buildTaskLabel": {
+          "type": "string",
+          "default": "CaDS: Build",
+          "description": "Task-Label für Checks vom Typ 'build' ohne eigenes Label. / Task label used by 'build' checks without an explicit label."
+        },
+        "cadsTutor.extraCourseDirs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Zusätzliche Verzeichnisse mit Kurs-Packs. / Additional course pack directories."
+        },
+        "cadsTutor.llm.baseUrl": {
+          "type": "string",
+          "default": "",
+          "description": "OpenAI-kompatibler Endpunkt (https). Fallback für TUTOR_LLM_BASE_URL. Der API-Key kommt ausschließlich aus TUTOR_LLM_API_KEY."
+        },
+        "cadsTutor.llm.model": {
+          "type": "string",
+          "default": "",
+          "description": "Modellname. Fallback für TUTOR_LLM_MODEL."
+        }
+      }
+    },
+    "walkthroughs": [
+      {
+        "id": "cadsTutor.gettingStarted",
+        "title": "CaDS Firmware Lab: Erste Schritte / Getting started",
+        "description": "Board verbinden, bauen, flashen, debuggen – der Weg zum ersten eigenen Firmware-Build. / Connect the board, build, flash, debug.",
+        "steps": [
+          {
+            "id": "cadsTutor.walk.connect",
+            "title": "1. Board verbinden / Connect the board",
+            "description": "ST-Link per USB anschließen und im Browser freigeben.\n[Board verbinden / Connect board](command:cads.board.connect)",
+            "media": {
+              "markdown": "media/walkthrough/connect.md"
+            },
+            "completionEvents": [
+              "onCommand:cads.board.connect"
+            ]
+          },
+          {
+            "id": "cadsTutor.walk.build",
+            "title": "2. Firmware bauen / Build the firmware",
+            "description": "Den Build-Task ausführen (Terminal → Run Build Task).\n[Build starten / Run build](command:workbench.action.tasks.build)",
+            "media": {
+              "markdown": "media/walkthrough/build.md"
+            },
+            "completionEvents": [
+              "onCommand:workbench.action.tasks.build"
+            ]
+          },
+          {
+            "id": "cadsTutor.walk.flash",
+            "title": "3. Flashen / Flash",
+            "description": "Das Binary auf das Board schreiben.\n[Flashen / Flash](command:cads.board.flash)",
+            "media": {
+              "markdown": "media/walkthrough/flash.md"
+            },
+            "completionEvents": [
+              "onCommand:cads.board.flash"
+            ]
+          },
+          {
+            "id": "cadsTutor.walk.debug",
+            "title": "4. Debuggen / Debug",
+            "description": "Mit F5 eine Debug-Sitzung starten und an einem Breakpoint anhalten.\n[Debug starten / Start debugging](command:workbench.action.debug.start)",
+            "media": {
+              "markdown": "media/walkthrough/debug.md"
+            },
+            "completionEvents": [
+              "onCommand:workbench.action.debug.start"
+            ]
+          },
+          {
+            "id": "cadsTutor.walk.tutor",
+            "title": "5. Kurs im Tutor fortsetzen / Continue in the tutor",
+            "description": "Den geführten Kurs mit Aufgaben und Checks öffnen.\n[Tutor öffnen / Open tutor](command:cads.tutor.open)",
+            "media": {
+              "markdown": "media/walkthrough/tutor.md"
+            },
+            "completionEvents": [
+              "onCommand:cads.tutor.open"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc -p . --noEmit",
+    "compile-tests": "tsc -p tsconfig.test.json",
+    "pretest": "npm run compile-tests",
+    "test": "node --test \"out-test/test/**/*.test.js\"",
+    "package": "npm run typecheck && npm run build && vsce package --no-dependencies -o dist/cads-tutor.vsix",
+    "vscode:prepublish": "npm run build"
+  },
+  "dependencies": {
+    "@cads/tutor-platform": "github:scimbe/CADS-DEMO-tutor-platform#v0.12.0",
+    "markdown-it": "^14.1.0",
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^22.15.0",
+    "@types/vscode": "^1.100.0",
+    "@vscode/vsce": "^3.6.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.8.0"
+  },
+  "allowScripts": {
+    "github:scimbe/CADS-DEMO-tutor-platform#aca76ecb4ccb493bad921a9be90448b7215f52c1": true,
+    "@vscode/vsce-sign@2.1.0": true,
+    "esbuild@0.25.12": true,
+    "keytar@7.9.0": true
+  }
+}

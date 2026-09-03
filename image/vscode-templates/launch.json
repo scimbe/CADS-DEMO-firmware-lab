@@ -1,0 +1,40 @@
+{
+  // CaDS Firmware Lab - container variant (SPEC.md §3.2). The GDB server on
+  // 127.0.0.1:3333 is cads-board-bridge, which drives the ST-Link connected in
+  // the browser; nothing here talks to USB. __CADS_GDB_PATH__ is filled in by
+  // /entrypoint.d/10-seed-workspace.sh (toolchain gdb, or gdb-multiarch).
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug CaDS Zero (Board im Browser)",
+      "type": "cortex-debug",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "executable": "${workspaceFolder}/build/itsboard/cads-zero.elf",
+      "servertype": "external",
+      "gdbTarget": "127.0.0.1:3333",
+      "device": "STM32F429ZI",
+      "svdFile": "${workspaceFolder}/targets/itsboard/STM32F429.svd",
+      "armToolchainPath": "__CADS_TOOLCHAIN_BIN__",
+      "gdbPath": "__CADS_GDB_PATH__",
+      "preLaunchTask": "CaDS: Build + Flash",
+      "overrideLaunchCommands": ["monitor reset halt"],
+      "runToEntryPoint": "main",
+      "showDevDebugOutput": "none"
+    },
+    {
+      "name": "Attach CaDS Zero (Board im Browser, no flash)",
+      "type": "cortex-debug",
+      "request": "attach",
+      "cwd": "${workspaceFolder}",
+      "executable": "${workspaceFolder}/build/itsboard/cads-zero.elf",
+      "servertype": "external",
+      "gdbTarget": "127.0.0.1:3333",
+      "device": "STM32F429ZI",
+      "svdFile": "${workspaceFolder}/targets/itsboard/STM32F429.svd",
+      "armToolchainPath": "__CADS_TOOLCHAIN_BIN__",
+      "gdbPath": "__CADS_GDB_PATH__",
+      "showDevDebugOutput": "none"
+    }
+  ]
+}

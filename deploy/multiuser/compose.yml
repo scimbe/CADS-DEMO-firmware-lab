@@ -1,0 +1,60 @@
+# CaDS Firmware Lab - multi-user stack (docs/MULTIUSER.md).
+#
+# Only the GATE (Caddy) and, optionally, the ct-agent run in containers.  The session broker is a
+# host process (install/fl-broker.service or install/watchdog.sh) - no docker.sock is ever mounted
+# into a container - and the per-student code-server containers are created by the broker, not by
+# compose.
+#
+# PRODUCTION (Linux, cads-lambda): the gate uses the host network so it can dial the broker on
+# 127.0.0.1:3100 and each student container on 127.0.0.1:<ephemeral port>.  Both stay bound to
+# loopback only.  A bridged container with `extra_hosts: host-gateway` would NOT work here: on a
+# native Linux engine host-gateway is the docker0 address (172.17.0.1) and a socket bound to
+# 127.0.0.1 does not accept connections on it.  Caddy itself binds 127.0.0.1:3000, so nothing is
+# exposed on a public interface.
+#
+# DOCKER DESKTOP / COLIMA (macOS development): host networking is not generally available, but
+# host.docker.internal reaches loopback-bound host services (measured 2026-09-02 on Colima).  Use
+# the override:   docker compose -f compose.yml -f compose.desktop.yml up -d
+#
+# Start:   cp .env.example .env && edit && docker compose up -d
+# Agent:   docker compose --profile agent up -d        (ct-agent in a container; see .env)
+services:
+  fl-gate:
+    image: caddy:2-alpine
+    container_name: fl-gate
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - CT_GATE_UPSTREAM_HOST=${CT_GATE_UPSTREAM_HOST:-bunsenbrenner.org}
+      - CT_GATE_SCHEME=${CT_GATE_SCHEME:-https}
+      - CT_GATE_PUBLIC_URL=${CT_GATE_PUBLIC_URL:-https://bunsenbrenner.org}
+      - FL_GATE_LISTEN=${FL_GATE_LISTEN:-127.0.0.1:3000}
+      - FL_BROKER_ADDR=${FL_BROKER_ADDR:-127.0.0.1:3100}
+    volumes:
+      - ./Caddyfile.gate:/etc/caddy/Caddyfile:ro
+      - fl_gate_data:/data
+      - fl_gate_config:/config
+
+  # Browser-plane tunnel agent (same image recipe as CADS-kali-desktop/agent).  Optional: on the
+  # services host the existing ct-agent may keep running as a host process instead - then just
+  # point its origin at 127.0.0.1:3000.
+  fl-agent:
+    profiles: ["agent"]
+    build:
+      context: ./agent
+      dockerfile: Dockerfile
+    container_name: fl-agent
+    restart: unless-stopped
+    network_mode: host
+    command: ["onboard"]
+    environment:
+      - CT_AGENT_ORIGIN=${CT_AGENT_ORIGIN:-127.0.0.1:3000}
+      - CT_AGENT_HOSTNAME=${CT_AGENT_HOSTNAME:-}
+      - CT_AGENT_JOIN_TOKEN=${CT_AGENT_JOIN_TOKEN:-}
+    volumes:
+      - fl_agent_state:/var/lib/ct-agent
+
+volumes:
+  fl_gate_data:
+  fl_gate_config:
+  fl_agent_state:
