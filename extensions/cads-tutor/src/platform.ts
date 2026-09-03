@@ -27,6 +27,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import type { QuestionVerdict } from "./checks/runner";
 import type { EventStoreLike } from "./events";
+import { withLanguageDirective } from "./prompts";
 import type { Course, Lang } from "./types";
 
 export interface LlmConfig {
@@ -87,6 +88,8 @@ export interface PlatformOptions {
   log?: (msg: string) => void;
   /** Injectable LLM (tests). */
   llmClient?: { complete(prompt: string): Promise<string> };
+  /** Current UI language; every prompt is told to answer in it. Read per call. */
+  lang?: () => Lang;
 }
 
 const DEFAULT_THRESHOLD = 5.0;
@@ -101,9 +104,12 @@ export class TutorPlatform {
   private readonly session?: TutorSession;
   private readonly llm?: { complete(prompt: string): Promise<string> };
   private readonly log: (msg: string) => void;
+  /** Current UI/step language, read per call so a language switch takes effect at once. */
+  private readonly lang: () => Lang;
 
   constructor(private readonly opts: PlatformOptions) {
     this.log = opts.log ?? (() => undefined);
+    this.lang = opts.lang ?? (() => "en");
     const course = opts.course;
     this.packName = course.manifest.grounding?.pack;
     this.track = this.packName ?? course.manifest.id;
@@ -194,15 +200,20 @@ export class TutorPlatform {
       this.log(`curriculum unavailable: ${err instanceof Error ? err.message : String(err)}`);
     }
 
+    let base: { complete(prompt: string): Promise<string> } | undefined;
     if (opts.llmClient) {
-      this.llm = opts.llmClient;
+      base = opts.llmClient;
     } else if (opts.llm) {
       try {
-        this.llm = new LlmClient(opts.llm);
+        base = new LlmClient(opts.llm);
       } catch (err) {
         this.log(`LLM disabled: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
+    // Every prompt leaving the extension carries the language directive, including
+    // the ones TutorSession builds internally and that we cannot otherwise reach.
+    // Wrapping the client rather than the question keeps the BM25 query clean.
+    this.llm = base ? withLanguageDirective(base, () => this.lang()) : undefined;
     this.hasLlm = !!this.llm;
     if (this.llm) {
       this.session = new TutorSession(this.engine, this.llm, jsonlRecorder(path.join(opts.memoryDir, "dialog.jsonl")), {
@@ -258,7 +269,14 @@ export class TutorPlatform {
   /** Rubric-based grading of a `question` task. */
   async gradeAnswer(prompt: string, rubric: string, answer: string, bloom?: string): Promise<QuestionVerdict> {
     if (!this.llm) {
-      return { kind: "manual", feedback: this.opts.course.manifest.id ? "no LLM configured – confirm manually" : "" };
+      // Localized: this text is shown to the student in the panel.
+      return {
+        kind: "manual",
+        feedback:
+          this.lang() === "de"
+            ? "Kein Sprachmodell konfiguriert – vergleiche deine Antwort selbst mit der Musterlösung."
+            : "No language model configured – compare your answer with the reference yourself.",
+      };
     }
     const grounded = this.engine.ask(`${prompt} ${rubric}`);
     const excerpts = grounded.grounded ? this.engine.citationContext(grounded) : "(no indexed reference excerpts matched – judge by the rubric alone)";
