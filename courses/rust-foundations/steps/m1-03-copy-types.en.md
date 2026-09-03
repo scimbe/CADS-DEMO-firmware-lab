@@ -15,7 +15,10 @@ sources: [ "src/m1/m1_03_copy_types.rs", "tests/m1-03-copy-types.rs" ]
 tasks:
   - id: copy
     title: "Point is Copy and mirror works"
-    check: { type: "testSuite", runner: "cargo", command: "cargo test --test m1-03-copy-types", expectPass: [ "m1_03_copy_types::sum_twice_doubles", "m1_03_copy_types::point_is_copy", "m1_03_copy_types::mirror_negates_x", "m1_03_copy_types::mirror_of_origin_is_origin" ], minPass: 4, timeoutMs: 180000 }
+    check: { type: "testSuite", runner: "cargo", command: "cargo test --test m1-03-copy-types", expectPass: [ "m1_03_copy_types::sum_twice_doubles", "m1_03_copy_types::mirror_negates_x", "m1_03_copy_types::mirror_of_origin_is_origin" ], minPass: 3, timeoutMs: 180000 }
+  - id: derive
+    title: "Point derives Copy"
+    check: { type: "all", checks: [ { type: "fileMatches", file: "src/m1/m1_03_copy_types.rs", pattern: "#\\[derive\\([^)]*\\bCopy\\b[^)]*\\)\\]" }, { type: "fileNotMatches", file: "src/m1/m1_03_copy_types.rs", pattern: "\\.clone\\(\\)" } ] }
   - id: why-not-string
     title: "You can say why String cannot be Copy"
     check: { type: "question", prompt: { en: "Adding a String field to Point would make `#[derive(Copy)]` fail to compile. Explain why the language forbids that, in terms of what a bitwise copy of a String would mean at the end of the scope.", de: "Ein String-Feld in Point würde `#[derive(Copy)]` nicht mehr kompilieren lassen. Erkläre, warum die Sprache das verbietet - in Begriffen dessen, was eine bitweise Kopie eines String am Ende des Gültigkeitsbereichs bedeuten würde." }, rubric: "Explains that Copy means a bitwise duplicate is a valid second value, which for a String would duplicate the heap pointer and cause both owners to free the same allocation (a double free), and that this is why Copy and Drop are mutually exclusive. Credit for noting that Clone exists precisely for the deep-copy case.", bloom: "analyze", minChars: 50 }
@@ -57,23 +60,16 @@ pub struct Point {
 
 Both fields are `Copy`, so `Point` *could* be, but it is not until you say so. `derive` generates trait implementations mechanically; `Copy` requires `Clone` alongside it, because `Copy` is defined as a `Clone` that is a plain bit copy.
 
-The test says this without words:
+Whether a type is `Copy` is decided at compile time. A test could pin that down with a bound:
 
 ```rust
-fn assert_is_copy<T: Copy>() {}
-
-#[test]
-fn point_is_copy() {
-    assert_is_copy::<Point>();
-    let p = Point { x: 1, y: 2 };
-    let q = p;
-    assert_eq!(p, q);
-}
+fn assert_is_copy<T: Copy>() {}   // empty body, asserts nothing at runtime
+assert_is_copy::<Point>();        // the compiler checks the bound
 ```
 
-`assert_is_copy` has an empty body - it asserts nothing at runtime. Its only job is the bound `T: Copy`, which the compiler checks. Until you add the derive, the whole test binary fails to build with `the trait bound Point: Copy is not satisfied`; note that this is a *compile* error, so no test runs at all.
+That is deliberately **not** in the test here. While the derive was missing, this test file would not compile, and a single test target that fails to compile aborts a whole-workspace `cargo test` before any test runs - you would see an error from M1 while working on M5. The step therefore checks the derive by reading the source (`fileMatches` for `#[derive(…Copy…)]`) and forbids a `.clone()` in that file so the derive cannot be side-stepped.
 
-Once `Point` is `Copy`, `mirror(p)` may use `p` both as the first tuple element and as the source of the negated one.
+`mirror` proves the semantics: it uses `p` twice without cloning, which only compiles once `Point` is `Copy`.
 
 ## Your task
 
