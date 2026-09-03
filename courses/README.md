@@ -184,7 +184,7 @@ change; `evaluate` steps ask for a defended judgement graded against a rubric.
 | m2-01-if-switch | worked |  |  | ● |  |  |  |
 | m2-02-truthy-falsy | faded |  |  |  | ● |  |  |
 | m2-03-try-catch-finally | faded |  |  | ● |  |  |  |
-| m2-04-error-objects | independent |  |  |  |  |  | ● |
+| m2-04-error-objects | independent |  |  | ● |  |  |  |
 | m3-01-for-and-while | worked |  |  | ● |  |  |  |
 | m3-02-off-by-one | faded |  |  |  | ● |  |  |
 | m3-03-for-of-and-in | faded |  |  |  | ● |  |  |
@@ -210,10 +210,10 @@ change; `evaluate` steps ask for a defended judgement graded against a rubric.
 |---|---:|---:|---:|
 | remember | 1 | 0 | 1 |
 | understand | 10 | 0 | 5 |
-| apply | 13 | 0 | 12 |
+| apply | 13 | 0 | 13 |
 | analyze | 9 | 0 | 9 |
 | evaluate | 3 | 1 | 2 |
-| create | 5 | 5 | 2 |
+| create | 5 | 5 | 1 |
 
 `javascript-foundations` climbs the same way the firmware pack does, but it also carries the Addendum v1.1 scaffolding: nine `worked` steps that show the whole move, fourteen `faded` steps that leave the decisive line to the student, and eight `independent` steps. Every module holds at least one `predict` task, `recallFrom` brings an earlier step's question back from M1 onwards, and every step has at least one automatic check.
 ## Notes for course authors
