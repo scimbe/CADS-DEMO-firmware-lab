@@ -21,10 +21,17 @@ tasks:
     check: { type: testSuite, runner: node-test, expectPass: ["m0-01 the workspace is ready"], minPass: 1 }
   - id: where-things-are
     title: Sag, wo die Ausgabe erschienen ist
-    check: { type: question, prompt: { en: "You ran a command and then changed a file. Say which of the three ways you used to run it, where in the window the output appeared, how you could tell the command had finished, and which file you edited to make the test pass.", de: "Du hast einen Befehl ausgeführt und dann eine Datei geändert. Sag, welchen der drei Wege du zum Ausführen benutzt hast, wo im Fenster die Ausgabe erschien, woran du erkennen konntest, dass der Befehl fertig war, und welche Datei du geändert hast, damit der Test besteht." }, rubric: "Names one of the three routes (the integrated terminal, the command palette via F1, or Terminal > Run Task); locates the output in the panel at the bottom of the window; gives a usable finished-signal such as the prompt reappearing or the summary line with pass and fail counts; and names src/m0/ready.js as the edited file, explicitly not the file under test/.", bloom: understand, minChars: 80 }
+    check: { type: question, prompt: { en: "Name the route you used, where the output appeared, and the file you edited. One sentence each.", de: "Nenne den benutzten Weg, wo die Ausgabe erschien, und die geänderte Datei. Je ein Satz." }, rubric: "Three sentences, one per part. Route: the integrated terminal, the command palette via F1, or Terminal > Run Task. Place: the panel at the bottom of the window. File: src/m0/ready.js. Does not pass: a file under test/ named as the one edited, an answer that names fewer than three parts, or 'the terminal' alone without saying it is the bottom panel.", bloom: understand, minChars: 60 }
 socratic:
-  - { trigger: "task:node-runs:failed", question: { en: "Is a terminal open at all, and does its prompt end in the folder javascript-foundations?", de: "Ist überhaupt ein Terminal offen, und endet sein Prompt auf den Ordner javascript-foundations?" }, hints: [ { en: "Menu Terminal > New Terminal opens one at the bottom of the window; the keyboard route is F1, then type 'Terminal: Create New Terminal'.", de: "Menü Terminal > New Terminal öffnet eines am unteren Rand; der Tastaturweg ist F1, dann 'Terminal: Create New Terminal' tippen." }, { en: "Type pwd and press Enter. The last part of the path must be javascript-foundations.", de: "Tippe pwd und drücke Enter. Der letzte Teil des Pfads muss javascript-foundations sein." }, { en: "If it is not, run: cd javascript-foundations", de: "Wenn nicht, führe aus: cd javascript-foundations" } ] }
-  - { trigger: "task:ready:failed", question: { en: "Which file did you change - the one under src/, or the one under test/?", de: "Welche Datei hast du geändert - die unter src/ oder die unter test/?" }, hints: [ { en: "The exercise lives in src/m0/ready.js. Files under test/ are the marking scheme and are never edited.", de: "Die Übung liegt in src/m0/ready.js. Dateien unter test/ sind das Prüfschema und werden nie bearbeitet." }, { en: "Change false to true on the last line, then save with Ctrl+S (Cmd+S on a Mac).", de: "Ändere in der letzten Zeile false zu true und speichere mit Strg+S (Cmd+S auf dem Mac)." }, { en: "Run the command again in the same terminal - press the Up arrow to bring it back.", de: "Führe den Befehl im selben Terminal erneut aus - mit der Pfeil-nach-oben-Taste holst du ihn zurück." } ] }
+  - trigger: "task:node-runs:failed"
+    question: { en: "Nothing came back. Is a terminal open, and does its prompt end in the exercise folder?", de: "Es kam nichts zurück. Ist ein Terminal offen, und endet sein Prompt auf den Übungsordner?" }
+    hints: [ { en: "Terminal > New Terminal opens one at the bottom; F1 then 'Terminal: Create New Terminal' does the same.", de: "Terminal > New Terminal öffnet unten eines; F1 und dann 'Terminal: Create New Terminal' tut dasselbe." }, { en: "Type pwd and read the last part of the path against the folder name in the Explorer title.", de: "Tippe pwd und vergleich den letzten Teil des Pfads mit dem Ordnernamen im Explorer-Titel." }, { en: "A new terminal starts one folder above the exercises, so one cd is needed before any command here.", de: "Ein neues Terminal startet einen Ordner über den Übungen, vor jedem Befehl hier fehlt also ein cd." } ]
+  - trigger: "task:ready:failed"
+    question: { en: "The test still reads the old value. Which file did the change land in, and is it saved?", de: "Der Test liest weiter den alten Wert. In welcher Datei landete die Änderung, und ist sie gespeichert?" }
+    hints: [ { en: "Compare the path in the editor tab with the path in the assertion message.", de: "Vergleich den Pfad im Editor-Tab mit dem Pfad in der Assertion-Meldung." }, { en: "The exercise is the file under src/; the file under test/ is the marking scheme and stays untouched.", de: "Die Übung ist die Datei unter src/; die Datei unter test/ ist das Prüfschema und bleibt unberührt." }, { en: "Node reads from disk, so a tab showing a dot instead of a cross is a change Node cannot see yet.", de: "Node liest von der Platte, ein Tab mit Punkt statt Kreuz ist also eine Änderung, die Node noch nicht sieht." } ]
+  - trigger: "task:where-things-are:failed"
+    question: { en: "Which of the three parts is missing - the route, the place, or the file?", de: "Welcher der drei Teile fehlt - der Weg, der Ort oder die Datei?" }
+    hints: [ { en: "Scroll the terminal back to the command you ran; the route is how you opened that terminal.", de: "Scroll im Terminal zum ausgeführten Befehl zurück; der Weg ist, wie du dieses Terminal geöffnet hast." }, { en: "The place is a named region of the window, not the whole window.", de: "Der Ort ist ein benannter Bereich des Fensters, nicht das ganze Fenster." }, { en: "The assertion message named the file you had to change; it is not the file the message came from.", de: "Die Assertion-Meldung nannte die zu ändernde Datei; es ist nicht die Datei, aus der die Meldung kam." } ]
 misconceptions:
   - pattern: "Cannot find module|no such file or directory|MODULE_NOT_FOUND"
     question: { en: "Node looked for the file where you started it. Which folder is the terminal sitting in?", de: "Node hat die Datei dort gesucht, wo du es gestartet hast. In welchem Ordner steht das Terminal?" }
@@ -41,70 +48,11 @@ misconceptions:
 ---
 ## Lernziel
 
-Bedien diesen Editor so sicher, dass du jeden Step dieses Kurses abschließen kannst: ein Terminal öffnen, einen Befehl auf drei Wegen ausführen, die Ausgabe finden, erkennen, wann ein Befehl fertig ist, und die richtige Datei ändern.
+Bedien diesen Editor sicher genug für jeden Step: Terminal öffnen, Befehl ausführen, Ausgabe lesen, die richtige Datei ändern.
 
-## Was auf deinem Bildschirm ist
+## Das tust du zuerst
 
-Das Fenster hat vier Bereiche, und du benutzt alle vier.
-
-| Wo | Was es ist | Was du dort tust |
-|---|---|---|
-| Linker Rand, senkrechte Leiste | Aktivitätsleiste. Das Doktorhut-Symbol ist **CaDS Tutor**. | Tutor öffnen, Kurs wählen, Step wählen. |
-| Links, breite Spalte | Explorer: die Dateien von `javascript-foundations`. | Dateien unter `src/…` per Klick öffnen. |
-| Mitte | Editor. Ein Tab je geöffneter Datei. | Code schreiben. |
-| Unten | Panel: **Terminal**, **Problems**, **Output**. | Befehle ausführen und lesen, was sie ausgeben. |
-
-Der Step, den du gerade liest, ist das **Tutor-Panel**. Seine Aufgabenliste hat je Aufgabe eine Prüf-Schaltfläche; ein Druck darauf führt die Prüfung aus und zeigt das Ergebnis neben der Aufgabe.
-
-![Das Tutor-Panel neben dem Editor, links der Kursbaum, rechts die Abzeichen und der Text des Steps](tutor-panel-step.png)
-*Wo du bist: links der Kursbaum, rechts dieser Step. Die Abzeichen unter dem Titel nennen die Bloom-Stufe, die Art der Anleitung und die geschätzte Zeit.*
-
-![Die Aufgabenliste des Panels, die ersten beiden Prüfungen bestanden, je ein grüner Haken daneben](tutor-panel-checks.png)
-*Dasselbe Panel, zur Aufgabenliste gescrollt. **Check** führt eine Aufgabe aus und schreibt das Urteil darunter - hier `exited with 0` und `10 test(s) passed`. **Show hint** öffnet die Hinweise Stufe für Stufe, und eine `question`-Aufgabe beantwortest du im Textfeld.*
-
-Ist das untere Panel nicht sichtbar, holt es das Menü **View > Terminal** zurück. Beim Ausblenden geht nichts verloren.
-
-## Drei Wege, etwas auszuführen
-
-![Das Anwendungsmenü ist auf Terminal geöffnet und zeigt oben New Terminal und weiter unten Run Task](ide-terminal-menu.png)
-*Weg 1 und Weg 3 in einem Bild: die Menü-Schaltfläche links oben, dann **Terminal**. **New Terminal** öffnet unten eine Shell; **Run Task…** bietet die vorbereiteten Befehle an.*
-
-![Die Befehlspalette ist geöffnet, darin steht Terminal: Create New Terminal](ide-command-palette.png)
-*Weg 2: **F1** öffnet die Befehlspalette. Sie kommt mit einem `>` im Feld - lass es stehen, tippe die ersten Buchstaben des Befehls und drück Enter.*
-
-
-Alle drei tun dasselbe. Lern alle drei; verschiedene Steps nennen verschiedene.
-
-1. **Das integrierte Terminal.** Menü **Terminal > New Terminal**. Unten öffnet sich eine Shell. Befehl tippen, Enter drücken. Das ist der Standardweg dieses Kurses, weil du den genauen Befehl und seine genaue Ausgabe zusammen siehst.
-2. **Die Befehlspalette.** Drück **F1**. Im Browser ist das zuverlässiger als Strg+Umschalt+P, das der Browser selbst abfangen kann. Tipp die ersten Buchstaben des Gewünschten, etwa `Terminal: Create New Terminal`, und drück Enter.
-3. **Ein Task.** Menü **Terminal > Run Task…**, dann einen aus der Liste wählen. Ein Task ist ein Befehl, den jemand für dich vorbereitet hat; seine Ausgabe erscheint im Panel unter **Terminal**, in einem nach dem Task benannten Tab.
-
-## Woran du erkennst, dass ein Befehl fertig ist
-
-![Das integrierte Terminal zeigt einen fehlschlagenden Test: die Assertion-Meldung, die Datei, aus der sie kam, und den Prompt am Ende](ide-test-failing.png)
-*So sieht ein fehlgeschlagener Lauf aus: das Terminal-Panel unten, das Kreuz und die Assertion-Meldung, und der Prompt wieder da - der Befehl ist fertig, er ist nur nicht bestanden.*
-
-
-Zwei Signale, und die lohnen sich jetzt:
-
-- **Der Prompt kommt zurück.** Während ein Befehl läuft, wird kein neuer Prompt ausgegeben. Erscheint die Zeile, die auf `$` (oder `%`) endet, wieder, ist der Befehl fertig.
-- **Die Zusammenfassungszeile.** `node --test` endet mit einem Block aus Zählern:
-
-```
-ℹ tests 1
-ℹ pass 1
-ℹ fail 0
-```
-
-`fail 0` heißt Erfolg. Alles andere nicht.
-
-Die Ausgabe bleibt nach dem Ende des Befehls im Terminal stehen; scroll nach oben, um sie erneut zu lesen. Ein Terminal über das Papierkorb-Symbol zu schließen wirft diese Ausgabe weg - wenn du nicht findest, was ein Befehl ausgegeben hat, prüfe, ob du auf ein *neues*, leeres Terminal schaust statt auf das, in dem du ihn ausgeführt hast.
-
-## Deine Aufgabe
-
-Mach die vier Handgriffe einmal bewusst.
-
-**1. Terminal öffnen** - Menü **Terminal > New Terminal**, oder **F1** und dann `Terminal: Create New Terminal`. Prüf, wo du bist:
+**1. Terminal öffnen.** Menü **Terminal > New Terminal**, oder **F1** drücken und `Terminal: Create New Terminal` tippen. Es öffnet sich im Panel unten. Prüf, wo es steht:
 
 ```bash
 pwd
@@ -112,53 +60,77 @@ pwd
 
 Der Pfad muss auf `javascript-foundations` enden. Wenn nicht, führe `cd javascript-foundations` aus.
 
-**2. Einen Befehl ausführen** und seine Antwort lesen:
+**2. Einen Befehl ausführen.**
 
 ```bash
 node --version
 ```
 
-Er gibt etwas wie `v22.11.0` aus. Das ist die erste Prüfung dieses Steps.
+Er antwortet `v22.` oder höher. Das ist die erste Prüfung dieses Steps.
 
-**3. Den Test dieses Steps ausführen** und den Fehlschlag lesen:
+**3. Den Test dieses Steps ausführen** und den Fehlschlag lesen.
 
 ```bash
 node --test test/m0-01-using-the-ide.test.js
 ```
 
-```
-✖ m0-01 the workspace is ready
-  AssertionError: Set READY to true in src/m0/ready.js - do not change this test file.
-```
+**4. Die im Fehlschlag genannte Datei ändern** - [`src/m0/ready.js`](file:src/m0/ready.js) - von `false` auf `true`, mit **Strg+S** (**Cmd+S** auf dem Mac) speichern und den Befehl erneut ausführen. Die **Pfeil-nach-oben-Taste** holt ihn zurück, ohne ihn abzutippen.
 
-**4. Die richtige Datei ändern.** Öffne [`src/m0/ready.js`](file:src/m0/ready.js) im Explorer, ändere in der letzten Zeile `false` zu `true` und speichere mit **Strg+S** (**Cmd+S** auf dem Mac). Ein ungespeicherter Tab zeigt einen Punkt statt eines Kreuzes - Node liest die Datei von der Platte, eine ungespeicherte Änderung ist für Node also unsichtbar.
+Dateien unter `test/` sind das Prüfschema. Eine davon zu ändern, damit sie besteht, ist der eine Handgriff, der in diesem Kurs nirgends hilft.
+
+## Was auf deinem Bildschirm ist
+
+| Wo | Was es ist | Was du dort tust |
+|---|---|---|
+| Linker Rand, senkrechte Leiste | Aktivitätsleiste. Das Doktorhut-Symbol ist **CaDS Tutor**. | Tutor öffnen, Step wählen. |
+| Links, breite Spalte | Explorer: die Dateien von `javascript-foundations`. | `src/…`-Dateien per Klick öffnen. |
+| Mitte | Editor. Ein Tab je geöffneter Datei. | Code schreiben. |
+| Unten | Panel: **Terminal**, **Problems**, **Output**. Ein-/ausblenden über **View > Terminal**. | Befehle ausführen, Ausgabe lesen. |
+
+Dieser Step selbst ist das **Tutor-Panel**. Jede Aufgabe dort hat eine Prüf-Schaltfläche; ein Druck darauf führt die Prüfung aus und schreibt das Urteil daneben.
+
+![Das Tutor-Panel neben dem Editor, links der Kursbaum, rechts die Abzeichen und der Text des Steps](tutor-panel-step.png)
+*Wo du bist: links der Kursbaum, rechts dieser Step. Die Abzeichen nennen Bloom-Stufe, Art der Anleitung und geschätzte Zeit.*
+
+![Die Aufgabenliste des Panels, die ersten beiden Prüfungen bestanden, je ein grüner Haken daneben](tutor-panel-checks.png)
+*Die Aufgabenliste. **Check** führt eine Aufgabe aus, **Show hint** öffnet die Hinweise Stufe für Stufe, und eine `question`-Aufgabe beantwortest du im Textfeld.*
+
+## Drei Wege, etwas auszuführen
+
+Alle drei tun dasselbe; verschiedene Steps nennen verschiedene.
+
+![Das Anwendungsmenü ist auf Terminal geöffnet und zeigt oben New Terminal und weiter unten Run Task](ide-terminal-menu.png)
+*Weg 1 und 3: die Menü-Schaltfläche links oben, dann **Terminal**. **New Terminal** öffnet eine Shell; **Run Task…** bietet vorbereitete Befehle, deren Ausgabe unter **Terminal** in einem nach dem Task benannten Tab erscheint.*
+
+![Die Befehlspalette ist geöffnet, darin steht Terminal: Create New Terminal](ide-command-palette.png)
+*Weg 2: **F1**. Im Browser besser als Strg+Umschalt+P, das der Browser abfangen kann. Das Feld kommt mit einem `>` - lass es stehen und tippe die ersten Buchstaben.*
+
+## Einen fertigen Befehl von einem laufenden unterscheiden
+
+Während ein Befehl läuft, fehlt der Prompt; am Ende kommt er zurück. `node --test` gibt danach einen Block aus Zählern aus, und einer dieser Zähler ist das Urteil.
+
+![Das integrierte Terminal zeigt einen fehlschlagenden Test: die Assertion-Meldung, die Datei, aus der sie kam, und den Prompt am Ende](ide-test-failing.png)
+*Ein fehlgeschlagener Lauf: das Kreuz, die Assertion-Meldung, die Herkunftsdatei und der Prompt wieder da - fertig, nur nicht bestanden.*
 
 ![Der Editor zeigt READY auf true geändert und einen Punkt statt eines Kreuzes im Tab ready.js](ide-edit-unsaved.png)
-*Der Punkt im Tab heißt, dass die Änderung nur im Editor steht. Node liest die Datei von der Platte, also speichere mit **Strg+S**, bevor du den Befehl erneut ausführst.*
-
-Führ danach denselben Befehl erneut aus. Drück im Terminal die **Pfeil-nach-oben-Taste**, um ihn zurückzuholen, statt ihn abzutippen.
+*Ein Punkt im Tab heißt, die Änderung steht nur im Editor. Node liest von der Platte, also vor dem nächsten Lauf speichern.*
 
 ![Das Terminal zeigt denselben Test bestanden, mit pass 1 und fail 0](ide-test-passing.png)
-*So sieht Erfolg aus: ein grüner Haken, `pass 1` und `fail 0`, und im Tab wieder ein Kreuz, weil die Datei gespeichert ist.*
+*Erfolg: ein grüner Haken, und beide Zähler stehen.*
 
-Siehst du stattdessen `Could not find 'test/…'`, steht das Terminal im falschen Ordner - ein neues Terminal startet in `~/workspace`, eine Ebene über den Übungen:
+Die Ausgabe bleibt nach dem Ende im Terminal stehen, scroll also zum Nachlesen hoch. Ein Terminal über das Papierkorb-Symbol zu schließen wirft sie weg - findest du nicht, was ein Befehl ausgab, prüf, ob du auf ein *neues*, leeres Terminal schaust.
 
 ![Das Terminal meldet, dass es die Testdatei nicht findet, weil es einen Ordner zu hoch steht](ide-wrong-folder.png)
-*Der Prompt zeigt `~/workspace`, nicht `~/workspace/javascript-foundations`. `cd javascript-foundations` behebt es, und die Pfeil-nach-oben-Taste holt den Befehl zurück.*
+*`Could not find 'test/…'` heißt falscher Ordner: ein neues Terminal startet in `~/workspace`, eine Ebene über den Übungen.*
 
+## Woran du erkennst, dass es geklappt hat
 
-Dateien unter `test/` sind das Prüfschema. Eine davon zu ändern, damit sie besteht, ist der eine Handgriff, der dir in diesem Kurs nirgends hilft.
-
-Eines lohnt sich einmal auszuprobieren, weil die Antwort nicht naheliegt:
+`node --version` hat geantwortet, und der Test dieses Steps zeigt beide Zähler gesetzt. Beantworte dann die dritte Aufgabe. Eines lohnt sich einmal auszuprobieren, weil die Antwort nicht naheliegt:
 
 ```bash
 node src/m0/ready.js
 ```
 
-Eine Übungsdatei direkt auszuführen prüft **nichts**. Übungsdateien exportieren nur Funktionen, die ein Test aufruft; für sich allein berechnen sie nichts und geben nichts aus. Damit du nicht auf ein leeres Terminal starrst, gibt jede von ihnen einen Hinweis aus, der den Befehl nennt, der deine Arbeit wirklich prüft. Die Regel dahinter: in diesem Kurs führst du Dateien unter `test/` aus, nie Dateien unter `src/`.
-
-## Woran du erkennst, dass es geklappt hat
-
-`node --version` antwortet, und der Test dieses Steps meldet `pass 1` und `fail 0`. Beantworte danach die dritte Aufgabe in eigenen Worten. Jeder folgende Step nennt dir Menüpfad, Tastenkürzel und Befehl direkt an der Handlung, du musst also nie hierher zurück, um etwas nachzuschlagen - aber hier sind sie alle erklärt.
+Eine Übungsdatei direkt auszuführen prüft nichts - Übungsdateien exportieren nur Funktionen, die ein Test aufruft. Jede gibt einen Hinweis aus, der den Befehl nennt, der deine Arbeit wirklich prüft.
 
 Als Nächstes: [deine erste richtige Übung](step:m0-02-first-run).
