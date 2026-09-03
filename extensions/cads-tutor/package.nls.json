@@ -28,5 +28,7 @@
   "walkthroughs.0.steps.3.title": "4. Debug",
   "walkthroughs.0.steps.3.description": "Start a debug session with F5 and stop at a breakpoint.\n[Start debugging](command:workbench.action.debug.start)",
   "walkthroughs.0.steps.4.title": "5. Continue in the tutor",
-  "walkthroughs.0.steps.4.description": "Open the guided course with its tasks and checks.\n[Open tutor](command:cads.tutor.open)"
+  "walkthroughs.0.steps.4.description": "Open the guided course with its tasks and checks.\n[Open tutor](command:cads.tutor.open)",
+  "commands.10.title": "Show orientation",
+  "configuration.properties.cadsTutor.showAllCourses.description": "Show every installed course, even those whose project.root does not match an opened workspace folder."
 }

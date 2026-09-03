@@ -10,8 +10,15 @@
  */
 import type { TestCaseResult, TestRunner } from "../types";
 
-/** `test tests::nested::deep_case ... ok` (libtest's default, non-terse format). */
-const CARGO_LINE = /^test\s+(\S+)\s+\.\.\.\s+(ok|FAILED|ignored)\b/;
+/**
+ * `test tests::nested::deep_case ... ok` (libtest's default, non-terse format).
+ *
+ * A `#[should_panic]` test carries a marker between the name and the dots:
+ * `test m5::element_at_panics - should panic ... ok`. Without the optional group
+ * the line was dropped entirely, so `expectPass` naming such a test reported
+ * that no test of that name had run.
+ */
+const CARGO_LINE = /^test\s+(\S+)(?:\s+-\s+should\s+panic)?\s+\.\.\.\s+(ok|FAILED|ignored)\b/;
 
 /**
  * libtest prints one flat line per test, so every cargo case is a leaf at depth 0.
@@ -88,15 +95,28 @@ export function parseTap(output: string): TestCaseResult[] {
         ? "passed"
         : "failed";
 
+    const finalName = name || frame?.name || "";
     out.push({
-      name: name || frame?.name || "",
-      path: [...stack.map((f) => f.name), name || frame?.name || ""].join(" > "),
+      name: finalName,
+      path: [...stack.map((f) => f.name), finalName].join(" > "),
       status,
       depth: stack.length,
       leaf: (frame?.children ?? 0) === 0,
+      file: looksLikeTestFile(finalName),
     });
   }
   return out;
+}
+
+/**
+ * `node --test` reports a whole test FILE as a failed test when the file cannot
+ * be loaded - a syntax error, or a missing export, which is exactly what these
+ * exercises ask the student to fix. Its named tests then never run, and telling
+ * the student "no test of that name ran" is true but useless. Recognising the
+ * file entry lets the message say what actually happened.
+ */
+function looksLikeTestFile(name: string): boolean {
+  return /[\\/]/.test(name) && /\.(?:test\.)?[cm]?[jt]s$/.test(name);
 }
 
 export function parseTestOutput(output: string, runner: TestRunner): TestCaseResult[] {
@@ -143,16 +163,25 @@ export interface SuiteVerdict {
  */
 export function evaluateSuite(tests: TestCaseResult[], expect: SuiteExpectation): SuiteVerdict {
   const byKey = indexTests(tests);
-  const leaves = tests.filter((t) => t.leaf);
+  // A file entry is a container, not a test the student wrote; counting it would
+  // distort minPass in both directions.
+  const leaves = tests.filter((t) => t.leaf && !t.file);
   const passedLeaves = leaves.filter((t) => t.status === "passed").length;
   const failedNames: string[] = [];
   const problems: string[] = [];
 
+  // Files that failed to load; their tests never ran, and that is the real reason
+  // an expected test is missing.
+  const brokenFiles = tests.filter((t) => t.file && t.status === "failed").map((t) => t.name);
   for (const name of expect.expectPass ?? []) {
     const t = byKey.get(name);
     if (t === undefined) {
       failedNames.push(name);
-      problems.push(`expected test "${name}" to pass, but no test of that name ran`);
+      problems.push(
+        brokenFiles.length > 0
+          ? `expected test "${name}" to pass, but it never ran: ${brokenFiles.slice(0, 3).join(", ")} could not be loaded (check the error above - a syntax error or a missing export stops the whole file)`
+          : `expected test "${name}" to pass, but no test of that name ran`,
+      );
     } else if (t.status !== "passed") {
       failedNames.push(name);
       problems.push(`expected test "${name}" to pass, but it ${t.status === "failed" ? "failed" : "was skipped"}`);
