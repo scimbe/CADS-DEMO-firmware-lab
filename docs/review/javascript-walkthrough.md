@@ -129,7 +129,7 @@ declaration` (ts2448). That is complementary rather than a spoiler: the step is
 about reading Node's runtime message, and m1-01 now points at the editor's
 wording and asks the student to compare the two. The screenshot is embedded there.
 
-### Three defects found, none of them in this pack
+### Four defects found, none of them in this pack
 
 **1. The runtime reports a failing test as a missing one.** With the exercise not
 yet done, the panel says:
@@ -166,5 +166,16 @@ guide chapters the pack was calibrated against. No language model is configured
 on this deployment either, so `question` checks correctly fall back to manual
 confirmation.
 
-All three are runtime or image issues and have been reported. Nothing in them
+**4. The module reflection card never appears.** Walking M0 through to five of
+five in the panel - every check run, every question answered and confirmed -
+produced the recall card twice, at the head of m0-02 and again at m0-01 of the
+next module, and recorded both under `recall` in `session.json`. Finishing the
+module produced no reflection card and no `reflection` key in the session,
+although the progress view lists `reflection: not yet` for every module, so the
+field exists and nothing ever sets it. Addendum A3 says the panel shows the card
+when the last step of a module is completed, and R7.6 says a reflection the
+course text promises has to exist; `course.json` carries prompts for all eight
+modules. Nothing in the pack needs changing.
+
+All four are runtime or image issues and have been reported. Nothing in them
 requires a change to this course pack.

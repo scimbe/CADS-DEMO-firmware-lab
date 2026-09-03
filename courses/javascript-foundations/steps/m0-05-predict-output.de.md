@@ -75,6 +75,9 @@ Dann führe es aus:
 node examples/m0-console.js
 ```
 
+![Die predict-Aufgabe zeigt die geschriebene Vorhersage neben der tatsächlichen Ausgabe, darunter eine Reflexionsfrage](tutor-predict-card.png)
+*Was das Panel mit einer Vorhersage macht: links dein Text, rechts die echte Ausgabe, darunter eine Frage danach, wo die beiden auseinandergingen.*
+
 ## Was du mit einer Abweichung anfängst
 
 Halte nicht nur fest, dass du falsch lagst, sondern benenne **welche Regel** du falsch hattest. „Ich dachte, `console.log` hängt seine Argumente ohne Trennzeichen aneinander" ist ein brauchbarer Satz. „Die letzte Zeile sah anders aus" ist keiner. Die zweite Aufgabe verlangt genau das für die erste Zeile.

@@ -83,6 +83,11 @@ Er schlägt fehl, mit Absicht:
 
 Diese Meldung leistet drei Dinge auf einmal. Sie nennt den fehlgeschlagenen Test, sie nennt den Fehler, und der Stacktrace nennt **Datei und Zeile, aus der der Fehler kam**: `src/m0/hello.js`, innerhalb von `greet`. Jeder Fehlschlag in diesem Kurs nennt dir diese drei Dinge.
 
+Vor dem eigentlichen Text zeigt das Panel unter Umständen eine kurze **Recall**-Karte: eine Frage aus einem bereits abgeschlossenen Step. Sie wird nicht bewertet, **Skip** blendet sie aus; sie zu beantworten ist der Weg, auf dem eine einmal gelernte Tatsache einen Step später noch einmal abgefragt wird.
+
+![Das Tutor-Panel zeigt über dem Step eine Recall-Karte, in der Fortschrittsansicht steht M0 mit fünf von fünf](tutor-recall-card.png)
+*Eine Wiederholungskarte am Kopf eines späteren Steps, mit der Frage aus einem früheren. Links unten zählt die Fortschrittsansicht, wie viele Prüfungen im ersten Anlauf bestanden.*
+
 ## Die Aufgabe
 
 Öffne [`src/m0/hello.js`](file:src/m0/hello.js). Darin steht eine Funktion:
