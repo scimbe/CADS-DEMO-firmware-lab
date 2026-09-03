@@ -54,12 +54,19 @@ TEACHERS = {
 ADMIN = "admin@hs.example"
 
 # persona -> share of the cohort.
-PERSONA_MIX = (("excellent", 0.10), ("solid", 0.45), ("weak", 0.20),
-               ("dropping", 0.15), ("copying", 0.10))
+PERSONA_MIX = (("excellent", 0.10), ("solid", 0.35), ("weak", 0.20),
+               ("dropping", 0.15), ("copying", 0.10), ("distractor", 0.10))
 # The persona name "copying" describes what the generator does, not a verdict about a person.
 # Its expected flag is "followup": an anomaly that warrants a question (see RULES.md 5.3).
 EXPECTED_FLAG = {"excellent": "excellent", "solid": None, "weak": "struggling",
-                 "dropping": "dropped", "copying": "followup"}
+                 "dropping": "dropped", "copying": "followup", "distractor": None}
+# The distractor group is the honest half of this script: it produces the SURFACE features of
+# copying without the cause.  Fast, correct, first-try passes, almost everything pasted (from
+# the course material, which this course hands out on purpose), reflections that quote the
+# step's own wording, and sessions that crash without a session.end.  Every follow-up flag it
+# collects is a false accusation of a person who did nothing wrong, and that number says more
+# about the rules than any precision figure measured against the generator's own patterns.
+DISTRACTOR = "distractor"
 SCORED_FLAGS = ("excellent", "struggling", "dropped", "followup")
 TARGETS = {"followup": {"precision": 0.8, "recall": 0.7},
            "excellent": {"precision": 0.7, "recall": 0.7},
@@ -82,6 +89,10 @@ PROFILE = {
                   "secs": (500, 1600), "q": 0.30, "paste": (0.05, 0.35)},
     "copying":   {"pass1": (0.45, 0.70), "hints": (0.0, 0.20), "tier3": 0.0,
                   "secs": (400, 1200), "q": 0.15, "paste": (0.05, 0.30)},
+    # Prior knowledge from work: fast and right, pastes the offered scaffold, needs no hints.
+    # Deliberately below the "excellent" criterion so it cannot be confused with that flag.
+    "distractor": {"pass1": (0.70, 0.82), "hints": (0.0, 0.10), "tier3": 0.0,
+                   "secs": (30, 55), "q": 0.10, "paste": (0.85, 0.95)},
 }
 
 QUESTION_POOL = {
@@ -131,6 +142,14 @@ COPIED_REFLECTION = ("Das Modul war insgesamt gut machbar und die Aufgaben baute
                      "sodass am Ende alles zusammenpasste")
 
 DAY = 86400.0
+
+
+def _reference_words(course: dict, step: str, n: int) -> list[str]:
+    """The first n words of what the step itself says (its rubric and body)."""
+    text = coursemeta.reference_text(course, step) or ""
+    words = [w for w in text.split() if not w.startswith(("#", "-", "|", "`"))]
+    return words[:n] or ["kein", "Referenztext", "vorhanden", "in", "diesem", "Schritt",
+                         "also", "eigene", "Formulierung", "notiert"]
 
 
 def slug_for(email: str) -> str:
@@ -246,7 +265,9 @@ class Cohort:
                 hints, tier3s, first_pass = 0, 0, True
             else:
                 secs = rng.uniform(*prof["secs"])
-                share = min(0.6, max(0.0, rng.gauss(paste_rate, 0.06)))
+                # cap near 1.0, not at 0.6: the distractor group is supposed to reach a paste
+                # share above the rule's threshold, otherwise it never tests the rule at all
+                share = min(0.97, max(0.0, rng.gauss(paste_rate, 0.06)))
                 total = rng.randint(700, 2600)
                 pasted = int(total * share)
                 typed = total - pasted
@@ -303,7 +324,13 @@ class Cohort:
             mod = meta.get("module") or sid.split("-", 1)[0]
             # The pair hands in the same text on the same step - two reflections on different
             # steps are never compared, so a pair that drifts apart is simply invisible.
-            if slug in copy_pair and sid == copy_step:
+            if persona == DISTRACTOR and mod not in modules_seen and idx > 0:
+                # quotes the step's own text: two of them look identical to each other without
+                # either having copied from the other
+                modules_seen.add(mod)
+                out.append(ev(sid, "reflection.written", t + secs + 120,
+                              text=" ".join(_reference_words(course, sid, 40))))
+            elif slug in copy_pair and sid == copy_step:
                 out.append(ev(sid, "reflection.written", t + secs + 120, text=COPIED_REFLECTION))
                 modules_seen.add(mod)
             elif mod not in modules_seen and idx > 0 and rng.random() < 0.7:
@@ -312,6 +339,12 @@ class Cohort:
             if rng.random() < 0.4:
                 out.append(ev(sid, "recall.answered", t + secs + 60, bloom=bloom, verdict=_verdict(rng, persona)))
 
+        # a crashed session leaves events outside any window - the same trace "working outside
+        # the session" leaves, which is why that signal is weak
+        if persona == DISTRACTOR and steps:
+            for k in range(4):
+                out.append(ev(steps[min(k, len(steps) - 1)], "question.asked", end + (k + 1) * 650,
+                              question=self._question(cid), grounded=True))
         # copiers also work outside any recorded session
         if persona == "copying" and steps:
             for k in range(4):
@@ -346,6 +379,33 @@ def score(truth: dict[str, str], flags: dict[str, list[dict]]) -> dict[str, dict
                      "false_positives": sorted(f"{s}:{truth[s]}" for s in (got - expected)),
                      "false_negatives": sorted(s for s in (expected - got))}
     return out
+
+
+def distractor_report(truth: dict[str, str], flags: dict[str, list[dict]],
+                      metrics: dict[str, dict], course: dict, thresholds: dict) -> dict:
+    """How the rules treat people who look guilty and are not.
+
+    This is the number worth reading.  Precision against the personas is circular - the same
+    rule set writes the patterns and then finds them.  The distractor group is not circular:
+    it reproduces the surface of copying (fast first-try passes, almost everything pasted,
+    reflections that quote the step, events outside a session) with an entirely innocent cause.
+    Any follow-up flag it collects would land on a real person who did nothing wrong.
+
+    The "old rule" column applies the paste-share signal the way it worked before the review:
+    absolute thresholds, no check for what the tutor had already given away.
+    """
+    ig = thresholds["integrity"]
+    group = [s for s, persona in truth.items() if persona == DISTRACTOR]
+    flagged = {s: [f["flag"] for f in flags.get(s, [])] for s in group}
+    followup = [s for s in group if "followup" in flagged[s]]
+    notice = [s for s in group if "notice" in flagged[s]]
+    # what the pre-review rule would have said: paste share alone, no suppression at all
+    naive = fast = an.fast_paste_passes(metrics, None, ig["fastPassSeconds"], ig["pasteShare"])
+    naive_hits = [s for s in group if naive.get(s)]
+    return {"size": len(group), "followup": sorted(followup), "notice": sorted(notice),
+            "false_followup_rate": (len(followup) / len(group)) if group else 0.0,
+            "would_have_been_flagged_by_the_old_paste_rule": sorted(naive_hits),
+            "old_rule_rate": (len(naive_hits) / len(group)) if group else 0.0}
 
 
 # --------------------------------------------------------------------------- HTTP
@@ -473,6 +533,9 @@ def main(argv: list[str] | None = None) -> int:
         flags = an.compute_flags(normalized, metrics, None, now, course)
         truth = {s["slug"]: s["persona"] for s in cohorts[cid].students}
         result = score(truth, flags)
+        dist = distractor_report(truth, flags, metrics, course,
+                                 an.deep_merge(an.DEFAULT_THRESHOLDS, None))
+        result["_distractor"] = dist
         report["courses"][cid] = result
         print(f"\n{cid}")
         print(f"  {'flag':<12}{'support':>8}{'flagged':>9}{'TP':>4}{'FP':>4}{'FN':>4}"
@@ -486,6 +549,15 @@ def main(argv: list[str] | None = None) -> int:
                   f"{r['precision']:>11.2f}{r['recall']:>8.2f}   {'ok' if good else 'MISSED'}")
             if r["false_positives"]:
                 print(f"      false positives: {', '.join(r['false_positives'][:6])}")
+        d = result["_distractor"]
+        ok = ok and not d["followup"]
+        print(f"  distractor group (legitimately fast, heavy pasting, quotes the step): {d['size']} students")
+        print(f"    wrongly told 'needs a conversation': {len(d['followup'])} "
+              f"({d['false_followup_rate']:.0%})   {'ok' if not d['followup'] else 'MISSED'}")
+        print(f"    weak-signal notice only:             {len(d['notice'])}")
+        print(f"    the pre-review paste rule would have flagged: "
+              f"{len(d['would_have_been_flagged_by_the_old_paste_rule'])} "
+              f"({d['old_rule_rate']:.0%})")
 
     if args.verify_ui and not args.offline:
         for cid in all_events:

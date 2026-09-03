@@ -55,9 +55,13 @@ DEFAULT_THRESHOLDS: dict = {
         "textMargin": 0.25,          # ... and how far it must exceed the step's own text
         "textMinTokens": 8,
         "textTypes": ["reflection.written"],   # only answers that require own wording
-        "outsideSessionMin": 3,
+        "weakForFollowup": 2,        # this many DISTINCT KINDS of weak signal warrant a question
+    },
+    # Not signals.  Observations kept for the deep dive so a teacher can make sense of a
+    # timeline, explicitly excluded from every flag.  See RULES.md section 5.5.
+    "diagnostics": {
         "outsideSessionGraceSeconds": 120,
-        "weakForFollowup": 2,        # this many weak signals together warrant a question
+        "outsideSessionMinToShow": 3,
     },
     "mastery": {"weights": {"check": 0.5, "question": 0.3, "predict": 0.2}},
 }
@@ -101,6 +105,20 @@ def jaccard(a: Iterable[str], b: Iterable[str]) -> float:
     if not sa or not sb:
         return 0.0
     return len(sa & sb) / len(sa | sb)
+
+
+def containment(a: Iterable[str], b: Iterable[str]) -> float:
+    """Share of ``a`` that is already contained in ``b`` (overlap coefficient over |a|).
+
+    Jaccard is the wrong tool for "how much of this answer comes from the step text": the step
+    text is far longer than an answer, and the size difference alone pushes Jaccard towards
+    zero even when the answer is a verbatim quote.  Containment asks the question that actually
+    matters - what fraction of what this person wrote was already in front of them.
+    """
+    sa, sb = set(a), set(b)
+    if not sa:
+        return 0.0
+    return len(sa & sb) / len(sa)
 
 
 def percentile(values: list[float], p: float) -> float:
@@ -447,20 +465,30 @@ def identical_texts(events: list[dict], course: Optional[dict] = None, threshold
                 sim = jaccard(a["tokens"], b["tokens"])
                 if sim < threshold:
                     continue
-                base = max(jaccard(a["tokens"], ref), jaccard(b["tokens"], ref)) if ref else 0.0
-                if sim - base < margin:
+                base = max(containment(a["tokens"], ref), containment(b["tokens"], ref)) if ref else 0.0
+                if ref and sim - base < margin:
                     continue          # no more alike than the material they both read
                 for me, other in ((a, b), (b, a)):
                     hits[me["student"]].append({
                         "step": me["step"], "type": me["type"], "other": other["student"],
                         "similarity": round(sim, 3), "baseline": round(base, 3),
                         "excess": round(sim - base, 3), "later": me["t"] > other["t"],
+                        # Without the step's own wording there is nothing to subtract, so the
+                        # pair cannot be told apart from two people quoting the same source.
+                        "baseline_available": bool(ref),
                     })
     return dict(hits)
 
 
 def outside_session_events(events: list[dict], grace_s: float = 120.0) -> dict[str, list[dict]]:
-    """Events per student that fall outside every [session.start, session.end] window."""
+    """Events per student outside every [session.start, session.end] window.  NOT a signal.
+
+    This was an integrity signal until the control group measured it: it fired on 4 of 4
+    members of a demonstrably uninvolved group, because a crashed session leaves exactly the
+    same trace as working outside one.  A feature that flags 100 % of the innocent carries no
+    information, so it no longer contributes to any flag.  It survives only as a neutral note
+    in the deep dive, where it helps a teacher read a gappy timeline.  See RULES.md 5.5.
+    """
     by_student: dict[str, list[dict]] = defaultdict(list)
     for e in events:
         by_student[e["student"]].append(e)
@@ -552,9 +580,9 @@ def compute_flags(events: list[dict], metrics: dict[str, dict], thresholds: Opti
 
     Two rules govern everything here (RULES.md sections 0 and 3):
 
-    * No flag asserts cheating.  The strongest integrity signal earns the label "an anomaly
-      that warrants a question", and every reason carries the counter-hypothesis that explains
-      it innocently, so the teacher sees both readings at once.
+    * No flag asserts cheating.  The strongest integrity signal is labelled "needs a
+      conversation", and every reason carries the counter-hypothesis that explains it
+      innocently, so the teacher sees both readings at once and asks rather than concludes.
     * Flags are criterion-referenced.  They compare a person against the learning objective,
       not against the cohort.  Percentiles and z-scores still appear, but only as supplementary
       notes marked ``norm``, and they never decide whether a flag is raised.
@@ -571,7 +599,6 @@ def compute_flags(events: list[dict], metrics: dict[str, dict], thresholds: Opti
     fast = fast_paste_passes(metrics, course, ig["fastPassSeconds"], ig["pasteShare"])
     ident = identical_texts(events, course, ig["textJaccard"], ig["textMinTokens"],
                             ig["textMargin"], ig["textTypes"])
-    outside = outside_session_events(events, ig["outsideSessionGraceSeconds"])
     preds = prediction_anomalies(events)
     flags: dict[str, list[dict]] = {}
     for stu, m in sorted(metrics.items()):
@@ -579,17 +606,26 @@ def compute_flags(events: list[dict], metrics: dict[str, dict], thresholds: Opti
         # ---- integrity signals ---------------------------------------------------------------
         reasons: list[dict] = []
         for hit in ident.get(stu, []):
-            reasons.append({"strength": "strong", "evidence": hit, "text": {
+            # No reference text for the step means no baseline, and without a baseline the
+            # observation cannot carry a strong claim - it drops to a weak signal.
+            reasons.append({"strength": "strong" if hit.get("baseline_available") else "weak",
+                            "evidence": hit, "text": {
                 "de": f"Step {hit['step']}: {hit['type']} zu {hit['similarity']:.0%} identisch mit {hit['other']}, "
-                      f"und damit {hit['excess']:.0%} über der Ähnlichkeit zum Steptext selbst ({hit['baseline']:.0%})"
-                      f"{' (später abgegeben)' if hit['later'] else ' (früher abgegeben)'}",
+                      + (f"und damit {hit['excess']:.0%} über der Ähnlichkeit zum Steptext selbst "
+                         f"({hit['baseline']:.0%})" if hit.get("baseline_available")
+                         else "ohne Steptext als Vergleichsmaßstab (deshalb nur ein schwaches Signal)")
+                      + f"{' (später abgegeben)' if hit['later'] else ' (früher abgegeben)'}",
                 "en": f"Step {hit['step']}: {hit['type']} {hit['similarity']:.0%} identical to {hit['other']}, "
-                      f"{hit['excess']:.0%} above the similarity to the step's own text ({hit['baseline']:.0%})"
-                      f"{' (submitted later)' if hit['later'] else ' (submitted earlier)'}"}, "counter": {
-                "de": "Kann auch bedeuten: erlaubte Zusammenarbeit, gemeinsame Formulierung nach einer Lerngruppe, "
-                      "oder eine Aufgabe, die kaum andere Formulierungen zulässt.",
-                "en": "May also mean: permitted collaboration, wording agreed in a study group, or a task that "
-                      "admits hardly any other phrasing."}})
+                      + (f"{hit['excess']:.0%} above the similarity to the step's own text "
+                         f"({hit['baseline']:.0%})" if hit.get("baseline_available")
+                         else "with no step text to compare against (hence a weak signal only)")
+                      + f"{' (submitted later)' if hit['later'] else ' (submitted earlier)'}"}, "counter": {
+                "de": "Kann auch bedeuten: gleiche Formulierung aus derselben Quelle (Kursmaterial, Doku, "
+                      "Vorlesung), erlaubte Zusammenarbeit oder eine Lerngruppe, die ihr Ergebnis gemeinsam "
+                      "formuliert hat, oder eine Aufgabe, die kaum andere Formulierungen zulässt.",
+                "en": "May also mean: the same wording from the same source (course material, docs, lecture), "
+                      "permitted collaboration or a study group that phrased its result together, or a task "
+                      "that admits hardly any other phrasing."}})
         for hit in preds.get(stu, []):
             reasons.append({"strength": "strong", "evidence": hit, "text": {
                 "de": f"Step {hit['step']}: Vorhersage entspricht exakt der Ausgabe und wurde erst nach der Ausführung geschrieben",
@@ -600,31 +636,27 @@ def compute_flags(events: list[dict], metrics: dict[str, dict], thresholds: Opti
                 "en": "May also mean: the prediction was filled in afterwards because it had been forgotten - the "
                       "editor does not enforce the order."}})
         for hit in fast.get(stu, []):
-            reasons.append({"strength": "weak", "evidence": hit, "text": {
+            reasons.append({"strength": "weak", "kind": "paste", "evidence": hit, "text": {
                 "de": f"Step {hit['step']}: Check beim ersten Versuch nach {hit['seconds']} s bestanden, "
                       f"Paste-Anteil {hit['paste_share']:.0%}, ohne vorher gezeigten Hinweis der Stufe 2 oder 3",
                 "en": f"Step {hit['step']}: check passed first try after {hit['seconds']} s with "
                       f"{hit['paste_share']:.0%} pasted, with no tier-2 or tier-3 hint shown beforehand"},
                 "counter": {
-                "de": "Kann auch bedeuten: Codegerüst aus dem Kursmaterial übernommen (das der Kurs ausdrücklich "
-                      "anbietet), Vorwissen aus Beruf oder früherem Studium, oder eine Lösung, die in einem anderen "
-                      "Editor entstanden ist.",
-                "en": "May also mean: a scaffold taken from the course material (which the course offers on purpose), "
-                      "prior knowledge from work or earlier study, or a solution written in another editor."}})
-        outs = outside.get(stu, [])
-        if len(outs) >= ig["outsideSessionMin"]:
-            reasons.append({"strength": "weak", "evidence": {"count": len(outs), "sample": outs[:5]}, "text": {
-                "de": f"{len(outs)} Ereignisse außerhalb einer Session (z. B. {outs[0]['type']} {outs[0]['ts']})",
-                "en": f"{len(outs)} events outside any session (e.g. {outs[0]['type']} {outs[0]['ts']})"},
-                "counter": {
-                "de": "Kann auch bedeuten: abgestürzte Sitzung, fehlendes session.end, Arbeit über einen Neustart hinweg.",
-                "en": "May also mean: a crashed session, a missing session.end, work spanning a restart."}})
+                "de": "Kann auch bedeuten: Einfügen ist Übernahme aus einem Hinweis oder dem Kursmaterial, die "
+                      "der Kurs ausdrücklich anbietet; kurze Bearbeitungszeit ist Vorwissen aus Beruf oder "
+                      "früherem Studium; oder die Lösung ist in einem anderen Editor entstanden.",
+                "en": "May also mean: the paste is material taken from a hint or from the course text, which the "
+                      "course offers on purpose; the short working time is prior knowledge from work or earlier "
+                      "study; or the solution was written in another editor."}})
         strong = [r for r in reasons if r["strength"] == "strong"]
         weak = [r for r in reasons if r["strength"] == "weak"]
-        if strong or len(weak) >= ig["weakForFollowup"]:
+        # Distinct KINDS, not instances.  Repeating one weak observation is the same weak
+        # observation, not corroboration: counting instances would let the paste share alone
+        # reach a follow-up, which is exactly what it must never do (RULES.md 0a.1).
+        weak_kinds = {r.get("kind") for r in weak}
+        if strong or len(weak_kinds) >= ig["weakForFollowup"]:
             mine.append({"flag": "followup",
-                         "label": {"de": "Auffälligkeit, die eine Rückfrage rechtfertigt",
-                                   "en": "Anomaly that warrants a follow-up question"},
+                         "label": {"de": "Auffällig – Rückfrage empfohlen", "en": "Needs a conversation"},
                          "reasons": reasons, "notes": []})
         elif weak:
             mine.append({"flag": "notice", "label": {"de": "Schwaches Signal, keine Wertung",

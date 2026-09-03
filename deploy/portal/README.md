@@ -151,3 +151,12 @@ python3 deploy/portal/simulate.py --offline            # Precision/Recall der Fl
 
 `simulate.py` endet mit Exitcode 1, sobald ein Zielwert verfehlt wird, und eignet sich damit als
 Regressionstest für die Regeln selbst.
+
+**Precision und Recall gegen die Personas sind zirkulär** – derselbe Regelsatz erzeugt und sucht
+die Muster. Aussagekräftig ist allein die **Störgruppe**: Studierende, die aus harmlosen Gründen
+wie Abschreiben aussehen (schnell, korrekt, 85–95 % eingefügt, Reflexionen als Zitat des
+Steptexts). Der Simulator berichtet, wie viele davon fälschlich markiert werden. Vor dem
+methodischen Review waren das 100 %, heute 0 % – und zwar überhaupt, auch ohne schwaches
+Signal. Ein Merkmal („Aktivität außerhalb einer Session") wurde daraufhin ganz gestrichen, weil
+es bei 4 von 4 der Störgruppe ansprach. Begründung und Grenzen: `RULES.md`, Abschnitte 5.5
+und 6a.

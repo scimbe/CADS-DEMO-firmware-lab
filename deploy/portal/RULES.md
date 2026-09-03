@@ -17,7 +17,7 @@ Ein Flag ist ein Hinweis auf ein **Muster in Ereignisdaten**. Es ist kein Nachwe
 **niemals allein die Grundlage einer Bewertung**.
 
 **Kein Flag behauptet eine Täuschung.** Es gibt in diesem Portal keine Kategorie „Betrug". Das stärkste
-integritätsbezogene Signal heißt „Auffälligkeit, die eine Rückfrage rechtfertigt" – und genau das ist es:
+integritätsbezogene Signal heißt „Auffällig – Rückfrage empfohlen" – und genau das ist es:
 ein Anlass, nachzufragen. Zu jeder einzelnen Begründung zeigt die Oberfläche die **Gegenhypothese**, also
 die harmlose Erklärung desselben Musters, gleichberechtigt daneben.
 
@@ -216,7 +216,7 @@ Mindestens `minIndicators: 2` der folgenden **absoluten** Indikatoren, bei minde
 Zwei Indikatoren statt einem, weil jeder einzelne eine harmlose Erklärung hat. Der z-Wert der Step-Zeit
 (`timeZNote`) und das untere Perzentil (`percentileNote`) erscheinen als **Notiz**, nicht als Kriterium.
 
-### 5.3 „Auffälligkeit, die eine Rückfrage rechtfertigt" (`followup`) und „Schwaches Signal" (`notice`)
+### 5.3 „Auffällig – Rückfrage empfohlen" (`followup`) und „Schwaches Signal" (`notice`)
 
 `followup` entsteht aus **einem starken** Signal **oder** aus `weakForFollowup: 2` schwachen. Ein einzelnes
 schwaches Signal ergibt nur `notice` – zur Kenntnis, ohne Handlungsbedarf.
@@ -235,22 +235,46 @@ schwaches Signal ergibt nur `notice` – zur Kenntnis, ohne Handlungsbedarf.
    *Gegenhypothese: die Vorhersage wurde nachgetragen, weil sie vorher vergessen wurde – der Editor
    erzwingt die Reihenfolge nicht.*
 
-**Schwache** Signale:
+**Schwaches** Signal – es gibt nur noch eines:
 
 3. **Schnell bestanden mit hohem Paste-Anteil.** Check ohne vorherigen Fehlschlag, Zeit unter
    `fastPassSeconds: 60`, Paste-Anteil über `pasteShare: 0.8` – **und** zusätzlich: vorher wurde **kein**
    Hinweis der Stufe 2 oder 3 gezeigt **und** der Steptext nennt die Lösung nicht. Fehlt eine dieser beiden
    Bedingungen, wird das Signal verworfen, nicht abgeschwächt. Begründung: Abschnitt 0a.1.
-   *Gegenhypothese: Codegerüst aus dem Kursmaterial übernommen, Vorwissen, oder eine Lösung, die in einem
-   anderen Editor entstanden ist.*
-4. **Aktivität außerhalb einer Session.** Mindestens `outsideSessionMin: 3` Ereignisse außerhalb jedes
-   `session.start`/`session.end`-Fensters (Toleranz `outsideSessionGraceSeconds: 120`).
-   *Gegenhypothese: abgestürzte Sitzung, fehlendes `session.end`, Arbeit über einen Neustart hinweg.*
+   *Gegenhypothese: Einfügen ist Übernahme aus einem Hinweis oder dem Kursmaterial, kurze Bearbeitungszeit
+   ist Vorwissen, oder die Lösung ist in einem anderen Editor entstanden.*
+
+**Zwei schwache Signale heißt: zwei verschiedene Arten.** Gezählt werden Signal*arten*, nicht
+Vorkommen. Zehnmal dieselbe Beobachtung ist dieselbe Beobachtung, keine Bestätigung durch eine zweite,
+unabhängige Quelle. Da der Paste-Anteil seit der Streichung in Abschnitt 5.5 die **einzige** verbliebene
+schwache Signalart ist, folgt daraus unmittelbar: **Der Paste-Anteil kann allein nie zu einer Rückfrage
+führen**, so oft er auch auftritt. Genau das verlangt Abschnitt 0a.1.
 
 ### 5.4 „Längere Zeit ohne Aktivität" (`dropped`)
 
 Fortschritt < 100 %, mindestens `minStepsOpened: 1` Step geöffnet und seit `inactiveDays: 14` Tagen kein
 Ereignis. Sagt nichts über die Gründe.
+
+### 5.5 Entfernt: Aktivität außerhalb einer Session
+
+Ereignisse außerhalb jedes `session.start`/`session.end`-Fensters galten ursprünglich als schwaches
+Signal. **Das Merkmal ist gestrichen** – aus der Bewertung und aus der Anzeige der Auffälligkeiten.
+
+**Grund, gemessen an der Störgruppe (Abschnitt 6a):** Es schlug bei **4 von 4** Mitgliedern einer
+nachweislich unbeteiligten Gruppe an, also bei 100 %. Der Grund ist strukturell und nicht durch einen
+besseren Schwellwert zu beheben: Eine abgestürzte Sitzung ohne `session.end` hinterlässt exakt dieselbe
+Spur wie Arbeit außerhalb der Sitzung. Ein Merkmal ohne Trennschärfe trägt keine Information; es stand nur
+in der Oberfläche herum, wo eine Lehrperson es überdeuten kann.
+
+Die zugrunde liegenden Ereignisse werden weiterhin erfasst und in der **Tiefenanalyse** als
+**Randnotiz** angezeigt – ausdrücklich als „kein Signal" gekennzeichnet, mit dem Hinweis auf die
+abgestürzte Sitzung. Sie helfen dort, eine Lücke im Zeitstrahl zu erklären. In keine Bewertung, keine
+Flag-Berechnung und keine Liste von Auffälligkeiten gehen sie ein (`analytics.outside_session_events`
+wird von `compute_flags` nicht mehr aufgerufen; die Schwellwerte stehen unter `diagnostics`, nicht unter
+`integrity`).
+
+Die Spezifikation A5 nennt dieses Merkmal noch als Betrugsindikator; der Messbefund hat Vorrang, die
+Spezifikation wird entsprechend nachgezogen.
 
 ---
 
@@ -274,6 +298,73 @@ bestandenen. Die Stufe kommt aus dem Front-Matter des Steps.
 **Empfehlung**: regelbasierte Sätze aus den Flags und den Kennzahlen (Sprechstunde anbieten, Material
 ergänzen, Vorhersagen üben, Kontakt aufnehmen …). Kein Sprachmodell, keine Note, keine Automatik –
 Vorschläge für die Lehrperson, die entscheidet.
+
+---
+
+## 6a. Was die Zahlen des Simulators wert sind – und was nicht
+
+`simulate.py` gibt Precision und Recall der Flags gegen die Personas aus, die die Daten erzeugt
+haben. **Diese Zahlen sind kein Gütemaß für die Auswertung.** Sie sind zirkulär: derselbe
+Regelsatz, der die Muster sucht, hat sie vorher eingebaut. Ein Recall von 1,00 heißt nur, dass
+die Auswertung wiederfindet, was der Generator hineingeschrieben hat – über echtes Verhalten von
+Studierenden sagt das **nichts**.
+
+Was die Zahlen leisten, ist eng begrenzt:
+
+* Sie sind ein **Regressionstest**. Wenn eine Änderung an den Regeln die eingebauten Muster nicht
+  mehr findet, fällt das auf.
+* Sie zeigen die **Empfindlichkeit gegenüber der Kohortengröße** (Abschnitt 7).
+
+Was sie **nicht** leisten:
+
+* Keine Aussage über die Trefferquote bei echten Studierenden. Die Personas sind Karikaturen:
+  reale Verläufe liegen auf einem Kontinuum, nicht in fünf Schubladen.
+* Keine Aussage über die **Grundrate**. Wie häufig Täuschung tatsächlich vorkommt, ist unbekannt;
+  ohne Grundrate lässt sich aus einer Precision im Simulator kein positiver Vorhersagewert für
+  die Wirklichkeit ableiten.
+* Keine Aussage über **Fairness**. Ob die Regeln bestimmte Gruppen systematisch häufiger treffen
+  (Nicht-Muttersprachler, Berufstätige mit Vorwissen, Menschen mit schlechter Internetanbindung),
+  kann ein selbstgebauter Generator prinzipiell nicht zeigen.
+
+**Belastbare Aussagen brauchen echte Kohorten**: eine Auswertung über mindestens ein
+abgeschlossenes Semester, mit einer unabhängig – nicht aus denselben Daten – gewonnenen
+Referenz, und mit einer Fehleranalyse nach Gruppen. Bis dahin ist jede Zahl in diesem Abschnitt
+eine Aussage über den Simulator, nicht über die Lehre.
+
+### Die Störgruppe: die einzige nicht-zirkuläre Zahl
+
+Deshalb enthält der Simulator eine **Störgruppe** (`distractor`, 10 % der Kohorte). Sie erzeugt
+dieselben Oberflächenmerkmale wie Abschreiben, aber aus harmlosen Gründen:
+
+* schnelle, korrekte Bearbeitung beim ersten Versuch (Vorwissen aus dem Beruf),
+* Paste-Anteil von 85–95 % (das angebotene Codegerüst aus dem Kursmaterial),
+* Reflexionen, die den Steptext zitieren (dieselbe Quelle, nicht voneinander abgeschrieben),
+* Ereignisse außerhalb einer Session (abgestürzte Sitzung ohne `session.end`).
+
+Jedes `followup`-Flag, das diese Gruppe einsammelt, wäre im Betrieb eine Rückfrage an eine Person,
+die nichts falsch gemacht hat. Gemessen bei 40 Studierenden je Kurs, elf geprüfte Seeds:
+
+| Regelsatz | Störgruppe fälschlich markiert |
+|---|---|
+| vor dem Review (Paste-Anteil mit absoluten Schwellwerten) | **4 von 4 (100 %) in jedem der drei Kurse** |
+| nach 0a.1 und 0a.2, mit Session-Signal | 0 von 4 als Rückfrage, aber **4 von 4** als `notice` |
+| heute (zusätzlich Abschnitt 5.5) | **0 von 4 (0 %) überhaupt, in allen elf Seeds** |
+
+Diese Gegenüberstellung ist der eigentliche Beleg dafür, dass die Korrektur etwas gebracht hat –
+nicht die Precision gegen die Personas.
+
+Die Störgruppe hat außerdem ein Merkmal zu Fall gebracht: Sie erhielt zunächst durchgehend ein
+`notice`, ausgelöst durch die Ereignisse außerhalb der Session – also 4 von 4 bei einer
+unbeteiligten Gruppe. Ein Merkmal ohne jede Trennschärfe ist wertlos, und es wurde ersatzlos
+gestrichen (Abschnitt 5.5). Seither erhält die Störgruppe **kein** Flag mehr, weder `followup`
+noch `notice`.
+
+Die Störgruppe hat außerdem einen echten Fehler im Regelwerk gefunden: Der Abgleich mit dem
+Steptext benutzte zunächst Jaccard-Ähnlichkeit. Weil der Steptext um ein Vielfaches länger ist als
+eine Antwort, drückt allein der Größenunterschied die Ähnlichkeit gegen null – wörtliches Zitieren
+sah dadurch aus wie eigener Text, und die Störgruppe wurde zu 100 % markiert. Gemessen wird
+deshalb jetzt die **Containment-Rate** (`analytics.containment`): welcher Anteil der eigenen
+Antwort schon im Steptext stand.
 
 ---
 

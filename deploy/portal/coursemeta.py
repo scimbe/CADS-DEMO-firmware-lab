@@ -71,6 +71,16 @@ def _title(value, lang="de") -> str:
     return str(value or "")
 
 
+# A stand-in for the step's own wording.  It matters: without a reference text the similarity
+# rule has no baseline to subtract, and two students quoting the same source cannot be told
+# apart from two students copying each other (see analytics.identical_texts).
+PLACEHOLDER_REFERENCE = (
+    "In diesem Schritt {step} des Moduls {module} geht es darum den Ablauf zu verstehen "
+    "die Werkzeuge richtig einzusetzen und das Ergebnis anschliessend zu pruefen. "
+    "Wichtig ist die Reihenfolge der Schritte und die Bedeutung der Ausgabe. "
+    "Wer die Meldung liest erkennt woran es liegt und kann gezielt nachbessern."
+)
+
 PLACEHOLDER_MODULES = 6
 PLACEHOLDER_STEPS_PER_MODULE = 4
 
@@ -94,8 +104,8 @@ def placeholder_course(course_id: str) -> dict:
             bloom = BLOOM_LEVELS[min(len(BLOOM_LEVELS) - 2, mi)]
             steps[sid] = {"id": sid, "module": mid, "bloom": bloom,
                           "objectives": [f"{course_id}.{mid}"], "title": {"de": sid, "en": sid},
-                          "estimatedMinutes": 15, "reference_text": "", "hint_tiers": 3,
-                          "solution_in_material": True}
+                          "estimatedMinutes": 15, "hint_tiers": 3, "solution_in_material": True,
+                          "reference_text": PLACEHOLDER_REFERENCE.format(step=sid, module=mid)}
             sids.append(sid)
             order.append(sid)
         modules.append({"id": mid, "title": {"de": f"Modul {mi}", "en": f"Module {mi}"}, "steps": sids})

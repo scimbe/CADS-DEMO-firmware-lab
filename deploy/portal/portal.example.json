@@ -11,7 +11,8 @@
     "dropped": { "inactiveDays": 14 },
     "excellent": { "firstPassFloor": 0.85, "maxHintsPerStep": 0.35 },
     "struggling": { "firstPassFloor": 0.4, "stuckSteps": 2 },
-    "integrity": { "fastPassSeconds": 60, "pasteShare": 0.8, "textJaccard": 0.9, "textMargin": 0.25 }
+    "integrity": { "fastPassSeconds": 60, "pasteShare": 0.8, "textJaccard": 0.9, "textMargin": 0.25 },
+    "diagnostics": { "outsideSessionMinToShow": 3 }
   },
   "credit": {
     "minStepShare": 0.8,
