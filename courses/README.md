@@ -252,6 +252,15 @@ project, is `independent` throughout by design.
   wrong panel and closing the terminal produce no output at all, so they are
   prose in the `Running it` section rather than regexes that could never match.
 
+- **Screenshots are captured but not shipped yet.**
+  `courses/rust-foundations/assets/` explains why: the four images taken from a
+  real lab container all show a JavaScript step in the tutor panel, because the
+  image auto-opens the wrong course for a Rust workspace. They are parked in
+  `docs/review/evidence/` and `m0-02-workbench` carries a named gap where they
+  belong. `docs/review/rust-walkthrough.md` records the two required passes
+  through the pack and the three operating instructions the live run proved
+  wrong.
+
 - **Checks that pass without a solution, and why.** Fifteen checks carry
   `seedMustFail: false`, which switches off the negative half of the probe.
   All thirteen test a fixed artifact rather than student code: the environment
