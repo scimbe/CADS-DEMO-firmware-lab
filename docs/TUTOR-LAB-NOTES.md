@@ -39,6 +39,18 @@ no secrets):
   `javascript-foundations/`, `cads-tutor.code-workspace` (multi-root, both folders, display
   names *Rust Foundations* / *JavaScript Foundations*).
 
+**Update behaviour on an existing volume** (what the deploy guide promises, tested by editing
+the volume and restarting the container):
+
+| Situation | Result |
+|---|---|
+| Student edited `rust-foundations/src/lib.rs`, added `workspace/NOTES.md` | both kept verbatim, `workspace <path> exists, keeping it` ✔ |
+| `.vscode/settings.json` still carries the marker line but is stale | rewritten from the image template, the stale key is gone ✔ |
+| Student removed the marker line (took ownership) | `… is the student's own - not touched`, file left alone ✔ |
+| `cads-tutor.code-workspace` present | kept, not regenerated ✔ |
+
+So a new image tag refreshes exactly the files the image owns and nothing else.
+
 **Browser** (`e2e/tutor-lab-smoke.mjs`, headless Chromium, own instance, fresh volume) –
 full pass, `PASS: tutor-lab smoke test`:
 
