@@ -231,7 +231,12 @@ Operator-facing version of this procedure:
 
 ## What is deliberately not in the image
 
-- No firmware toolchain, no course packs `cads-zero-*`, no board bridge / probe extensions.
+- **Only the `cads-tutor` extension, no board extensions.** `cads-probe` and
+  `cads-board-bridge` are not installed, and neither are the `st-flash` / `st-info` shims,
+  cortex-debug, the ARM toolchain or anything WebUSB. Rust and JavaScript students neither
+  flash nor debug through a probe. The tutor runtime hides board actions in non-hardware
+  courses by itself; the image contributes nothing to that.
+- No `cads-zero-*` course packs.
 - No `rust-docs` component (≈700 MB) – The Rust Programming Language is linked from the course.
 - No global `eslint`: the ESLint extension is enabled per workspace only when that workspace has
   an ESLint configuration (then `npm ci` in the seed build installs it from the lock file).

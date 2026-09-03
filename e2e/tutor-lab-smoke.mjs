@@ -2,6 +2,8 @@
 // CaDS Tutor Lab - browser smoke test for images/tutor-lab (SPEC.md Addendum A4).
 //
 // Against a running container (scripts/run-local-tutor-lab.sh), headless Chromium:
+//   0. seed + the image carries only the tutor and the language tooling
+//      (no cads-probe / cads-board-bridge, no shims, no cortex-debug, no ARM gcc)
 //   1. login with the password -> multi-root workspace cads-tutor.code-workspace
 //   2. workbench: app name in the title, no Restricted Mode, both folders in the
 //      Explorer, no prompt / chat side bar / notification 30 s after load
@@ -92,6 +94,25 @@ for (const want of [`dir ${RUST_WS}`, `dir ${JS_WS}`, "wsfile", "rust-settings",
 }
 const placeholders = Number(seeded.trim().split("\n").pop());
 ok(`seed: both workspaces, cads-tutor.code-workspace and .vscode/settings.json present (${placeholders} placeholder workspace(s))`);
+
+// 0b. this image carries the tutor and the language tooling, and nothing for a
+// board: no cads-probe / cads-board-bridge, no st-flash / st-info shims, no
+// cortex-debug, no ARM toolchain. Rust and JavaScript students neither flash nor
+// debug through a probe, and hiding board actions in a non-hardware course is the
+// tutor runtime's job. Asserted here so a later "helpful" addition is caught.
+const installed = dexec("code-server --list-extensions 2>/dev/null || true")
+  .split("\n")
+  .map((l) => l.trim())
+  .filter(Boolean);
+const forbiddenExtensions = installed.filter((e) => /cads-probe|cads-board-bridge|cortex-debug|peripheral-viewer|debug-tracker|rtos-views|memory-view/i.test(e));
+if (forbiddenExtensions.length) fail(`board/probe extensions in the tutor-lab image: ${JSON.stringify(forbiddenExtensions)}`);
+const forbiddenTools = dexec(
+  "for t in st-flash st-info arm-none-eabi-gcc arm-none-eabi-gdb gdb-multiarch openocd; do command -v $t 2>/dev/null; done; true"
+).trim();
+if (forbiddenTools) fail(`firmware/board tooling on PATH in the tutor-lab image:\n${forbiddenTools}`);
+const expected = ["cads.cads-tutor", "dbaeumer.vscode-eslint", "rust-lang.rust-analyzer", "vadimcn.vscode-lldb"];
+const missing = expected.filter((e) => !installed.includes(e));
+ok(`extensions: ${JSON.stringify(installed)}${missing.length ? ` (not installed: ${JSON.stringify(missing)})` : ""}; no board/probe extension, no firmware tooling on PATH`);
 
 const pwPath = findPlaywright();
 const pwModule = await import(pathToFileURL(join(pwPath, "index.js")).href);

@@ -56,6 +56,7 @@ full pass, `PASS: tutor-lab smoke test`:
 
 | Check | Result |
 |---|---|
+| Extensions and PATH | exactly `cads.cads-tutor`, `dbaeumer.vscode-eslint`, `rust-lang.rust-analyzer`, `vadimcn.vscode-lldb`; no `cads-probe` / `cads-board-bridge` / cortex-debug, and none of `st-flash`, `st-info`, `arm-none-eabi-gcc`, `arm-none-eabi-gdb`, `gdb-multiarch`, `openocd` on PATH ✔ (negative test: planting an `st-flash` in the container makes the check fail) |
 | Login with the password | redirect to `/?workspace=/home/coder/workspace/cads-tutor.code-workspace` ✔ |
 | Title | `cads-tutor (Workspace) — CaDS Tutor Lab` ✔ |
 | Restricted Mode | none (the `--disable-workspace-trust` flag is in the image `CMD`) ✔ |
@@ -76,7 +77,7 @@ Docker VM to stop being OOM-killed).
 **Tutor panel with a real course pack.** Because no rust/javascript pack exists yet, the panel
 itself was verified once by copying the firmware pack into a running container
 (`docker cp courses/cads-zero-foundations …:/opt/cads-tutor/courses/`, container restarted –
-local probe only, nothing of it is in the image): the side bar switched to `CADS TUTOR` with the
+a throwaway local check, nothing of it is in the image): the side bar switched to `CADS TUTOR` with the
 views *Kurse / Courses* and *Fortschritt / Progress*, the status bar item became
 `🎓 Tutor: Welcome to the CaDS firmware lab` and the step opened as an editor tab. So the
 mechanism works; only the content is missing.
@@ -184,9 +185,14 @@ exercised honestly rather than skipped.
   the extension reports a missing library on every JavaScript file. The entrypoint decides this
   per start and writes `eslint.enable` into the workspace settings, so the JavaScript stream can
   add a config later and it switches itself on.
-- **No firmware content.** No ARM toolchain, no board bridge, no `cads-zero-*` course packs, no
-  probe extensions. The two images share only the base, the settings policy and the
-  `cads-tutor` extension.
+- **The tutor extension is the only CaDS extension in this image.** `cads-probe` and
+  `cads-board-bridge` are not installed, and neither are the `st-flash` / `st-info` shims,
+  cortex-debug, the ARM toolchain, `gdb-multiarch` or any WebUSB affordance: Rust and
+  JavaScript students neither flash a board nor debug through a probe (lead's clarification,
+  2026-09-03). Hiding board actions inside a non-hardware course is the tutor runtime's job
+  (stream `tutor3`) and needs nothing from the image. The two images share only the base
+  image, the settings policy and `cads-tutor`. CodeLLDB stays: it debugs local Rust test
+  binaries, which has nothing to do with a debug probe.
 
 ## Known limits
 

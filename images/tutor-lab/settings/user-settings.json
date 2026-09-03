@@ -1,9 +1,10 @@
 {
   // CaDS Tutor Lab - user settings baked into the image
-  // (~/.local/share/code-server/User/settings.json). Trimmed copy of
-  // image/settings/user-settings.json: same policy, minus the CMake/clangd/
-  // cortex-debug entries that only the firmware image needs. Per-workspace
-  // settings (rust-analyzer, ESLint) come from images/tutor-lab/vscode-templates.
+  // (~/.local/share/code-server/User/settings.json). Same startup/noise policy
+  // as the firmware image, but only for what this image actually installs:
+  // the tutor, rust-analyzer, ESLint and CodeLLDB. Nothing here configures
+  // board, probe or firmware tooling - none of it is in this image.
+  // Per-workspace settings come from images/tutor-lab/vscode-templates.
   "workbench.startupEditor": "none",
   "security.workspace.trust.enabled": false,
   "cadsTutor.autoOpen": true,
