@@ -29,7 +29,7 @@ misconceptions:
   - pattern: "8080 !== 0"
     question: { en: "A configured port of 0 was replaced by the default. Which operator did that?", de: "Ein konfigurierter Port 0 wurde durch den Standardwert ersetzt. Welcher Operator war das?" }
     hints: [ { en: "0 is falsy, so || replaces it - the same trap as m2-02.", de: "0 ist falsy, || ersetzt es also - dieselbe Falle wie in m2-02." }, { en: "?? falls back only for null and undefined.", de: "?? greift nur bei null und undefined." }, { en: "cfg?.server?.port ?? 8080", de: "cfg?.server?.port ?? 8080" } ]
-  - pattern: "Cannot find module|MODULE_NOT_FOUND|no such file or directory"
+  - pattern: "Cannot find module|MODULE_NOT_FOUND|Could not find '|no such file or directory"
     question: { en: "Node could not find a file. Is the terminal in the right folder, and is the path in the command spelled as the step wrote it?", de: "Node hat eine Datei nicht gefunden. Steht das Terminal im richtigen Ordner, und ist der Pfad im Befehl so geschrieben wie im Step?" }
     hints: [ { en: "Type pwd and press Enter; the path must end in javascript-foundations. If not, run cd javascript-foundations.", de: "Tippe pwd und drücke Enter; der Pfad muss auf javascript-foundations enden. Wenn nicht, führe cd javascript-foundations aus." }, { en: "Copy the command from the code block in this panel rather than retyping it; the file name carries the step id exactly.", de: "Kopiere den Befehl aus dem Codeblock in diesem Panel, statt ihn abzutippen; der Dateiname trägt die Step-Kennung exakt." }, { en: "ES module imports need the .js extension, so a path without it fails the same way.", de: "Importe in ES-Modulen brauchen die Endung .js, ein Pfad ohne sie scheitert genauso." } ]
 ---
