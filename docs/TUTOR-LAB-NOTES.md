@@ -143,8 +143,13 @@ A starter workspace is the exercise *before* it is solved:
 |---|---|---|
 | Exercise bodies | `todo!()` – compiles, panics when run | `throw new Error("TODO: …")` or the bug the step is about |
 | `cargo build` (lib + bins) | **succeeds** | n/a |
-| Test targets | 17 of 18 compile; `m1-03-copy-types` fails with E0277 until the student adds `#[derive(Copy)]` | n/a |
-| Whole suite | 1 of 70 tests passes | 8 of 73 tests pass |
+| Test targets (2026-09-03, final content) | 27, all compile | n/a |
+| Whole suite | 2 of 122 tests pass | 8 of 74 tests pass |
+
+Earlier in the day 1 of 18 Rust test targets (`m1-03-copy-types`) did not compile at all – the
+step wanted the student to add `#[derive(Copy)]`, so the target failed with E0277 until they
+did. The rust stream has since reworked it. Both shapes are legitimate for a starter, so the
+image and the smoke test handle either.
 
 Two consequences the image had to absorb:
 
@@ -154,12 +159,13 @@ Two consequences the image had to absorb:
   everyone. Everything else – how many test targets compile, how many tests pass, clippy,
   rustfmt, the `node --test` counts – is printed into the build log and never fatal, so a
   regression is visible in CI without blocking the image.
-- **A whole-workspace `cargo test` reports nothing at all.** One test target that does not
-  compile aborts the run before any test executes, and `--no-fail-fast` does not help (it
-  continues past failing tests, not past a failing build). Both the seed stage and the smoke
-  test therefore work per target, which is also what a course `testSuite` check does. Students
-  who run a bare `cargo test` in the root will see only the E0277 from `m1-03` until they solve
-  that step – worth a sentence in the course text, and reported to the lead.
+- **Work per test target, not on the whole workspace.** While one target did not compile, a
+  bare `cargo test` in the root reported *nothing at all* – the build aborts before any test
+  runs, and `--no-fail-fast` does not help (it continues past failing tests, not past a failing
+  build). That specific target is fixed, so a bare `cargo test` now prints results, but it still
+  stops at the first failing target (3 summaries of 27 today). Either way the useful command is
+  a single step's target, which is also exactly what a course `testSuite` check runs, so that is
+  what the seed stage and the smoke test do.
 
 The smoke test now asserts what can honestly be asserted: the runner executes, produces a
 result summary, and at least one test passes. That separates a broken toolchain (no summary,
@@ -297,7 +303,7 @@ package it; do that before judging a course problem.
 | Tutor side bar | `CADS TUTOR` with *Kurse / Courses* and *Fortschritt / Progress* ✔ |
 | Course tree | **both courses listed**, JavaScript – Foundations 0/31 with M0–M6, Rust Foundations below it ([screenshot](evidence/tutorlab-15-tutor-tree-both-courses.png)) ✔ |
 | First step opens | window title and editor tab `CaDS Tutor: Operating the interface`, Bloom badge, task list, *Run all checks*, DE/EN toggle ([screenshot](evidence/tutorlab-14-tutor-first-step.png)) ✔ |
-| Rust test run | `cargo test --test m0-02-first-test` → 1 passed, 2 failed in 1 s ✔ |
+| Rust test run | `cargo test --test m0-02-first-test` → 1 passed, 2 failed in 1 s ✔ (whole starter: 27 targets, 2 of 122 tests pass) |
 | JavaScript test run | `node --test` → 74 tests, 8 passed, 66 failed in 1 s ✔ |
 | Startup noise | no prompt, no chat bar, no notification at 18 s or 30 s ✔ |
 | Language-lab details | all green, see the section above ✔ |

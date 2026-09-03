@@ -179,12 +179,12 @@ Expected: `cargo 1.98.0` or newer and `node v22.x`; the extension list contains
 `tamasfe.even-better-toml`, `vadimcn.vscode-lldb`; `ls /opt/cads-tutor/courses` shows both packs.
 
 **Both test commands exit non-zero, and that is correct.** A starter workspace is the exercise
-before the solution: the Rust exercises are `todo!()` and one test target does not compile until
-the student writes the code, the JavaScript ones throw or carry the bug their step is about. On a
-fresh volume expect roughly 1 of 119 Rust tests and 8 of 74 JavaScript tests to pass. What must
-hold is that each runner *starts and prints a summary* in seconds. A plain `cargo test` in the
-workspace root prints nothing at all, because the one target that does not compile aborts the run
-before any test executes — run a single step's target as above.
+before the solution: the Rust exercises are `todo!()`, the JavaScript ones throw or carry the bug
+their step is about. On a fresh volume expect 2 of 122 Rust tests and 8 of 74 JavaScript tests to
+pass. What must hold is that each runner *starts and prints a summary* in seconds. Name a step's
+target as above rather than running a bare `cargo test`: that stops at the first failing target
+(3 summaries of 27 today), and while a step leaves a target that does not compile it reports
+nothing at all.
 
 In the browser (through the usual tunnel or an SSH port-forward to `127.0.0.1:8084`):
 
