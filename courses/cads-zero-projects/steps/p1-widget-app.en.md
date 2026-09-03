@@ -5,6 +5,7 @@ bloom: create
 objectives: [cz.gui.app]
 requires: []
 estimatedMinutes: 120
+creates: [cads_project_app_init]
 links:
   - { file: "apps/about/cads_about.c" }
   - { file: "apps/menu/cads_menu_app.c" }

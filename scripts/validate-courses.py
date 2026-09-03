@@ -70,6 +70,10 @@ except ImportError:
                     i += 1
                 if i < n and s[i] == "}":
                     return obj, i + 1
+                if i >= n:
+                    # Unterminated flow map (usually an unbalanced quote in the
+                    # front matter). Return what we have instead of spinning.
+                    return obj, i
                 key, i = _parse_flow_scalar(s, i, stop=":")
                 while i < n and s[i] in " \t":
                     i += 1
@@ -86,8 +90,13 @@ except ImportError:
                     i += 1
                 if i < n and s[i] == "]":
                     return arr, i + 1
+                if i >= n:
+                    return arr, i
+                before = i
                 val, i = _parse_flow(s, i)
                 arr.append(val)
+                if i == before:
+                    return arr, i
         return _parse_flow_scalar(s, i, stop=",]}")
 
     def _parse_flow_scalar(s: str, i: int, stop: str):
@@ -301,7 +310,14 @@ def iter_check_paths(check):
             yield ("elf", check["elf"])
         if check.get("symbol"):
             yield ("symbol", check["symbol"])
-    for key in ("all", "any"):
+    if t == "predict" and isinstance(check.get("then"), dict):
+        yield from iter_check_paths(check["then"])
+    # Composite checks. The runtime (extensions/cads-tutor/src/schema.ts) puts
+    # sub-checks under "checks:"; "all:"/"any:" is accepted as an alias so an
+    # older pack still validates. Without the "checks" key nothing inside a
+    # composite was ever checked - that is how three project steps came to name
+    # symbols that are in no ELF and in no creates: list.
+    for key in ("checks", "all", "any"):
         sub = check.get(key)
         if isinstance(sub, list):
             for c in sub:

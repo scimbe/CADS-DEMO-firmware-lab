@@ -3,7 +3,7 @@ id: m2-01-memory-map
 title: Read the memory map
 bloom: analyze
 objectives: [firmware-reference-memory-map]
-requires: [m1-04-splash]
+requires: [m2-00-mmio-primer]
 estimatedMinutes: 15
 links:
   - { step: m2-02-mmio-gpio }

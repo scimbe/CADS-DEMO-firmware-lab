@@ -5,6 +5,7 @@ bloom: create
 objectives: [cz.explorer.extend]
 requires: []
 estimatedMinutes: 120
+creates: [cads_project_driver]
 links:
   - { file: "apps/bringup/explorer.c" }
   - { doc: "docs/SAFETY.md" }

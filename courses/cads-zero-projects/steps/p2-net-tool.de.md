@@ -5,6 +5,7 @@ bloom: create
 objectives: [cz.net.recon]
 requires: []
 estimatedMinutes: 120
+creates: [cads_project_nettool]
 links:
   - { file: "modules/net/include/cads/net/net.h" }
   - { doc: "docs/tutorials/lwip-udp-hello.md" }
