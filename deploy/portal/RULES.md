@@ -17,7 +17,7 @@ Ein Flag ist ein Hinweis auf ein **Muster in Ereignisdaten**. Es ist kein Nachwe
 **niemals allein die Grundlage einer Bewertung**.
 
 **Kein Flag behauptet eine Täuschung.** Es gibt in diesem Portal keine Kategorie „Betrug". Das stärkste
-integritätsbezogene Signal heißt „Auffälligkeit, die eine Rückfrage rechtfertigt" – und genau das ist es:
+integritätsbezogene Signal heißt „Auffällig – Rückfrage empfohlen" – und genau das ist es:
 ein Anlass, nachzufragen. Zu jeder einzelnen Begründung zeigt die Oberfläche die **Gegenhypothese**, also
 die harmlose Erklärung desselben Musters, gleichberechtigt daneben.
 
@@ -216,7 +216,7 @@ Mindestens `minIndicators: 2` der folgenden **absoluten** Indikatoren, bei minde
 Zwei Indikatoren statt einem, weil jeder einzelne eine harmlose Erklärung hat. Der z-Wert der Step-Zeit
 (`timeZNote`) und das untere Perzentil (`percentileNote`) erscheinen als **Notiz**, nicht als Kriterium.
 
-### 5.3 „Auffälligkeit, die eine Rückfrage rechtfertigt" (`followup`) und „Schwaches Signal" (`notice`)
+### 5.3 „Auffällig – Rückfrage empfohlen" (`followup`) und „Schwaches Signal" (`notice`)
 
 `followup` entsteht aus **einem starken** Signal **oder** aus `weakForFollowup: 2` schwachen. Ein einzelnes
 schwaches Signal ergibt nur `notice` – zur Kenntnis, ohne Handlungsbedarf.
@@ -274,6 +274,73 @@ bestandenen. Die Stufe kommt aus dem Front-Matter des Steps.
 **Empfehlung**: regelbasierte Sätze aus den Flags und den Kennzahlen (Sprechstunde anbieten, Material
 ergänzen, Vorhersagen üben, Kontakt aufnehmen …). Kein Sprachmodell, keine Note, keine Automatik –
 Vorschläge für die Lehrperson, die entscheidet.
+
+---
+
+## 6a. Was die Zahlen des Simulators wert sind – und was nicht
+
+`simulate.py` gibt Precision und Recall der Flags gegen die Personas aus, die die Daten erzeugt
+haben. **Diese Zahlen sind kein Gütemaß für die Auswertung.** Sie sind zirkulär: derselbe
+Regelsatz, der die Muster sucht, hat sie vorher eingebaut. Ein Recall von 1,00 heißt nur, dass
+die Auswertung wiederfindet, was der Generator hineingeschrieben hat – über echtes Verhalten von
+Studierenden sagt das **nichts**.
+
+Was die Zahlen leisten, ist eng begrenzt:
+
+* Sie sind ein **Regressionstest**. Wenn eine Änderung an den Regeln die eingebauten Muster nicht
+  mehr findet, fällt das auf.
+* Sie zeigen die **Empfindlichkeit gegenüber der Kohortengröße** (Abschnitt 7).
+
+Was sie **nicht** leisten:
+
+* Keine Aussage über die Trefferquote bei echten Studierenden. Die Personas sind Karikaturen:
+  reale Verläufe liegen auf einem Kontinuum, nicht in fünf Schubladen.
+* Keine Aussage über die **Grundrate**. Wie häufig Täuschung tatsächlich vorkommt, ist unbekannt;
+  ohne Grundrate lässt sich aus einer Precision im Simulator kein positiver Vorhersagewert für
+  die Wirklichkeit ableiten.
+* Keine Aussage über **Fairness**. Ob die Regeln bestimmte Gruppen systematisch häufiger treffen
+  (Nicht-Muttersprachler, Berufstätige mit Vorwissen, Menschen mit schlechter Internetanbindung),
+  kann ein selbstgebauter Generator prinzipiell nicht zeigen.
+
+**Belastbare Aussagen brauchen echte Kohorten**: eine Auswertung über mindestens ein
+abgeschlossenes Semester, mit einer unabhängig – nicht aus denselben Daten – gewonnenen
+Referenz, und mit einer Fehleranalyse nach Gruppen. Bis dahin ist jede Zahl in diesem Abschnitt
+eine Aussage über den Simulator, nicht über die Lehre.
+
+### Die Störgruppe: die einzige nicht-zirkuläre Zahl
+
+Deshalb enthält der Simulator eine **Störgruppe** (`distractor`, 10 % der Kohorte). Sie erzeugt
+dieselben Oberflächenmerkmale wie Abschreiben, aber aus harmlosen Gründen:
+
+* schnelle, korrekte Bearbeitung beim ersten Versuch (Vorwissen aus dem Beruf),
+* Paste-Anteil von 85–95 % (das angebotene Codegerüst aus dem Kursmaterial),
+* Reflexionen, die den Steptext zitieren (dieselbe Quelle, nicht voneinander abgeschrieben),
+* Ereignisse außerhalb einer Session (abgestürzte Sitzung ohne `session.end`).
+
+Jedes `followup`-Flag, das diese Gruppe einsammelt, wäre im Betrieb eine Rückfrage an eine Person,
+die nichts falsch gemacht hat. Gemessen bei 40 Studierenden je Kurs, elf geprüfte Seeds:
+
+| Regelsatz | Störgruppe fälschlich als „Auffällig – Rückfrage empfohlen" |
+|---|---|
+| vor dem Review (Paste-Anteil mit absoluten Schwellwerten) | **4 von 4 (100 %) in jedem der drei Kurse** |
+| heute (Abschnitte 0a.1 und 0a.2) | **0 von 4 (0 %), in allen elf Seeds** |
+
+Diese Gegenüberstellung ist der eigentliche Beleg dafür, dass die Korrektur etwas gebracht hat –
+nicht die Precision gegen die Personas.
+
+**Ehrlich dazugesagt:** Alle vier Mitglieder der Störgruppe erhalten weiterhin ein
+`notice` („Schwaches Signal, keine Wertung"), ausgelöst durch die Ereignisse außerhalb der
+Session. Dieses Signal feuert also bei 100 % einer nachweislich unschuldigen Gruppe und trägt
+damit praktisch keine Information. Es führt nie allein zu einer Rückfrage, aber es steht in der
+Oberfläche, und eine Lehrperson kann es überlesen oder überbewerten. Wenn es sich bei echten
+Daten genauso verhält, gehört es ersatzlos gestrichen.
+
+Die Störgruppe hat außerdem einen echten Fehler im Regelwerk gefunden: Der Abgleich mit dem
+Steptext benutzte zunächst Jaccard-Ähnlichkeit. Weil der Steptext um ein Vielfaches länger ist als
+eine Antwort, drückt allein der Größenunterschied die Ähnlichkeit gegen null – wörtliches Zitieren
+sah dadurch aus wie eigener Text, und die Störgruppe wurde zu 100 % markiert. Gemessen wird
+deshalb jetzt die **Containment-Rate** (`analytics.containment`): welcher Anteil der eigenen
+Antwort schon im Steptext stand.
 
 ---
 

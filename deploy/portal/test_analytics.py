@@ -300,6 +300,39 @@ class IntegrityIndicatorTests(unittest.TestCase):
         e2 += journey(slug(4), "m0-01", 500, reflection=own)
         self.assertEqual(set(an.identical_texts(e2, course, 0.9, 8)), {slug(3), slug(4)})
 
+    def test_a_long_step_text_still_counts_as_the_source(self):
+        """Containment, not Jaccard: a long step text must not dilute the baseline away.
+
+        Found by the simulator's distractor group - with Jaccard the size difference between a
+        short answer and a long step text pushed the baseline to nearly zero, so verbatim
+        quoting looked like original work and every innocent quoter was flagged.
+        """
+        quote = "Der Ablauf beginnt mit dem Aufbau danach folgt die Pruefung der Ausgabe"
+        long_step = quote + " " + " ".join(f"zusatzwort{i}" for i in range(400))
+        course = dict(COURSE)
+        course["steps"] = dict(COURSE["steps"])
+        course["steps"]["m0-01"] = dict(COURSE["steps"]["m0-01"], reference_text=long_step)
+        self.assertLess(an.jaccard(an.tokens_of(quote), an.tokens_of(long_step)), 0.1)
+        self.assertGreater(an.containment(an.tokens_of(quote), an.tokens_of(long_step)), 0.95)
+        e = journey(slug(1), "m0-01", 0, reflection=quote)
+        e += journey(slug(2), "m0-01", 500, reflection=quote)
+        self.assertEqual(an.identical_texts(e, course, 0.9, 8), {},
+                         "two people quoting the same long step text must not be flagged")
+
+    def test_similarity_without_a_baseline_is_only_a_weak_signal(self):
+        txt = "Ein hinreichend langer eigener Text den zwei Studierende woertlich gemeinsam abgegeben haben"
+        e = journey(slug(1), "m0-01", 0, reflection=txt)
+        e += journey(slug(2), "m0-01", 500, reflection=txt)
+        course = dict(COURSE)
+        course["steps"] = dict(COURSE["steps"])
+        course["steps"]["m0-01"] = dict(COURSE["steps"]["m0-01"], reference_text="")
+        hits = an.identical_texts(e, course, 0.9, 8)
+        self.assertFalse(hits[slug(1)][0]["baseline_available"])
+        m = an.student_metrics(e, COURSE["order"])
+        reasons = [r for f in an.compute_flags(e, m, None, None, course)[slug(1)]
+                   for r in f["reasons"] if "identisch" in r["text"]["de"]]
+        self.assertEqual(reasons[0]["strength"], "weak")
+
     def test_only_free_wording_answers_are_compared(self):
         txt = "Ein hinreichend langer Text der als Antwort auf eine Frage gegeben wurde und geteilt wird"
         e = [ev(slug(1), "m0-01", "question.answered", 0, answer=txt, verdict="pass"),

@@ -3,8 +3,9 @@
 #
 # Starts fl-portal on 127.0.0.1:3200 with a throw-away database, then:
 #   1. healthz before any data              -> ok, zero events
-#   2. simulator feeds three cohorts        -> everything accepted, nothing rejected
-#      and scores the flags against the personas that produced them
+#   2. simulator feeds three cohorts        -> everything accepted, nothing rejected,
+#      scores the flags against the personas, and reports how many of the innocent
+#      distractor group the rules wrongly ask a question of (the non-circular number)
 #   3. every view for a teacher             -> 200 text/html
 #   4. course isolation                     -> foreign course 403, own course 200, admin both 200
 #   5. no identity / unknown e-mail         -> 403
@@ -75,7 +76,17 @@ import json, sys
 r = json.load(open(sys.argv[1]))
 assert r["ok"], r
 PY
-pass "all flag targets met, every follow-up pseudonym visible on the anomalies page"
+python3 - "$WORK/score.json" <<'PY' || fail "the distractor group was wrongly flagged"
+import json, sys
+r = json.load(open(sys.argv[1]))
+for course, res in r["courses"].items():
+    d = res["_distractor"]
+    assert not d["followup"], (course, d["followup"])
+    print(f"  distractor group {course}: 0 of {d['size']} wrongly asked a question; "
+          f"the pre-review paste rule would have flagged "
+          f"{len(d['would_have_been_flagged_by_the_old_paste_rule'])}")
+PY
+pass "all flag targets met, no innocent distractor flagged, follow-up pseudonyms visible"
 
 step "3. every view answers for a teacher"
 for view in "/portal/" "/portal/questions" "/portal/steps" "/portal/anomalies" \
