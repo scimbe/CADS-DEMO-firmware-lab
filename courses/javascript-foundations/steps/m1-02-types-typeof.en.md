@@ -20,6 +20,9 @@ tasks:
   - id: type-name
     title: Both typeName tests are green
     check: { type: testSuite, runner: node-test, expectPass: ["m1-02 typeName reports primitives via typeof", "m1-02 typeName distinguishes null and arrays from objects"], minPass: 2 }
+  - id: typeof-limits
+    title: Where typeof stops
+    check: { type: question, prompt: { en: "typeof answered 'object' for two values that are not plain objects. Name both, say which check identifies each, and explain why the order of the two checks matters.", de: "typeof hat für zwei Werte 'object' geantwortet, die keine einfachen Objekte sind. Nenne beide, sag, welche Prüfung jeden erkennt, und erkläre, warum die Reihenfolge der beiden Prüfungen wichtig ist." }, rubric: "Names null and arrays; identifies value === null and Array.isArray(value) as the checks; explains that the null check has to come first because Array.isArray(null) is false and a branch that consulted typeof first would already have answered 'object' and left the function.", bloom: understand, minChars: 60 }
 socratic:
   - { trigger: "task:type-name:failed", question: { en: "Which value is still reported as object when it should have its own name?", de: "Welcher Wert wird noch als object gemeldet, obwohl er einen eigenen Namen bekommen soll?" }, hints: [ { en: "typeof cannot help here; both null and arrays answer object.", de: "typeof hilft hier nicht; sowohl null als auch Arrays antworten mit object." }, { en: "Test for null with a strict comparison, value === null, before anything else.", de: "Prüfe auf null mit einem strikten Vergleich, value === null, noch vor allem anderen." }, { en: "Arrays have their own test: Array.isArray(value).", de: "Arrays haben ihren eigenen Test: Array.isArray(value)." } ] }
 misconceptions:
