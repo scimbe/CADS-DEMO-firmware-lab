@@ -8,3 +8,4 @@ extensions/*/out/
 e2e/artifacts/
 __pycache__/
 *.pyc
+.DS_Store
