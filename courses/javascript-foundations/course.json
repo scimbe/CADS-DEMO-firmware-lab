@@ -1,0 +1,113 @@
+{
+  "id": "javascript-foundations",
+  "version": "1.0.0",
+  "schema": 1,
+  "title": {
+    "de": "JavaScript – Grundlagen",
+    "en": "JavaScript – Foundations"
+  },
+  "description": {
+    "de": "Der Sprachkurs: von der ersten Ausführung mit node über Werte, Kontrollfluss, Schleifen, Funktionen und Closures bis zu Objekten, Arrays und Asynchronität – jeder Schritt mit echten Tests im Starter-Workspace, jede Aussage belegt am MDN JavaScript Guide. Am Ende baust du ein kleines Datenverarbeitungs-Werkzeug samt eigenen Tests.",
+    "en": "The language course: from the first run of node through values, control flow, loops, functions and closures to objects, arrays and asynchrony – every step backed by real tests in the starter workspace and every claim grounded in the MDN JavaScript Guide. It ends with a small data-processing tool and the tests you write for it."
+  },
+  "project": {
+    "root": "javascript-foundations",
+    "repo": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide"
+  },
+  "prerequisites": [],
+  "grounding": {
+    "pack": "javascript",
+    "threshold": 9.0,
+    "_comment": "Threshold 9.0 is the value the javascript content pack calibrated against its own BM25 score distribution (see content-packs/javascript/manifest.json). The pack covers seven MDN guide chapters and stops there; the topics this course adds on top - promises and async/await (M6), ES modules (M0), and class syntax for custom errors (M2) - are grounded on the MDN guide pages reproduced verbatim under sources/, licensed CC-BY-SA 2.5 by Mozilla and individual contributors. sources/README.md lists them with their fetch date and URLs."
+  },
+  "modules": [
+    {
+      "id": "m0",
+      "title": { "de": "M0 – Werkzeug", "en": "M0 – Tooling" },
+      "steps": ["m0-01-first-run", "m0-02-read-a-test", "m0-03-modules", "m0-04-predict-output"],
+      "reflection": {
+        "prompts": [
+          { "de": "Du hast jetzt viermal denselben Kreislauf durchlaufen: Test lesen, Code ändern, Test laufen lassen. Welcher Teil davon war für dich neu, und woran hast du gemerkt, dass ein Test dir etwas anderes sagt als eine Fehlermeldung?", "en": "You have now been through the same loop four times: read the test, change the code, run the test. Which part of it was new to you, and how did you notice that a test tells you something different from an error message?" },
+          { "de": "Beschreibe in zwei Sätzen, woran du künftig erkennst, dass eine Datei gar nicht erst geladen werden konnte – im Unterschied zu einer Datei, die lädt und dann eine falsche Antwort gibt.", "en": "In two sentences, describe how you will recognise a file that never loaded at all, as opposed to a file that loads and then answers wrongly." }
+        ]
+      }
+    },
+    {
+      "id": "m1",
+      "title": { "de": "M1 – Werte und Typen", "en": "M1 – Values and types" },
+      "steps": ["m1-01-let-const", "m1-02-types-typeof", "m1-03-coercion-nan", "m1-04-equality"],
+      "reflection": {
+        "prompts": [
+          { "de": "Dieses Modul hatte drei Fehlerbilder: einen TypeError beim Zuweisen an eine Konstante, einen ReferenceError vor der Initialisierung und ein stilles NaN. Welches davon würdest du in fremdem Code am spätesten bemerken, und warum?", "en": "This module had three failure shapes: a TypeError on assigning to a constant, a ReferenceError before initialisation, and a silent NaN. Which of them would you notice last in someone else's code, and why?" },
+          { "de": "Nenne eine Stelle in deinem eigenen Denken, an der du bisher `==` benutzt hättest, und sage, was `===` dort anders macht.", "en": "Name one place in your own thinking where you would previously have used `==`, and say what `===` does differently there." }
+        ]
+      }
+    },
+    {
+      "id": "m2",
+      "title": { "de": "M2 – Kontrollfluss und Fehlerbehandlung", "en": "M2 – Control flow and error handling" },
+      "steps": ["m2-01-if-switch", "m2-02-truthy-falsy", "m2-03-try-catch-finally", "m2-04-error-objects"],
+      "reflection": {
+        "prompts": [
+          { "de": "`0`, `\"\"` und `false` sind falsy, aber trotzdem gültige Werte, die jemand absichtlich übergibt. Wo in einem Programm ist Truthiness die richtige Frage, und wo muss man stattdessen auf `undefined` prüfen?", "en": "`0`, `\"\"` and `false` are falsy but still valid values someone passes on purpose. Where in a program is truthiness the right question, and where do you have to check for `undefined` instead?" },
+          { "de": "Du hast eine eigene Fehlerklasse gebaut. Was gewinnt der Aufrufer dadurch gegenüber einem `throw \"field is invalid\"`?", "en": "You built your own error class. What does the caller gain from it compared with a plain `throw \"field is invalid\"`?" }
+        ]
+      }
+    },
+    {
+      "id": "m3",
+      "title": { "de": "M3 – Schleifen und Iteration", "en": "M3 – Loops and iteration" },
+      "steps": ["m3-01-for-and-while", "m3-02-off-by-one", "m3-03-for-of-and-in", "m3-04-break-continue"],
+      "reflection": {
+        "prompts": [
+          { "de": "Der Off-by-one-Fehler in diesem Modul hat sich als TypeError gezeigt, nicht als falsche Zahl. Erkläre, warum das so ist und warum das ein Glücksfall war.", "en": "The off-by-one error in this module showed up as a TypeError, not as a wrong number. Explain why, and why that was lucky." },
+          { "de": "Wann würdest du `for...of` nehmen, wann `for...in`, und wann einen klassischen Zählschleifenkopf? Ein Satz pro Fall.", "en": "When would you reach for `for...of`, when for `for...in`, and when for a classic counting loop head? One sentence each." }
+        ]
+      }
+    },
+    {
+      "id": "m4",
+      "title": { "de": "M4 – Funktionen und Closures", "en": "M4 – Functions and closures" },
+      "steps": ["m4-01-declare-and-call", "m4-02-parameters", "m4-03-closures", "m4-04-arrow-and-this"],
+      "reflection": {
+        "prompts": [
+          { "de": "Eine Closure hält eine Variable am Leben, die sonst verschwunden wäre. Nenne einen Fall, in dem das genau das Richtige ist, und einen, in dem es zum Fehler wird.", "en": "A closure keeps alive a variable that would otherwise be gone. Name one case where that is exactly right, and one where it becomes the bug." },
+          { "de": "`this` hing in diesem Modul davon ab, WIE eine Funktion aufgerufen wurde, nicht davon, wo sie steht. Wie erklärst du das jemandem, der aus einer Sprache mit fest gebundenen Methoden kommt?", "en": "In this module `this` depended on HOW a function was called, not on where it was written. How would you explain that to someone coming from a language with permanently bound methods?" }
+        ]
+      }
+    },
+    {
+      "id": "m5",
+      "title": { "de": "M5 – Objekte und Arrays", "en": "M5 – Objects and arrays" },
+      "steps": ["m5-01-objects", "m5-02-optional-chaining", "m5-03-arrays", "m5-04-transformations"],
+      "reflection": {
+        "prompts": [
+          { "de": "Vier Aufgaben in diesem Modul drehten sich darum, ob eine Funktion die Eingabe des Aufrufers verändert. Warum ist das eine Design-Entscheidung und nicht nur eine Stilfrage?", "en": "Four exercises in this module turned on whether a function mutates the caller's input. Why is that a design decision rather than a matter of style?" },
+          { "de": "`?.` und `??` machen fehlende Werte erträglich. Wo hilft dir das, und wo verdeckt es einen Fehler, den du lieber sehen würdest?", "en": "`?.` and `??` make missing values bearable. Where does that help you, and where does it hide a bug you would rather see?" }
+        ]
+      }
+    },
+    {
+      "id": "m6",
+      "title": { "de": "M6 – Asynchronität", "en": "M6 – Asynchrony" },
+      "steps": ["m6-01-promises", "m6-02-async-await", "m6-03-async-errors", "m6-04-concurrency"],
+      "reflection": {
+        "prompts": [
+          { "de": "Ein vergessenes `await` erzeugt keinen Fehler, sondern ein falsches Ergebnis – oft ein `Promise`, wo ein Wert erwartet wurde. Welche Gewohnheit nimmst du dir vor, damit dir das auffällt, bevor es ein Test tut?", "en": "A forgotten `await` produces no error, just a wrong result - usually a `Promise` where a value was expected. What habit will you adopt so you notice it before a test does?" },
+          { "de": "Sequenziell oder parallel: woran entscheidest du das? Nenne ein Beispiel, in dem `Promise.all` die falsche Wahl wäre.", "en": "Sequential or parallel: how do you decide? Give one example where `Promise.all` would be the wrong choice." }
+        ]
+      }
+    },
+    {
+      "id": "m7",
+      "title": { "de": "M7 – Abschlussprojekt", "en": "M7 – Capstone project" },
+      "steps": ["m7-01-capstone-design", "m7-02-capstone-build"],
+      "reflection": {
+        "prompts": [
+          { "de": "Du hast die Tests zu deinem eigenen Werkzeug geschrieben. Welchen Fall hast du erst beim Schreiben der Tests gefunden, und was sagt dir das über die Reihenfolge Code-dann-Test gegenüber Test-dann-Code?", "en": "You wrote the tests for your own tool. Which case did you only find while writing the tests, and what does that tell you about writing code first versus tests first?" },
+          { "de": "Blicke auf alle sieben Module zurück: welcher einzelne Begriff hat sich am meisten geändert, seit du ihn zum ersten Mal gesehen hast?", "en": "Look back over all seven modules: which single concept changed the most between the first time you saw it and now?" }
+        ]
+      }
+    }
+  ]
+}
