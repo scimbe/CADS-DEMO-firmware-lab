@@ -1,0 +1,82 @@
+---
+id: m2-01-if-switch
+title: if, else und ein switch, der durchfällt
+bloom: apply
+objectives: [javascript-web-javascript-guide-control-flow-and-error-handling]
+requires: [m1-04-equality]
+estimatedMinutes: 15
+scaffold: worked
+recallFrom: [m1-04-equality]
+links:
+  - { step: m1-04-equality }
+  - { step: m2-02-truthy-falsy }
+  - { file: "src/m2/grade.js", line: 7 }
+  - { file: "examples/m2-switch-fallthrough.js" }
+  - { url: "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Control_flow_and_error_handling", title: "MDN: Control flow and error handling" }
+sources: [src/m2/grade.js, test/m2-01-if-switch.test.js, examples/m2-switch-fallthrough.js]
+tasks:
+  - id: guess-fallthrough
+    title: Sag vorher, was das switch-Beispiel ausgibt
+    check: { type: predict, prompt: { en: "examples/m2-switch-fallthrough.js calls price() three times with 'Apples', 'Cherries' and 'Mangoes'. Write down every line you expect, in order, and count them.", de: "examples/m2-switch-fallthrough.js ruft price() dreimal auf, mit 'Apples', 'Cherries' und 'Mangoes'. Schreib jede erwartete Zeile in der richtigen Reihenfolge auf und zähle sie." }, then: { type: command, command: "node examples/m2-switch-fallthrough.js", expectExitCode: 0, expectStdout: "Bananas" }, rubric: "Notices that 'Apples' prints two lines because the Apples case has no break and execution falls through into Bananas, giving four lines in total rather than three.", bloom: evaluate }
+  - id: grade
+    title: Beide Benotungs-Tests sind grün
+    check: { type: testSuite, runner: node-test, expectPass: ["m2-01 letterGrade handles the boundaries", "m2-01 dayKind does not fall through from weekend to weekday"], minPass: 2 }
+socratic:
+  - { trigger: "task:grade:failed", question: { en: "Which one is failing - the score exactly on a boundary, or the day that comes back as the wrong kind?", de: "Welcher schlägt fehl - die Punktzahl genau auf einer Grenze, oder der Tag, der als falsche Art zurückkommt?" }, hints: [ { en: "A score of exactly 80 must be a B. Which comparison excludes it?", de: "Genau 80 Punkte müssen ein B sein. Welcher Vergleich schließt das aus?" }, { en: "'sat' comes back as weekday: the weekend case assigns and then keeps running.", de: "'sat' kommt als weekday zurück: der Wochenend-Fall weist zu und läuft dann weiter." }, { en: "A case ends at break; without it, execution continues into the next case body.", de: "Ein case endet bei break; ohne break läuft die Ausführung in den nächsten case-Rumpf hinein." } ] }
+misconceptions:
+  - pattern: "weekday' !== 'weekend"
+    question: { en: "The weekend branch ran and then something overwrote its answer. What ends a case in JavaScript?", de: "Der Wochenend-Zweig lief, und dann hat etwas seine Antwort überschrieben. Was beendet einen case in JavaScript?" }
+    hints: [ { en: "Cases do not end on their own; execution falls into the next case body.", de: "Ein case endet nicht von selbst; die Ausführung fällt in den nächsten case-Rumpf." }, { en: "Stacked case labels with no body between them are the deliberate use of that behaviour.", de: "Gestapelte case-Marken ohne Rumpf dazwischen sind die beabsichtigte Nutzung dieses Verhaltens." }, { en: "Add break after the weekend assignment.", de: "Ergänze break nach der Wochenend-Zuweisung." } ]
+  - pattern: "'B' !== 'A'|'A' !== 'B'|'C' !== 'B'"
+    question: { en: "A value sitting exactly on a boundary went to the wrong branch. Is the comparison > or >=?", de: "Ein Wert genau auf einer Grenze ist im falschen Zweig gelandet. Ist der Vergleich > oder >=?" }
+    hints: [ { en: "Write the ranges out: 90..100 A, 80..89 B, 70..79 C. Which endpoint is excluded by >?", de: "Schreib die Bereiche auf: 90..100 A, 80..89 B, 70..79 C. Welchen Endpunkt schließt > aus?" }, { en: "Boundary values are exactly where off-by-one bugs live; the tests check them on purpose.", de: "Grenzwerte sind genau der Ort, an dem Off-by-one-Fehler wohnen; die Tests prüfen sie mit Absicht." }, { en: "score > 80 has to become score >= 80.", de: "score > 80 muss score >= 80 werden." } ]
+---
+## Lernziel
+
+Schreib verzweigenden Code, dessen Grenzen stimmen, und verstehe, warum ein `switch` nach einem passenden Fall weiterläuft, wenn du ihn nicht anhältst.
+
+## if / else if / else
+
+Eine `if`-Kette wird von oben nach unten gelesen und hält beim ersten Zweig, dessen Bedingung wahr ist. Damit gehört die Reihenfolge zur Logik: eine Kette, die `score >= 70` vor `score >= 90` prüft, kann nie ein A vergeben.
+
+Die interessanten Fehler wohnen an den Grenzen. `>` und `>=` unterscheiden sich für genau einen Wert, und genau diesen Wert übergibt irgendwann jemand. Wenn ein Bereich „80 bis einschließlich 89" lautet, schreib ihn als `score >= 80` und lass den Zweig darüber die 90 abfangen - versuche nicht, beide Enden in einer Bedingung auszudrücken.
+
+## switch fällt durch
+
+MDNs Kapitel [Control flow](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Control_flow_and_error_handling) sagt es unumwunden: ein `case` endet nicht von selbst. Passt ein Fall, springt die Ausführung dorthin und **läuft weiter** in die folgenden case-Rümpfe, bis sie auf ein `break` oder das Ende des switch trifft.
+
+Sag vorher, was das ausgibt, und führe dann [`examples/m2-switch-fallthrough.js`](file:examples/m2-switch-fallthrough.js) aus:
+
+```bash
+node examples/m2-switch-fallthrough.js
+```
+
+Die Frage nach Äpfeln gibt zwei Zeilen aus. Das ist Durchfallen, und es ist kein Mangel der Sprache: gestapelte Marken ohne Rumpf dazwischen sind die Art zu sagen „diese Fälle teilen sich eine Antwort".
+
+```js
+switch (day) {
+  case "sat":
+  case "sun":
+    kind = "weekend";
+    break;          // <- ohne das läuft die Ausführung in "mon" weiter
+  case "mon":
+  …
+}
+```
+
+Die Regel lässt sich leicht merken: **gestapelte Marken ohne etwas dazwischen sind Absicht; ein case-Rumpf ohne `break` ist ein Fehler**, sofern kein Kommentar das Gegenteil sagt.
+
+## Die Aufgabe
+
+Öffne [`src/m2/grade.js`](file:src/m2/grade.js). Zwei Funktionen, je ein Fehler:
+
+- `letterGrade(score)` muss für 80 bis 89 ein B vergeben. Ein Vergleich schließt einen Grenzwert aus; der Test übergibt genau diesen Wert.
+- `dayKind(day)` muss für `"sat"` und `"sun"` mit `"weekend"` antworten. Der Wochenend-Fall weist die richtige Antwort zu und fällt dann direkt in den Wochentags-Fall, der sie überschreibt.
+
+## Woran du erkennst, dass es geklappt hat
+
+```bash
+node --test test/m2-01-if-switch.test.js
+```
+
+Beide grün, und deine Vorhersage zum Beispiel ist erfasst. Als Nächstes: [was als wahr gilt](step:m2-02-truthy-falsy) - dort wird die Bedingung selbst zum Problem.
