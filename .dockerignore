@@ -25,3 +25,10 @@ vscode-extension
 extensions/**
 !extensions/.gitkeep
 !extensions/*/dist/*.vsix
+# images/tutor-lab (built with -f images/tutor-lab/Dockerfile from this root):
+# starter workspaces go to /opt/cads-seed minus build products and solutions.
+workspaces/**/target
+workspaces/**/node_modules
+workspaces/**/solutions
+images/*/README.md
+images/*/docker-compose.yml

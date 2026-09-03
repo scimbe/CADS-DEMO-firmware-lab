@@ -1,0 +1,14 @@
+{
+  // cads-tutor-lab: managed by the image (images/tutor-lab/vscode-templates).
+  // Rewritten on container start while this line is present; remove it to
+  // keep your own settings.
+  "rust-analyzer.check.command": "clippy",
+  "rust-analyzer.checkOnSave": true,
+  "rust-analyzer.cargo.allTargets": true,
+  "rust-analyzer.updates.askBeforeDownload": false,
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.formatOnSave": true
+  },
+  "lldb.suppressUpdateNotifications": true
+}

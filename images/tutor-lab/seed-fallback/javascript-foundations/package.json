@@ -1,0 +1,11 @@
+{
+  "name": "javascript-foundations",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PLACEHOLDER starter workspace for the CaDS Tutor javascript-foundations course",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test"
+  }
+}

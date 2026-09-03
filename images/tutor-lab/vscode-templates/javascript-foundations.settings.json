@@ -1,0 +1,15 @@
+{
+  // cads-tutor-lab: managed by the image (images/tutor-lab/vscode-templates).
+  // Rewritten on container start while this line is present; remove it to
+  // keep your own settings. eslint.enable is true only when the workspace
+  // has an ESLint configuration (checked by entrypoint.d/10-seed-workspaces.sh).
+  "eslint.enable": __CADS_ESLINT_ENABLE__,
+  "eslint.useFlatConfig": true,
+  "js/ts.implicitProjectConfig.checkJs": true,
+  "js/ts.implicitProjectConfig.module": "ESNext",
+  "javascript.suggest.autoImports": true,
+  "[javascript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features",
+    "editor.formatOnSave": true
+  }
+}

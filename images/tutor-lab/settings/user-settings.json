@@ -1,0 +1,42 @@
+{
+  // CaDS Tutor Lab - user settings baked into the image
+  // (~/.local/share/code-server/User/settings.json). Trimmed copy of
+  // image/settings/user-settings.json: same policy, minus the CMake/clangd/
+  // cortex-debug entries that only the firmware image needs. Per-workspace
+  // settings (rust-analyzer, ESLint) come from images/tutor-lab/vscode-templates.
+  "workbench.startupEditor": "none",
+  "security.workspace.trust.enabled": false,
+  "cadsTutor.autoOpen": true,
+  "editor.formatOnSave": true,
+
+  // No network-dependent noise for students: no update checks, no telemetry,
+  // no "install recommended extensions" prompts (they are all pre-installed).
+  "extensions.autoUpdate": false,
+  "extensions.autoCheckUpdates": false,
+  "extensions.ignoreRecommendations": true,
+  "telemetry.telemetryLevel": "off",
+  "update.mode": "none",
+  "update.showReleaseNotes": false,
+  "workbench.tips.enabled": false,
+  "workbench.welcomePage.walkthroughs.openOnInstall": false,
+  "workbench.enableExperiments": false,
+  // No Copilot chat UI in the lab (the tutor has its own views); the
+  // secondary side bar otherwise opens with an empty "Build with Agent" chat.
+  "chat.disableAIFeatures": true,
+  "workbench.secondarySideBar.defaultVisibility": "hidden",
+
+  // rust-analyzer: the server is bundled in the Open VSX VSIX, never download
+  // or ask; clippy on save is the check students should learn to read.
+  "rust-analyzer.updates.askBeforeDownload": false,
+  "rust-analyzer.check.command": "clippy",
+  "rust-analyzer.checkOnSave": true,
+  // CodeLLDB: platform package is baked in, no update prompts.
+  "lldb.suppressUpdateNotifications": true,
+  // npm scripts explorer/auto-detect runs `npm` on every folder - unnecessary.
+  "npm.autoDetect": "off",
+  "typescript.surveys.enabled": false,
+
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "git.openRepositoryInParentFolders": "never",
+  "files.autoSave": "off"
+}
