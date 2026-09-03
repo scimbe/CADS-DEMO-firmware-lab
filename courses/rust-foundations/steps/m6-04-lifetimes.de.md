@@ -11,12 +11,13 @@ links:
   - { step: "m7-01-wordstat" }
   - { file: "src/m6/m6_04_lifetimes.rs" }
   - { file: "repair/m6_04_missing_lifetime.rs" }
+  - { file: "snippets/m6_04_missing_lifetime.rs" }
   - { url: "https://doc.rust-lang.org/book/ch10-03-lifetime-syntax.html", title: "The Book, 10.3: Validating References with Lifetimes" }
-sources: [ "src/m6/m6_04_lifetimes.rs", "tests/m6-04-lifetimes.rs", "repair/m6_04_missing_lifetime.rs" ]
+sources: [ "src/m6/m6_04_lifetimes.rs", "tests/m6-04-lifetimes.rs", "repair/m6_04_missing_lifetime.rs", "snippets/m6_04_missing_lifetime.rs" ]
 tasks:
   - id: guess
     title: "Sage die zwei Fehler der Reparaturdatei vorher"
-    check: { type: "predict", prompt: { en: "repair/m6_04_missing_lifetime.rs declares a struct holding a &str and a longest function returning a &str. Before you compile it: how many errors do you expect, which error code, and which lines carry them?", de: "repair/m6_04_missing_lifetime.rs deklariert eine Struktur mit einem &str und eine Funktion longest, die einen &str liefert. Bevor du uebersetzt: wie viele Fehler erwartest du, welcher Fehlercode, und an welchen Zeilen stehen sie?" }, then: { type: "command", command: "mkdir -p target/check && rustc --edition 2024 --emit=metadata --out-dir target/check repair/m6_04_missing_lifetime.rs", expectExitCode: 1, expectStderr: "error\\[E0106\\]: missing lifetime specifier", timeoutMs: 120000 }, rubric: "Predicts two E0106 errors: one on the struct field `part: &str` and one on the return type of `longest`. Predicting only the function misses that a struct holding a reference needs a lifetime parameter too, which is the point of the second half of the chapter.", bloom: "evaluate" }
+    check: { type: "predict", prompt: { en: "snippets/m6_04_missing_lifetime.rs - the read-only twin of the file you will repair - declares a struct holding a &str and a longest function returning a &str. Before you compile it: how many errors do you expect, which error code, and which lines carry them?", de: "snippets/m6_04_missing_lifetime.rs - der schreibgeschuetzte Zwilling der Datei, die du reparieren wirst - deklariert eine Struktur mit einem &str und eine Funktion longest, die einen &str liefert. Bevor du uebersetzt: wie viele Fehler erwartest du, welcher Fehlercode, und an welchen Zeilen stehen sie?" }, then: { type: "command", command: "mkdir -p target/check && rustc --edition 2024 --emit=metadata --out-dir target/check snippets/m6_04_missing_lifetime.rs", expectExitCode: 1, expectStderr: "error\\[E0106\\]: missing lifetime specifier", timeoutMs: 120000 }, rubric: "Predicts two E0106 errors: one on the struct field `part: &str` and one on the return type of `longest`. Predicting one error only misses that a struct holding a reference needs a lifetime parameter too, which is the point of the second half of the chapter.", bloom: "evaluate" }
   - id: repair
     title: "Die reparierte Datei kompiliert und laeuft"
     check: { type: "command", command: "mkdir -p target/check && rustc --edition 2024 -o target/check/m6_04 repair/m6_04_missing_lifetime.rs && target/check/m6_04", expectExitCode: 0, expectStdout: "Call me Ishmael", timeoutMs: 120000 }

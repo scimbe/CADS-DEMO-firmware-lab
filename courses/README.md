@@ -1,20 +1,28 @@
-# CaDS Zero course packs
+# Course packs
 
-Two course packs for the CaDS Firmware Tutor, both grounded entirely in the real
-firmware [CaDS Zero](https://github.com/scimbe/cads-zero) on the ITSboard
-(STM32F429ZI). Every register address, file path, function name and measured
-number in these steps is verifiable in that repository; nothing is invented.
+Course packs for the CaDS Tutor. Two tracks so far: the firmware track, grounded
+entirely in the real firmware [CaDS Zero](https://github.com/scimbe/cads-zero) on
+the ITSboard (STM32F429ZI), and the language track, grounded in
+[The Rust Programming Language](https://doc.rust-lang.org/book/). Every register
+address, file path, function name, measured number and compiler message in these
+steps is verifiable in the source it names; nothing is invented.
 
-| Pack | Kind | Bloom span | Steps | Time |
-|---|---|---|---|---|
-| [`cads-zero-foundations`](cads-zero-foundations/) | required | remember → create | 41 | ~10 h |
-| [`cads-zero-projects`](cads-zero-projects/) | elective | create / evaluate | 6 | open |
+| Pack | Track | Kind | Bloom span | Steps | Time |
+|---|---|---|---|---|---|
+| [`cads-zero-foundations`](cads-zero-foundations/) | firmware | required | remember → create | 41 | ~10 h |
+| [`cads-zero-projects`](cads-zero-projects/) | firmware | elective | create / evaluate | 6 | open |
+| [`rust-foundations`](rust-foundations/) | language | standalone | remember → create | 30 | ~12 h |
+
+The firmware packs need the board and the bridge; `rust-foundations` needs
+nothing but `cargo` and runs anywhere.
 
 The pack format, the check types and the front-matter schema are defined in
-`docs/SPEC.md` (section 3.3). This file is the map and the author's cheat-sheet;
-the specification is the contract.
+`docs/SPEC.md` (section 3.3, plus the Addendum v1.1 for `command`, `testSuite`,
+`predict`, `scaffold`, `recallFrom`, `misconceptions` and module reflection).
+This file is the map and the author's cheat-sheet; the specification is the
+contract.
 
-## Learning path
+## Firmware track: learning path
 
 ```mermaid
 graph TD
@@ -53,7 +61,7 @@ before it, so the tutor can walk a student straight through. The project tasks
 carry no hard `requires` (they are independent), but each names the foundations
 steps it assumes in prose and links back to the relevant docs.
 
-## Bloom matrix
+## Firmware track: Bloom matrix
 
 The course climbs the taxonomy deliberately: recall and comprehension in M0–M1,
 application and analysis through the middle, and evaluation and creation at the
@@ -128,7 +136,126 @@ change; `evaluate` steps ask for a defended judgement graded against a rubric.
 | evaluate | 3 | 1 |
 | create | 5 | 5 |
 
-## Notes for course authors
+## Rust track: learning path
+
+`rust-foundations` is a standalone pack with its own workspace,
+[`workspaces/rust-foundations`](../workspaces/rust-foundations/). It shares no
+prerequisites with the firmware packs and needs no hardware.
+
+```mermaid
+graph TD
+  subgraph Rust["rust-foundations (standalone)"]
+    R0["M0 Tooling<br/>cargo · first test · predict · read a diagnostic"]
+    R1["M1 Ownership<br/>scope · move · clone · Copy · functions"]
+    R2["M2 Borrowing<br/>&T · &mut T · aliasing rule · slices"]
+    R3["M3 Structs & enums<br/>update syntax · variants · match · if let"]
+    R4["M4 Collections<br/>Vec · String as UTF-8 · HashMap · report"]
+    R5["M5 Error handling<br/>panic · Result · ? · custom error type"]
+    R6["M6 Generics<br/>type parameters · traits · bounds · lifetimes"]
+    R7["M7 Project<br/>build wordstat · review it"]
+    R0 --> R1 --> R2 --> R3 --> R4 --> R5 --> R6 --> R7
+  end
+```
+
+Like the firmware pack, the steps form a single chain: each step's `requires:`
+names the one before it. From M2 onward every step also carries `recallFrom:`,
+naming one or two earlier steps the panel may re-ask a question from when the
+step is opened.
+
+Grounding is the platform pack `rust` (threshold 9.0), which indexes chapters
+4, 5, 6, 8, 9 and 10 of *The Rust Programming Language* and supplies the fifteen
+`rust-ch*` objectives. Three further objectives -- `rust-tooling-cargo`,
+`rust-tooling-diagnostics` and `rust-project-cli` -- are declared in
+[`rust-foundations/curriculum.json`](rust-foundations/curriculum.json) with
+empty `sourceDocIds`, because the pack indexes no cargo or tooling chapter and
+citing ownership chunks for a cargo objective would be dishonest grounding.
+
+## Rust track: Bloom matrix
+
+| Step | Module | Bloom | Scaffold | Automatic checks |
+|---|---|---|---|---|
+| m0-01-welcome | M0 | remember | worked | command ×2, question |
+| m0-02-first-test | M0 | apply | worked | testSuite, question |
+| m0-03-predict-output | M0 | understand | faded | predict → command, testSuite |
+| m0-04-compiler-errors | M0 | analyze | independent | command, question |
+| m1-01-scope-and-move | M1 | understand | worked | predict → command, testSuite |
+| m1-02-move-vs-clone | M1 | apply | faded | testSuite, question |
+| m1-03-copy-types | M1 | understand | faded | testSuite, question |
+| m1-04-ownership-and-functions | M1 | apply | independent | testSuite, question |
+| m2-01-shared-references | M2 | apply | worked | predict → command, testSuite |
+| m2-02-mutable-references | M2 | apply | faded | testSuite, question |
+| m2-03-aliasing-rule | M2 | analyze | faded | command, testSuite, question |
+| m2-04-slices | M2 | apply | independent | predict → command, testSuite |
+| m3-01-structs | M3 | apply | worked | testSuite, question |
+| m3-02-enums | M3 | understand | faded | testSuite, question |
+| m3-03-match | M3 | apply | faded | predict → command, testSuite |
+| m3-04-if-let | M3 | apply | independent | testSuite, question |
+| m4-01-vectors | M4 | apply | worked | testSuite, question |
+| m4-02-strings | M4 | analyze | faded | predict → command, testSuite, command |
+| m4-03-hash-maps | M4 | apply | faded | testSuite, question |
+| m4-04-collections-report | M4 | analyze | independent | testSuite, question |
+| m5-01-panic-vs-result | M5 | understand | worked | predict → command, testSuite, command |
+| m5-02-result | M5 | apply | worked | testSuite, question |
+| m5-03-question-mark | M5 | apply | faded | testSuite, question |
+| m5-04-custom-error | M5 | analyze | independent | testSuite, question |
+| m6-01-generics | M6 | understand | worked | testSuite, question |
+| m6-02-traits | M6 | apply | faded | testSuite, question |
+| m6-03-trait-bounds | M6 | apply | faded | testSuite, question |
+| m6-04-lifetimes | M6 | analyze | independent | predict → command, command, testSuite |
+| m7-01-wordstat | M7 | create | independent | testSuite, command ×2 |
+| m7-02-review | M7 | evaluate | independent | command ×2, question |
+
+### Level and scaffold counts
+
+| Level | Steps | | Scaffold | Steps |
+|---|---:|---|---|---:|
+| remember | 1 | | worked | 9 |
+| understand | 6 | | faded | 12 |
+| apply | 15 | | independent | 9 |
+| analyze | 6 | | | |
+| evaluate | 1 | | | |
+| create | 1 | | | |
+
+Every module M0--M6 opens with a `worked` step and closes with an `independent`
+one, and every module M0--M6 carries at least one `predict` task. M7, the final
+project, is `independent` throughout by design.
+
+## Notes for the Rust pack
+
+- **Nothing is quoted from memory.** Every `misconceptions:` regex was captured
+  from a real `rustc 1.94.0` run on the workspace's own snippets: E0382, E0499,
+  E0502, E0596, E0507, E0308, E0277, E0106, E0004, E0046, E0063, E0369, E0597,
+  the `let...else` divergence message, the `str cannot be indexed` message and
+  the `byte index N is not a char boundary` panic. Re-verify them after a
+  toolchain bump; the messages are stable but not contractual.
+- **Three kinds of file, three roles.** `src/` holds the exercises the student
+  edits, `tests/` the finished specification, `examples/` the runnable programs
+  for `predict` tasks, `snippets/` programs that deliberately do not compile and
+  are never edited, and `repair/` two broken programs the student fixes.
+  `m6-04-lifetimes` has the same broken program in both `snippets/` and
+  `repair/`, on purpose: the prediction check must keep reporting the original
+  diagnostic after the repair file has been fixed.
+- **Checks that pass without a solution, and why.** The negative probe
+  (`--solutions`) does not apply to thirteen checks, all of which test a fixed
+  artifact rather than student code: the environment probes in `m0-01-welcome`
+  (`cargo --version`, `cargo build` -- the workspace compiles from the start
+  because unsolved exercises are `todo!()`), `cargo fmt --check` in
+  `m7-02-review`, and every `predict` check plus the two standalone snippet
+  compilations, which assert that a read-only file still produces exactly the
+  documented diagnostic. Every check that grades student work does fail without
+  the solution.
+- **`#[should_panic]` and test-list parsing.** cargo prints such a test as
+  `test <name> - should panic ... ok`, with the marker between the name and the
+  result. `m5-01-panic-vs-result` therefore pairs its `testSuite` check with a
+  `command` check asserting `test result: ok. 8 passed; 0 failed`, so the four
+  panic tests are covered whatever a list parser makes of that marker.
+- **Reference solutions live outside the seed.**
+  `workspaces/rust-foundations/solutions/<step-id>/` mirrors the workspace
+  layout. A few directories carry an earlier step's file as well, so each one is
+  self-sufficient; `m7-02-review` carries the whole finished workspace, because
+  its `clippy` check judges all of it.
+
+## Notes for the firmware packs
 
 The schema lives in `docs/SPEC.md` §3.3; a few conventions this pack settled on:
 
