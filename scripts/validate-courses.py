@@ -704,39 +704,67 @@ _CARGO_RE = re.compile(r"^test (\S+) \.\.\. (ok|FAILED|ignored)")
 
 
 def _parse_tests(output, runner):
-    """Minimal twin of the extension's parsers: returns {name: passed?} for
-    leaf tests; nested TAP names are keyed by both leaf name and 'a > b'."""
-    results = {}
+    """Twin of extensions/cads-tutor/src/checks/testParsers.ts. Returns a list of
+    {name, path, status, leaf} so this validator and the runtime reach the same
+    verdict on the same output - an author must not see a check pass here and
+    fail in the tutor. Keep the two in step when either changes."""
+    out = []
     if runner == "cargo":
+        # libtest prints one flat line per test; every case is a leaf.
         for line in output.splitlines():
-            m = _CARGO_RE.match(line)
-            if m and m.group(2) != "ignored":
-                results[m.group(1)] = m.group(2) == "ok"
-        return results
-    stack = []  # (indent, name) from "# Subtest:" lines
+            m = _CARGO_RE.match(line.strip())
+            if m:
+                status = {"ok": "passed", "FAILED": "failed"}.get(m.group(2), "skipped")
+                out.append({"name": m.group(1), "path": m.group(1), "status": status, "leaf": True})
+        return out
+    stack = []  # frames: [indent, name, child_count]
     for line in output.splitlines():
         indent = len(line) - len(line.lstrip(" "))
         st = line.strip()
-        sm = re.match(r"^# Subtest: (.*)$", st)
+        sm = re.match(r"^#\s*Subtest:\s*(.*)$", st)
         if sm:
             while stack and stack[-1][0] >= indent:
                 stack.pop()
-            stack.append((indent, sm.group(1)))
+            if stack:
+                stack[-1][2] += 1
+            stack.append([indent, sm.group(1).strip(), 0])
             continue
-        m = _TAP_RE.match(line)
-        if not m or not st.startswith(("ok", "not ok")):
+        if not st.startswith(("ok", "not ok")):
             continue
-        while stack and stack[-1][0] >= indent:
+        m = _TAP_RE.match(st)
+        if not m:
+            continue
+        while stack and stack[-1][0] > indent:
             stack.pop()
-        name = m.group(3)
+        frame = stack.pop() if stack and stack[-1][0] == indent else None
+        rest = m.group(3) or ""
         directive = (m.group(4) or "").lower()
+        name = rest.strip() or (frame[1] if frame else "")
         if "skip" in directive or "todo" in directive:
-            continue
-        passed = m.group(1) == "ok"
-        path = " > ".join([n for _, n in stack] + [name])
-        results[name] = passed
-        results[path] = passed
-    return results
+            status = "skipped"
+        else:
+            status = "passed" if m.group(1) == "ok" else "failed"
+        out.append({
+            "name": name,
+            "path": " > ".join([f[1] for f in stack] + [name]),
+            "status": status,
+            "leaf": (frame[2] if frame else 0) == 0,
+        })
+    return out
+
+
+def _index_tests(tests):
+    """Addressable by leaf name and by full path; a failure beats an earlier
+    same-named pass, so expectPass stays honest when a name repeats."""
+    idx = {}
+    for t in tests:
+        for key in (t["name"], t["path"]):
+            if not key:
+                continue
+            prev = idx.get(key)
+            if prev is None or (prev["status"] == "passed" and t["status"] != "passed"):
+                idx[key] = t
+    return idx
 
 
 def _suite_command(check):
@@ -751,22 +779,37 @@ def _suite_command(check):
 
 
 def _suite_passed(check, code, output):
+    """Mirror of evaluateSuite() in testParsers.ts: every expectPass test passed,
+    every expectFail test failed, and at least minPass LEAF tests passed. Parents
+    are excluded from the count so a nesting suite is not double-counted."""
     tests = _parse_tests(output, check.get("runner"))
+    idx = _index_tests(tests)
+    leaves = [t for t in tests if t["leaf"]]
+    n_pass = sum(1 for t in leaves if t["status"] == "passed")
+    problems = []
     for name in check.get("expectPass") or []:
-        if not tests.get(name, False):
-            return False, f"expected test '{name}' to pass ({'missing' if name not in tests else 'failed'})"
+        t = idx.get(name)
+        if t is None:
+            problems.append(f"expected test '{name}' to pass, but no test of that name ran")
+        elif t["status"] != "passed":
+            problems.append(f"expected test '{name}' to pass, but it {'failed' if t['status'] == 'failed' else 'was skipped'}")
     for name in check.get("expectFail") or []:
-        if name not in tests or tests[name]:
-            return False, f"expected test '{name}' to fail ({'missing' if name not in tests else 'passed'})"
+        t = idx.get(name)
+        if t is None:
+            problems.append(f"expected test '{name}' to fail, but no test of that name ran")
+        elif t["status"] == "passed":
+            problems.append(f"expected test '{name}' to fail, but it passed")
     min_pass = check.get("minPass")
-    n_pass = sum(1 for k, v in tests.items() if v and " > " not in k)
     if isinstance(min_pass, int) and n_pass < min_pass:
-        return False, f"minPass {min_pass} not reached ({n_pass} passed)"
+        problems.append(f"only {n_pass} of the required {min_pass} tests passed")
     if not (check.get("expectPass") or check.get("expectFail") or min_pass):
         if not tests:
-            return False, "no test results parsed"
-        if any(not v for v in tests.values()):
-            return False, "a test failed"
+            return False, "no test results could be parsed from the output"
+        failed = [t for t in leaves if t["status"] == "failed"]
+        if failed:
+            return False, f"{len(failed)} test(s) failed: " + ", ".join(t["path"] or t["name"] for t in failed[:5])
+    if problems:
+        return False, "; ".join(problems)
     return True, f"{n_pass} test(s) passed"
 
 
