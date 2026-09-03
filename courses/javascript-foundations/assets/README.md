@@ -1,6 +1,6 @@
 # Screenshots for javascript-foundations
 
-Nine screenshots of the real lab. Six are embedded in
+Eleven screenshots of the real lab. Six are embedded in
 [`steps/m0-01-using-the-ide`](../steps/m0-01-using-the-ide.en.md), which is where
 every operating move in this course is taught; two more show the tutor panel
 itself, and one shows the editor's own diagnostics in
@@ -17,6 +17,8 @@ itself, and one shows the editor's own diagnostics in
 | `tutor-panel-step.png` | the tutor panel beside the editor: course tree, step, Bloom and scaffold badges |
 | `tutor-panel-checks.png` | the task list after two checks passed, with Check, Show hint and the answer box |
 | `ide-problems-panel.png` | red underlines and the Problems panel naming both bugs of m1-01 |
+| `tutor-recall-card.png` | a recall card at the head of a later step, with the progress view beside it |
+| `tutor-predict-card.png` | a predict task with the written prediction beside the real output |
 
 ## How they were taken
 
@@ -37,11 +39,13 @@ real file open in the editor, legible text, and the interface in one language.
 
 ## What is still missing, and why
 
-**The recall card and the module reflection card.** Both appear only after
-earlier steps are finished, so photographing them means walking a session far
-enough in. Everything they need is in place - `recallFrom` on every step from M1
-onwards and `reflection` prompts on all eight modules - and the runtime loads
-them without complaint.
+**The module reflection card.** Photographed nothing, because it never appeared.
+Walking M0 through to five of five in the panel produced the recall card twice
+and recorded both in `session.json`, but no reflection card on finishing the
+module and no `reflection` key in the session at all - while the progress view
+itself lists `reflection: not yet` per module. Reported as a runtime gap; see
+`docs/review/javascript-walkthrough.md`. All eight modules in `course.json`
+carry their prompts, so nothing here needs changing.
 
 **Per-step screenshots.** Deliberately not taken. The operating move is identical
 in all 31 steps - the same terminal, the same shape of command, the same summary

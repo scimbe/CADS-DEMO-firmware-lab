@@ -75,6 +75,9 @@ Then run it:
 node examples/m0-console.js
 ```
 
+![The predict task showing the written prediction beside what the script actually printed, with a reflection question underneath](tutor-predict-card.png)
+*What the panel does with a prediction: your text on the left, the real output on the right, and one question underneath asking where the two parted company.*
+
 ## What to do with a mismatch
 
 Do not just note that you were wrong; name **which rule** you had wrong. "I thought `console.log` concatenated its arguments without a separator" is a usable sentence. "The last line looked different" is not. The second task asks you to do exactly that for the first line.

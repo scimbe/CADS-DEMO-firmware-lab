@@ -83,6 +83,11 @@ It fails, on purpose:
 
 That message is doing three useful things at once. It names the test that failed, it names the error, and the stack trace names **the file and line the error came from**: `src/m0/hello.js`, inside `greet`. Every failure in this course tells you those three things.
 
+Before the step's own text, the panel may show a short **Recall** card: one question from a step you have already finished. It is not graded and **Skip** dismisses it; answering it is how a fact you met once gets asked again a step later.
+
+![The tutor panel showing a Recall card above the step, with the progress view listing M0 as five of five](tutor-recall-card.png)
+*A recall card at the top of a later step, with the question carried over from an earlier one. Bottom left, the progress view counts how many checks passed on the first try.*
+
 ## The exercise
 
 Open [`src/m0/hello.js`](file:src/m0/hello.js). It contains one function:
