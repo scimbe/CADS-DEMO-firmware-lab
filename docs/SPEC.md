@@ -404,7 +404,15 @@ Einfügungen > 200 Zeichen zählen als Paste). Ausfall des Portals darf die Exte
   (Leistungsnachweise: je Studierendem × Kurs Steps/Checks/Reflexionen/Projekt, Status „offen/erreicht/bestätigt“,
   Lehrenden-Sign-off mit Zeitstempel, Export CSV/JSON, Notizfeld), **Regeln** (Schwellwerte in `portal.json`, dokumentiert).
 - Alle Berechnungen deterministisch und testbar (Python-Modul `analytics.py` mit Unit-Tests).
-- **Simulator** `deploy/portal/simulate.py`: erzeugt synthetische Kohorten (N Studierende, Personas: exzellent, solide,
+- **Korrektur A5.1 (2026-09-03, aus der Messung gegen eine Kontrollgruppe):** Der Indikator "Aktivität außerhalb
+der Session" wird gestrichen – er schlug bei 4 von 4 nachweislich unbeteiligten Studierenden an (Ursache dort: eine
+abgestürzte Sitzung) und hat damit keine Trennschärfe. Ebenso gilt: Ähnlichkeit zwischen Antworten wird als Anteil
+der Antwort gemessen, der bereits im Steptext steht (Containment), nicht als Jaccard-Ähnlichkeit; letztere lässt
+wörtliches Zitieren wie eigene Leistung aussehen, weil der Steptext um ein Vielfaches länger ist. Kein Kennzeichen
+trägt das Wort "Betrug"; das stärkste heißt "Auffällig – Rückfrage empfohlen", jedes Merkmal wird mit seiner
+harmlosen Gegenerklärung angezeigt, und kein Kennzeichen darf allein eine Bewertung tragen.
+
+**Simulator** `deploy/portal/simulate.py`: erzeugt synthetische Kohorten (N Studierende, Personas: exzellent, solide,
   schwach, abbrechend, betrügend; je Kurs, mehrere Lehrende) als Event-Ströme mit realistischen Verteilungen und speist sie
   per `/ingest` ein; Assertions, dass die Flags die Personas wiederfinden (Precision/Recall werden ausgegeben).
 
