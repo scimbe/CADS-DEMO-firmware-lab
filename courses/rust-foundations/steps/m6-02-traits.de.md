@@ -62,13 +62,13 @@ impl Summary for Tweet {
 }
 ```
 
-`Article` überschreibt `summarize`; `Tweet` nicht und erbt die Fassung des Traits. Die Wahl fällt je Typ zur Übersetzungszeit - die Methode des impl-Blocks ersetzt schlicht die Vorgabe für diesen Typ. Zur Laufzeit wird nichts nachgeschlagen.
+`Article` überschreibt `summarize`; `Tweet` nicht und erhält die Fassung des Traits. Wann und wie diese Wahl fällt, fragt dieser Step - erarbeite es aus den beiden impl-Blöcken, nicht aus diesem Absatz.
 
 Lässt du `author` weg, erhältst du `error[E0046]: not all trait items implemented`. Lässt du `summarize` weg, geschieht nichts, denn es gibt eine Vorgabe.
 
 ## Warum eine Vorgabemethode mehr wert ist als eine Kopie
 
-Die Vorgabe ruft `self.author()` auf - eine Methode, die das Trait *fordert*. Genau das macht sie wiederverwendbar: sie funktioniert für jeden Typ, den irgendwer künftig implementiert, solange er `author` liefert. Eine kopierte Hilfsfunktion täte das nicht; sie müsste je Typ erneut geschrieben werden.
+Sieh nach, was der Vorgaberumpf aufruft, und ob diese Methode für einen Implementierer optional ist. Diese beiden Tatsachen zusammen sind der Grund, warum eine Vorgabemethode mehr wert ist als eine je Typ kopierte Hilfsfunktion.
 
 ## Die Sichtbarkeitsregel
 

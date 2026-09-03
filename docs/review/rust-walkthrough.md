@@ -143,11 +143,80 @@ captured from real compiler runs and re-verified on rustc 1.98.
   them to run the tests after each one, which is the best mitigation available
   short of splitting the step.
 
+
+## Third pass: against docs/PEDAGOGY-RULES.md
+
+review2's rules arrived after the pack was written, so the pack was measured
+against them rather than built to them. `scripts/pedagogy-metrics.py` does the
+measuring and ships with the pack.
+
+### What the first measurement found
+
+| Rule | Before | After |
+|---|---:|---:|
+| Rubrics overlapping the step body above the limit | 19 of 22 | 12 of 22 |
+| Rubrics naming what does NOT pass | 4 of 22 | 22 of 22 |
+| Question tasks with their own hint ladder | 4 of 22 | 22 of 22 |
+| Tasks of any kind with no ladder | 31 of 70 | 9 of 70 |
+| Hint tier 3 overlapping the rubric above 30 percent | not measured | 0 of 22 |
+
+The overlap figure was the serious one: a median of 62 percent meant the answer
+to a question was in the prose the student had just read. The fix was the one
+the rules prescribe - cut the resolving sentence out of the **body**, not just
+move it into the rubric. Nine bodies lost the sentence that stated their own
+conclusion: m1-03 no longer explains the double free, m2-03 no longer spells
+out the reallocation, m6-01 no longer says what an unbounded `T` can do, m6-02
+no longer says when the override is chosen, m6-03 lost its rule of thumb,
+m5-04 no longer argues why absence is not an error, and m7-02 no longer lists
+the three allocation sites its own rubric asks the student to find.
+
+Prompts were rewritten to announce the scope the rubric grades ("two
+sentences: X, and Y"). That is deliberately against the 25-word guideline where
+the two pull apart, because review2's own round-2 setback was shortening
+prompts by hiding the requirement in a rubric the student never sees.
+
+### Where the pack still breaks a rule, and why
+
+**Twelve rubrics remain over the overlap limit, most of them just over.** Nine
+are between 40 and 57 percent against limits of 35 or 50. Having read each of
+those pairs, the residual overlap is domain vocabulary rather than a leaked
+answer: a rubric about `Copy` has to say `Copy`, `String` and `drop`, and so
+does the body, and no stop list separates those from the argument. Three are
+genuinely still too high and are the honest remainder of this pass:
+`m3-01/update-syntax` at 73, `m6-03/impl-vs-generic` at 74 and
+`m0-02/panels` at 69 - in each case the body must name the same handful of
+types or panel tabs the rubric grades, and shortening the body further would
+cost more than the metric gains. Flagged for review2 rather than papered over.
+
+**Nine tasks still have no hint ladder of their own.** All nine are `command`
+or `predict` checks whose failure modes are already covered by the step's
+`misconceptions`, which fire on the real compiler or cargo output and carry
+their own three tiers. A ladder there would duplicate them.
+
+**Every step is over the 600-word guideline** (733 to 1090 words). The operating
+path section added about 130 words to each. The team lead ruled explicitly that
+operability outranks the word count here; recording it so the decision is
+visible rather than silent.
+
+### One rule the pack was already safe on
+
+review2 warned that `extensions/cads-tutor/src/types.ts` knew none of
+`command`, `testSuite` or `predict`, and that `loader.ts` silently drops a whole
+step whose check type is unknown - 28 of 48 steps in their case, with the
+validator reporting PASS. Checked directly: after the merge of the runtime
+work, `CHECK_TYPES` in `types.ts` lists all three, and the live container shows
+the Rust course as 31 of 31 steps, so nothing is being dropped. Had that not
+been true, `testSuite` being this pack's main check would have made the course
+almost entirely invisible.
+
 ## Verdict
 
 Both passes get through. The fast student is never made to wait for
 repetition; the struggling student always has a named next action, and after
 the live run the three instructions that would have stranded them on step one
-are corrected. The remaining risk is not in the content: it is the tutor panel
-showing the wrong course, which makes the whole pack unusable in the lab
-regardless of how good the steps are.
+are corrected. Two risks remain, and neither is in the exercises. The tutor panel still opens
+the JavaScript course for a Rust workspace and lists JavaScript titles under
+the Rust node, which makes the pack unusable in the lab however good the steps
+are. And twelve rubrics still overlap their body more than the rules allow,
+three of them materially; a student who reads carefully can still shortcut
+those three questions.

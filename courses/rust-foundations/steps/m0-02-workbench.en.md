@@ -49,11 +49,7 @@ The **CaDS Tutor** panel shows the step you are reading, the tasks with a **Chec
 
 This is the single most common way to lose ten minutes:
 
-- **Terminal** shows what a command you typed prints. Everything in this course goes here.
-- **Problems** shows diagnostics that an extension collected, in a list. It stays empty in this course; do not wait for it.
-- **Output** shows the logs of the extensions themselves. Nothing you run appears here.
-
-If a command "printed nothing", check that you are looking at **Terminal**.
+Click each of **Terminal**, **Problems** and **Output** once now, with nothing running, and note what is in them. One of the three is where a command you typed prints; the other two hold things no command of yours will ever write. Which is which is worth finding out here rather than in the middle of a failing step.
 
 ## Three ways to run the same thing
 

@@ -51,11 +51,11 @@ Beide müssen sauber sein, einschließlich der Übungsdateien, die du früher im
 
 Drei Fragen, und die Aufgabe verlangt, alle drei über *deine* Implementierung zu beantworten.
 
-**Wo alloziert er mehr als nötig?** Kandidaten in diesem Entwurf: `normalize` baut für jedes Token einen `String`, auch für Token, die sich als Wiederholungen bereits gezählter Wörter erweisen; die Rangfolge klont jeden Schlüssel, sofern du die Map nicht mit `into_iter` verbraucht hast; und `read_to_string` hält die gesamte Datei im Speicher, bevor ein einziges Wort gezählt ist. Nicht alles davon lohnt die Korrektur - nenne eines, sage, was du tätest, und sage, ob du es tatsächlich tätest.
+**Wo alloziert er mehr als nötig?** Lies deine eigene Datei und finde die Stellen, an denen etwas gebaut und dann weggeworfen wird, oder etwas ganz gehalten wird, von dem nur ein Teil gebraucht wird. Nicht alles davon lohnt die Korrektur - nenne eines, sage, was du tätest, und sage, ob du es tatsächlich tätest.
 
 **Wie lautet der Fehlervertrag?** Formuliere ihn als Vertrag, nicht als Vorliebe. Eine fehlende Datei geht den Aufrufer an, also ist sie ein `Err`. Eine Datei ohne Wörter ist ein Zustand, von dem der Aufrufer verständlicherweise wissen will, also ist sie eine zweite Variante und kein leerer Bericht. Nichts in der Bibliothek stürzt ab, weil nichts darin ein Programmfehler ist, den sie erkennen könnte. Das Binary wandelt Fehler in Exit-Code 1 und eine Meldung auf stderr - was eine Shell erwartet.
 
-**Was würde der Entwurf erschweren?** Die interessante Frage. `count_words` und `report` arbeiten auf einem `&str` beliebiger Größe und funktionierten stückweise. `run` nicht: `read_to_string` ist die Zeile, die strömende Verarbeitung verbietet. Zu erkennen, welche Teile des eigenen Entwurfs das Hindernis sind - und welche beiläufig in Ordnung waren -, ist die Fähigkeit, um die es in diesem Step geht.
+**Was würde der Entwurf erschweren?** Die interessante Frage. Gehe deine vier Funktionen durch und frage bei jeder, ob sie mit jeweils einem Stück der Datei arbeiten könnte. Zu erkennen, welche Teile des eigenen Entwurfs das Hindernis sind - und welche beiläufig in Ordnung waren -, ist die Fähigkeit, um die es in diesem Step geht.
 
 ## Wie es weitergeht
 

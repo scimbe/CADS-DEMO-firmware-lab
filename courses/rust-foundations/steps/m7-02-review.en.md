@@ -51,11 +51,11 @@ Both must be clean, including the exercise files you wrote earlier in the course
 
 Three qüstions, and the task asks you to answer all three about *your* implementation.
 
-**Where does it allocate more than it needs?** Candidates in this design: `normalize` builds a `String` for every token, including tokens that turn out to be duplicates of words already counted; the ranking clones every key unless you consumed the map with `into_iter`; and `read_to_string` holds the whole file in memory before a single word is counted. Not all of these are worth fixing - name one, say what you would do, and say whether you would actually do it.
+**Where does it allocate more than it needs?** Read your own file and find the places where something is built and then thrown away, or held whole when only a part is needed. Not all of them are worth fixing - name one, say what you would do, and say whether you would actually do it.
 
 **What is the error contract?** State it as a contract, not a preference. A missing file is the caller's business, so it is an `Err`. A file with no words is a condition the caller may reasonably want to know about, so it is a second variant rather than an empty report. Nothing in the library panics, because nothing in it is a bug the program can detect. The binary turns errors into exit code 1 and a message on stderr, which is what a shell expects.
 
-**What would the design make hard?** The interesting one. `count_words` and `report` work on a `&str` of any size and would work per chunk. `run` does not: `read_to_string` is the line that forbids streaming. Seeing which parts of your own design are the obstacle - and which were incidentally fine - is the skill this step is for.
+**What would the design make hard?** The interesting one. Go through your four functions and ask of each whether it could work on one chunk of the file at a time. Seeing which parts of your own design are the obstacle - and which were incidentally fine - is the skill this step is for.
 
 ## Where to go next
 

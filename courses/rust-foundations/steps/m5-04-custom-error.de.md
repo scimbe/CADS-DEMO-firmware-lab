@@ -95,7 +95,7 @@ Beachte, dass `e.to_string()` den Wortlaut des Parsers speichert, `invalid digit
 
 ## Nicht alles ist ein Fehler
 
-`config_get` liefert `Ok(None)` für einen fehlenden Schlüssel und `Err` nur, wenn die Datei selbst kaputt ist. Das sind wirklich verschiedene Lagen: ein fehlender optionaler Schlüssel hat eine naheliegende Antwort, eine fehlerhafte Datei bedeutet, dass keinem Datum zu trauen ist. Beides zusammenzulegen zwänge jeden Aufrufer, einen Fehler zu untersuchen, nur um herauszufinden, ob überhaupt etwas nicht stimmt.
+`config_get` liefert `Ok(None)` für einen fehlenden Schlüssel und `Err` nur, wenn die Datei selbst kaputt ist. Zwei Rückgabewerte für zwei Lagen - und ob das die richtige Entscheidung ist und für wen sie die falsche wäre, fragt dieser Step.
 
 ## Deine Aufgabe
 

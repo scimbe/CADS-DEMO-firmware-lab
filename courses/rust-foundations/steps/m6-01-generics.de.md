@@ -45,7 +45,7 @@ pub fn largest<T: PartialOrd>(list: &[T]) -> &T
 
 ## Was ein ungebundenes T kann
 
-Sehr wenig. `T` ohne Schranke unterstützt nur, was jeder Typ unterstützt: verschoben und aufgeräumt zu werden. Für `swap` genügt das:
+Weniger, als man denkt. Lies die beiden Rümpfe unten und finde heraus, welche Operationen jeder von ihnen an einem `T` tatsächlich ausführt - genau das fragt dieser Step:
 
 ```rust
 pub fn swap<T>(p: Pair<T>) -> Pair<T> {
@@ -65,7 +65,7 @@ error[E0369]: binary operation `>` cannot be applied to type `&T`
 
 ## Warum `&T` und nicht `T`
 
-`T` zurückzugeben hieße, ein Element aus einem Slice zu nehmen, den der Aufrufer noch besitzt - das ist `error[E0507]: cannot move out of`. Du bräuchtest dann `T: Copy` oder `T: Clone` zusätzlich zu `PartialOrd` und schränktest ein, wer die Funktion aufrufen darf. `&T` zurückzugeben leiht stattdessen und braucht nichts weiter. Der Test zeigt den Unterschied: `largest(&words)` funktioniert an einem `Vec<String>`, der weder `Copy` noch billig zu klonen ist, und der Vektor besitzt seine Zeichenketten danach weiterhin.
+`T` zurückzugeben hieße, ein Element aus einem Slice zu nehmen, den der Aufrufer noch besitzt. Schreibe es einmal so und lies, was der Compiler dich zu ergänzen bittet. Der Test zeigt, was die Wahl einbringt: `largest(&words)` funktioniert an einem `Vec<String>`, der weder `Copy` noch billig zu klonen ist, und der Vektor besitzt seine Zeichenketten danach weiterhin.
 
 `first_of` ist der bewusste Gegensatz: es gibt einen besitzenden Wert heraus, trägt also `T: Clone` und nutzt `.cloned()`. Zwei Funktionen, zwei Verträge, und jede Schranke steht dort, weil der Rumpf sie braucht.
 
