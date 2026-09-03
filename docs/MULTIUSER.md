@@ -60,3 +60,10 @@ Browser ──TLS──► Edge (Browser-Plane, require_login=1) ──► ct-ag
 2. Ist `require_login=1` + Access-List für diesen Tunnel im Portal gesetzt (Voraussetzung für `/gate/check`)?
    Studierende müssen auf die Access-List (Kursliste) – Prozess klären (Portal-API?).
 3. Kapazität: Labor schätzt 15–20 gleichzeitig aktive Sessions (CPU-Bursts beim Compile) – vor Festlegung Lasttest mit parallelen Builds.
+
+## Bedrohungsmodell-Hinweis (Review Labor, 2026-09-03)
+`network_mode: host` für `fl-gate` erweitert die Netzwerksicht des Caddy-Containers auf den ganzen Host (Bindung bleibt
+127.0.0.1:3000, nichts wird zusätzlich exponiert). Begründung: Auf nativem Linux ist `host-gateway` die docker0-Adresse
+und erreicht keinen auf 127.0.0.1 gebundenen Broker. Konsequenz: Eine Caddy-Schwachstelle sähe das Host-Netz statt eines
+Bridge-Segments – deshalb Caddy-Image aktuell halten (`caddy:2-alpine`, Watchtower/Renovate) und keine weiteren
+Dienste ohne Auth auf Loopback des Labor-Hosts anbieten.
