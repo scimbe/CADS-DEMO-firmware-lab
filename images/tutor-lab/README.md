@@ -15,7 +15,8 @@ extension, the user-settings policy and the CI shape.
 | Workspaces | `workspaces/rust-foundations`, `workspaces/javascript-foundations` → `/opt/cads-seed/<name>`, seeded to `/home/coder/workspace/<name>` on first start; `cads-tutor.code-workspace` (multi-root, both folders) is what code-server opens |
 | Warm caches | the image build runs `cargo build --all-targets && cargo test` in the Rust seed and `node --test` (plus `npm ci` when there is a lock file) in the JavaScript seed; `target/` and `~/.cargo/registry` ship in the image |
 | Port | container 8080, host loopback `127.0.0.1:8084` (lab) / `127.0.0.1:8089` (development machine) |
-| Env | `PASSWORD` (required), `TUTOR_LLM_BASE_URL` / `TUTOR_LLM_API_KEY` / `TUTOR_LLM_MODEL` (optional, LLM for the tutor), `CADS_TUTOR_TELEMETRY_URL` / `CADS_TUTOR_TELEMETRY_TOKEN` (optional, SPEC A5 teacher portal; unset = events stay local) |
+| Env | `PASSWORD` (required), `TUTOR_LLM_BASE_URL` / `TUTOR_LLM_API_KEY` / `TUTOR_LLM_MODEL` (optional, LLM for the tutor; the base URL **must be `https://`**), `CADS_TUTOR_TELEMETRY_URL` / `CADS_TUTOR_TELEMETRY_TOKEN` (optional, SPEC A5 teacher portal; unset = events stay local, and `cads-tutor@0.1.0` does not read them yet) |
+| Size | 0.81 GB compressed (`docker save \| gzip`), 3.3 GB unpacked; a from-scratch build takes ≈4 min |
 
 Verification log, sizes and deviations: [docs/TUTOR-LAB-NOTES.md](../../docs/TUTOR-LAB-NOTES.md).
 
@@ -83,29 +84,150 @@ The image's `CMD` already carries `--bind-addr 0.0.0.0:8080 --app-name "CaDS Tut
 --disable-workspace-trust --disable-telemetry --disable-update-check
 /home/coder/workspace/cads-tutor.code-workspace`; do not override it.
 
-## Deploy / update on the lab host
+## Deploy on the lab host (`labor`)
 
-1. Take the tag from the CI run (`next-<shortsha>` on branch `next`, `latest` after a merge to
-   `main`; see `.github/workflows/image-tutor-lab.yml`).
-2. In the compose file (or the `docker run` line) set `image: ghcr.io/scimbe/cads-tutor-lab:<tag>`.
-3. `docker compose pull && docker compose up -d` (or `docker pull` + `docker rm -f` + `docker run`).
-   The workspace volume survives; existing student workspaces are **not** re-seeded, only the
-   image-managed `.vscode/settings.json` files are refreshed (marker line, see entrypoint script).
+`tutor-lab` runs on **labor** today from its own repository,
+`/home/becke/CADS-DEMO-tutor-lab`, which builds a container locally (`build: .`). This image
+replaces that build. Nothing about the deployment's shape changes: same container name, same
+loopback port `127.0.0.1:8084`, same named volume `tutor-lab-workspace`, same `.env`, same
+tunnel. Only where the image comes from changes.
 
-Verification after a deploy (2 minutes):
+### 1. Pick a tag
 
-```bash
-docker logs tutor-lab 2>&1 | grep '\[cads-seed\]'          # "ready: /home/coder/workspace/cads-tutor.code-workspace"
-docker exec tutor-lab bash -lc 'cargo --version; node --version; code-server --list-extensions --show-versions'
-docker exec tutor-lab bash -lc 'cd ~/workspace/rust-foundations && time cargo test'      # seconds, not minutes
-docker exec tutor-lab bash -lc 'cd ~/workspace/javascript-foundations && node --test'    # "# fail 0"
-docker exec tutor-lab ls /opt/cads-tutor/courses                                          # rust-foundations javascript-foundations
+From the CI run of `.github/workflows/image-tutor-lab.yml`: `next-<shortsha>` on branch `next`,
+`latest` after a merge to `main`. **Deploy an immutable tag** (`next-1a2b3c4`), never a moving
+one, so a rollback has something to roll back to.
+
+### 2. Edit the compose file
+
+In `/home/becke/CADS-DEMO-tutor-lab/docker-compose.yml`, replace the local build with the
+registry image and **delete the `command:` line**:
+
+```diff
+ services:
+   tutor-lab:
+-    build: .
++    image: ghcr.io/scimbe/cads-tutor-lab:next-1a2b3c4
+     container_name: tutor-lab
+     restart: unless-stopped
+-    command: ["--bind-addr", "0.0.0.0:8080", "--app-name", "CaDS Development System", "--disable-workspace-trust", "."]
 ```
 
-In the browser: log in, the title reads `cads-tutor (Workspace) — CaDS Tutor Lab`, the Explorer
-lists *Rust Foundations* and *JavaScript Foundations*, no "Restricted Mode", the CaDS Tutor icon
-is in the activity bar and opens the first course step. The full check is
-`CADS_LAB_PASSWORD=... CADS_LAB_URL=http://127.0.0.1:8084 CADS_LAB_CONTAINER=tutor-lab node e2e/tutor-lab-smoke.mjs`.
+The `command:` line matters more than the image line. Compose's `command:` **replaces the
+image's `CMD`**, and this image's `CMD` is what opens the multi-root workspace and switches the
+remaining startup noise off:
+
+```
+--bind-addr 0.0.0.0:8080 --app-name "CaDS Tutor Lab" --disable-workspace-trust
+--disable-telemetry --disable-update-check /home/coder/workspace/cads-tutor.code-workspace
+```
+
+Keeping the old line would open the plain folder `.` instead of `cads-tutor.code-workspace`
+(one folder in the Explorer instead of both tracks), label the window *CaDS Development System*
+and re-enable the update check. Leave `environment:`, `ports:` and `volumes:` exactly as they
+are.
+
+### 3. Pull and start
+
+```bash
+cd /home/becke/CADS-DEMO-tutor-lab
+docker compose pull
+docker compose up -d
+docker compose logs --tail=30 tutor-lab | grep '\[cads-seed\]'
+```
+
+The pull is ≈0.8 GB. `ghcr.io/scimbe/cads-tutor-lab` is public read, so no `docker login` is
+needed. The existing `tutor-lab-workspace` volume is kept: student work is **never** re-seeded
+or overwritten, only the image-managed `.vscode/settings.json` files are refreshed (they carry
+a marker line; a student's own file is left alone). Note that a volume from the old image
+already has the old repository's `rust-exercise/` and `javascript-exercise/` folders in it — the
+new seeds (`rust-foundations/`, `javascript-foundations/`) appear next to them. Start from an
+empty volume (`docker compose down && docker volume rm tutor-lab-workspace`) if you want only
+the new layout; **that deletes student work**, so only on a lab machine nobody is using.
+
+### 4. Environment (`.env`, unchanged)
+
+| Variable | Required | Meaning |
+|---|---|---|
+| `TUTOR_LAB_PASSWORD` | yes | the shared student login (`PASSWORD` inside the container) |
+| `TUTOR_LLM_BASE_URL` | no | LiteLLM proxy for the tutor's "ask" path. **Must start with `https://`** — `@cads/tutor-platform` throws `LlmClient baseUrl must be https://` otherwise and the ask path stays dead while everything else works |
+| `TUTOR_LLM_API_KEY` | no | proxy key; all three `TUTOR_LLM_*` must be set together or the tutor reports itself unconfigured |
+| `TUTOR_LLM_MODEL` | no | e.g. `local-devstral-small2` |
+| `CADS_TUTOR_TELEMETRY_URL` | no | teacher portal ingest endpoint (SPEC A5). Unset = learning events stay in the container |
+| `CADS_TUTOR_TELEMETRY_TOKEN` | no | token for that endpoint |
+
+The telemetry pair is plumbed through compose and documented here, but the VSIX in this image
+(`cads.cads-tutor@0.1.0`) does not read it yet — that arrives with the portal stream. Setting it
+today is harmless and has no effect.
+
+### 5. Verify (about three minutes)
+
+From the shell:
+
+```bash
+docker compose logs tutor-lab | grep '\[cads-seed\]'    # ends with "ready: …/cads-tutor.code-workspace"
+curl -sI http://127.0.0.1:8084/ | head -1                # HTTP/1.1 302 Found (→ ./login)
+docker exec tutor-lab bash -lc 'cargo --version; node --version'
+docker exec tutor-lab code-server --list-extensions --show-versions
+docker exec tutor-lab bash -lc 'cd ~/workspace/rust-foundations && cargo test'
+docker exec tutor-lab bash -lc 'cd ~/workspace/javascript-foundations && node --test'
+docker exec tutor-lab ls /opt/cads-tutor/courses
+```
+
+Expected: `cargo 1.98.0` or newer and `node v22.x`; the extension list contains
+`cads.cads-tutor`, `rust-lang.rust-analyzer`, `dbaeumer.vscode-eslint`, `vadimcn.vscode-lldb`;
+both test commands are green in seconds.
+
+In the browser (through the usual tunnel or an SSH port-forward to `127.0.0.1:8084`):
+
+1. Password login works and the window title reads `cads-tutor (Workspace) — CaDS Tutor Lab`.
+2. The Explorer shows **both** folders, *Rust Foundations* and *JavaScript Foundations*. One
+   folder only means the `command:` line is still in the compose file (step 2).
+3. **No "Restricted Mode"** banner, no notification a minute after the workbench loads.
+4. The CaDS Tutor icon is in the activity bar; opening it lists the courses *rust-foundations*
+   and *javascript-foundations* and a step opens as an editor tab. If the image was built before
+   those course packs merged, the tutor says *"No course packs found"* instead — correct for that
+   image, and the sign that you need a newer tag.
+5. `F1 → Terminal: Create New Terminal` opens a terminal **without** asking for a working
+   directory; `cargo --version` and `node --version` answer, and `cd rust-foundations &&
+   cargo test` passes.
+
+The whole browser list is also a script (needs a local playwright and Chromium):
+
+```bash
+CADS_LAB_URL=http://127.0.0.1:8084 CADS_LAB_CONTAINER=tutor-lab CADS_LAB_PASSWORD=… \
+  node e2e/tutor-lab-smoke.mjs
+```
+
+### 6. Roll back
+
+Put the previous tag back in `image:` and repeat step 3. The volume is untouched, the port and
+the tunnel do not change, so a rollback is a pull and a restart:
+
+```bash
+cd /home/becke/CADS-DEMO-tutor-lab
+sed -i 's#cads-tutor-lab:.*#cads-tutor-lab:<previous tag>#' docker-compose.yml
+docker compose pull && docker compose up -d
+```
+
+If the registry is unreachable, the old repository still builds its own image
+(`git stash` the compose change, `docker compose up -d --build`) — slower, but it does not
+depend on ghcr.io.
+
+### 7. Known limits
+
+- **Course packs live in the image**, at `/opt/cads-tutor/courses`. New course content means a
+  new tag, not a volume edit.
+- **One shared password**, no per-student isolation. Multi-user operation (Keycloak, one
+  container per student) is the firmware lab's broker stack and does not cover tutor-lab yet.
+- The image is arm64 + amd64; labor is amd64, so `docker compose pull` picks that automatically.
+- Disk: ≈3.3 GB unpacked per image version. Remove the previous tag only after the new one is
+  verified: `docker image rm ghcr.io/scimbe/cads-tutor-lab:<old tag>`.
+- `--restart unless-stopped` brings the container back after a reboot; the tunnel process for
+  this host follows the host's own restore guide.
+
+Operator-facing version of this procedure:
+[deploy the tutor-lab image](https://github.com/scimbe/CADS-ops-docs) (`_how-to/deploy-tutor-lab-image.md`).
 
 ## What is deliberately not in the image
 
@@ -114,3 +236,6 @@ is in the activity bar and opens the first course step. The full check is
 - No global `eslint`: the ESLint extension is enabled per workspace only when that workspace has
   an ESLint configuration (then `npm ci` in the seed build installs it from the lock file).
 - No corepack shims (`yarn`/`pnpm` would try to download on first use).
+- No per-folder terminal directory: a multi-root workspace otherwise asks *"Select current
+  working directory for new terminal"* every single time, so `terminal.integrated.cwd` is
+  pinned to `/home/coder/workspace` and both tracks are one `cd` away.
