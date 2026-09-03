@@ -1,6 +1,6 @@
 ---
 id: m1-01-scope-and-move
-title: "Gueltigkeitsbereich, Eigentuemer, Move"
+title: "Gültigkeitsbereich, Eigentümer, Move"
 bloom: understand
 objectives: [ "rust-ch04-01-what-is-ownership" ]
 requires: [ "m0-04-compiler-errors" ]
@@ -20,27 +20,27 @@ tasks:
     title: "takes_ownership und gives_ownership bestehen"
     check: { type: "testSuite", runner: "cargo", command: "cargo test --test m1-01-scope-and-move", expectPass: [ "m1_01_scope_and_move::takes_ownership_returns_length", "m1_01_scope_and_move::empty_string_has_length_zero", "m1_01_scope_and_move::gives_ownership_returns_yours" ], minPass: 3, timeoutMs: 180000 }
 socratic:
-  - { trigger: "task:ownership:failed", question: { en: "Both functions are two lines long. Which one panics - and does the panic say `not yet implemented`, or does an assertion compare the wrong value?", de: "Beide Funktionen sind zwei Zeilen lang. Welche stuerzt ab - und meldet die Panic `not yet implemented`, oder vergleicht eine Zusicherung den falschen Wert?" }, hints: [ { en: "`takes_ownership` owns `s`, so it may call any method on it, including `len()`.", de: "`takes_ownership` besitzt `s` und darf daher jede Methode darauf aufrufen, auch `len()`." }, { en: "`gives_ownership` has to create the `String` itself: `String::from(\"yours\")` allocates and hands the result to the caller.", de: "`gives_ownership` muss den `String` selbst erzeugen: `String::from(\"yours\")` alloziert und uebergibt das Ergebnis an den Aufrufer." }, { en: "`len()` counts bytes, and for these ASCII test strings that is the same as characters.", de: "`len()` zaehlt Bytes, was bei diesen ASCII-Testzeichenketten dasselbe ist wie Zeichen." } ] }
+  - { trigger: "task:ownership:failed", question: { en: "Both functions are two lines long. Which one panics - and does the panic say `not yet implemented`, or does an assertion compare the wrong value?", de: "Beide Funktionen sind zwei Zeilen lang. Welche stürzt ab - und meldet die Panic `not yet implemented`, oder vergleicht eine Zusicherung den falschen Wert?" }, hints: [ { en: "`takes_ownership` owns `s`, so it may call any method on it, including `len()`.", de: "`takes_ownership` besitzt `s` und darf daher jede Methode darauf aufrufen, auch `len()`." }, { en: "`gives_ownership` has to create the `String` itself: `String::from(\"yours\")` allocates and hands the result to the caller.", de: "`gives_ownership` muss den `String` selbst erzeugen: `String::from(\"yours\")` alloziert und übergibt das Ergebnis an den Aufrufer." }, { en: "`len()` counts bytes, and for these ASCII test strings that is the same as characters.", de: "`len()` zählt Bytes, was bei diesen ASCII-Testzeichenketten dasselbe ist wie Zeichen." } ] }
 misconceptions:
-  - { pattern: "error\\[E0382\\]: borrow of moved value", question: { en: "The compiler says a value was moved. Which line moved it, and does the code after that line still need the old owner - or would the new one do?", de: "Der Compiler sagt, ein Wert wurde verschoben. Welche Zeile hat ihn verschoben, und braucht der Code danach wirklich noch den alten Eigentuemer - oder taete es auch der neue?" }, hints: [ { en: "The diagnostic marks three places: where the value was created, `value moved here`, and `value borrowed here after move`. Read them in that order.", de: "Die Diagnose markiert drei Stellen: wo der Wert entstand, `value moved here` und `value borrowed here after move`. Lies sie in dieser Reihenfolge." }, { en: "Assigning a `String` to a second name, or passing it to a function by value, moves it; the old name is unusable afterwards.", de: "Ein `String` an einen zweiten Namen zu binden oder ihn per Wert an eine Funktion zu uebergeben verschiebt ihn; der alte Name ist danach unbrauchbar." }, { en: "`clone()` is the honest fix only when you genuinely need two independent values; if you only need to read, a reference is what you want - and that is the next module.", de: "`clone()` ist nur dann die ehrliche Loesung, wenn du wirklich zwei unabhaengige Werte brauchst; willst du nur lesen, ist eine Referenz das Richtige - und die kommt im naechsten Modul." } ] }
+  - { pattern: "error\\[E0382\\]: borrow of moved value", question: { en: "The compiler says a value was moved. Which line moved it, and does the code after that line still need the old owner - or would the new one do?", de: "Der Compiler sagt, ein Wert wurde verschoben. Welche Zeile hat ihn verschoben, und braucht der Code danach wirklich noch den alten Eigentümer - oder täte es auch der neue?" }, hints: [ { en: "The diagnostic marks three places: where the value was created, `value moved here`, and `value borrowed here after move`. Read them in that order.", de: "Die Diagnose markiert drei Stellen: wo der Wert entstand, `value moved here` und `value borrowed here after move`. Lies sie in dieser Reihenfolge." }, { en: "Assigning a `String` to a second name, or passing it to a function by value, moves it; the old name is unusable afterwards.", de: "Ein `String` an einen zweiten Namen zu binden oder ihn per Wert an eine Funktion zu übergeben verschiebt ihn; der alte Name ist danach unbrauchbar." }, { en: "`clone()` is the honest fix only when you genuinely need two independent values; if you only need to read, a reference is what you want - and that is the next module.", de: "`clone()` ist nur dann die ehrliche Lösung, wenn du wirklich zwei unabhängige Werte brauchst; willst du nur lesen, ist eine Referenz das Richtige - und die kommt im nächsten Modul." } ] }
 ---
 ## Lernziel
 
-Nenne die drei Ownership-Regeln und erkenne in einer Diagnose den Moment, in dem ein Wert aufgehoert hat, einer Variablen zu gehoeren.
+Nenne die drei Ownership-Regeln und erkenne in einer Diagnose den Moment, in dem ein Wert aufgehört hat, einer Variablen zu gehören.
 
 ## Die drei Regeln
 
-Aus Kapitel 4.1, unveraendert:
+Aus Kapitel 4.1, unverändert:
 
-1. Jeder Wert in Rust hat einen *Eigentuemer*.
-2. Es gibt immer nur einen Eigentuemer zugleich.
-3. Verlaesst der Eigentuemer seinen Gueltigkeitsbereich, wird der Wert aufgeraeumt.
+1. Jeder Wert in Rust hat einen *Eigentümer*.
+2. Es gibt immer nur einen Eigentümer zugleich.
+3. Verlässt der Eigentümer seinen Gültigkeitsbereich, wird der Wert aufgeräumt.
 
-Die dritte Regel ersetzt sowohl Garbage Collection als auch manuelles `free`. An der schliessenden Klammer des Bereichs, der einen `String` besitzt, ruft Rust `drop` auf und gibt die Heap-Allokation zurueck. Keine Laufzeitumgebung ist beteiligt, nichts wird durchsucht; der Compiler weiss schlicht, wo die Klammer steht.
+Die dritte Regel ersetzt sowohl Garbage Collection als auch manuelles `free`. An der schließenden Klammer des Bereichs, der einen `String` besitzt, ruft Rust `drop` auf und gibt die Heap-Allokation zurück. Keine Laufzeitumgebung ist beteiligt, nichts wird durchsucht; der Compiler weiß schlicht, wo die Klammer steht.
 
 ## Warum `String` und nicht `&str`
 
-Ein String-Literal steckt im Binary, hat feste Groesse und wird nie freigegeben, laesst sich also beliebig kopieren. Ein `String` ist etwas anderes: Zeiger, Laenge und Kapazitaet auf dem Stack, dazu ein Puffer auf dem Heap, dessen Groesse erst zur Laufzeit feststeht. Um diesen Heap-Puffer geht es bei Ownership.
+Ein String-Literal steckt im Binary, hat feste Größe und wird nie freigegeben, lässt sich also beliebig kopieren. Ein `String` ist etwas anderes: Zeiger, Länge und Kapazität auf dem Stack, dazu ein Puffer auf dem Heap, dessen Größe erst zur Laufzeit feststeht. Um diesen Heap-Puffer geht es bei Ownership.
 
 ## Was ein Move ist
 
@@ -49,9 +49,9 @@ let s1 = String::from("hello");
 let s2 = s1;
 ```
 
-Rust kopiert die drei Stack-Woerter nach `s2` und **nicht** den Heap-Puffer - beide zeigten also auf dieselbe Allokation. Zwei Eigentuemer bedeuten ein doppeltes Freigeben am Ende des Bereichs, deshalb verbietet Regel 2 das: `s1` wird nach `s2` *verschoben* und ist nicht mehr gueltig. Keine flache Kopie, keine tiefe Kopie - ein Move.
+Rust kopiert die drei Stack-Wörter nach `s2` und **nicht** den Heap-Puffer - beide zeigten also auf dieselbe Allokation. Zwei Eigentümer bedeuten ein doppeltes Freigeben am Ende des Bereichs, deshalb verbietet Regel 2 das: `s1` wird nach `s2` *verschoben* und ist nicht mehr gültig. Keine flache Kopie, keine tiefe Kopie - ein Move.
 
-Nutzt du `s1` danach, erhaeltst du:
+Nutzt du `s1` danach, erhältst du:
 
 ```text
 error[E0382]: borrow of moved value: `s1`
@@ -61,11 +61,11 @@ error[E0382]: borrow of moved value: `s1`
   |                ^^ value borrowed here after move
 ```
 
-Das ist `snippets/m1_01_move_error.rs`. Sage sein Ergebnis vorher, bevor du es uebersetzt; der Check ruft `rustc` darauf auf und erwartet genau diesen Fehlschlag.
+Das ist `snippets/m1_01_move_error.rs`. Sage sein Ergebnis vorher, bevor du es übersetzt; der Check ruft `rustc` darauf auf und erwartet genau diesen Fehlschlag.
 
 ## In Funktionen hinein und wieder heraus
 
-Uebergabe per Wert verschiebt, genau wie eine Zuweisung - und ein Rueckgabewert verschiebt zurueck heraus. `src/m1/m1_01_scope.rs` enthaelt je ein Beispiel:
+Übergabe per Wert verschiebt, genau wie eine Zuweisung - und ein Rückgabewert verschiebt zurück heraus. `src/m1/m1_01_scope.rs` enthält je ein Beispiel:
 
 ```rust
 pub fn takes_ownership(s: String) -> usize { … }
@@ -80,8 +80,8 @@ assert_eq!(takes_ownership(s), 5);
 // `s` is gone here: using it would be error E0382.
 ```
 
-Der Aufrufer hat die Zeichenkette weggegeben. `takes_ownership` raeumt sie beim Verlassen auf. Das ist eine echte Einschraenkung, und die naechsten beiden Steps zeigen die zwei ehrlichen Auswege: den Wert zurueckgeben oder klonen. Den Weg, den du tatsaechlich am haeufigsten nimmst - Borrowing - behandelt Modul M2.
+Der Aufrufer hat die Zeichenkette weggegeben. `takes_ownership` räumt sie beim Verlassen auf. Das ist eine echte Einschränkung, und die nächsten beiden Steps zeigen die zwei ehrlichen Auswege: den Wert zurückgeben oder klonen. Den Weg, den du tatsächlich am häufigsten nimmst - Borrowing - behandelt Modul M2.
 
 ## Deine Aufgabe
 
-Sage das Ergebnis des Snippets vorher, implementiere dann beide Funktionen und fuehre `cargo test --test m1-01-scope-and-move` aus.
+Sage das Ergebnis des Snippets vorher, implementiere dann beide Funktionen und führe `cargo test --test m1-01-scope-and-move` aus.
