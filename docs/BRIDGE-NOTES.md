@@ -209,5 +209,79 @@ Composite-Device und macOS mountet das Volume sofort wieder. In einer unbeaufsic
 gehoert deshalb ein Unmount unmittelbar hinter jeden Reset, sonst wedged der ST-Link irgendwann von
 selbst, ohne dass ein Client etwas falsch gemacht hat.
 
-Der eigentliche Regressionstest (Connect über die Statusleiste, Flash, Boot-Verifikation, F5-Debug)
-steht damit weiter aus; er wird nach dem Replug nachgeholt.
+### Ergebnis nach dem Replug: alle Nachweise gruen
+
+Nach dem physischen Replug (`--connect-under-reset` löste den ersten, leichten Wedge sogar ohne
+Replug auf) lief der komplette Test in **einer** durchgehenden Browser-Sitzung durch:
+
+| Nachweis | Ergebnis |
+|---|---|
+| (a) Connect über die Statusleiste, chooser-frei | `Board: verbunden · läuft`; Menü vollständig (Flash, Reset, Anhalten, Konsole öffnen, Log anzeigen, Trennen). `/probe`: ST-Link V2-1 **V2J33M25**, SN 066FFF565282494867161033, 3.24 V; Target STM32F42x/F43x, chipId 0x419, coreId 0x2BA01477, 2048 KB Flash, 256 KB SRAM. |
+| (b) Flash aus dem Board-Menü | Mac-Binary `cads-zero.bin`, 327088 Bytes (md5 ce03f3df347056cd18bc805cb5c0b4d0): **15019 ms** inkl. Verify. Zweiter Flash über den `st-flash`-Shim als `preLaunchTask`: 327076 Bytes in **14017 ms**. |
+| (c) Boot nach dem Flash | Reset aus dem Board-Menü, mitgelesen auf `/dev/cu.usbmodem1303`: `CaDS Zero v0.1.0`, `1..10`, zehn `ok`-Zeilen, `# 10/10 passed`, `# RESULT: PASS`, `# EXPLORER ready`. |
+| (d) F5 mit cortex-debug | Halt am Einsprungpunkt: Call-Stack `Paused on breakpoint`, `main@0x0802310a`, `targets/itsboard/main.c:13`; Variables mit Local/Global/Static/Registers; **XPERIPHERALS** aus der SVD (ADC1 @0x40012000, ADC2 @0x40012100, ADC3 @0x40012200, C_ADC @0x40012300, CAN1 @0x40006400); `core=halted`, `gdbClients=1`. |
+| (e) Sauberes Beenden | Nach `Debug: Stop`: `core=running`, `gdbClients=0` – das Board läuft weiter (Resume-on-Disconnect wie in B3). |
+| (f) Sauberes Trennen | `cads.board.disconnect` → `usb: absent`; danach sieht der Mac die ST-Link wieder. |
+
+Die Messwerte decken sich mit B3 (13.2–13.3 s dort, 14.0–15.0 s hier; ≈22 KB/s über WebUSB).
+
+Screenshots im Doku-Repo (`CADS-DEMO-firmware-lab-docs`, Commit b3f4dd9):
+`assets/13-board-connected.png`, `14-flash-progress.png`, `15-debug-session.png`,
+`16-board-console.png`.
+
+### Gefunden und gefixt: `listen()` ohne Retry (EADDRINUSE)
+
+Reproduzierbar und alltäglich: code-server hält einen Extension-Host nach dem Trennen des Browsers
+für `VSCODE_RECONNECTION_GRACE_TIME` am Leben – **drei Stunden** per Default. Wer das Labor in einem
+zweiten Fenster öffnet, bekommt einen zweiten Extension-Host, während der erste 3333/3334/3335 noch
+hält:
+
+```
+[error] GDB server: listen EADDRINUSE: address already in use 127.0.0.1:3333
+[error] serial tcp:  listen EADDRINUSE: address already in use 127.0.0.1:3334
+[error] http:        listen EADDRINUSE: address already in use 127.0.0.1:3335
+```
+
+Der alte Host `<588>` gab die Ports um 07:48:25 frei, der neue `<2266>` hatte um 07:43:25 einmal
+erfolglos gebunden und versuchte es **nie wieder** – Flash, Debug und Konsole blieben für die
+ganze Sitzung tot, sichtbar nur als `Board-Bridge nicht aktiv` aus dem `st-flash`-Shim. Der
+`SocatPty`-Supervisor daneben machte es längst richtig.
+
+Fix: `src/listen.ts` (`listenWithRetry`) wiederholt bei EADDRINUSE mit demselben Backoff wie
+`SocatPty` (1 s je Versuch, gedeckelt bei 30 s) und bindet, sobald der Port frei wird. Fehler, die
+Warten nicht heilt (EACCES, unauflösbarer Host), werden weiterhin einmal gemeldet und nicht
+wiederholt; `dispose()` beendet die Schleife. Vier Tests gegen echte Sockets, Suite jetzt 22 Tests.
+
+### Betriebsregeln, die dieser Lauf teuer gelernt hat
+
+Dreimal ist die ST-Link gewedged, mit drei verschiedenen Ursachen. Keine davon war ein Fehler des
+WebUSB-Pfads:
+
+1. **NOD_F429ZI nach jedem Reset unmounten**, nicht nur nach jedem Replug. Ein `st-flash reset`
+   re-enumeriert das Composite-Device, macOS mountet das MBED-Volume sofort wieder und schreibt
+   Metadaten, die die ST-Link als Firmware für 0x08000000 deutet.
+2. **Nie den Browser oder den Container anfassen, solange das Board verbunden ist.** Chrome hart
+   zu beenden, während der DHCSR-Poller läuft, reisst einen USB-Transfer mitten durch – das ist
+   Wedge-Ursache (2) aus cads-zero/CLAUDE.md, und es gilt für den Container-Restart genauso, weil
+   der den Extension-Host samt Worker mitnimmt. Erst `cads.board.disconnect`, auf `usb: absent`
+   warten, dann schliessen.
+3. **Keine Leerlaufzeit mit verbundenem Board.** Einmal kam der Timeout ohne jedes Zutun: Flash um
+   08:03:59 fertig, dann neun Minuten Leerlauf, in denen nur der DHCSR-Poller alle 100 ms
+   USB-Transfers fuhr – rund 5000 nutzlose Transfers –, und um 08:13:07 `USB failure: transferOut:
+   timeout`. Das passt auf Ursache (4) der cads-zero-Doku (Degradation mit Sitzungsdauer und Last).
+   Lange Testläufe deshalb als **ein** Skript ohne Wartepausen fahren.
+4. Zur Diagnose: `--connect-under-reset` hilft nur beim leichten Wedge. Unterscheidungsmerkmal ist
+   die Versionszeile – liest `st-info` noch `V2J33S25`, ist Recovery ohne Replug möglich; steht dort
+   nur `V2`, hilft nur der physische Replug.
+
+### WebSerial: weiterhin ein manueller Klick, jetzt auch per CDP widerlegt
+
+Die Konsole im Browser braucht unverändert einen Chooser-Klick. Zusätzlich zu den Befunden aus B3
+(Preferences-Seeding wirkungslos, `SerialAllowUsbDevicesForUrls` nur auf Ebene „Obligatorisch")
+wurde diesmal die CDP-Route sauber ausgeschlossen: `DeviceAccess.enable` wird auf der **Page**-
+Session akzeptiert (auf der Browser-Session gibt es die Domain nicht: `'DeviceAccess.enable' wasn't
+found`), aber beim Auslösen von `cads.probe.requestDevices({serial:true})` feuert
+`DeviceAccess.deviceRequestPrompted` nicht – VS Codes `workbench.experimental.requestSerialPort`
+öffnet den Dialog an CDP vorbei. Damit ist die Automatisierung dieses einen Klicks endgültig
+ausgeschlossen; `16-board-console.png` entstand deshalb über die Mac-VCP in einem Labor-Terminal,
+und die Bildunterschrift in der Doku sagt das ausdrücklich.
