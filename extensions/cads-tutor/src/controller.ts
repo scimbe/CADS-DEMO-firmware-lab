@@ -353,6 +353,16 @@ export class TutorController implements vscode.Disposable {
       this.log(`gotoStep: unknown ${courseId}/${stepId}`);
       return;
     }
+    if (step.placeholder) {
+      // Listed in course.json, no file yet. Say so instead of opening an empty step.
+      this.log(`gotoStep: "${stepId}" is a placeholder (no step file in the pack)`);
+      void vscode.window.showInformationMessage(
+        this.lang === "de"
+          ? `Dieser Step ist noch nicht verfügbar: "${stepId}" ist im Kurs angekündigt, die Inhaltsdatei fehlt aber noch.`
+          : `This step is not available yet: "${stepId}" is announced in the course, but its content file is still missing.`
+      );
+      return;
+    }
     setCurrentStep(this.session, courseId, stepId);
     this.saveSession();
     this.emit({

@@ -406,6 +406,17 @@ export function validateStepFrontMatter(raw: unknown, expectedId?: string): Vali
     if (misconceptions.length > 0 && !tasks.some((t) => hasCheckType(t.check, "command") || hasCheckType(t.check, "testSuite"))) {
       warnings.push(`step "${sid}" declares misconceptions but has no command/testSuite task whose output they could match`);
     }
+    // Unknown keys are tolerated so a pack written against a newer format still
+    // loads, but a typo like `misconception:` would otherwise do nothing at all
+    // and look like a runtime bug to the author.
+    const KNOWN_STEP_FIELDS = new Set([
+      "id", "title", "bloom", "objectives", "requires", "estimatedMinutes", "links", "tasks",
+      "socratic", "creates", "sources", "scaffold", "recallFrom", "misconceptions",
+      "description", "$schema", "_comment",
+    ]);
+    for (const key of Object.keys(raw)) {
+      if (!KNOWN_STEP_FIELDS.has(key)) warnings.push(`step "${sid}": unknown front-matter field "${key}" is ignored`);
+    }
     if (objectives.length === 0) warnings.push(`step "${sid}" has no objectives – mastery tracking and check-ins are disabled for it`);
 
     return { value: { id: sid, title, bloom, objectives, requires, estimatedMinutes, links, tasks, socratic: socraticHints, creates, sources, scaffold, recallFrom, misconceptions }, errors: [], warnings };
