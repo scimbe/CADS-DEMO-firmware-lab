@@ -51,6 +51,13 @@ Browser ──TLS──► Edge (Browser-Plane, require_login=1) ──► ct-ag
   bei aktiven Verbindungen erneuert) plus last-seen im Broker – nicht über Raten.
 - **LLM-Zugang** (`TUTOR_LLM_*`) wird vom Broker beim `docker create` in jeden Container injiziert (aus seiner
   eigenen Env), nie in Images.
+- **Telemetrie/Lehrenden-Portal** (SPEC A5, `deploy/portal/`): zweiter Host-Prozess auf `127.0.0.1:3200`,
+  ohne Docker-Zugriff. Caddy leitet `/portal*` hinter demselben Gate dorthin weiter; die Rollen kommen aus
+  `portal.json` (E-Mail → Kurse). Der Broker injiziert `CADS_TUTOR_TELEMETRY_URL`/`_TOKEN` genauso wie die
+  LLM-Variablen (per Namen). `/ingest` läuft bewusst **nicht** über das Gate: Container liefern direkt gegen
+  den Host ein, per Token authentifiziert – die URL muss deshalb aus dem Container erreichbar sein
+  (`host.docker.internal:3200` bzw. Bridge-Gateway), nicht `127.0.0.1`. Betrieb, Datenschutz und
+  Aufbewahrung: `deploy/portal/README.md`, Auswertungsregeln und ihre Grenzen: `deploy/portal/RULES.md`.
 - **Migration**: Der heutige Ein-Container-Betrieb (Services-Host, `docker run`, Passwort) bleibt als
   "Einzelplatz-Modus" mit demselben Image lauffähig; der Multi-User-Stack ist `deploy/multiuser/compose.yml` und
   läuft auf Labor. Umschaltung = ct-agent-Origin von `127.0.0.1:8083` auf `fl-gate:3000` (bzw. `127.0.0.1:3000`).

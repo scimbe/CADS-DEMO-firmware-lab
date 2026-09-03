@@ -407,3 +407,33 @@ Einfügungen > 200 Zeichen zählen als Paste). Ausfall des Portals darf die Exte
 - **Simulator** `deploy/portal/simulate.py`: erzeugt synthetische Kohorten (N Studierende, Personas: exzellent, solide,
   schwach, abbrechend, betrügend; je Kurs, mehrere Lehrende) als Event-Ströme mit realistischen Verteilungen und speist sie
   per `/ingest` ein; Assertions, dass die Flags die Personas wiederfinden (Precision/Recall werden ausgegeben).
+
+## A6 Robuster Hardwarezugriff (2026-09-03, verbindlich)
+
+Aus drei realen Ausfällen des Debug-Adapters während der Verifikation abgeleitet. Alle drei Ursachen treffen
+Studierende im Normalbetrieb, deshalb sind die Gegenmaßnahmen Teil des Produkts, nicht der Testumgebung.
+
+**Ursache 1 – automatisch eingebundenes Massenspeicher-Laufwerk des Adapters.** Das Betriebssystem schreibt
+Verwaltungsdaten darauf, der Adapter deutet sie als Firmware und beschädigt den Flash des Ziels.
+Gegenmaßnahmen in dieser Rangfolge: (a) Adapter-Firmware ohne Massenspeicher, sofern verfügbar – beseitigt die
+Ursache; (b) dauerhafter Ausschluss vom automatischen Einbinden (`/etc/fstab`-Eintrag auf macOS, udev-Regel auf
+Linux) über `scripts/setup-host-*.sh`, idempotent, mit `--undo`, plus Abschalten der Indizierung für dieses
+Volume; (c) Hintergrunddienst, der es sofort wieder aushängt, nur für Nutzer ohne Administratorrecht.
+
+**Ursache 2 – abrupt beendete Browsersitzung mitten im Transfer.** Gegenmaßnahmen: (a) Freigabe des Geräts bei
+`visibilitychange` (versteckt, mit Verzug), `pagehide` und `deactivate()`; (b) wichtiger: **defensiver
+Wiedereinstieg**. Beim Verbinden wird grundsätzlich angenommen, dass die letzte Sitzung unsauber endete – der
+Adapter wird in einen definierten Zustand gezwungen (Zustand lesen, Debug-Modus verlassen und neu betreten,
+Fehler quittieren, Ziel neu identifizieren), erst danach gilt er als verbunden. Sauberes Beenden ist eine
+Optimierung, kein Verlass.
+
+**Ursache 3 – Dauerabfrage im Leerlauf.** Die Zustandsabfrage lief alle 100 ms weiter und die Verbindung fiel
+nach Minuten aus. Gegenmaßnahmen: Abfrage nur bei Bedarf (aktive Debugsitzung oder ausdrückliche Abfrage),
+adaptives Intervall (100 ms → 500 ms → 2 s → aus), Aussetzen bei verstecktem Panel, Freigabe des Geräts nach
+längerer Inaktivität, Zähler der USB-Transaktionen im Log.
+
+**Wiederherstellung ohne physisches Stecken.** Erkennt die Probe ein nicht mehr ansprechbares Ziel oder einen
+desynchronisierten Adapter, fährt sie automatisch eine Wiederherstellungskette (Schließen und Öffnen, Rücksetzen
+auf USB-Ebene, Debug-Modus neu betreten, Verbindungsaufbau mit gehaltenem Reset). Welche Schritte tatsächlich
+wirken, ist empirisch am realen Fehlerzustand zu ermitteln und in docs/BRIDGE-NOTES.md zu belegen. Erst wenn die
+Kette scheitert, erscheint die Aufforderung, das Kabel neu zu stecken, mit Schaltfläche zum erneuten Verbinden.
