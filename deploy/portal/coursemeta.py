@@ -18,6 +18,12 @@ BLOOM_LEVELS = ("remember", "understand", "apply", "analyze", "evaluate", "creat
 KNOWN_COURSES = ("cads-zero-foundations", "rust-foundations", "javascript-foundations")
 
 _FM_KEY = re.compile(r"^(id|bloom|objectives|estimatedMinutes|scaffold):\s*(.*)$")
+# The model answer lives in the step file itself (`rubric:` inside a task's check), and the
+# last socratic hint of a three-tier ladder states the solution outright.  Both are needed to
+# judge a text-similarity or paste-share signal fairly - see RULES.md, sections 5.3 and 9.
+_RUBRIC_RE = re.compile(r"rubric:\s*\"([^\"]{4,})\"")
+_HINTS_RE = re.compile(r"hints:\s*\[(.*?)\]\s*\}", re.S)
+_HINT_ITEM_RE = re.compile(r"\{\s*en:")
 
 
 def _parse_front_matter(text: str) -> dict:
@@ -38,6 +44,25 @@ def _parse_front_matter(text: str) -> dict:
             val = int(val) if val.isdigit() else None
         out[key] = val
     return out
+
+
+def _split_front_matter(text: str) -> tuple[str, str]:
+    """(front matter, body).  Both empty parts are fine; no YAML library is involved."""
+    if not text.startswith("---"):
+        return "", text
+    end = text.find("\n---", 3)
+    if end < 0:
+        return "", text
+    return text[3:end], text[end + 4:]
+
+
+def _solution_exposure(front: str) -> tuple[list[str], int]:
+    """Model answers stated in the step file, and the deepest hint tier it offers."""
+    rubrics = [m.group(1) for m in _RUBRIC_RE.finditer(front)]
+    tiers = 0
+    for block in _HINTS_RE.finditer(front):
+        tiers = max(tiers, len(_HINT_ITEM_RE.findall(block.group(1))))
+    return rubrics, tiers
 
 
 def _title(value, lang="de") -> str:
@@ -69,7 +94,8 @@ def placeholder_course(course_id: str) -> dict:
             bloom = BLOOM_LEVELS[min(len(BLOOM_LEVELS) - 2, mi)]
             steps[sid] = {"id": sid, "module": mid, "bloom": bloom,
                           "objectives": [f"{course_id}.{mid}"], "title": {"de": sid, "en": sid},
-                          "estimatedMinutes": 15}
+                          "estimatedMinutes": 15, "reference_text": "", "hint_tiers": 3,
+                          "solution_in_material": True}
             sids.append(sid)
             order.append(sid)
         modules.append({"id": mid, "title": {"de": f"Modul {mi}", "en": f"Module {mi}"}, "steps": sids})
@@ -91,12 +117,22 @@ def load_course(courses_dir: str, course_id: str) -> dict:
         sids = []
         for sid in m.get("steps", []):
             meta = {"id": sid, "module": mid, "bloom": "apply", "objectives": [], "title": {"de": sid, "en": sid},
-                    "estimatedMinutes": None}
+                    "estimatedMinutes": None, "reference_text": "", "hint_tiers": 0,
+                    "solution_in_material": False}
+            reference: list[str] = []
             for lang in ("de", "en"):
                 sp = os.path.join(courses_dir, course_id, "steps", f"{sid}.{lang}.md")
                 if os.path.isfile(sp):
                     with open(sp, encoding="utf-8") as fh:
-                        fm = _parse_front_matter(fh.read(8192))
+                        raw = fh.read()
+                    front, body = _split_front_matter(raw)
+                    rubrics, tiers = _solution_exposure(front)
+                    reference += rubrics
+                    reference.append(body)
+                    meta["hint_tiers"] = max(meta["hint_tiers"], tiers)
+                    if rubrics or tiers >= 3:
+                        meta["solution_in_material"] = True
+                    fm = _parse_front_matter(raw[:8192])
                     if lang == "de" or not meta["objectives"]:
                         if fm.get("bloom") in BLOOM_LEVELS:
                             meta["bloom"] = fm["bloom"]
@@ -114,6 +150,7 @@ def load_course(courses_dir: str, course_id: str) -> dict:
                                 break
                     if fm_title:
                         meta["title"][lang] = fm_title
+            meta["reference_text"] = "\n".join(reference)
             steps[sid] = meta
             sids.append(sid)
             order.append(sid)
@@ -139,6 +176,25 @@ def objectives_of(course: dict) -> list[str]:
             if o not in seen:
                 seen.append(o)
     return seen
+
+
+def reference_text(course: dict, step_id: str) -> str:
+    """Everything the step itself already says: model answers plus the step body.
+
+    Used as the baseline for judging how similar two students' free texts really are.
+    Two people quoting the same rubric are not two people copying from each other.
+    """
+    meta = course["steps"].get(step_id) or {}
+    return meta.get("reference_text") or ""
+
+
+def solution_in_material(course: dict, step_id: str) -> bool:
+    """True when the step states the answer: a rubric in the file, or a third hint tier.
+
+    Where this holds, copying is system-conform behaviour and says nothing about honesty.
+    """
+    meta = course["steps"].get(step_id) or {}
+    return bool(meta.get("solution_in_material"))
 
 
 def step_title(course: dict, step_id: str, lang: str = "de") -> str:

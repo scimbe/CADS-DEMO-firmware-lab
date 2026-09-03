@@ -25,33 +25,43 @@ DEFAULT_THRESHOLDS: dict = {
     "questionJaccard": 0.6,          # cluster membership (token Jaccard)
     "activeDays": 7,                 # "active" = any event within this many days
     "dropped": {"inactiveDays": 14, "minStepsOpened": 1},
+    # Criterion-referenced first (RULES.md section 3): a flag has to mean something against the
+    # learning objective, not against whoever else happens to be in the cohort.  The percentile
+    # is kept only as a supplementary, explicitly labelled note.
     "excellent": {
-        "firstPassPercentile": 90,   # first-attempt pass rate >= this cohort percentile
-        "firstPassFloor": 0.85,      # and >= this absolute rate: "sehr gut" is not just "best of a weak cohort"
-        "hintPercentileMax": 50,     # hints per step <= this cohort percentile
+        "firstPassFloor": 0.85,      # absolute first-attempt pass rate
+        "maxHintsPerStep": 0.35,     # absolute: at most one hint per three steps
         "minMedianStepSeconds": 90,  # plausible working time
         "minStepsWithChecks": 5,     # enough checks that the rate is not a coin toss
+        "percentileNote": 90,        # norm-referenced, shown as a note only
     },
     "struggling": {
-        "firstPassPercentile": 10,
-        "firstPassFloor": 0.4,       # or: absolute first-pass rate at/below this
-        "tier3PerStep": 0.25,        # tier-3 hints per step with checks
-        "timeZ": 1.0,                # median step time z-score
+        "firstPassFloor": 0.4,       # absolute
+        "tier3PerStep": 0.25,        # deepest hint tier per step with checks
+        "stuckSteps": 2,             # steps with >= 3 attempts and still no pass
         "abandonRate": 0.3,
         "abandonMin": 2,
         "minIndicators": 2,
-        "minStepsWithChecks": 5,     # three checks are a coin toss, not a trend
+        "minStepsWithChecks": 5,
+        "percentileNote": 10,        # norm-referenced, shown as a note only
+        "timeZNote": 1.0,            # norm-referenced, shown as a note only
     },
-    "cheat": {
+    # Integrity signals.  Nothing here is called cheating and nothing here decides anything;
+    # the strongest of them earns a question, never a verdict.  See RULES.md section 5.3.
+    "integrity": {
         "fastPassSeconds": 60,
         "pasteShare": 0.8,
-        "textJaccard": 0.9,
+        "textJaccard": 0.9,          # pair similarity ...
+        "textMargin": 0.25,          # ... and how far it must exceed the step's own text
         "textMinTokens": 8,
+        "textTypes": ["reflection.written"],   # only answers that require own wording
         "outsideSessionMin": 3,
         "outsideSessionGraceSeconds": 120,
+        "weakForFollowup": 2,        # this many weak signals together warrant a question
     },
     "mastery": {"weights": {"check": 0.5, "question": 0.3, "predict": 0.2}},
 }
+
 
 _STOP = frozenset("""
 a an the and or of to in on for is are was be with by at from as it this that i my me we you your
@@ -152,6 +162,12 @@ def step_record(evs: list[dict], now: Optional[float] = None) -> dict:
         if e["type"] == "check.pass":
             break
     hints = [e["data"].get("hintTier") or 0 for e in evs if e["type"] == "hint.shown"]
+    # Which help was already on screen when the check passed?  A tier-2/3 hint in this course
+    # contains the solution line, so a paste after it is system-conform (RULES.md 5.3).
+    tier_before = 0
+    for e in evs:
+        if e["type"] == "hint.shown" and (first_pass_t is None or e["t"] <= first_pass_t):
+            tier_before = max(tier_before, int(e["data"].get("hintTier") or 0))
     typed = sum(int(e["data"].get("typedChars") or 0) for e in evs if e["type"] == "edit.metrics")
     pasted = sum(int(e["data"].get("pastedChars") or 0) for e in evs if e["type"] == "edit.metrics")
     paste_events = sum(int(e["data"].get("pasteEvents") or 0) for e in evs if e["type"] == "edit.metrics")
@@ -171,6 +187,9 @@ def step_record(evs: list[dict], now: Optional[float] = None) -> dict:
                                                      and first_pass_t >= opened) else None,
         "time_s": time_s,
         "hints": hints, "tier3": sum(1 for h in hints if h == 3),
+        "hint_tier_before_pass": tier_before,
+        # stuck: worked at it repeatedly and still did not get through
+        "stuck": len(checks) >= 3 and first_pass_t is None,
         "typed": typed, "pasted": pasted, "paste_events": paste_events,
         "paste_share": (pasted / (typed + pasted)) if (typed + pasted) > 0 else None,
         "questions": len(questions),
@@ -349,6 +368,7 @@ def student_metrics(events: list[dict], step_order: list[str], now: Optional[flo
             "question_rate": (len(questions) / len(opened)) if opened else 0.0,
             "ungrounded_questions": sum(1 for q in questions if q["data"].get("grounded") is False),
             "abandoned": sum(1 for r in opened if r["abandoned"]),
+            "stuck_steps": sum(1 for r in recs.values() if r["stuck"]),
             "abandon_rate": (sum(1 for r in opened if r["abandoned"]) / len(opened)) if opened else 0.0,
             "typed": typed, "pasted": pasted,
             "paste_share": (pasted / (typed + pasted)) if (typed + pasted) > 0 else 0.0,
@@ -377,7 +397,7 @@ def cohort_zscores(metrics: dict[str, dict]) -> dict[str, dict[str, float]]:
     return z
 
 
-# --------------------------------------------------------------------------- cheating indicators
+# --------------------------------------------------------------------------- integrity signals
 
 def _text_items(events: list[dict]) -> list[dict]:
     items = []
@@ -391,29 +411,52 @@ def _text_items(events: list[dict]) -> list[dict]:
     return items
 
 
-def identical_texts(events: list[dict], threshold: float = 0.9, min_tokens: int = 8) -> dict[str, list[dict]]:
-    """Pairs of students with near-identical free-text answers (token Jaccard >= threshold)."""
-    items = _text_items(events)
-    items = [i for i in items if i["n"] >= min_tokens]
+def identical_texts(events: list[dict], course: Optional[dict] = None, threshold: float = 0.9,
+                    min_tokens: int = 8, margin: float = 0.25,
+                    types: Optional[Iterable[str]] = None) -> dict[str, list[dict]]:
+    """Pairs of students whose free text is far more alike than the step's own wording.
+
+    A plain similarity threshold is useless here: the model answer sits in the step file
+    (``rubric:``) and the deepest hint states it outright, so two conscientious students
+    quoting the same source look identical without either copying from the other.  What is
+    actually informative is the *excess*: how far the pair's similarity rises above the
+    similarity each of them has to the material.  Only answers that ask for own wording are
+    considered (``types``), and the step's reference text is the baseline.
+    """
+    allowed = set(types) if types is not None else {"reflection.written"}
+    items = [i for i in _text_items(events) if i["n"] >= min_tokens and i["type"] in allowed]
+    baseline: dict[str, set] = {}
+    if course:
+        for it in items:
+            sid = it["step"]
+            if sid not in baseline:
+                import coursemeta as _cm
+                baseline[sid] = set(tokens_of(_cm.reference_text(course, sid)))
     hits: dict[str, list[dict]] = defaultdict(list)
-    by_step: dict[str, list[dict]] = defaultdict(list)
+    by_step: dict[tuple, list[dict]] = defaultdict(list)
     for it in items:
         by_step[(it["step"], it["type"])].append(it)
     for key, lst in by_step.items():
         lst.sort(key=lambda i: (i["t"], i["student"]))
+        ref = baseline.get(key[0], set())
         for a_i in range(len(lst)):
             for b_i in range(a_i + 1, len(lst)):
                 a, b = lst[a_i], lst[b_i]
                 if a["student"] == b["student"]:
                     continue
                 sim = jaccard(a["tokens"], b["tokens"])
-                if sim >= threshold:
-                    for me, other in ((a, b), (b, a)):
-                        hits[me["student"]].append({
-                            "step": me["step"], "type": me["type"], "other": other["student"],
-                            "similarity": round(sim, 3), "later": me["t"] > other["t"],
-                        })
-    return hits
+                if sim < threshold:
+                    continue
+                base = max(jaccard(a["tokens"], ref), jaccard(b["tokens"], ref)) if ref else 0.0
+                if sim - base < margin:
+                    continue          # no more alike than the material they both read
+                for me, other in ((a, b), (b, a)):
+                    hits[me["student"]].append({
+                        "step": me["step"], "type": me["type"], "other": other["student"],
+                        "similarity": round(sim, 3), "baseline": round(base, 3),
+                        "excess": round(sim - base, 3), "later": me["t"] > other["t"],
+                    })
+    return dict(hits)
 
 
 def outside_session_events(events: list[dict], grace_s: float = 120.0) -> dict[str, list[dict]]:
@@ -467,15 +510,33 @@ def prediction_anomalies(events: list[dict]) -> dict[str, list[dict]]:
     return dict(out)
 
 
-def fast_paste_passes(metrics: dict[str, dict], fast_s: float = 60.0, paste_share: float = 0.8) -> dict[str, list[dict]]:
+def fast_paste_passes(metrics: dict[str, dict], course: Optional[dict] = None,
+                      fast_s: float = 60.0, paste_share: float = 0.8) -> dict[str, list[dict]]:
+    """Fast first-try passes with a high paste share - a WEAK signal, never a strong one.
+
+    The tutor itself hands out code: the deepest hint tier contains the solution line and the
+    step file carries the rubric.  Pasting after that is exactly what the system asks for, so a
+    paste share only says anything where no tier-2 or tier-3 hint had been shown and the step's
+    material does not state the answer.  Even then it counts only together with something else.
+    """
+    solution_steps: set = set()
+    if course:
+        import coursemeta as _cm
+        solution_steps = {sid for sid in course.get("steps", {}) if _cm.solution_in_material(course, sid)}
     out: dict[str, list[dict]] = defaultdict(list)
     for stu, m in metrics.items():
         for sid, r in m["steps"].items():
-            if (r["passed"] and r["fails_before_pass"] == 0 and r["time_to_pass_s"] is not None
+            if not (r["passed"] and r["fails_before_pass"] == 0 and r["time_to_pass_s"] is not None
                     and r["time_to_pass_s"] < fast_s and r["paste_share"] is not None
                     and r["paste_share"] > paste_share):
-                out[stu].append({"step": sid, "seconds": round(r["time_to_pass_s"], 1),
-                                 "paste_share": round(r["paste_share"], 3)})
+                continue
+            if r["hint_tier_before_pass"] >= 2:
+                continue          # the hint contained the solution; copying it is system-conform
+            if sid in solution_steps:
+                continue          # the step text states the answer
+            out[stu].append({"step": sid, "seconds": round(r["time_to_pass_s"], 1),
+                             "paste_share": round(r["paste_share"], 3),
+                             "hint_tier_before": r["hint_tier_before_pass"]})
     return dict(out)
 
 
@@ -486,104 +547,192 @@ def _fmt(v, nd=2):
 
 
 def compute_flags(events: list[dict], metrics: dict[str, dict], thresholds: Optional[dict] = None,
-                  now: Optional[float] = None) -> dict[str, list[dict]]:
-    """Flags per student: excellent | struggling | cheat | review | dropped.
+                  now: Optional[float] = None, course: Optional[dict] = None) -> dict[str, list[dict]]:
+    """Flags per student: excellent | struggling | followup | notice | dropped.
 
-    Each flag: {"flag", "label": {de,en}, "reasons": [{"text": {de,en}, "evidence": {...}, "strength"}]}.
+    Two rules govern everything here (RULES.md sections 0 and 3):
+
+    * No flag asserts cheating.  The strongest integrity signal earns the label "an anomaly
+      that warrants a question", and every reason carries the counter-hypothesis that explains
+      it innocently, so the teacher sees both readings at once.
+    * Flags are criterion-referenced.  They compare a person against the learning objective,
+      not against the cohort.  Percentiles and z-scores still appear, but only as supplementary
+      notes marked ``norm``, and they never decide whether a flag is raised.
+
+    Each flag: {"flag", "label": {de,en}, "reasons": [...], "notes": [...]}, where a reason is
+    {"text": {de,en}, "counter": {de,en}, "evidence": {...}, "strength": "strong"|"weak"}.
     """
     th = deep_merge(DEFAULT_THRESHOLDS, thresholds)
     if now is None:
         now = max((e["t"] for e in events), default=0.0)
     z = cohort_zscores(metrics)
     rates = [m["first_pass_rate"] for m in metrics.values() if m["steps_with_checks"] > 0]
-    hint_rates = [m["hints_per_step"] for m in metrics.values() if m["steps_with_checks"] > 0]
-    p_ex = percentile(rates, th["excellent"]["firstPassPercentile"])
-    p_hint = percentile(hint_rates, th["excellent"]["hintPercentileMax"])
-    p_low = percentile(rates, th["struggling"]["firstPassPercentile"])
-    fast = fast_paste_passes(metrics, th["cheat"]["fastPassSeconds"], th["cheat"]["pasteShare"])
-    ident = identical_texts(events, th["cheat"]["textJaccard"], th["cheat"]["textMinTokens"])
-    outside = outside_session_events(events, th["cheat"]["outsideSessionGraceSeconds"])
+    ig = th["integrity"]
+    fast = fast_paste_passes(metrics, course, ig["fastPassSeconds"], ig["pasteShare"])
+    ident = identical_texts(events, course, ig["textJaccard"], ig["textMinTokens"],
+                            ig["textMargin"], ig["textTypes"])
+    outside = outside_session_events(events, ig["outsideSessionGraceSeconds"])
     preds = prediction_anomalies(events)
     flags: dict[str, list[dict]] = {}
     for stu, m in sorted(metrics.items()):
         mine: list[dict] = []
-        # ---- cheating (strong) / review (weak) ---------------------------------------------
+        # ---- integrity signals ---------------------------------------------------------------
         reasons: list[dict] = []
-        for hit in fast.get(stu, []):
-            reasons.append({"strength": "strong", "evidence": hit, "text": {
-                "de": f"Step {hit['step']}: Check beim ersten Versuch nach {hit['seconds']} s bestanden, "
-                      f"Paste-Anteil {hit['paste_share']:.0%} (Regel: < {th['cheat']['fastPassSeconds']} s und > {th['cheat']['pasteShare']:.0%})",
-                "en": f"Step {hit['step']}: check passed first try after {hit['seconds']} s with "
-                      f"{hit['paste_share']:.0%} pasted (rule: < {th['cheat']['fastPassSeconds']} s and > {th['cheat']['pasteShare']:.0%})"}})
         for hit in ident.get(stu, []):
             reasons.append({"strength": "strong", "evidence": hit, "text": {
-                "de": f"Step {hit['step']}: {hit['type']} zu {hit['similarity']:.0%} identisch mit {hit['other']}"
+                "de": f"Step {hit['step']}: {hit['type']} zu {hit['similarity']:.0%} identisch mit {hit['other']}, "
+                      f"und damit {hit['excess']:.0%} über der Ähnlichkeit zum Steptext selbst ({hit['baseline']:.0%})"
                       f"{' (später abgegeben)' if hit['later'] else ' (früher abgegeben)'}",
-                "en": f"Step {hit['step']}: {hit['type']} {hit['similarity']:.0%} identical to {hit['other']}"
-                      f"{' (submitted later)' if hit['later'] else ' (submitted earlier)'}"}})
+                "en": f"Step {hit['step']}: {hit['type']} {hit['similarity']:.0%} identical to {hit['other']}, "
+                      f"{hit['excess']:.0%} above the similarity to the step's own text ({hit['baseline']:.0%})"
+                      f"{' (submitted later)' if hit['later'] else ' (submitted earlier)'}"}, "counter": {
+                "de": "Kann auch bedeuten: erlaubte Zusammenarbeit, gemeinsame Formulierung nach einer Lerngruppe, "
+                      "oder eine Aufgabe, die kaum andere Formulierungen zulässt.",
+                "en": "May also mean: permitted collaboration, wording agreed in a study group, or a task that "
+                      "admits hardly any other phrasing."}})
         for hit in preds.get(stu, []):
             reasons.append({"strength": "strong", "evidence": hit, "text": {
-                "de": f"Step {hit['step']}: Vorhersage entspricht exakt der Ausgabe und wurde nach der Ausführung geändert",
-                "en": f"Step {hit['step']}: prediction equals the output exactly and was edited after the run"}})
+                "de": f"Step {hit['step']}: Vorhersage entspricht exakt der Ausgabe und wurde erst nach der Ausführung geschrieben",
+                "en": f"Step {hit['step']}: prediction equals the output exactly and was written only after the run"},
+                "counter": {
+                "de": "Kann auch bedeuten: die Vorhersage wurde nach dem Lauf nachgetragen, weil sie vorher vergessen "
+                      "wurde - der Editor erzwingt die Reihenfolge nicht.",
+                "en": "May also mean: the prediction was filled in afterwards because it had been forgotten - the "
+                      "editor does not enforce the order."}})
+        for hit in fast.get(stu, []):
+            reasons.append({"strength": "weak", "evidence": hit, "text": {
+                "de": f"Step {hit['step']}: Check beim ersten Versuch nach {hit['seconds']} s bestanden, "
+                      f"Paste-Anteil {hit['paste_share']:.0%}, ohne vorher gezeigten Hinweis der Stufe 2 oder 3",
+                "en": f"Step {hit['step']}: check passed first try after {hit['seconds']} s with "
+                      f"{hit['paste_share']:.0%} pasted, with no tier-2 or tier-3 hint shown beforehand"},
+                "counter": {
+                "de": "Kann auch bedeuten: Codegerüst aus dem Kursmaterial übernommen (das der Kurs ausdrücklich "
+                      "anbietet), Vorwissen aus Beruf oder früherem Studium, oder eine Lösung, die in einem anderen "
+                      "Editor entstanden ist.",
+                "en": "May also mean: a scaffold taken from the course material (which the course offers on purpose), "
+                      "prior knowledge from work or earlier study, or a solution written in another editor."}})
         outs = outside.get(stu, [])
-        if len(outs) >= th["cheat"]["outsideSessionMin"]:
+        if len(outs) >= ig["outsideSessionMin"]:
             reasons.append({"strength": "weak", "evidence": {"count": len(outs), "sample": outs[:5]}, "text": {
                 "de": f"{len(outs)} Ereignisse außerhalb einer Session (z. B. {outs[0]['type']} {outs[0]['ts']})",
-                "en": f"{len(outs)} events outside any session (e.g. {outs[0]['type']} {outs[0]['ts']})"}})
+                "en": f"{len(outs)} events outside any session (e.g. {outs[0]['type']} {outs[0]['ts']})"},
+                "counter": {
+                "de": "Kann auch bedeuten: abgestürzte Sitzung, fehlendes session.end, Arbeit über einen Neustart hinweg.",
+                "en": "May also mean: a crashed session, a missing session.end, work spanning a restart."}})
         strong = [r for r in reasons if r["strength"] == "strong"]
-        if strong:
-            mine.append({"flag": "cheat", "label": {"de": "Betrugsverdacht", "en": "Suspected cheating"},
-                         "reasons": reasons})
-        elif reasons:
-            mine.append({"flag": "review", "label": {"de": "Prüfen", "en": "Review"}, "reasons": reasons})
-        # ---- excellent ----------------------------------------------------------------------
+        weak = [r for r in reasons if r["strength"] == "weak"]
+        if strong or len(weak) >= ig["weakForFollowup"]:
+            mine.append({"flag": "followup",
+                         "label": {"de": "Auffälligkeit, die eine Rückfrage rechtfertigt",
+                                   "en": "Anomaly that warrants a follow-up question"},
+                         "reasons": reasons, "notes": []})
+        elif weak:
+            mine.append({"flag": "notice", "label": {"de": "Schwaches Signal, keine Wertung",
+                                                     "en": "Weak signal, no judgement"},
+                         "reasons": reasons, "notes": []})
+        # ---- excellent (criterion-referenced) --------------------------------------------------
         ex = th["excellent"]
         if (m["steps_with_checks"] >= ex["minStepsWithChecks"] and not strong
-                and rates and m["first_pass_rate"] >= p_ex
                 and m["first_pass_rate"] >= ex["firstPassFloor"]
-                and m["hints_per_step"] <= p_hint
+                and m["hints_per_step"] <= ex["maxHintsPerStep"]
                 and m["median_step_time_s"] >= ex["minMedianStepSeconds"]):
-            mine.append({"flag": "excellent", "label": {"de": "Sehr gut", "en": "Excellent"}, "reasons": [
-                {"strength": "strong", "evidence": {"first_pass_rate": m["first_pass_rate"], "p90": p_ex,
-                                                    "floor": ex["firstPassFloor"], "hints_per_step": m["hints_per_step"], "p50_hints": p_hint,
+            notes = []
+            if rates:
+                p = percentile(rates, ex["percentileNote"])
+                notes.append({"kind": "norm", "text": {
+                    "de": f"Ergänzend (normbezogen): Erstversuch-Quote der Kohorte im {ex['percentileNote']}. Perzentil "
+                          f"liegt bei {p:.0%}.",
+                    "en": f"Supplementary (norm-referenced): the cohort's {ex['percentileNote']}th percentile of the "
+                          f"first-attempt pass rate is {p:.0%}."}})
+            mine.append({"flag": "excellent", "label": {"de": "Kriterien sicher erfüllt", "en": "Criteria met with ease"},
+                         "notes": notes, "reasons": [
+                {"strength": "strong", "evidence": {"first_pass_rate": m["first_pass_rate"],
+                                                    "floor": ex["firstPassFloor"],
+                                                    "hints_per_step": m["hints_per_step"],
+                                                    "max_hints_per_step": ex["maxHintsPerStep"],
                                                     "median_step_time_s": m["median_step_time_s"]},
-                 "text": {"de": f"Erstversuch-Quote {m['first_pass_rate']:.0%} (obere 10 %: ≥ {p_ex:.0%}, Mindestquote {ex['firstPassFloor']:.0%}), "
-                                f"{m['hints_per_step']:.2f} Hinweise/Step (Median {p_hint:.2f}), "
-                                f"mittlere Step-Zeit {m['median_step_time_s'] / 60:.0f} min (plausibel ≥ {ex['minMedianStepSeconds'] / 60:.1f} min)",
-                          "en": f"first-attempt pass rate {m['first_pass_rate']:.0%} (top 10 %: ≥ {p_ex:.0%}, floor {ex['firstPassFloor']:.0%}), "
-                                f"{m['hints_per_step']:.2f} hints/step (median {p_hint:.2f}), "
-                                f"median step time {m['median_step_time_s'] / 60:.0f} min (plausible ≥ {ex['minMedianStepSeconds'] / 60:.1f} min)"}}]})
-        # ---- struggling ----------------------------------------------------------------------
+                 "text": {"de": f"Erstversuch-Quote {m['first_pass_rate']:.0%} (Kriterium ≥ {ex['firstPassFloor']:.0%}), "
+                                f"{m['hints_per_step']:.2f} Hinweise/Step (Kriterium ≤ {ex['maxHintsPerStep']}), "
+                                f"mittlere Step-Zeit {m['median_step_time_s'] / 60:.0f} min "
+                                f"(plausibel ≥ {ex['minMedianStepSeconds'] / 60:.1f} min)",
+                          "en": f"first-attempt pass rate {m['first_pass_rate']:.0%} (criterion ≥ {ex['firstPassFloor']:.0%}), "
+                                f"{m['hints_per_step']:.2f} hints/step (criterion ≤ {ex['maxHintsPerStep']}), "
+                                f"median step time {m['median_step_time_s'] / 60:.0f} min "
+                                f"(plausible ≥ {ex['minMedianStepSeconds'] / 60:.1f} min)"},
+                 "counter": {"de": "Sagt nichts über Verstehenstiefe: schnelle, hinweisfreie Checks können auch "
+                                   "Vorwissen aus einem früheren Studium abbilden.",
+                             "en": "Says nothing about depth of understanding: fast, hint-free checks can also reflect "
+                                   "prior knowledge from earlier study."}}]})
+        # ---- struggling (criterion-referenced) --------------------------------------------------
         st = th["struggling"]
         ind: list[dict] = []
+        notes: list[dict] = []
         if m["steps_with_checks"] >= st["minStepsWithChecks"]:
-            if m["first_pass_rate"] <= p_low or m["first_pass_rate"] <= st["firstPassFloor"]:
-                ind.append({"strength": "strong", "evidence": {"first_pass_rate": m["first_pass_rate"], "p10": p_low},
-                            "text": {"de": f"Erstversuch-Quote {m['first_pass_rate']:.0%} (untere 10 %: ≤ {p_low:.0%}, Untergrenze {st['firstPassFloor']:.0%})",
-                                     "en": f"first-attempt pass rate {m['first_pass_rate']:.0%} (bottom 10 %: ≤ {p_low:.0%}, floor {st['firstPassFloor']:.0%})"}})
+            if m["first_pass_rate"] <= st["firstPassFloor"]:
+                ind.append({"strength": "strong", "evidence": {"first_pass_rate": m["first_pass_rate"],
+                                                               "floor": st["firstPassFloor"]},
+                            "text": {"de": f"Erstversuch-Quote {m['first_pass_rate']:.0%} (Kriterium ≤ {st['firstPassFloor']:.0%})",
+                                     "en": f"first-attempt pass rate {m['first_pass_rate']:.0%} (criterion ≤ {st['firstPassFloor']:.0%})"},
+                            "counter": {"de": "Kann auch bedeuten: bewusst experimentierendes Vorgehen, das den Check als "
+                                              "Rückmeldung benutzt statt als Prüfung.",
+                                        "en": "May also mean: a deliberately exploratory approach that uses the check as "
+                                              "feedback rather than as an exam."}})
             if m["tier3_per_step"] >= st["tier3PerStep"]:
                 ind.append({"strength": "strong", "evidence": {"tier3": m["tier3"], "tier3_per_step": m["tier3_per_step"]},
-                            "text": {"de": f"{m['tier3']} Tier-3-Hinweise ({m['tier3_per_step']:.2f} je Step, Schwelle {st['tier3PerStep']})",
-                                     "en": f"{m['tier3']} tier-3 hints ({m['tier3_per_step']:.2f} per step, threshold {st['tier3PerStep']})"}})
-            tz = z[stu].get("median_step_time_s", 0.0)
-            if tz >= st["timeZ"]:
-                ind.append({"strength": "strong", "evidence": {"median_step_time_s": m["median_step_time_s"], "z": tz},
-                            "text": {"de": f"Mittlere Step-Zeit {m['median_step_time_s'] / 60:.0f} min (z = {tz:+.2f}, Schwelle {st['timeZ']})",
-                                     "en": f"median step time {m['median_step_time_s'] / 60:.0f} min (z = {tz:+.2f}, threshold {st['timeZ']})"}})
+                            "text": {"de": f"{m['tier3']} Hinweise der Stufe 3 ({m['tier3_per_step']:.2f} je Step, Kriterium {st['tier3PerStep']})",
+                                     "en": f"{m['tier3']} tier-3 hints ({m['tier3_per_step']:.2f} per step, criterion {st['tier3PerStep']})"},
+                            "counter": {"de": "Kann auch bedeuten: die Person nutzt die Hinweisleiter bewusst und zügig, "
+                                              "statt lange zu raten.",
+                                        "en": "May also mean: the person uses the hint ladder deliberately and quickly "
+                                              "instead of guessing for a long time."}})
+            if m["stuck_steps"] >= st["stuckSteps"]:
+                ind.append({"strength": "strong", "evidence": {"stuck_steps": m["stuck_steps"], "criterion": st["stuckSteps"]},
+                            "text": {"de": f"{m['stuck_steps']} Steps mit mindestens drei Versuchen und ohne Bestehen "
+                                           f"(Kriterium {st['stuckSteps']})",
+                                     "en": f"{m['stuck_steps']} steps with at least three attempts and no pass "
+                                           f"(criterion {st['stuckSteps']})"},
+                            "counter": {"de": "Kann auch bedeuten: defekte Hardware am Arbeitsplatz oder ein Check, der "
+                                              "etwas anderes prüft als die Aufgabe verlangt.",
+                                        "en": "May also mean: broken hardware at the workplace, or a check that tests "
+                                              "something other than what the task asks for."}})
             if m["abandon_rate"] >= st["abandonRate"] and m["abandoned"] >= st["abandonMin"]:
                 ind.append({"strength": "strong", "evidence": {"abandoned": m["abandoned"], "abandon_rate": m["abandon_rate"]},
                             "text": {"de": f"{m['abandoned']} Steps geöffnet, aber nicht abgeschlossen ({m['abandon_rate']:.0%})",
-                                     "en": f"{m['abandoned']} steps opened but not completed ({m['abandon_rate']:.0%})"}})
+                                     "en": f"{m['abandoned']} steps opened but not completed ({m['abandon_rate']:.0%})"},
+                            "counter": {"de": "Kann auch bedeuten: die Person arbeitet Steps in eigener Reihenfolge oder "
+                                              "kehrt später zurück.",
+                                        "en": "May also mean: the person works the steps in their own order or returns later."}})
+            tz = z[stu].get("median_step_time_s", 0.0)
+            if tz >= st["timeZNote"]:
+                notes.append({"kind": "norm", "text": {
+                    "de": f"Ergänzend (normbezogen): mittlere Step-Zeit {m['median_step_time_s'] / 60:.0f} min, "
+                          f"z = {tz:+.2f} gegen die Kohorte. Zählt nicht als Kriterium.",
+                    "en": f"Supplementary (norm-referenced): median step time {m['median_step_time_s'] / 60:.0f} min, "
+                          f"z = {tz:+.2f} against the cohort. Not counted as a criterion."}})
+            if rates:
+                p_low = percentile(rates, st["percentileNote"])
+                if m["first_pass_rate"] <= p_low:
+                    notes.append({"kind": "norm", "text": {
+                        "de": f"Ergänzend (normbezogen): Erstversuch-Quote im untersten {st['percentileNote']} %-Bereich "
+                              f"der Kohorte (≤ {p_low:.0%}). Zählt nicht als Kriterium.",
+                        "en": f"Supplementary (norm-referenced): first-attempt pass rate in the cohort's bottom "
+                              f"{st['percentileNote']} % (≤ {p_low:.0%}). Not counted as a criterion."}})
         if len(ind) >= st["minIndicators"]:
-            mine.append({"flag": "struggling", "label": {"de": "Tut sich schwer", "en": "Struggling"}, "reasons": ind})
+            mine.append({"flag": "struggling", "label": {"de": "Kriterien noch nicht erreicht", "en": "Criteria not yet met"},
+                         "reasons": ind, "notes": notes})
         # ---- dropped ----------------------------------------------------------------------------
         dr = th["dropped"]
         if (m["progress"] < 1.0 and m["steps_opened"] >= dr["minStepsOpened"]
                 and m["days_since_active"] >= dr["inactiveDays"]):
-            mine.append({"flag": "dropped", "label": {"de": "Abgebrochen?", "en": "Dropped?"}, "reasons": [
+            mine.append({"flag": "dropped", "label": {"de": "Längere Zeit ohne Aktivität", "en": "Inactive for a while"},
+                         "notes": [], "reasons": [
                 {"strength": "weak", "evidence": {"days_since_active": m["days_since_active"], "progress": m["progress"]},
-                 "text": {"de": f"Seit {m['days_since_active']:.0f} Tagen inaktiv bei {m['progress']:.0%} Fortschritt (Schwelle {dr['inactiveDays']} Tage)",
-                          "en": f"inactive for {m['days_since_active']:.0f} days at {m['progress']:.0%} progress (threshold {dr['inactiveDays']} days)"}}]})
+                 "text": {"de": f"Seit {m['days_since_active']:.0f} Tagen inaktiv bei {m['progress']:.0%} Fortschritt (Kriterium {dr['inactiveDays']} Tage)",
+                          "en": f"inactive for {m['days_since_active']:.0f} days at {m['progress']:.0%} progress (criterion {dr['inactiveDays']} days)"},
+                 "counter": {"de": "Kann auch bedeuten: Krankheit, Praktikum, Prüfungsphase in anderen Fächern, oder "
+                                   "Arbeit offline ohne Telemetrie.",
+                             "en": "May also mean: illness, an internship, exams in other subjects, or working offline "
+                                   "without telemetry."}}]})
         flags[stu] = mine
     return flags
 
@@ -668,9 +817,15 @@ def recommendation(m: dict, flags: list[dict], course: dict, lang: str = "de") -
     out: list[str] = []
     hardest = sorted(((r["attempts_to_pass"], sid) for sid, r in m["steps"].items() if r["n_checks"] > 1),
                      reverse=True)[:2]
-    if "cheat" in fl:
-        out.append("Gespräch führen und die Belege gemeinsam durchgehen; ein Flag ist ein Indiz, kein Nachweis (siehe Regeln)."
-                   if de else "Talk to the student and go through the evidence together; a flag is an indication, not proof (see rules).")
+    if "followup" in fl:
+        out.append("Offen nachfragen und die Belege gemeinsam durchgehen, mit der Gegenhypothese im Blick. Ein Flag ist "
+                   "ein Muster in Ereignisdaten, kein Nachweis, und darf allein keine Bewertung tragen (siehe Regeln)."
+                   if de else "Ask openly and go through the evidence together, keeping the counter-hypothesis in view. "
+                              "A flag is a pattern in event data, not proof, and must never carry an assessment on its "
+                              "own (see rules).")
+    if "notice" in fl:
+        out.append("Schwaches Signal: zur Kenntnis nehmen, nichts unternehmen, solange nichts anderes hinzukommt."
+                   if de else "Weak signal: note it, take no action unless something else comes along.")
     if "struggling" in fl:
         steps = ", ".join(sid for _, sid in hardest) or "-"
         out.append(f"Sprechstunde anbieten; die Steps {steps} gezielt besprechen (meiste Versuche)."
@@ -682,7 +837,7 @@ def recommendation(m: dict, flags: list[dict], course: dict, lang: str = "de") -
         out.append(f"Seit {m['days_since_active']:.0f} Tagen inaktiv: Kontakt aufnehmen und nach Hindernissen fragen."
                    if de else f"Inactive for {m['days_since_active']:.0f} days: reach out and ask about obstacles.")
     if "excellent" in fl:
-        out.append("Sehr guter Verlauf: Zusatzaufgaben oder das Capstone-Projekt früher anbieten; als Tutor*in einbinden."
+        out.append("Kriterien sicher erfüllt: Zusatzaufgaben oder das Capstone-Projekt früher anbieten; als Tutor*in einbinden."
                    if de else "Excellent trajectory: offer extension tasks or the capstone early; consider a peer-tutor role.")
     if m["questions"] and m["ungrounded_questions"] / m["questions"] >= 0.5 and m["questions"] >= 3:
         out.append("Über die Hälfte der Fragen war nicht durch das Kursmaterial gedeckt: Material an diesen Stellen ergänzen."

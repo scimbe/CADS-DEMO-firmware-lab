@@ -288,11 +288,36 @@ class RenderTests(PortalTestCase):
         body = pt.PAGES["student"](self.p, self.ctx("student", s=slug(99)))
         self.assertIn("Keine Daten", body)
 
+    def test_no_page_ever_calls_it_cheating(self):
+        """Binding: no flag is named 'Betrug'/'cheating' anywhere in the interface."""
+        for view in pt.PAGES:
+            for lang in ("de", "en"):
+                extra = {"s": slug(1)} if view == "student" else {}
+                page = pt.layout(self.ctx(view, lang, **extra), view,
+                                 pt.PAGES[view](self.p, self.ctx(view, lang, **extra)))
+                self.assertNotIn("Betrug", page, f"{view}/{lang}")
+                self.assertNotIn("cheating", page.lower().replace("no flag asserts cheating", ""),
+                                 f"{view}/{lang}")
+
+    def test_flag_reasons_render_the_counter_hypothesis(self):
+        html = pt.reasons_html([{
+            "flag": "followup", "label": {"de": "Auffälligkeit", "en": "Anomaly"},
+            "notes": [{"kind": "norm", "text": {"de": "normbezogener Hinweis", "en": "norm note"}}],
+            "reasons": [{"strength": "weak", "evidence": {"step": "m0-01"},
+                         "text": {"de": "Grund", "en": "reason"},
+                         "counter": {"de": "Harmlose Erklaerung", "en": "innocent reading"}}]}], "de")
+        self.assertIn('class="counter"', html)
+        self.assertIn("Harmlose Erklaerung", html)
+        self.assertIn("normbezogener Hinweis", html)
+
     def test_rules_page_states_what_a_flag_does_not_prove(self):
         de = pt.PAGES["rules"](self.p, self.ctx("rules", "de"))
         self.assertIn("kein Nachweis", de)
+        self.assertIn("niemals allein die Grundlage einer Bewertung", de)
+        self.assertIn("Gegenhypothese", de)
         en = pt.PAGES["rules"](self.p, self.ctx("rules", "en"))
         self.assertIn("not proof", en)
+        self.assertIn("never on its own the basis for an assessment", en)
 
     def test_html_is_escaped(self):
         self.p.ingest([raw_event(slug(1), "m0-01", "question.asked", T0 + 10,
