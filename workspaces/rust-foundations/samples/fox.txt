@@ -1,0 +1,3 @@
+The quick brown fox jumps over the lazy dog.
+The fox, the fox -- and the dog again.
+Quick! The dog barks; the fox runs.

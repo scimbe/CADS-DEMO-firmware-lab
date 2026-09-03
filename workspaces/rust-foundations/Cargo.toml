@@ -1,0 +1,15 @@
+[package]
+name = "rust_foundations"
+version = "0.1.0"
+edition = "2024"
+description = "Starter workspace for the CaDS Tutor course rust-foundations (The Rust Programming Language, ch. 3-10)"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "wordstat"
+path = "src/bin/wordstat.rs"
+
+[dependencies]
