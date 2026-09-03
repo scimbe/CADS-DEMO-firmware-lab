@@ -29,6 +29,10 @@ misconceptions:
 
 Wisse, was du vor dir hast, welcher Befehl die Arbeit startet und wo die Tests eines Steps liegen - damit es in jedem weiteren Step nur noch um Rust geht und nie um das Werkzeug.
 
+![Das Laborfenster. Links listet das Panel CaDS Tutor den Kurs Rust -
+Foundations mit den Modulen M0 bis M7; in der Mitte dieser Step mit seinem
+Bloom-Abzeichen, seinem Scaffold-Abzeichen und seiner Aufgabenliste.](tutor-panel-and-tree.png)
+
 ## Was du siehst
 
 Du bist in einem Rust-*Paket* namens `rust_foundations`. Alles, was der Kurs von dir verlangt, passiert in diesem einen Ordner. Vier Stellen sind wichtig:
@@ -51,16 +55,9 @@ cargo build
 
 Beachte, dass das Paket übersetzt, **obwohl noch nichts implementiert ist**: unfertige Übungen sind `todo!()`, ein Makro, das sich als beliebiger Typ typprüfen lässt und abstürzt, sobald es erreicht wird. Das Paket baut also immer; fehlschlagen tun die Tests.
 
-## Die Ausgabe von cargo lesen
+## Wohin cargo seine Ausgabe legt
 
-Der erste Build lädt nichts herunter und dauert ein bis zwei Sekunden. Zu sehen ist:
-
-```text
-   Compiling rust_foundations v0.1.0 (/home/coder/workspace/rust-foundations)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.42s
-```
-
-`dev`-Profil heißt: keine Optimierung, volle Debug-Informationen - der richtige Kompromiss für einen Kurs. Alles, was cargo erzeugt, landet in `target/`, das von git ignoriert wird und jederzeit gelöscht werden darf.
+Alles, was cargo erzeugt, landet in `target/`, das von git ignoriert wird und jederzeit gelöscht werden darf. Der nächste Step baut das Paket und liest, was es ausgibt.
 
 ## Die Tests eines einzelnen Steps ausführen
 

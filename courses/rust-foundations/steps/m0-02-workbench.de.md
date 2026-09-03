@@ -63,6 +63,11 @@ Ohne das antwortet cargo mit `could not find Cargo.toml in /home/coder/workspace
 
 2. **Befehlspalette.** Drücke **F1**. Im Browser ist das zuverlässiger als Strg+Umschalt+P, das der Browser für sich behalten kann. Die Palette öffnet in einem von zwei Modi und **merkt sich den zuletzt benutzten**: ohne vorangestelltes `>` sucht sie Dateien, mit `>` sucht sie Befehle. Tippe also `>Terminal: Create New Terminal`. Vergisst du das `>`, erhältst du *No matching results* und es passiert nichts - so sagt dir die Palette, dass sie nach einer Datei dieses Namens sucht.
 
+![Die Aufgabenliste des Tutor-Panels. Die erste Aufgabe ist grün abgehakt und
+zeigt unter ihrer Schaltfläche Prüfen "exited with 0"; die zweite ist eine
+Frage mit Textfeld, einer Schaltfläche zum Abschicken und einer Schaltfläche
+für Hinweise.](task-check-result.png)
+
 3. **Die Schaltfläche Prüfen** im Tutor-Panel neben einer Aufgabe. Sie führt den Befehl dieser Aufgabe aus und zeigt die Ausgabe im Panel. Sie nutzt immer den richtigen Ordner und braucht das `cd` daher nie.
 
 Zum Schließen eines Terminals drückst du das Papierkorbsymbol an seinem rechten Rand oder tippst `exit`. Es geht nichts verloren - ein Terminal hält keinen Zustand, den du brauchst. Öffne auf demselben Weg ein neues, und du bist wieder da, wo du warst.

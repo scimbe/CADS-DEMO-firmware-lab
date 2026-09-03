@@ -37,12 +37,21 @@ Also confirmed live, both of which the operator asked about:
   greeting with format!` - exactly what step m0-03 tells the student to expect
   (`docs/review/evidence/lab-terminal-first-test.png`).
 
-**Open, and not mine to fix:** the tutor panel shows the *JavaScript* course
-when the Rust workspace is opened, and the `Rust – Foundations` node in the
-course tree lists JavaScript step titles. Reported to the tutor stream with
-evidence in `docs/review/evidence/lab-overview-wrong-course.png`. Until that is
-fixed the screenshots cannot be embedded in the steps: every one of them would
-show a JavaScript step beside a Rust instruction.
+**Fixed since, and re-verified here.** The tutor panel used to open the
+JavaScript course for a Rust workspace, and the `Rust – Foundations` node used
+to list JavaScript step titles. tutor3 fixed both (interned tree nodes,
+autoOpen filtered by `project.root`). Re-checked in the current image with the
+extension rebuilt from source: one course node, all thirty-one of this pack's
+titles correctly nested, and zero foreign titles - checked programmatically
+against a pattern of JavaScript step names rather than by eye. The screenshots
+are shot and embedded; `courses/rust-foundations/assets/README.md` lists them.
+
+**Open, and worth knowing before a class runs.** No language model is
+configured on that deployment, so the panel falls back to manual confirmation
+and all 22 `question` checks go unmarked. Every rubric and every hint ladder
+written for this pack is therefore inert unless `TUTOR_LLM_BASE_URL` is set.
+That is the SPEC's documented fallback, not a defect, but it means the largest
+part of the pedagogy work is untested in the lab as it stands.
 
 ## Pass 1: the student who gets everything right
 
@@ -214,9 +223,8 @@ almost entirely invisible.
 Both passes get through. The fast student is never made to wait for
 repetition; the struggling student always has a named next action, and after
 the live run the three instructions that would have stranded them on step one
-are corrected. Two risks remain, and neither is in the exercises. The tutor panel still opens
-the JavaScript course for a Rust workspace and lists JavaScript titles under
-the Rust node, which makes the pack unusable in the lab however good the steps
-are. And twelve rubrics still overlap their body more than the rules allow,
-three of them materially; a student who reads carefully can still shortcut
-those three questions.
+are corrected. Two risks remain, and neither is in the exercises. Without a language model
+configured, the 22 rubric-graded questions are unmarked, which is most of what
+distinguishes this pack from a list of exercises. And twelve rubrics still
+overlap their body more than the rules allow, three of them materially; a
+student who reads carefully can still shortcut those three questions.
