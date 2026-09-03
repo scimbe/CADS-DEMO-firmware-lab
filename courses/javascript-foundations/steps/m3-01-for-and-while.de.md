@@ -26,6 +26,9 @@ misconceptions:
   - pattern: "Cannot read properties of undefined"
     question: { en: "The loop reached past the last element. Which condition let it get there?", de: "Die Schleife ist über das letzte Element hinausgelaufen. Welche Bedingung hat das zugelassen?" }
     hints: [ { en: "Reading list[i] beyond the end gives undefined; the error appears one step later, when something is done with it.", de: "list[i] hinter dem Ende zu lesen liefert undefined; der Fehler erscheint einen Schritt später, wenn damit etwas gemacht wird." }, { en: "The last valid index is list.length - 1, so the condition is i < list.length.", de: "Der letzte gültige Index ist list.length - 1, die Bedingung lautet also i < list.length." }, { en: "In a compound condition, test the index before you use it: && evaluates left to right and stops early.", de: "Prüfe in einer zusammengesetzten Bedingung den Index, bevor du ihn benutzt: && wertet von links nach rechts aus und bricht früh ab." } ]
+  - pattern: "Cannot find module|MODULE_NOT_FOUND|no such file or directory"
+    question: { en: "Node could not find a file. Is the terminal in the right folder, and is the path in the command spelled as the step wrote it?", de: "Node hat eine Datei nicht gefunden. Steht das Terminal im richtigen Ordner, und ist der Pfad im Befehl so geschrieben wie im Step?" }
+    hints: [ { en: "Type pwd and press Enter; the path must end in javascript-foundations. If not, run cd javascript-foundations.", de: "Tippe pwd und drücke Enter; der Pfad muss auf javascript-foundations enden. Wenn nicht, führe cd javascript-foundations aus." }, { en: "Copy the command from the code block in this panel rather than retyping it; the file name carries the step id exactly.", de: "Kopiere den Befehl aus dem Codeblock in diesem Panel, statt ihn abzutippen; der Dateiname trägt die Step-Kennung exakt." }, { en: "ES module imports need the .js extension, so a path without it fails the same way.", de: "Importe in ES-Modulen brauchen die Endung .js, ein Pfad ohne sie scheitert genauso." } ]
 ---
 ## Lernziel
 
@@ -61,6 +64,16 @@ Die Reihenfolge ist nicht kosmetisch. `&&` wertet von links nach rechts aus und 
 
 - `countUp(n)` liefert `[1, 2, …, n]` und `[]` für `n = 0`. Die Anzahl der Durchläufe steht vor dem Start fest - das ist eine `for`.
 - `sumUntil(list, stop)` addiert die Zahlen vor dem ersten Element, das `stop` erreicht. Niemand weiß vorher, wie viele das sind - das ist eine `while`.
+
+## So führst du diesen Step aus
+
+Öffne ein Terminal mit **Terminal > New Terminal** (oder drücke **F1** und tippe `Terminal: Create New Terminal`). Es öffnet sich im Panel am unteren Fensterrand, und sein Prompt muss auf `javascript-foundations` enden. Führe dann aus:
+
+```bash
+node --test test/m3-01-for-and-while.test.js
+```
+
+Der Befehl ist fertig, wenn der Prompt zurückkommt; die Zähler am Ende der Ausgabe sind das Urteil, und `fail 0` heißt Erfolg. `Cannot find module` heißt, dass das Terminal im falschen Ordner steht - führe `cd javascript-foundations` aus und versuch es erneut. Ändere nur Dateien unter `src/`; die Dateien unter `test/` sind das Prüfschema. Die vollständige Tour durch die Oberfläche steht in [Die Oberfläche bedienen](step:m0-01-using-the-ide).
 
 ## Woran du erkennst, dass es geklappt hat
 

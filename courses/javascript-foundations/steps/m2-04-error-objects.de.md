@@ -29,6 +29,9 @@ misconceptions:
   - pattern: "not a ValidationError|instanceof"
     question: { en: "The thrown value did not pass an instanceof check. Is it an Error subclass, or something simpler?", de: "Der geworfene Wert hat eine instanceof-Prüfung nicht bestanden. Ist es eine Error-Unterklasse oder etwas Einfacheres?" }
     hints: [ { en: "throw accepts any value, including a string - but then nothing about it is an Error.", de: "throw akzeptiert jeden Wert, auch eine Zeichenkette - dann ist daran aber nichts ein Error." }, { en: "instanceof follows the prototype chain, so extends Error is what puts Error on it.", de: "instanceof folgt der Prototypenkette; extends Error setzt Error überhaupt erst darauf." }, { en: "Throw an instance: throw new ValidationError(\"name must be a non-empty string\", \"name\");", de: "Wirf eine Instanz: throw new ValidationError(\"name must be a non-empty string\", \"name\");" } ]
+  - pattern: "Cannot find module|MODULE_NOT_FOUND|no such file or directory"
+    question: { en: "Node could not find a file. Is the terminal in the right folder, and is the path in the command spelled as the step wrote it?", de: "Node hat eine Datei nicht gefunden. Steht das Terminal im richtigen Ordner, und ist der Pfad im Befehl so geschrieben wie im Step?" }
+    hints: [ { en: "Type pwd and press Enter; the path must end in javascript-foundations. If not, run cd javascript-foundations.", de: "Tippe pwd und drücke Enter; der Pfad muss auf javascript-foundations enden. Wenn nicht, führe cd javascript-foundations aus." }, { en: "Copy the command from the code block in this panel rather than retyping it; the file name carries the step id exactly.", de: "Kopiere den Befehl aus dem Codeblock in diesem Panel, statt ihn abzutippen; der Dateiname trägt die Step-Kennung exakt." }, { en: "ES module imports need the .js extension, so a path without it fails the same way.", de: "Importe in ES-Modulen brauchen die Endung .js, ein Pfad ohne sie scheitert genauso." } ]
 ---
 ## Lernziel
 
@@ -85,6 +88,16 @@ Die letzte Zeile ist wichtig: einen Fehler zu fangen, den man nicht behandeln ka
 2. `validateUser(user)`, das einen `ValidationError` wirft, wenn `user.name` keine nicht-leere Zeichenkette ist (Feld `"name"`) oder `user.age` keine Zahl zwischen 0 und 150 ist (Feld `"age"`), und das den Benutzer sonst unverändert zurückgibt.
 
 Denk hier an [M1](step:m1-03-coercion-nan): `typeof age === "number"` ist auch für `NaN` wahr, eine Bereichsprüfung allein reicht also nicht.
+
+## So führst du diesen Step aus
+
+Öffne ein Terminal mit **Terminal > New Terminal** (oder drücke **F1** und tippe `Terminal: Create New Terminal`). Es öffnet sich im Panel am unteren Fensterrand, und sein Prompt muss auf `javascript-foundations` enden. Führe dann aus:
+
+```bash
+node --test test/m2-04-error-objects.test.js
+```
+
+Der Befehl ist fertig, wenn der Prompt zurückkommt; die Zähler am Ende der Ausgabe sind das Urteil, und `fail 0` heißt Erfolg. `Cannot find module` heißt, dass das Terminal im falschen Ordner steht - führe `cd javascript-foundations` aus und versuch es erneut. Ändere nur Dateien unter `src/`; die Dateien unter `test/` sind das Prüfschema. Die vollständige Tour durch die Oberfläche steht in [Die Oberfläche bedienen](step:m0-01-using-the-ide).
 
 ## Woran du erkennst, dass es geklappt hat
 

@@ -29,6 +29,9 @@ misconceptions:
   - pattern: "8080 !== 0"
     question: { en: "A configured port of 0 was replaced by the default. Which operator did that?", de: "Ein konfigurierter Port 0 wurde durch den Standardwert ersetzt. Welcher Operator war das?" }
     hints: [ { en: "0 is falsy, so || replaces it - the same trap as m2-02.", de: "0 ist falsy, || ersetzt es also - dieselbe Falle wie in m2-02." }, { en: "?? falls back only for null and undefined.", de: "?? greift nur bei null und undefined." }, { en: "cfg?.server?.port ?? 8080", de: "cfg?.server?.port ?? 8080" } ]
+  - pattern: "Cannot find module|MODULE_NOT_FOUND|no such file or directory"
+    question: { en: "Node could not find a file. Is the terminal in the right folder, and is the path in the command spelled as the step wrote it?", de: "Node hat eine Datei nicht gefunden. Steht das Terminal im richtigen Ordner, und ist der Pfad im Befehl so geschrieben wie im Step?" }
+    hints: [ { en: "Type pwd and press Enter; the path must end in javascript-foundations. If not, run cd javascript-foundations.", de: "Tippe pwd und drücke Enter; der Pfad muss auf javascript-foundations enden. Wenn nicht, führe cd javascript-foundations aus." }, { en: "Copy the command from the code block in this panel rather than retyping it; the file name carries the step id exactly.", de: "Kopiere den Befehl aus dem Codeblock in diesem Panel, statt ihn abzutippen; der Dateiname trägt die Step-Kennung exakt." }, { en: "ES module imports need the .js extension, so a path without it fails the same way.", de: "Importe in ES-Modulen brauchen die Endung .js, ein Pfad ohne sie scheitert genauso." } ]
 ---
 ## Lernziel
 
@@ -80,6 +83,16 @@ cfg?.server?.port || 8080     // 0 wird 8080 - wieder der Fehler aus m2-02
 
 - `serverPort(cfg)` liefert den konfigurierten Port oder 8080, wenn `server` oder `port` fehlt - und eine konfigurierte `0` muss überleben.
 - `adminEmail(cfg)` liefert `cfg.users.admin.email` oder `null`. Beachte, dass der Test `null` will, nicht `undefined`.
+
+## So führst du diesen Step aus
+
+Öffne ein Terminal mit **Terminal > New Terminal** (oder drücke **F1** und tippe `Terminal: Create New Terminal`). Es öffnet sich im Panel am unteren Fensterrand, und sein Prompt muss auf `javascript-foundations` enden. Führe dann aus:
+
+```bash
+node --test test/m5-02-optional-chaining.test.js
+```
+
+Der Befehl ist fertig, wenn der Prompt zurückkommt; die Zähler am Ende der Ausgabe sind das Urteil, und `fail 0` heißt Erfolg. `Cannot find module` heißt, dass das Terminal im falschen Ordner steht - führe `cd javascript-foundations` aus und versuch es erneut. Ändere nur Dateien unter `src/`; die Dateien unter `test/` sind das Prüfschema. Die vollständige Tour durch die Oberfläche steht in [Die Oberfläche bedienen](step:m0-01-using-the-ide).
 
 ## Woran du erkennst, dass es geklappt hat
 

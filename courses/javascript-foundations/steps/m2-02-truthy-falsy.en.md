@@ -26,6 +26,9 @@ misconceptions:
   - pattern: "8080 !== 0|'untitled' !== ''|true !== false"
     question: { en: "A default replaced a value the caller actually passed. Which operator made that decision, and what does it consider empty?", de: "Ein Standardwert hat einen Wert ersetzt, den der Aufrufer wirklich übergeben hat. Welcher Operator hat das entschieden, und was hält er für leer?" }
     hints: [ { en: "|| and a ternary on truthiness both treat 0, \"\" and false as absent.", de: "|| und ein Ternär auf Truthiness behandeln 0, \"\" und false beide als nicht vorhanden." }, { en: "?? is the nullish coalescing operator: it falls back only for null and undefined.", de: "?? ist der Nullish-Coalescing-Operator: er greift nur bei null und undefined." }, { en: "options.port ?? 8080 keeps a port of 0 and still defaults a missing one.", de: "options.port ?? 8080 behält einen Port 0 und setzt einen fehlenden trotzdem." } ]
+  - pattern: "Cannot find module|MODULE_NOT_FOUND|no such file or directory"
+    question: { en: "Node could not find a file. Is the terminal in the right folder, and is the path in the command spelled as the step wrote it?", de: "Node hat eine Datei nicht gefunden. Steht das Terminal im richtigen Ordner, und ist der Pfad im Befehl so geschrieben wie im Step?" }
+    hints: [ { en: "Type pwd and press Enter; the path must end in javascript-foundations. If not, run cd javascript-foundations.", de: "Tippe pwd und drücke Enter; der Pfad muss auf javascript-foundations enden. Wenn nicht, führe cd javascript-foundations aus." }, { en: "Copy the command from the code block in this panel rather than retyping it; the file name carries the step id exactly.", de: "Kopiere den Befehl aus dem Codeblock in diesem Panel, statt ihn abzutippen; der Dateiname trägt die Step-Kennung exakt." }, { en: "ES module imports need the .js extension, so a path without it fails the same way.", de: "Importe in ES-Modulen brauchen die Endung .js, ein Pfad ohne sie scheitert genauso." } ]
 ---
 ## Learning goal
 
@@ -66,6 +69,16 @@ Rule of thumb: use `||` when you genuinely mean "or anything empty", and `??` wh
 Open [`src/m2/settings.js`](file:src/m2/settings.js). `withDefaults(options)` must fill in `port` 8080, `label` `"untitled"` and `verbose` `true` **only when the property is missing**. Three lines, three variants of the same mistake: a ternary on truthiness, an `||`, and an `||` whose default makes the flag unfalsifiable.
 
 The first test already passes: with an empty object, truthiness and nullishness agree. The second test passes `{ port: 0, label: "", verbose: false }` and is the one that matters.
+
+## Running this step
+
+Open a terminal with **Terminal > New Terminal** (or press **F1** and type `Terminal: Create New Terminal`). It opens in the panel at the bottom of the window, and its prompt has to end in `javascript-foundations`. Then run:
+
+```bash
+node --test test/m2-02-truthy-falsy.test.js
+```
+
+The command has finished when the prompt comes back; the counts at the end of the output are the verdict, and `fail 0` is success. `Cannot find module` means the terminal is in the wrong folder - run `cd javascript-foundations` and try again. Change only files under `src/`; the files under `test/` are the marking scheme. The whole tour of the interface is in [operating the interface](step:m0-01-using-the-ide).
 
 ## How you know it worked
 

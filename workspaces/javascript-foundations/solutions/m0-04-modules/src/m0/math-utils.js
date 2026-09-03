@@ -1,4 +1,4 @@
-// m0-03-modules (reference solution)
+// m0-04-modules (reference solution)
 export function square(x) {
   return x * x;
 }

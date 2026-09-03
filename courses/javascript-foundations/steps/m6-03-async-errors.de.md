@@ -29,6 +29,9 @@ misconceptions:
   - pattern: "Promise \\{|ok: true"
     question: { en: "The reported value is the promise itself. Where is the await?", de: "Der gemeldete Wert ist das Promise selbst. Wo ist das await?" }
     hints: [ { en: "const value = fn() stores the promise; const value = await fn() stores its value.", de: "const value = fn() speichert das Promise; const value = await fn() speichert dessen Wert." }, { en: "The await also has to be inside the try, not before it.", de: "Das await muss außerdem innerhalb des try stehen, nicht davor." }, { en: "This is the same missing await as m6-02, now with a catch block hiding it.", de: "Das ist dasselbe fehlende await wie in m6-02, nur verdeckt durch einen catch-Block." } ]
+  - pattern: "Cannot find module|MODULE_NOT_FOUND|no such file or directory"
+    question: { en: "Node could not find a file. Is the terminal in the right folder, and is the path in the command spelled as the step wrote it?", de: "Node hat eine Datei nicht gefunden. Steht das Terminal im richtigen Ordner, und ist der Pfad im Befehl so geschrieben wie im Step?" }
+    hints: [ { en: "Type pwd and press Enter; the path must end in javascript-foundations. If not, run cd javascript-foundations.", de: "Tippe pwd und drücke Enter; der Pfad muss auf javascript-foundations enden. Wenn nicht, führe cd javascript-foundations aus." }, { en: "Copy the command from the code block in this panel rather than retyping it; the file name carries the step id exactly.", de: "Kopiere den Befehl aus dem Codeblock in diesem Panel, statt ihn abzutippen; der Dateiname trägt die Step-Kennung exakt." }, { en: "ES module imports need the .js extension, so a path without it fails the same way.", de: "Importe in ES-Modulen brauchen die Endung .js, ein Pfad ohne sie scheitert genauso." } ]
 ---
 ## Lernziel
 
@@ -88,6 +91,16 @@ Das ist dasselbe Argument wie in [m2-04](step:m2-04-error-objects): Fehler sind 
 - `mustLoad(fn)` wirft; schreib es. Gib den aufgelösten Wert zurück und wirf bei einer Ablehnung einen neuen `Error` mit der Meldung `load failed: <original>`, der das Original unter `cause` mitführt.
 
 Der Test benutzt `assert.rejects`, das prüft, dass ein async-Aufruf ablehnt, und dich den Fehler untersuchen lässt - das asynchrone Gegenstück zu `assert.throws`.
+
+## So führst du diesen Step aus
+
+Öffne ein Terminal mit **Terminal > New Terminal** (oder drücke **F1** und tippe `Terminal: Create New Terminal`). Es öffnet sich im Panel am unteren Fensterrand, und sein Prompt muss auf `javascript-foundations` enden. Führe dann aus:
+
+```bash
+node --test test/m6-03-async-errors.test.js
+```
+
+Der Befehl ist fertig, wenn der Prompt zurückkommt; die Zähler am Ende der Ausgabe sind das Urteil, und `fail 0` heißt Erfolg. `Cannot find module` heißt, dass das Terminal im falschen Ordner steht - führe `cd javascript-foundations` aus und versuch es erneut. Ändere nur Dateien unter `src/`; die Dateien unter `test/` sind das Prüfschema. Die vollständige Tour durch die Oberfläche steht in [Die Oberfläche bedienen](step:m0-01-using-the-ide).
 
 ## Woran du erkennst, dass es geklappt hat
 

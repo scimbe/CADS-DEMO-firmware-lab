@@ -6,7 +6,7 @@ objectives: [javascript-web-javascript-guide-grammar-and-types]
 requires: [m1-02-types-typeof]
 estimatedMinutes: 15
 scaffold: faded
-recallFrom: [m1-02-types-typeof, m0-02-read-a-test]
+recallFrom: [m1-02-types-typeof, m0-03-read-a-test]
 links:
   - { step: m1-02-types-typeof }
   - { step: m1-04-equality }
@@ -29,6 +29,9 @@ misconceptions:
   - pattern: "'[0-9]+' !== [0-9]+"
     question: { en: "The two sides differ only by quotation marks. What turned your number into a string?", de: "Die beiden Seiten unterscheiden sich nur durch Anführungszeichen. Was hat deine Zahl in eine Zeichenkette verwandelt?" }
     hints: [ { en: "In JavaScript + means addition only when both operands are numbers; otherwise it joins strings.", de: "In JavaScript bedeutet + nur dann Addition, wenn beide Operanden Zahlen sind; sonst hängt es Zeichenketten aneinander." }, { en: "Once one side is a string the whole expression becomes a string, and it stays one for the rest of the loop.", de: "Sobald eine Seite eine Zeichenkette ist, wird der ganze Ausdruck eine Zeichenkette - und bleibt es für den Rest der Schleife." }, { en: "Convert explicitly with Number(...) before you add.", de: "Wandle vor dem Addieren ausdrücklich mit Number(...) um." } ]
+  - pattern: "Cannot find module|MODULE_NOT_FOUND|no such file or directory"
+    question: { en: "Node could not find a file. Is the terminal in the right folder, and is the path in the command spelled as the step wrote it?", de: "Node hat eine Datei nicht gefunden. Steht das Terminal im richtigen Ordner, und ist der Pfad im Befehl so geschrieben wie im Step?" }
+    hints: [ { en: "Type pwd and press Enter; the path must end in javascript-foundations. If not, run cd javascript-foundations.", de: "Tippe pwd und drücke Enter; der Pfad muss auf javascript-foundations enden. Wenn nicht, führe cd javascript-foundations aus." }, { en: "Copy the command from the code block in this panel rather than retyping it; the file name carries the step id exactly.", de: "Kopiere den Befehl aus dem Codeblock in diesem Panel, statt ihn abzutippen; der Dateiname trägt die Step-Kennung exakt." }, { en: "ES module imports need the .js extension, so a path without it fails the same way.", de: "Importe in ES-Modulen brauchen die Endung .js, ein Pfad ohne sie scheitert genauso." } ]
 ---
 ## Learning goal
 
@@ -74,6 +77,16 @@ Open [`src/m1/numbers.js`](file:src/m1/numbers.js). Two functions, both wrong, n
 - `isValidNumber("abc")` must return `false`. It compares `n === NaN`, which is never true, so it answers `true` for everything. Ask the right question instead.
 
 Run the test first and look at the **actual** values it prints. Quotation marks around a result are the tell: a string got where a number belonged.
+
+## Running this step
+
+Open a terminal with **Terminal > New Terminal** (or press **F1** and type `Terminal: Create New Terminal`). It opens in the panel at the bottom of the window, and its prompt has to end in `javascript-foundations`. Then run:
+
+```bash
+node --test test/m1-03-coercion-nan.test.js
+```
+
+The command has finished when the prompt comes back; the counts at the end of the output are the verdict, and `fail 0` is success. `Cannot find module` means the terminal is in the wrong folder - run `cd javascript-foundations` and try again. Change only files under `src/`; the files under `test/` are the marking scheme. The whole tour of the interface is in [operating the interface](step:m0-01-using-the-ide).
 
 ## How you know it worked
 

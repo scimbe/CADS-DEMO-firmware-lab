@@ -32,6 +32,9 @@ misconceptions:
   - pattern: "deep-equal|'b',\\s*'a'"
     question: { en: "The order of the caller's rows changed. Which method did that, and does it return a copy?", de: "Die Reihenfolge der Zeilen des Aufrufers hat sich geändert. Welche Methode war das, und liefert sie eine Kopie?" }
     hints: [ { en: "sort sorts in place and returns the same array, not a new one.", de: "sort sortiert an Ort und Stelle und liefert dasselbe Array zurück, kein neues." }, { en: "This is the ownership rule from m5-03 in a new disguise.", de: "Das ist die Eigentümer-Regel aus m5-03 in neuer Verkleidung." }, { en: "Spread into a new array before sorting.", de: "Spreize vor dem Sortieren in ein neues Array." } ]
+  - pattern: "Cannot find module|MODULE_NOT_FOUND|no such file or directory"
+    question: { en: "Node could not find a file. Is the terminal in the right folder, and is the path in the command spelled as the step wrote it?", de: "Node hat eine Datei nicht gefunden. Steht das Terminal im richtigen Ordner, und ist der Pfad im Befehl so geschrieben wie im Step?" }
+    hints: [ { en: "Type pwd and press Enter; the path must end in javascript-foundations. If not, run cd javascript-foundations.", de: "Tippe pwd und drücke Enter; der Pfad muss auf javascript-foundations enden. Wenn nicht, führe cd javascript-foundations aus." }, { en: "Copy the command from the code block in this panel rather than retyping it; the file name carries the step id exactly.", de: "Kopiere den Befehl aus dem Codeblock in diesem Panel, statt ihn abzutippen; der Dateiname trägt die Step-Kennung exakt." }, { en: "ES module imports need the .js extension, so a path without it fails the same way.", de: "Importe in ES-Modulen brauchen die Endung .js, ein Pfad ohne sie scheitert genauso." } ]
 ---
 ## Learning goal
 
@@ -90,6 +93,17 @@ Open [`src/m5/report.js`](file:src/m5/report.js):
 
 - `totals(rows)` throws; build `{ count, sum, max }`. An empty array must give zeros, so remember `reduce`'s initial value.
 - `topLabels(rows, n)` returns the labels of the `n` largest amounts. It already has a comparator; what it does not have is a copy.
+
+## Running this step
+
+Open a terminal with **Terminal > New Terminal** (or press **F1** and type `Terminal: Create New Terminal`). It opens in the panel at the bottom of the window, and its prompt has to end in `javascript-foundations`. Then run:
+
+```bash
+node --test test/m5-04-transformations.test.js
+node examples/m5-sort-default.js
+```
+
+The command has finished when the prompt comes back; the counts at the end of the output are the verdict, and `fail 0` is success. `Cannot find module` means the terminal is in the wrong folder - run `cd javascript-foundations` and try again. Change only files under `src/`; the files under `test/` are the marking scheme. The whole tour of the interface is in [operating the interface](step:m0-01-using-the-ide).
 
 ## How you know it worked
 

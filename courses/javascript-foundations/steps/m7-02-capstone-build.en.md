@@ -36,6 +36,9 @@ misconceptions:
   - pattern: "'tea: 2.00|localeCompare|deep-equal"
     question: { en: "The output lines came out in the wrong order. What is the second criterion when two totals are equal?", de: "Die Ausgabezeilen kamen in der falschen Reihenfolge. Was ist das zweite Kriterium, wenn zwei Summen gleich sind?" }
     hints: [ { en: "Sort by total descending first: b[1] - a[1].", de: "Sortiere zuerst absteigend nach Summe: b[1] - a[1]." }, { en: "When that returns 0, fall through to the labels: || a[0].localeCompare(b[0]) - the m5-04 pattern.", de: "Liefert das 0, geh zu den Labels über: || a[0].localeCompare(b[0]) - das Muster aus m5-04." }, { en: "The TOTAL line is appended after sorting, never sorted with the others.", de: "Die TOTAL-Zeile wird nach dem Sortieren angehängt und nie mit einsortiert." } ]
+  - pattern: "Cannot find module|MODULE_NOT_FOUND|no such file or directory"
+    question: { en: "Node could not find a file. Is the terminal in the right folder, and is the path in the command spelled as the step wrote it?", de: "Node hat eine Datei nicht gefunden. Steht das Terminal im richtigen Ordner, und ist der Pfad im Befehl so geschrieben wie im Step?" }
+    hints: [ { en: "Type pwd and press Enter; the path must end in javascript-foundations. If not, run cd javascript-foundations.", de: "Tippe pwd und drücke Enter; der Pfad muss auf javascript-foundations enden. Wenn nicht, führe cd javascript-foundations aus." }, { en: "Copy the command from the code block in this panel rather than retyping it; the file name carries the step id exactly.", de: "Kopiere den Befehl aus dem Codeblock in diesem Panel, statt ihn abzutippen; der Dateiname trägt die Step-Kennung exakt." }, { en: "ES module imports need the .js extension, so a path without it fails the same way.", de: "Importe in ES-Modulen brauchen die Endung .js, ein Pfad ohne sie scheitert genauso." } ]
 ---
 ## Learning goal
 
@@ -85,6 +88,17 @@ node --test
 ```
 
 If one of your tests fails against your own implementation, you have found something. Decide which of the two is wrong before you change either - and note it, because the third task asks about exactly that.
+
+## Running this step
+
+Open a terminal with **Terminal > New Terminal** (or press **F1** and type `Terminal: Create New Terminal`). It opens in the panel at the bottom of the window, and its prompt has to end in `javascript-foundations`. Then run:
+
+```bash
+node --test test/m7-02-capstone-build.test.js
+node --test --test-reporter=tap test/m7-02-capstone-build.mine.test.js
+```
+
+The command has finished when the prompt comes back; the counts at the end of the output are the verdict, and `fail 0` is success. `Cannot find module` means the terminal is in the wrong folder - run `cd javascript-foundations` and try again. Change only files under `src/`; the files under `test/` are the marking scheme. The whole tour of the interface is in [operating the interface](step:m0-01-using-the-ide).
 
 ## How you know it worked
 

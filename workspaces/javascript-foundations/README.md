@@ -37,7 +37,7 @@ are expected — those exercises are still waiting for you.
 compared them. Read that diff before changing code:
 
 ```
-✖ m0-02 summarize returns count, total and average
+✖ m0-03 summarize returns count, total and average
   AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
   + actual - expected
     {

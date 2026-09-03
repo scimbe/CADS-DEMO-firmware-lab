@@ -6,7 +6,7 @@ objectives: [javascript-web-javascript-guide-functions]
 requires: [m3-04-break-continue]
 estimatedMinutes: 15
 scaffold: worked
-recallFrom: [m1-01-let-const, m0-03-modules]
+recallFrom: [m1-01-let-const, m0-04-modules]
 links:
   - { step: m3-04-break-continue }
   - { step: m4-02-parameters }
@@ -29,6 +29,9 @@ misconceptions:
   - pattern: "is not a function"
     question: { en: "A name existed but did not hold a function when it was called. What did it hold?", de: "Ein Name existierte, hielt beim Aufruf aber keine Funktion. Was hielt er?" }
     hints: [ { en: "var declarations hoist as undefined, so calling one too early gives 'is not a function' rather than a ReferenceError.", de: "var-Deklarationen werden als undefined hochgezogen, ein zu früher Aufruf ergibt also 'is not a function' statt eines ReferenceError." }, { en: "This course uses let and const only; if you introduced a var, that is the difference you are seeing.", de: "Dieser Kurs benutzt nur let und const; wenn du ein var eingeführt hast, ist das der Unterschied, den du siehst." }, { en: "Keep the declarations as they are and change only their order.", de: "Lass die Deklarationen, wie sie sind, und ändere nur ihre Reihenfolge." } ]
+  - pattern: "Cannot find module|MODULE_NOT_FOUND|no such file or directory"
+    question: { en: "Node could not find a file. Is the terminal in the right folder, and is the path in the command spelled as the step wrote it?", de: "Node hat eine Datei nicht gefunden. Steht das Terminal im richtigen Ordner, und ist der Pfad im Befehl so geschrieben wie im Step?" }
+    hints: [ { en: "Type pwd and press Enter; the path must end in javascript-foundations. If not, run cd javascript-foundations.", de: "Tippe pwd und drücke Enter; der Pfad muss auf javascript-foundations enden. Wenn nicht, führe cd javascript-foundations aus." }, { en: "Copy the command from the code block in this panel rather than retyping it; the file name carries the step id exactly.", de: "Kopiere den Befehl aus dem Codeblock in diesem Panel, statt ihn abzutippen; der Dateiname trägt die Step-Kennung exakt." }, { en: "ES module imports need the .js extension, so a path without it fails the same way.", de: "Importe in ES-Modulen brauchen die Endung .js, ein Pfad ohne sie scheitert genauso." } ]
 ---
 ## Learning goal
 
@@ -64,7 +67,7 @@ const decorate = (t) => t;   // ReferenceError: Cannot access 'decorate' before 
 
 A module's top-level statements execute in order when the file is loaded. A top-level `const X = f()` therefore calls `f` *at that moment*, with only the bindings above it initialised - even if `f` itself is a hoisted declaration defined lower down.
 
-That is why this step's exercise fails in a way you have not seen since [m0-03](step:m0-03-modules): **no test runs at all**. The module throws while loading, so the test file never gets its imports. A crossed-out file name with no individual test results is the signature.
+That is why this step's exercise fails in a way you have not seen since [m0-04](step:m0-04-modules): **no test runs at all**. The module throws while loading, so the test file never gets its imports. A crossed-out file name with no individual test results is the signature.
 
 ## The exercise
 
@@ -81,6 +84,16 @@ ReferenceError: Cannot access 'decorate' before initialization
 `buildBanner` is a declaration, so calling it on the first line is fine. Inside it, `decorate` is a `const` arrow function defined further down, and at load time that line has not run yet.
 
 Fix it by moving exactly what has to move. Do not convert the arrow function into a declaration: the point is to see that ordering, not keyword choice, is what this error is about.
+
+## Running this step
+
+Open a terminal with **Terminal > New Terminal** (or press **F1** and type `Terminal: Create New Terminal`). It opens in the panel at the bottom of the window, and its prompt has to end in `javascript-foundations`. Then run:
+
+```bash
+node --test test/m4-01-declare-and-call.test.js
+```
+
+The command has finished when the prompt comes back; the counts at the end of the output are the verdict, and `fail 0` is success. `Cannot find module` means the terminal is in the wrong folder - run `cd javascript-foundations` and try again. Change only files under `src/`; the files under `test/` are the marking scheme. The whole tour of the interface is in [operating the interface](step:m0-01-using-the-ide).
 
 ## How you know it worked
 

@@ -1,22 +1,22 @@
 ---
-id: m0-03-modules
+id: m0-04-modules
 title: Modules, exports and imports
 bloom: apply
 objectives: [js.modules.esm]
-requires: [m0-02-read-a-test]
+requires: [m0-03-read-a-test]
 estimatedMinutes: 12
 scaffold: faded
 links:
-  - { step: m0-02-read-a-test }
-  - { step: m0-04-predict-output }
+  - { step: m0-03-read-a-test }
+  - { step: m0-05-predict-output }
   - { file: "src/m0/math-utils.js" }
   - { file: "package.json", line: 6 }
   - { url: "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules", title: "MDN: JavaScript modules" }
-sources: [src/m0/math-utils.js, test/m0-03-modules.test.js, package.json]
+sources: [src/m0/math-utils.js, test/m0-04-modules.test.js, package.json]
 tasks:
   - id: exports
     title: The module exports what the test imports
-    check: { type: testSuite, runner: node-test, expectPass: ["m0-03 named exports square and cube", "m0-03 default export is the meta object"], minPass: 2 }
+    check: { type: testSuite, runner: node-test, expectPass: ["m0-04 named exports square and cube", "m0-04 default export is the meta object"], minPass: 2 }
   - id: named-vs-default
     title: Named export or default export
     check: { type: question, prompt: { en: "This file has two named exports and one default export. What does the import side have to write differently for each kind, and why does a typo in a named import fail before any of your code runs?", de: "Diese Datei hat zwei benannte Exporte und einen Default-Export. Was muss die Import-Seite bei jeder Art anders schreiben, und warum scheitert ein Tippfehler bei einem benannten Import, bevor irgendein Code von dir läuft?" }, rubric: "Distinguishes named imports in braces (matching the exported name exactly) from a default import written without braces and freely nameable; explains that ES module bindings are resolved when the module graph is linked, before evaluation, so a missing named export is a SyntaxError at load time rather than an undefined value at call time.", bloom: understand, minChars: 60 }
@@ -29,6 +29,9 @@ misconceptions:
   - pattern: "Cannot use import statement outside a module"
     question: { en: "Node read this file as an old-style script. What in package.json decides that?", de: "Node hat diese Datei als Skript alten Stils gelesen. Was in package.json entscheidet darüber?" }
     hints: [ { en: "package.json in this workspace sets \"type\": \"module\" - check that you are running from the workspace folder.", de: "Die package.json dieses Workspace setzt \"type\": \"module\" - prüfe, ob du aus dem Workspace-Ordner heraus startest." }, { en: "A file outside this folder without that setting would need the .mjs extension instead.", de: "Eine Datei außerhalb dieses Ordners ohne diese Einstellung bräuchte stattdessen die Endung .mjs." }, { en: "cd into javascript-foundations and run node --test from there.", de: "Wechsle mit cd nach javascript-foundations und starte node --test von dort." } ]
+  - pattern: "Cannot find module|MODULE_NOT_FOUND|no such file or directory"
+    question: { en: "Node could not find a file. Is the terminal in the right folder, and is the path in the command spelled as the step wrote it?", de: "Node hat eine Datei nicht gefunden. Steht das Terminal im richtigen Ordner, und ist der Pfad im Befehl so geschrieben wie im Step?" }
+    hints: [ { en: "Type pwd and press Enter; the path must end in javascript-foundations. If not, run cd javascript-foundations.", de: "Tippe pwd und drücke Enter; der Pfad muss auf javascript-foundations enden. Wenn nicht, führe cd javascript-foundations aus." }, { en: "Copy the command from the code block in this panel rather than retyping it; the file name carries the step id exactly.", de: "Kopiere den Befehl aus dem Codeblock in diesem Panel, statt ihn abzutippen; der Dateiname trägt die Step-Kennung exakt." }, { en: "ES module imports need the .js extension, so a path without it fails the same way.", de: "Importe in ES-Modulen brauchen die Endung .js, ein Pfad ohne sie scheitert genauso." } ]
 ---
 ## Learning goal
 
@@ -54,7 +57,7 @@ Two details that surprise newcomers, both of them deliberate in the standard:
 Run this step's test before changing anything:
 
 ```bash
-node --test test/m0-03-modules.test.js
+node --test test/m0-04-modules.test.js
 ```
 
 ```
@@ -89,10 +92,20 @@ and mark the object as the default:
 export default meta;
 ```
 
+## Running this step
+
+Open a terminal with **Terminal > New Terminal** (or press **F1** and type `Terminal: Create New Terminal`). It opens in the panel at the bottom of the window, and its prompt has to end in `javascript-foundations`. Then run:
+
+```bash
+node --test test/m0-04-modules.test.js
+```
+
+The command has finished when the prompt comes back; the counts at the end of the output are the verdict, and `fail 0` is success. `Cannot find module` means the terminal is in the wrong folder - run `cd javascript-foundations` and try again. Change only files under `src/`; the files under `test/` are the marking scheme. The whole tour of the interface is in [operating the interface](step:m0-01-using-the-ide).
+
 ## How you know it worked
 
 ```bash
-node --test test/m0-03-modules.test.js
+node --test test/m0-04-modules.test.js
 ```
 
-Both tests green. Now the question task: being able to say why a mistyped named import fails *before* your code runs is what separates a linking error from a logic error for the rest of this course. Then go on to [predicting output](step:m0-04-predict-output).
+Both tests green. Now the question task: being able to say why a mistyped named import fails *before* your code runs is what separates a linking error from a logic error for the rest of this course. Then go on to [predicting output](step:m0-05-predict-output).

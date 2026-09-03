@@ -1,4 +1,4 @@
-// m0-02-read-a-test (reference solution)
+// m0-03-read-a-test (reference solution)
 export function summarize(numbers) {
   let total = 0;
   for (const n of numbers) {
