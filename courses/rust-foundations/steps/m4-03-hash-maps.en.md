@@ -6,7 +6,7 @@ objectives: [ "rust-ch08-03-hash-maps" ]
 requires: [ "m4-02-strings" ]
 estimatedMinutes: 25
 scaffold: faded
-recallFrom: [ "m4-02-strings" ]
+recallFrom: [ "m4-01-vectors" ]
 links:
   - { step: "m4-04-collections-report" }
   - { file: "src/m4/m4_03_hash_maps.rs" }

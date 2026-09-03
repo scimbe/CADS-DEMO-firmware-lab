@@ -6,7 +6,7 @@ objectives: [ "rust-ch04-03-slices" ]
 requires: [ "m2-03-aliasing-rule" ]
 estimatedMinutes: 25
 scaffold: independent
-recallFrom: [ "m2-03-aliasing-rule", "m2-01-shared-references" ]
+recallFrom: [ "m2-03-aliasing-rule", "m2-02-mutable-references" ]
 links:
   - { step: "m3-01-structs" }
   - { file: "src/m2/m2_04_slices.rs" }
@@ -16,7 +16,7 @@ sources: [ "src/m2/m2_04_slices.rs", "tests/m2-04-slices.rs", "snippets/m2_04_sl
 tasks:
   - id: guess
     title: "Predict the fate of a slice whose source is cleared"
-    check: { type: "predict", prompt: { en: "snippets/m2_04_slice_then_clear.rs takes a slice with first_word(&s), then calls s.clear(), then prints the slice. Does it compile? If not, which error, and which of the three statements does the compiler underline?", de: "snippets/m2_04_slice_then_clear.rs holt mit first_word(&s) einen Slice, ruft dann s.clear() auf und gibt den Slice aus. Kompiliert das? Wenn nein: welcher Fehler, und welche der drei Anweisungen unterstreicht der Compiler?" }, then: { type: "command", command: "mkdir -p target/check && rustc --edition 2024 --emit=metadata --out-dir target/check snippets/m2_04_slice_then_clear.rs", expectExitCode: 1, expectStderr: "error\\[E0502\\]: cannot borrow `s` as mutable because it is also borrowed as immutable", timeoutMs: 120000 }, rubric: "Predicts E0502 with the caret on s.clear(), and identifies the println! as the reason the shared borrow is still alive at that point. A prediction that it compiles and prints a stale word is the C-style model and worth naming explicitly.", bloom: "evaluate" }
+    check: { type: "predict", prompt: { en: "snippets/m2_04_slice_then_clear.rs takes a slice with first_word(&s), then calls s.clear(), then prints the slice. Does it compile? If not, which error, and which of the three statements does the compiler underline?", de: "snippets/m2_04_slice_then_clear.rs holt mit first_word(&s) einen Slice, ruft dann s.clear() auf und gibt den Slice aus. Kompiliert das? Wenn nein: welcher Fehler, und welche der drei Anweisungen unterstreicht der Compiler?" }, then: { type: "command", command: "mkdir -p target/check && rustc --edition 2024 --emit=metadata --out-dir target/check snippets/m2_04_slice_then_clear.rs", seedMustFail: false, expectExitCode: 1, expectStderr: "error\\[E0502\\]: cannot borrow `s` as mutable because it is also borrowed as immutable", timeoutMs: 120000 }, rubric: "Predicts E0502 with the caret on s.clear(), and identifies the println! as the reason the shared borrow is still alive at that point. A prediction that it compiles and prints a stale word is the C-style model and worth naming explicitly.", bloom: "evaluate" }
   - id: slices
     title: "first_word, last_word, sum and tail pass"
     check: { type: "testSuite", runner: "cargo", command: "cargo test --test m2-04-slices", expectPass: [ "m2_04_slices::first_word_of_sentence", "m2_04_slices::first_word_of_single_word", "m2_04_slices::last_word_of_sentence", "m2_04_slices::sum_and_tail_of_slices" ], minPass: 4, timeoutMs: 180000 }
