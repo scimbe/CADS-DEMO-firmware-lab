@@ -3,6 +3,17 @@
   "track": "firmware",
   "objectives": [
     {
+      "id": "cz.tooling.workbench",
+      "track": "firmware",
+      "bloomLevel": "apply",
+      "statement": "Student can operate the browser IDE: find a command in the palette, start a named task, locate its output in the terminal area, and close a terminal without killing work.",
+      "sourceDocIds": [
+        "cads-zero/scripts/check_ram_budget.py",
+        "cads-zero/docs/reference/measurements.md"
+      ],
+      "prerequisiteObjectiveIds": []
+    },
+    {
       "id": "cz.arch.sim-vs-board",
       "track": "firmware",
       "bloomLevel": "understand",
