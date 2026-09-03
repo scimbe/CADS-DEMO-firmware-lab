@@ -1,5 +1,8 @@
 /* types.ts – the probe interface of docs/SPEC.md §3.1. Copy of extensions/cads-probe/src/driver/types.ts (kept in sync by scripts/sync-types.sh). */
 
+/** Why the board is not usable right now. Text for each lives in the bridge's messages.ts. */
+export type BlockReason = 'other-tab' | 'other-app' | 'gone' | 'denied' | 'target-unresponsive' | 'unknown';
+
 export interface ProbeStatus {
   usb: 'absent' | 'connected' | 'error';
   serial: 'absent' | 'open' | 'error';
@@ -10,6 +13,10 @@ export interface ProbeStatus {
   /** Additions (documented in docs/BRIDGE-NOTES.md): */
   serialPortKnown?: boolean;
   usbDeviceKnown?: boolean;
+  /** Why the board could not be opened, when it could not. Drives the message the student reads. */
+  blockReason?: BlockReason;
+  /** USB transfers since the device was opened; makes idle polling visible. */
+  usbTransfers?: number;
 }
 
 export type ProbeOp =

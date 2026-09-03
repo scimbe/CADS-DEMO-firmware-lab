@@ -19,7 +19,7 @@ export interface BoardStatus {
 }
 
 export type BoardEvent = {
-  type: 'flash-done' | 'flash-failed' | 'reset' | 'debug-stop' | 'debug-start' | 'debug-end';
+  type: 'flash-done' | 'flash-failed' | 'reset' | 'debug-stop' | 'debug-start' | 'debug-end' | 'board-unavailable';
   detail?: unknown;
 };
 
@@ -62,6 +62,7 @@ export class BoardController {
   private serialWaiters: { pattern: RegExp; resolve: (m: string | null) => void; timer: ReturnType<typeof setTimeout>; buf: string }[] = [];
   private baud = 115200;
   private flashing = false;
+  private recovering = false;
 
   constructor(
     readonly probe: Probe,
@@ -107,6 +108,45 @@ export class BoardController {
   }
 
   /** Connect: chooser if needed (user gesture), then open the serial console if a port is known. */
+  /**
+   * Recover from a transfer timeout exactly once.
+   *
+   * A timed-out transfer usually means the ST-Link's state machine lost sync, and one clean
+   * close/open puts it right. Repeating that in a loop does not: it just keeps a wedged adapter
+   * busy and hides the real problem, so the second failure ends the connection and the caller
+   * shows the student what to do. A flash is never interrupted for this - the image on the chip
+   * would be half written, and the student has to be told to flash again rather than silently
+   * left with a brick.
+   */
+  async recoverAfterTimeout(reason: string): Promise<BoardStatus> {
+    if (this.recovering) return this.getStatus();
+    this.recovering = true;
+    try {
+      this.log.warn(`USB transfer timed out (${reason}) – reconnecting once`);
+      await this.probe.disconnect().catch(() => undefined);
+      const s = await this.probe.reconnect();
+      this.applyProbeStatus(s);
+      if (s.usb === 'connected') {
+        this.log.info('reconnect after timeout succeeded');
+        return this.getStatus();
+      }
+      this.log.error(`reconnect after timeout failed (${s.blockReason ?? 'unknown'}) – board marked disconnected`);
+      this.events.fire({ type: 'board-unavailable', detail: { reason: s.blockReason ?? 'unknown', after: 'timeout' } });
+      return this.getStatus();
+    } finally {
+      this.recovering = false;
+    }
+  }
+
+  /** Hand the board back to the browser profile so another tab can use it. */
+  async release(): Promise<BoardStatus> {
+    await this.probe.op({ op: 'serialClose' }).catch(() => undefined);
+    const s = await this.probe.release();
+    this.applyProbeStatus(s);
+    this.log.info('board released');
+    return this.getStatus();
+  }
+
   async connect(opts?: { usb?: boolean; serial?: boolean }): Promise<BoardStatus> {
     let s = await this.probe.reconnect();
     if ((opts?.usb !== false && s.usb !== 'connected') || (opts?.serial !== false && !s.serialPortKnown)) {

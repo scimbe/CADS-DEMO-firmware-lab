@@ -8,6 +8,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { BoardController, type BoardEvent, type BoardStatus } from './board';
 import { createHttpServer } from './http';
+import { boardMessage, boardMessageLine } from './messages';
 import { listenWithRetry } from './listen';
 import { VsCodeProbeClient } from './probeClient';
 import { GdbSession } from './rsp/server';
@@ -259,7 +260,14 @@ export function activate(context: vscode.ExtensionContext): BoardBridgeApi {
   context.subscriptions.push(
     vscode.commands.registerCommand('cads.board.connect', async () => {
       const s = await board.connect();
-      if (!s.connected) void vscode.window.showWarningMessage(`Board nicht verbunden${s.probe?.lastError ? `: ${s.probe.lastError}` : ''}`);
+      if (!s.connected) {
+        // The raw DOMException reads like a broken board; say who is holding it instead.
+        const m = boardMessage(s.probe?.blockReason, vscode.env.language);
+        const pick = await vscode.window.showWarningMessage(m.title, { modal: false, detail: m.action }, 'Erneut verbinden', 'Log anzeigen');
+        if (pick === 'Erneut verbinden') await vscode.commands.executeCommand('cads.board.connect');
+        else if (pick === 'Log anzeigen') await vscode.commands.executeCommand('cads.board.showPanel');
+        log.warn(`connect refused (${s.probe?.blockReason ?? 'unknown'}): ${s.probe?.lastError ?? '-'}`);
+      }
       return s;
     }),
     vscode.commands.registerCommand('cads.board.disconnect', () => board.disconnect()),
@@ -274,6 +282,11 @@ export function activate(context: vscode.ExtensionContext): BoardBridgeApi {
       out.show(true);
       return board.getStatus();
     }),
+    vscode.commands.registerCommand('cads.board.release', async () => {
+      const s = await board.release();
+      void vscode.window.setStatusBarMessage('$(check) Board freigegeben – ein anderer Tab kann es jetzt benutzen', 6000);
+      return s;
+    }),
     vscode.commands.registerCommand('cads.board.showMenu', async () => {
       const s = board.getStatus();
       const items: (vscode.QuickPickItem & { cmd: string })[] = s.connected
@@ -284,6 +297,7 @@ export function activate(context: vscode.ExtensionContext): BoardBridgeApi {
             { label: '$(terminal) Konsole öffnen', cmd: 'cads.board.openConsole' },
             { label: '$(output) Log anzeigen', cmd: 'cads.board.showPanel' },
             { label: '$(debug-disconnect) Trennen', cmd: 'cads.board.disconnect' },
+            { label: '$(circle-slash) Board freigeben (für einen anderen Tab)', cmd: 'cads.board.release' },
           ]
         : [
             { label: '$(plug) Board verbinden (USB/Serial freigeben)', cmd: 'cads.board.connect' },
