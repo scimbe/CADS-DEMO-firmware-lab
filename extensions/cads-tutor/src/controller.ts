@@ -322,6 +322,9 @@ export class TutorController implements vscode.Disposable {
         eventStore: this.eventStore?.store,
         memoryDir: path.join(os.homedir(), ".cads-tutor"),
         llm,
+        // Read per call: the platform is cached per course, but the student can
+        // switch language at any time and the next answer must follow.
+        lang: () => this.lang,
         log: (m) => this.log(`[platform:${course.manifest.id}] ${m}`),
       });
       this.log(`[platform:${course.manifest.id}] LLM ${p.hasLlm ? `configured (${llm?.model})` : "not configured"}`);

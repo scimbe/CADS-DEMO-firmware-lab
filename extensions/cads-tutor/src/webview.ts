@@ -156,6 +156,24 @@ export type FromWebview =
   | { type: "recallSkip" }
   | { type: "reflection"; answers: string[] };
 
+/**
+ * A two-way choice with the ACTIVE language marked, not a toggle labelled with
+ * the other language. The old button said "Deutsch" while the UI was English,
+ * which reads as a statement of the current state rather than an offer to change
+ * it, so people believed they were already in German.
+ */
+export function renderLanguageChoice(active: Lang): string {
+  const s = ui(active);
+  const button = (lang: Lang) => {
+    const name = s.languageNames[lang];
+    const isActive = lang === active;
+    return `<button class="btn lang-choice${isActive ? " active" : ""}" data-lang="${lang}"
+      title="${escapeHtml(isActive ? s.languageActive(name) : s.languageSwitchTo(name))}"
+      aria-pressed="${isActive}"${isActive ? " aria-current=\"true\"" : ""}>${escapeHtml(name)}</button>`;
+  };
+  return `<span class="lang-group" role="group" aria-label="${escapeHtml(s.languageLabel)}">${button("de")}${button("en")}</span>`;
+}
+
 export function nonce(): string {
   return randomBytes(16).toString("hex");
 }
@@ -331,6 +349,10 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
   .ask-row { display: flex; gap: 0.5em; } .ask-row input { flex: 1; }
   .answer-box { margin-top: 0.6em; padding: 0.6em 0.8em; border-radius: 4px; border: 1px solid var(--vscode-panel-border); white-space: pre-wrap; } .answer-box[hidden] { display: none; }
   /* Addendum v1.1: scaffold badge, predict panel, recall and reflection cards. */
+  .lang-group { display: inline-flex; gap: 0; border: 1px solid var(--vscode-panel-border); border-radius: 4px; overflow: hidden; }
+  .lang-group .btn.lang-choice { border: none; border-radius: 0; margin: 0; opacity: 0.75; }
+  .lang-group .btn.lang-choice + .btn.lang-choice { border-left: 1px solid var(--vscode-panel-border); }
+  .lang-group .btn.lang-choice.active { background: var(--vscode-button-background); color: var(--vscode-button-foreground); opacity: 1; font-weight: 600; }
   .meta-item.scaffold { border-color: var(--vscode-textLink-foreground); }
   .scaffold-note { margin: 0.4em 0 0.8em; opacity: 0.85; font-style: italic; }
   .predict { margin-top: 0.6em; padding: 0.6em 0.8em; border-left: 3px solid var(--vscode-textLink-foreground); background: var(--vscode-textBlockQuote-background); border-radius: 3px; }
@@ -364,7 +386,7 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
   <div class="topbar">
     <span class="crumbs">${escapeHtml(view.courseTitle)} › ${escapeHtml(view.moduleTitle)} › ${escapeHtml(s.stepOf(view.index + 1, view.total))}</span>
     <button class="btn" id="run-all" ${locked ? "disabled" : ""}>${s.checkAll}</button>
-    <button class="btn" id="lang-toggle" title="${escapeHtml(s.languageTitle)}">${s.language}</button>
+    ${renderLanguageChoice(view.lang)}
   </div>
   <h1 id="step-title">${escapeHtml(view.title)}</h1>
   <div class="meta">
@@ -404,7 +426,8 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
 function clientScript(view: StepView): string {
   const strings = JSON.stringify({
     lang: view.lang,
-    otherLang: view.lang === "de" ? "en" : "de",
+    // The panel no longer toggles to "the other" language; it names both and
+    // marks the active one, so the client only needs to know which is active.
     thinking: ui(view.lang).askThinking,
     running: ui(view.lang).running,
     sources: ui(view.lang).sources,
@@ -454,7 +477,10 @@ function clientScript(view: StepView): string {
       post({ type: "reflection", answers });
     }
     else if (b.id === "run-all") { document.querySelectorAll("li.task").forEach((li) => setRunning(li.getAttribute("data-task"))); post({ type: "runAll" }); }
-    else if (b.id === "lang-toggle") post({ type: "setLang", lang: S.otherLang });
+    else if (b.classList.contains("lang-choice")) {
+      const chosen = b.getAttribute("data-lang");
+      if (chosen && chosen !== S.lang) post({ type: "setLang", lang: chosen });
+    }
     else if (b.id === "ask-btn") ask();
     else if ((b.id === "prev" || b.id === "next") && b.getAttribute("data-step")) post({ type: "nav", stepId: b.getAttribute("data-step") });
   });
