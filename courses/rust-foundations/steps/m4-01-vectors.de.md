@@ -6,7 +6,7 @@ objectives: [ "rust-ch08-01-vectors" ]
 requires: [ "m3-04-if-let" ]
 estimatedMinutes: 20
 scaffold: worked
-recallFrom: [ "m2-04-slices" ]
+recallFrom: [ "m2-03-aliasing-rule" ]
 links:
   - { step: "m4-02-strings" }
   - { file: "src/m4/m4_01_vectors.rs" }

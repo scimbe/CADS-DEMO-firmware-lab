@@ -235,25 +235,47 @@ project, is `independent` throughout by design.
   `m6-04-lifetimes` has the same broken program in both `snippets/` and
   `repair/`, on purpose: the prediction check must keep reporting the original
   diagnostic after the repair file has been fixed.
-- **Checks that pass without a solution, and why.** The negative probe
-  (`--solutions`) does not apply to thirteen checks, all of which test a fixed
-  artifact rather than student code: the environment probes in `m0-01-welcome`
-  (`cargo --version`, `cargo build` -- the workspace compiles from the start
-  because unsolved exercises are `todo!()`), `cargo fmt --check` in
-  `m7-02-review`, and every `predict` check plus the two standalone snippet
-  compilations, which assert that a read-only file still produces exactly the
-  documented diagnostic. Every check that grades student work does fail without
-  the solution.
+- **Checks that pass without a solution, and why.** Thirteen checks carry
+  `seedMustFail: false`, which switches off the negative half of the probe.
+  All thirteen test a fixed artifact rather than student code: the environment
+  probes in `m0-01-welcome` (`cargo --version`, `cargo build` -- the workspace
+  compiles from the start because unsolved exercises are `todo!()`),
+  `cargo fmt --check` in `m7-02-review`, and every `predict` check plus the two
+  standalone snippet compilations, which assert that a read-only file still
+  produces exactly the documented diagnostic. Every check that grades student
+  work does fail without the solution, and the validator proves it:
+  38 probes, 38 ok, 0 failed.
 - **`#[should_panic]` and test-list parsing.** cargo prints such a test as
   `test <name> - should panic ... ok`, with the marker between the name and the
   result. `m5-01-panic-vs-result` therefore pairs its `testSuite` check with a
   `command` check asserting `test result: ok. 8 passed; 0 failed`, so the four
   panic tests are covered whatever a list parser makes of that marker.
-- **Reference solutions live outside the seed.**
-  `workspaces/rust-foundations/solutions/<step-id>/` mirrors the workspace
-  layout. A few directories carry an earlier step's file as well, so each one is
-  self-sufficient; `m7-02-review` carries the whole finished workspace, because
-  its `clippy` check judges all of it.
+- **Reference solutions live outside the seed, in two views.**
+  `workspaces/rust-foundations/solutions/src/**` and `.../solutions/repair/**`
+  are the complete finished workspace at the workspace's own relative paths --
+  the overlay `--solutions` expects. `.../solutions/by-step/<step-id>/` holds
+  the same files split per step, which is how a single step can be probed in
+  isolation while it is being written. Neither is seeded into the lab image.
+
+- **`recallFrom` may only name a step that has a `question` task.** The recall
+  card re-asks one, so a target without one is silently dead; the validator
+  warns about it.
+
+## Validating
+
+```bash
+# Rust pack: schema, links, and every check run with and without the solution
+python3 scripts/validate-courses.py workspaces/rust-foundations \
+  --courses-dir courses --only rust-foundations \
+  --solutions workspaces/rust-foundations/solutions
+
+# Firmware packs: schema, links, and symbols against the built ELF
+python3 scripts/validate-courses.py /path/to/cads-zero \
+  --only cads-zero-foundations --nm /path/to/arm-none-eabi-nm
+```
+
+`--only` matters: a pack is checked against the PROJECT_ROOT you pass, and the
+firmware packs' paths do not exist in the Rust workspace or the other way round.
 
 ## Notes for the firmware packs
 

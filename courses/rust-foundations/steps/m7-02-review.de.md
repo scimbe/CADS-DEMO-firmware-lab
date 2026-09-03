@@ -6,7 +6,7 @@ objectives: [ "rust-project-cli", "rust-ch10-03-lifetime-syntax" ]
 requires: [ "m7-01-wordstat" ]
 estimatedMinutes: 40
 scaffold: independent
-recallFrom: [ "m7-01-wordstat", "m1-02-move-vs-clone", "m5-01-panic-vs-result" ]
+recallFrom: [ "m1-02-move-vs-clone", "m5-04-custom-error", "m4-04-collections-report" ]
 links:
   - { step: "m0-01-welcome" }
   - { file: "src/project/wordstat.rs" }
@@ -16,7 +16,7 @@ sources: [ "src/project/wordstat.rs", "tests/m7-01-wordstat.rs", "README.md" ]
 tasks:
   - id: fmt
     title: "Der Workspace ist formatiert"
-    check: { type: "command", command: "cargo fmt --check", expectExitCode: 0, timeoutMs: 120000 }
+    check: { type: "command", command: "cargo fmt --check", seedMustFail: false, expectExitCode: 0, timeoutMs: 120000 }
   - id: clippy
     title: "clippy ist sauber bei verbotenen Warnungen"
     check: { type: "command", command: "cargo clippy --all-targets -- -D warnings", expectExitCode: 0, timeoutMs: 300000 }

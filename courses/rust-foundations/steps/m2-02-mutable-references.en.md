@@ -6,7 +6,7 @@ objectives: [ "rust-ch04-02-references-and-borrowing" ]
 requires: [ "m2-01-shared-references" ]
 estimatedMinutes: 20
 scaffold: faded
-recallFrom: [ "m2-01-shared-references", "m1-03-copy-types" ]
+recallFrom: [ "m1-04-ownership-and-functions", "m1-03-copy-types" ]
 links:
   - { step: "m2-03-aliasing-rule" }
   - { file: "src/m2/m2_02_mutable_refs.rs" }
