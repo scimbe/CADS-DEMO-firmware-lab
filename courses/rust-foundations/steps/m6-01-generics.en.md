@@ -45,7 +45,7 @@ pub fn largest<T: PartialOrd>(list: &[T]) -> &T
 
 ## What an unbounded T can do
 
-Very little. `T` with no bound supports only what every type supports: being moved and being dropped. That is enough for `swap`:
+Less than you might expect. Read the two bodies below and work out which operations each one actually performs on a `T` - that is what this step's question asks for:
 
 ```rust
 pub fn swap<T>(p: Pair<T>) -> Pair<T> {
@@ -65,7 +65,7 @@ error[E0369]: binary operation `>` cannot be applied to type `&T`
 
 ## Why `&T` and not `T`
 
-Returning `T` would mean taking an element out of a slice the caller still owns, which is `error[E0507]: cannot move out of`. You would then need `T: Copy` or `T: Clone` on top of `PartialOrd`, narrowing who can call the function. Returning `&T` borrows instead and needs nothing extra. The test proves the difference: `largest(&words)` works on a `Vec<String>`, which is neither `Copy` nor cheap to clone, and the vector still owns its strings afterwards.
+Returning `T` would mean taking an element out of a slice the caller still owns. Try writing it that way and read what the compiler asks you to add. The test shows what the choice buys: `largest(&words)` works on a `Vec<String>`, which is neither `Copy` nor cheap to clone, and the vector still owns its strings afterwards.
 
 `first_of` is the deliberate contrast: it hands back an owned value, so it carries `T: Clone` and uses `.cloned()`. Two functions, two contracts, and each bound is there because the body needs it.
 

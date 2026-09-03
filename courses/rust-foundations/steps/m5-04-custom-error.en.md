@@ -95,7 +95,7 @@ Note that `e.to_string()` stores the parser's own wording, `invalid digit found 
 
 ## Not everything is an error
 
-`config_get` returns `Ok(None)` for a key that is absent and `Err` only when the file itself is broken. Those are genuinely different situations: a missing optional key has an obvious response, a malformed file means none of the data can be trusted. Folding them together would force every caller to inspect an error just to find out whether anything is wrong.
+`config_get` returns `Ok(None)` for a key that is absent and `Err` only when the file itself is broken. Two return values for two situations - and whether that is the right call, and for whom it is the wrong one, is what this step's question asks.
 
 ## Your task
 

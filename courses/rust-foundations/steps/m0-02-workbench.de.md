@@ -49,11 +49,7 @@ Das Panel **CaDS Tutor** zeigt den Step, den du liest, die Aufgaben mit je einer
 
 Das ist der häufigste Weg, zehn Minuten zu verlieren:
 
-- **Terminal** zeigt, was ein von dir getippter Befehl ausgibt. Alles in diesem Kurs landet hier.
-- **Problems** zeigt Diagnosen, die eine Erweiterung gesammelt hat, als Liste. In diesem Kurs bleibt der Reiter leer; warte nicht darauf.
-- **Output** zeigt die Protokolle der Erweiterungen selbst. Nichts, was du ausführst, erscheint hier.
-
-Hat ein Befehl „nichts ausgegeben", prüfe zuerst, ob du auf **Terminal** schaust.
+Klicke jetzt einmal auf **Terminal**, **Problems** und **Output**, während nichts läuft, und sieh nach, was darin steht. Einer der drei ist die Stelle, an die ein von dir getippter Befehl ausgibt; die beiden anderen enthalten Dinge, in die kein Befehl von dir jemals schreibt. Welcher welcher ist, findet man besser hier heraus als mitten in einem scheiternden Step.
 
 ## Drei Wege, dasselbe auszuführen
 

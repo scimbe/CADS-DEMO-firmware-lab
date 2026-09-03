@@ -64,7 +64,7 @@ fn compare<T: Summary>(a: &T, b: &T)
 
 The same applies to a slice: `&[T]` needs the name, so `summarize_all` and `longest_summary` cannot use the short form at all. And an anonymous parameter has no name to give at the call site, so `summarize_all::<Tweet>(&[])` - which the test needs, because an empty slice gives the compiler nothing to infer from - is only possible with the explicit form.
 
-Rule of thumb: use `impl Trait` for a single argument used once; name the parameter as soon as it appears more than once.
+This step's question asks for a signature that only the named form can express. Two of the three functions above are such a case; work out what they have in common.
 
 ## Combining bounds
 

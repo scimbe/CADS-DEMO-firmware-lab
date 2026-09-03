@@ -62,13 +62,13 @@ impl Summary for Tweet {
 }
 ```
 
-`Article` overrides `summarize`; `Tweet` does not and inherits the trait's version. The choice is made per type at compile time - the impl block's method simply replaces the default for that type. Nothing is looked up at runtime.
+`Article` overrides `summarize`; `Tweet` does not and gets the trait's version. When and how that choice is made is what this step's question asks, so work it out from the two impl blocks rather than from this paragraph.
 
 Leave out `author` and you get `error[E0046]: not all trait items implemented`. Leave out `summarize` and nothing happens, because there is a default.
 
 ## Why a default method is worth more than a copy
 
-The default calls `self.author()` - a method the trait *requires*. That is what makes it reusable: it works for any type anyone implements in future, as long as they supply `author`. A copied helper function would not; it would have to be written again per type.
+Look at what the default body calls, and at whether that method is optional for an implementor. Those two facts together are why a default method is worth more than a helper function copied once per type.
 
 ## The scope rule
 
