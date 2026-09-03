@@ -26,7 +26,7 @@ socratic:
   - { trigger: "task:build:failed", question: { en: "Which folder does the terminal say it is in, and is a Cargo.toml there?", de: "Welchen Ordner nennt das Terminal, und liegt dort eine Cargo.toml?" }, hints: [ { en: "Type `pwd` and press Enter; the answer must end in the rust-foundations folder.", de: "Tippe `pwd` und drücke die Eingabetaste; die Antwort muss auf den Ordner rust-foundations enden." }, { en: "Close the terminal with the bin icon on its right-hand side and open a fresh one with Terminal → New Terminal; a new terminal always starts in the workspace folder.", de: "Schließe das Terminal über das Papierkorbsymbol an seiner rechten Seite und öffne mit Terminal → Neues Terminal ein frisches; ein neues Terminal startet immer im Workspace-Ordner." }, { en: "If `cargo` itself is not found, the toolchain is missing from this container - that is an environment fault, not something you can fix in the editor.", de: "Wird `cargo` selbst nicht gefunden, fehlt die Toolchain in diesem Container - das ist ein Umgebungsfehler und nichts, was du im Editor beheben kannst." } ] }
   - { trigger: "task:toolchain:failed", question: { en: "Which of the three commands failed? Run them one at a time to find out.", de: "Welcher der drei Befehle ist gescheitert? Führe sie einzeln aus, um es herauszufinden." }, hints: [ { en: "`&&` stops at the first failure, so the last line you see is the one that broke.", de: "`&&` bricht beim ersten Fehlschlag ab, die letzte sichtbare Zeile ist also die gescheiterte." }, { en: "`cargo fmt --version` and `cargo clippy --version` need the rustfmt and clippy components; both belong in this image.", de: "`cargo fmt --version` und `cargo clippy --version` brauchen die Komponenten rustfmt und clippy; beide gehören in dieses Image." }, { en: "If one is genuinely absent, report it - the last step of the course checks formatting and lints with exactly these two.", de: "Fehlt eines wirklich, melde es - der letzte Step des Kurses prüft Formatierung und Lints mit genau diesen beiden." } ] }
 misconceptions:
-  - { pattern: "could not find `Cargo\\.toml`", question: { en: "cargo did not find a package. Which folder is your terminal in, and does that folder contain Cargo.toml?", de: "cargo hat kein Paket gefunden. In welchem Ordner steht dein Terminal, und liegt dort eine Cargo.toml?" }, hints: [ { en: "`pwd` prints the current folder; it has to be the rust-foundations workspace, the one holding Cargo.toml.", de: "`pwd` gibt den aktuellen Ordner aus; er muss der rust-foundations-Workspace sein, in dem die Cargo.toml liegt." }, { en: "A terminal opened with Terminal → New Terminal starts in the workspace folder; one you navigated away from does not.", de: "Ein über Terminal → Neues Terminal geöffnetes Terminal startet im Workspace-Ordner; eines, aus dem du herausnavigiert bist, nicht." }, { en: "The message names the folder cargo searched, so compare that path with where the file actually is.", de: "Die Meldung nennt den Ordner, in dem cargo gesucht hat; vergleiche diesen Pfad damit, wo die Datei wirklich liegt." } ] }
+  - { pattern: "could not find `Cargo\\.toml`", question: { en: "cargo did not find a package. Which folder is your terminal in, and does that folder contain Cargo.toml?", de: "cargo hat kein Paket gefunden. In welchem Ordner steht dein Terminal, und liegt dort eine Cargo.toml?" }, hints: [ { en: "`cd ~/workspace/rust-foundations` gets you there; `pwd` afterwards shows where you are.", de: "`cd ~/workspace/rust-foundations` bringt dich dorthin; `pwd` zeigt danach, wo du stehst." }, { en: "A new terminal starts in ~/workspace, one level above the crate, because the lab window holds two workspaces side by side.", de: "Ein neues Terminal startet in ~/workspace, eine Ebene über der Crate, weil das Laborfenster zwei Workspaces nebeneinander hält." }, { en: "The message names the folder cargo searched, so compare that path with where the file actually is.", de: "Die Meldung nennt den Ordner, in dem cargo gesucht hat; vergleiche diesen Pfad damit, wo die Datei wirklich liegt." } ] }
 ---
 ## Learning goal
 
@@ -56,11 +56,27 @@ If a command "printed nothing", check that you are looking at **Terminal**.
 
 ## Three ways to run the same thing
 
-1. **Integrated terminal.** Menu **Terminal → New Terminal**. It opens in the panel at the bottom, already in the workspace folder. Type the command, press Enter. This is the way this course uses everywhere, because you see exactly what the checks see.
-2. **Command palette.** Press **F1**. In a browser this is more reliable than Ctrl+Shift+P, which the browser itself may swallow. Type what you want (`Terminal: Create New Terminal`), press Enter.
-3. **The Check button** in the tutor panel, next to a task. It runs that task's command for you and shows the output in the panel.
+1. **Integrated terminal.** Menu **Terminal → New Terminal**. It opens in the panel at the bottom - in `~/workspace`, one level **above** this crate, because the lab window holds the Rust and the JavaScript workspace side by side. So the first thing you type in any new terminal is:
+
+```bash
+cd ~/workspace/rust-foundations
+```
+
+Without it, cargo answers `could not find Cargo.toml in /home/coder/workspace or any parent directory`, which is the single most common way to get stuck on step one. Then type the command and press Enter. This is the way the course uses everywhere, because you see exactly what the checks see.
+
+2. **Command palette.** Press **F1**. In a browser this is more reliable than Ctrl+Shift+P, which the browser itself may keep. The palette opens in one of two modes and **remembers the one you used last**: without a leading `>` it searches files, with `>` it searches commands. So type `>Terminal: Create New Terminal`. If you forget the `>`, you get *No matching results* and nothing happens - that is the palette telling you it is looking for a file of that name.
+
+3. **The Check button** in the tutor panel, next to a task. It runs that task's command for you and shows the output in the panel. It always uses the right folder, so it never needs the `cd`.
 
 To close a terminal, press the bin icon on its right-hand edge, or type `exit`. Nothing is lost - a terminal holds no state you need. Open a new one the same way and you are back where you were.
+
+## Pictures of these steps
+
+*Screenshots of the window, the palette in command mode and a terminal after
+the `cd` belong here and are not in yet.* They were captured from a real lab
+container but cannot be shipped while the tutor panel opens the wrong course;
+`courses/rust-foundations/assets/README.md` names the four files and the
+defect. Everything they would show is written out above.
 
 ## How you know a command has finished
 
@@ -72,7 +88,15 @@ Open a terminal and run the two commands below. Then answer where output appears
 
 ## Running it
 
-Open a terminal with the menu **Terminal → New Terminal**, or press **F1** (more reliable in a browser than Ctrl+Shift+P), type `Terminal: Create New Terminal` and press Enter. The terminal opens in the panel at the bottom, already in the workspace folder. Then run:
+Open a terminal with the menu **Terminal → New Terminal**, or press **F1**, type `>Terminal: Create New Terminal` and press Enter. The leading `>` is what switches the palette from searching files to searching commands, and F1 remembers whichever mode you used last - without it you get *No matching results*. In a browser F1 is more reliable than Ctrl+Shift+P, which the browser may keep for itself.
+
+The terminal opens in the panel at the bottom, in `~/workspace` - the folder **above** this crate, because the lab window holds the Rust and the JavaScript workspace side by side. Change into the crate first, or cargo answers `could not find Cargo.toml`:
+
+```bash
+cd ~/workspace/rust-foundations
+```
+
+You only need that once per terminal. Then run:
 
 ```bash
 cargo --version && cargo fmt --version && cargo clippy --version
@@ -87,4 +111,4 @@ The **Check** button next to the task above runs exactly these commands for you 
 
 **Finished when:** the shell prompt reappears below the output. Until it does, the command is still running - a blinking cursor with no prompt is not a hang.
 
-**If something is off:** the output is in the **Terminal** tab at the bottom, not in **Problems** and not in **Output** - those two show different things and are the usual reason for "nothing happened". If you closed the terminal by accident, open a new one the same way; nothing is lost. If cargo answers `could not find Cargo.toml`, the terminal is in the wrong folder - `cd` back to the workspace root.
+**If something is off:** the output is in the **Terminal** tab at the bottom, not in **Problems** and not in **Output** - those two show different things and are the usual reason for "nothing happened". If you closed the terminal by accident, open a new one the same way; nothing is lost. If cargo answers `could not find Cargo.toml`, this terminal never got the `cd` above - run it and try again.

@@ -455,3 +455,21 @@ verlinkt, sprachbewusst (Deutsch → /de/, Englisch → /en/). Betroffen: Firmwa
 Die Rust- und JavaScript-Doku entsteht nach Abschluss der Kurse; Quelle ist der jeweilige Kursinhalt, nicht
 eine Neuerfindung. Ein Tutor gilt erst als ausgeliefert, wenn seine Doku erreichbar und von der Kachel
 verlinkt ist.
+
+## A8 Regeln für Kursprüfungen (2026-09-03, verbindlich, aus drei Kursen gelernt)
+
+1. **Negativprobe ist Pflicht.** Jede automatische Prüfung wird zweimal ausgeführt: im unbearbeiteten Übungsstand
+   (muss fehlschlagen) und mit der Musterlösung (muss bestehen). Ohne diesen Nachweis gilt eine Prüfung als nicht
+   geliefert. Belegt: In drei Kursen fand die Probe je Fehler, die weder Schemaprüfung noch Lesen findet – eine
+   Prüfung, die nie bestehen konnte, eine, die nach dem Lösen aufhörte zu prüfen, und eine ohne passende Lösung.
+2. **Prüfen im Zielbild, nicht nur lokal.** Die Sonden laufen vor jeder Auslieferung im echten Container. Belegt:
+   Das Labor-Bild bringt eine neuere Rust-Werkzeugkette mit als der Entwicklungsrechner; eine neue Warnung der
+   statischen Analyse hätte den Abschlussschritt für jeden Studierenden scheitern lassen, während er lokal grün war.
+3. **Bedienanweisungen werden im Container wörtlich befolgt, nicht geschrieben.** Belegt: drei falsche Anweisungen
+   je Kurs, jede hätte im ersten Schritt gestrandet (Terminal startet im übergeordneten Ordner, die Befehlspalette
+   merkt sich die Eingabeart und braucht ein vorangestelltes Zeichen, ein Hinweistext verwies auf den falschen Ordner).
+   Wo möglich, wird der Bedienabschnitt aus den echten Prüfbefehlen erzeugt statt von Hand geschrieben.
+4. **Eine Prüfung darf nicht dieselbe Datei bewerten, die die Aufgabe verändert**, sonst hört sie mit dem Lösen auf
+   zu prüfen. Vorhersage- und Reparaturaufgaben brauchen getrennte, schreibgeschützte Zwillinge.
+5. **Lösungsablage:** flacher Spiegel des Projektwurzelverzeichnisses unter `solutions/`, zusätzlich optional eine
+   Sicht je Schritt unter `solutions/by-step/<step-id>/`. Der Validator versteht beide Formen.

@@ -10,7 +10,6 @@ links:
   - { step: m0-02-connect }
   - { doc: "docs/HARDWARE.md" }
   - { doc: "docs/ROADMAP.md" }
-  - { url: "command:workbench.action.openWalkthrough?%22cads.cads-tutor%23cadsTutor.gettingStarted%22", title: "Using the window: first steps" }
 sources: [README.md, docs/HARDWARE.md, docs/ROADMAP.md]
 tasks:
   - id: oriented
@@ -45,6 +44,8 @@ You see a single browser window. Inside it sits a complete development environme
 ## How you know it worked
 
 A finished task shows a green tick and its box turns green along the left edge. When every task of a step is green, the **Next** button at the bottom right becomes active and the next step in the list on the left stops being greyed out. Anything still red or grey means the step is still open — that is not a mistake on your part, only the state of things.
+
+If you want to see how to work the window once more at your own pace: press `F1`, type *Welcome: Open Walkthrough* and pick *CaDS Tutor*.
 
 **If you get stuck:** every task has a **Show hint** button. Use it after you have tried once yourself; each click makes it more concrete. If that does not help either, that is not a failure: ask in the lab and quote the step number from the header of this panel.
 
