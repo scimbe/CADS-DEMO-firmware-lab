@@ -29,6 +29,9 @@ misconceptions:
   - pattern: "settled too early|is not a function"
     question: { en: "Either nothing waited, or something that is not a promise was chained. What exactly did the function hand back?", de: "Entweder hat nichts gewartet, oder es wurde an etwas gekettet, das kein Promise ist. Was genau hat die Funktion zurückgegeben?" }
     hints: [ { en: "setTimeout itself returns a timer handle, not a promise.", de: "setTimeout selbst liefert eine Timer-Kennung, kein Promise." }, { en: "Wrap it: return new Promise((resolve) => setTimeout(() => resolve(ms), ms));", de: "Umschließe es: return new Promise((resolve) => setTimeout(() => resolve(ms), ms));" }, { en: ".then only exists on a promise, so chaining on anything else fails with 'is not a function'.", de: ".then gibt es nur auf einem Promise, das Ketten an etwas anderes scheitert also mit 'is not a function'." } ]
+  - pattern: "Cannot find module|MODULE_NOT_FOUND|no such file or directory"
+    question: { en: "Node could not find a file. Is the terminal in the right folder, and is the path in the command spelled as the step wrote it?", de: "Node hat eine Datei nicht gefunden. Steht das Terminal im richtigen Ordner, und ist der Pfad im Befehl so geschrieben wie im Step?" }
+    hints: [ { en: "Type pwd and press Enter; the path must end in javascript-foundations. If not, run cd javascript-foundations.", de: "Tippe pwd und drücke Enter; der Pfad muss auf javascript-foundations enden. Wenn nicht, führe cd javascript-foundations aus." }, { en: "Copy the command from the code block in this panel rather than retyping it; the file name carries the step id exactly.", de: "Kopiere den Befehl aus dem Codeblock in diesem Panel, statt ihn abzutippen; der Dateiname trägt die Step-Kennung exakt." }, { en: "ES module imports need the .js extension, so a path without it fails the same way.", de: "Importe in ES-Modulen brauchen die Endung .js, ein Pfad ohne sie scheitert genauso." } ]
 ---
 ## Learning goal
 
@@ -77,6 +80,16 @@ Open [`src/m6/delay.js`](file:src/m6/delay.js). Both functions throw.
 
 - `wait(ms)` returns a promise that settles with `ms` after `ms` milliseconds.
 - `loadTwice(ms)` returns a promise for `[ms, ms]`, built by chaining `.then` on `wait(ms)` twice. Use no `async`/`await` here - that is [the next step](step:m6-02-async-await), and doing it with `.then` first is what makes the next step feel like a simplification rather than magic.
+
+## Running this step
+
+Open a terminal with **Terminal > New Terminal** (or press **F1** and type `Terminal: Create New Terminal`). It opens in the panel at the bottom of the window, and its prompt has to end in `javascript-foundations`. Then run:
+
+```bash
+node --test test/m6-01-promises.test.js
+```
+
+The command has finished when the prompt comes back; the counts at the end of the output are the verdict, and `fail 0` is success. `Cannot find module` means the terminal is in the wrong folder - run `cd javascript-foundations` and try again. Change only files under `src/`; the files under `test/` are the marking scheme. The whole tour of the interface is in [operating the interface](step:m0-01-using-the-ide).
 
 ## How you know it worked
 

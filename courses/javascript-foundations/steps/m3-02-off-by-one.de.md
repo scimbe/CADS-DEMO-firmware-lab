@@ -29,6 +29,9 @@ misconceptions:
   - pattern: "NaN"
     question: { en: "A sum became NaN. Which term in it was undefined, and why did adding it not throw?", de: "Eine Summe wurde NaN. Welcher Summand war undefined, und warum hat das Addieren nicht geworfen?" }
     hints: [ { en: "undefined + a number is NaN, silently - the same silent coercion you met in M1.", de: "undefined + eine Zahl ergibt NaN, und zwar stillschweigend - dieselbe stille Umwandlung wie in M1." }, { en: "An inner loop that runs size + 1 times reads one element past its window.", de: "Eine innere Schleife, die size + 1 mal läuft, liest ein Element über ihr Fenster hinaus." }, { en: "A window of size elements is k = 0 up to but not including size.", de: "Ein Fenster aus size Elementen ist k = 0 bis ausschließlich size." } ]
+  - pattern: "Cannot find module|MODULE_NOT_FOUND|no such file or directory"
+    question: { en: "Node could not find a file. Is the terminal in the right folder, and is the path in the command spelled as the step wrote it?", de: "Node hat eine Datei nicht gefunden. Steht das Terminal im richtigen Ordner, und ist der Pfad im Befehl so geschrieben wie im Step?" }
+    hints: [ { en: "Type pwd and press Enter; the path must end in javascript-foundations. If not, run cd javascript-foundations.", de: "Tippe pwd und drücke Enter; der Pfad muss auf javascript-foundations enden. Wenn nicht, führe cd javascript-foundations aus." }, { en: "Copy the command from the code block in this panel rather than retyping it; the file name carries the step id exactly.", de: "Kopiere den Befehl aus dem Codeblock in diesem Panel, statt ihn abzutippen; der Dateiname trägt die Step-Kennung exakt." }, { en: "ES module imports need the .js extension, so a path without it fails the same way.", de: "Importe in ES-Modulen brauchen die Endung .js, ein Pfad ohne sie scheitert genauso." } ]
 ---
 ## Lernziel
 
@@ -64,6 +67,16 @@ Vier Zeilen Arithmetik, einmal gemacht, schlagen jedes Operator-Tauschen.
 Öffne [`src/m3/window.js`](file:src/m3/window.js). Beide Funktionen haben Off-by-one-Fehler, und `movingAverage` hat je einen in jeder seiner zwei Schleifen.
 
 Lass zuerst den Test laufen und lies die Fehlschläge. Einer ist ein `TypeError`; der andere ist ein `NaN`, entstanden durch das Addieren von `undefined` zu einer Zahl - die stille Umwandlung aus [M1](step:m1-03-coercion-nan), diesmal innerhalb einer Schleife.
+
+## So führst du diesen Step aus
+
+Öffne ein Terminal mit **Terminal > New Terminal** (oder drücke **F1** und tippe `Terminal: Create New Terminal`). Es öffnet sich im Panel am unteren Fensterrand, und sein Prompt muss auf `javascript-foundations` enden. Führe dann aus:
+
+```bash
+node --test test/m3-02-off-by-one.test.js
+```
+
+Der Befehl ist fertig, wenn der Prompt zurückkommt; die Zähler am Ende der Ausgabe sind das Urteil, und `fail 0` heißt Erfolg. `Cannot find module` heißt, dass das Terminal im falschen Ordner steht - führe `cd javascript-foundations` aus und versuch es erneut. Ändere nur Dateien unter `src/`; die Dateien unter `test/` sind das Prüfschema. Die vollständige Tour durch die Oberfläche steht in [Die Oberfläche bedienen](step:m0-01-using-the-ide).
 
 ## Woran du erkennst, dass es geklappt hat
 

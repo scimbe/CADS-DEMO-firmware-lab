@@ -6,7 +6,7 @@ objectives: [javascript-web-javascript-guide-functions]
 requires: [m3-04-break-continue]
 estimatedMinutes: 15
 scaffold: worked
-recallFrom: [m1-01-let-const, m0-03-modules]
+recallFrom: [m1-01-let-const, m0-04-modules]
 links:
   - { step: m3-04-break-continue }
   - { step: m4-02-parameters }
@@ -29,6 +29,9 @@ misconceptions:
   - pattern: "is not a function"
     question: { en: "A name existed but did not hold a function when it was called. What did it hold?", de: "Ein Name existierte, hielt beim Aufruf aber keine Funktion. Was hielt er?" }
     hints: [ { en: "var declarations hoist as undefined, so calling one too early gives 'is not a function' rather than a ReferenceError.", de: "var-Deklarationen werden als undefined hochgezogen, ein zu früher Aufruf ergibt also 'is not a function' statt eines ReferenceError." }, { en: "This course uses let and const only; if you introduced a var, that is the difference you are seeing.", de: "Dieser Kurs benutzt nur let und const; wenn du ein var eingeführt hast, ist das der Unterschied, den du siehst." }, { en: "Keep the declarations as they are and change only their order.", de: "Lass die Deklarationen, wie sie sind, und ändere nur ihre Reihenfolge." } ]
+  - pattern: "Cannot find module|MODULE_NOT_FOUND|no such file or directory"
+    question: { en: "Node could not find a file. Is the terminal in the right folder, and is the path in the command spelled as the step wrote it?", de: "Node hat eine Datei nicht gefunden. Steht das Terminal im richtigen Ordner, und ist der Pfad im Befehl so geschrieben wie im Step?" }
+    hints: [ { en: "Type pwd and press Enter; the path must end in javascript-foundations. If not, run cd javascript-foundations.", de: "Tippe pwd und drücke Enter; der Pfad muss auf javascript-foundations enden. Wenn nicht, führe cd javascript-foundations aus." }, { en: "Copy the command from the code block in this panel rather than retyping it; the file name carries the step id exactly.", de: "Kopiere den Befehl aus dem Codeblock in diesem Panel, statt ihn abzutippen; der Dateiname trägt die Step-Kennung exakt." }, { en: "ES module imports need the .js extension, so a path without it fails the same way.", de: "Importe in ES-Modulen brauchen die Endung .js, ein Pfad ohne sie scheitert genauso." } ]
 ---
 ## Lernziel
 
@@ -64,7 +67,7 @@ const decorate = (t) => t;   // ReferenceError: Cannot access 'decorate' before 
 
 Die Anweisungen auf oberster Modulebene werden beim Laden der Datei der Reihe nach ausgeführt. Ein `const X = f()` auf oberster Ebene ruft `f` also *in diesem Moment* auf, mit nur den darüber stehenden Bindungen initialisiert - selbst wenn `f` selbst eine weiter unten stehende hochgezogene Deklaration ist.
 
-Deshalb schlägt die Übung dieses Steps auf eine Art fehl, die du seit [m0-03](step:m0-03-modules) nicht mehr gesehen hast: **kein einziger Test läuft**. Das Modul wirft beim Laden, die Testdatei bekommt ihre Importe also nie. Ein durchgestrichener Dateiname ohne einzelne Testergebnisse ist das Erkennungszeichen.
+Deshalb schlägt die Übung dieses Steps auf eine Art fehl, die du seit [m0-04](step:m0-04-modules) nicht mehr gesehen hast: **kein einziger Test läuft**. Das Modul wirft beim Laden, die Testdatei bekommt ihre Importe also nie. Ein durchgestrichener Dateiname ohne einzelne Testergebnisse ist das Erkennungszeichen.
 
 ## Die Aufgabe
 
@@ -81,6 +84,16 @@ ReferenceError: Cannot access 'decorate' before initialization
 `buildBanner` ist eine Deklaration, der Aufruf in der ersten Zeile ist also in Ordnung. Darin ist `decorate` eine weiter unten definierte `const`-Pfeilfunktion, und zur Ladezeit ist diese Zeile noch nicht gelaufen.
 
 Behebe es, indem du genau das verschiebst, was verschoben werden muss. Wandle die Pfeilfunktion nicht in eine Deklaration um: es geht darum zu sehen, dass dieser Fehler von der Reihenfolge handelt und nicht von der Wahl des Schlüsselworts.
+
+## So führst du diesen Step aus
+
+Öffne ein Terminal mit **Terminal > New Terminal** (oder drücke **F1** und tippe `Terminal: Create New Terminal`). Es öffnet sich im Panel am unteren Fensterrand, und sein Prompt muss auf `javascript-foundations` enden. Führe dann aus:
+
+```bash
+node --test test/m4-01-declare-and-call.test.js
+```
+
+Der Befehl ist fertig, wenn der Prompt zurückkommt; die Zähler am Ende der Ausgabe sind das Urteil, und `fail 0` heißt Erfolg. `Cannot find module` heißt, dass das Terminal im falschen Ordner steht - führe `cd javascript-foundations` aus und versuch es erneut. Ändere nur Dateien unter `src/`; die Dateien unter `test/` sind das Prüfschema. Die vollständige Tour durch die Oberfläche steht in [Die Oberfläche bedienen](step:m0-01-using-the-ide).
 
 ## Woran du erkennst, dass es geklappt hat
 

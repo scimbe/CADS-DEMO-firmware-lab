@@ -3,12 +3,12 @@ id: m1-01-let-const
 title: let, const und die Temporal Dead Zone
 bloom: understand
 objectives: [javascript-web-javascript-guide-grammar-and-types]
-requires: [m0-04-predict-output]
+requires: [m0-05-predict-output]
 estimatedMinutes: 15
 scaffold: worked
-recallFrom: [m0-02-read-a-test, m0-03-modules]
+recallFrom: [m0-03-read-a-test, m0-04-modules]
 links:
-  - { step: m0-04-predict-output }
+  - { step: m0-05-predict-output }
   - { step: m1-02-types-typeof }
   - { file: "src/m1/counter.js", line: 6 }
   - { url: "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Grammar_and_types", title: "MDN: Grammar and types" }
@@ -32,6 +32,9 @@ misconceptions:
   - pattern: "is not defined"
     question: { en: "This is the other ReferenceError: the name was never declared anywhere in scope. Is it a typo, or a missing declaration?", de: "Das ist der andere ReferenceError: der Name wurde nirgends im Gültigkeitsbereich deklariert. Tippfehler oder fehlende Deklaration?" }
     hints: [ { en: "Compare the spelling in the failing line with the spelling in the declaration.", de: "Vergleiche die Schreibweise in der fehlschlagenden Zeile mit der in der Deklaration." }, { en: "A name declared inside a block is not visible outside it.", de: "Ein in einem Block deklarierter Name ist außerhalb nicht sichtbar." }, { en: "MDN's Grammar and types chapter calls an undeclared name in a module a ReferenceError, not a silent global.", de: "MDNs Kapitel Grammar and types nennt einen nicht deklarierten Namen im Modul einen ReferenceError, keine stille globale Variable." } ]
+  - pattern: "Cannot find module|MODULE_NOT_FOUND|no such file or directory"
+    question: { en: "Node could not find a file. Is the terminal in the right folder, and is the path in the command spelled as the step wrote it?", de: "Node hat eine Datei nicht gefunden. Steht das Terminal im richtigen Ordner, und ist der Pfad im Befehl so geschrieben wie im Step?" }
+    hints: [ { en: "Type pwd and press Enter; the path must end in javascript-foundations. If not, run cd javascript-foundations.", de: "Tippe pwd und drücke Enter; der Pfad muss auf javascript-foundations enden. Wenn nicht, führe cd javascript-foundations aus." }, { en: "Copy the command from the code block in this panel rather than retyping it; the file name carries the step id exactly.", de: "Kopiere den Befehl aus dem Codeblock in diesem Panel, statt ihn abzutippen; der Dateiname trägt die Step-Kennung exakt." }, { en: "ES module imports need the .js extension, so a path without it fails the same way.", de: "Importe in ES-Modulen brauchen die Endung .js, ein Pfad ohne sie scheitert genauso." } ]
 ---
 ## Lernziel
 
@@ -63,7 +66,7 @@ Achte darauf, was diese Meldung *nicht* ist:
 ReferenceError: x is not defined
 ```
 
-Die erste sagt: „Diesen Namen gibt es hier, aber du bist zu früh." Die zweite sagt: „Diesen Namen gibt es nicht." Zwei verschiedene Probleme, zwei verschiedene Lösungen: Deklaration nach oben verschieben, gegenüber überhaupt deklarieren oder den Tippfehler beheben. Die Meldung zu lesen reicht, um sie zu unterscheiden - genau die Fähigkeit, die [M0](step:m0-02-read-a-test) aufgebaut hat.
+Die erste sagt: „Diesen Namen gibt es hier, aber du bist zu früh." Die zweite sagt: „Diesen Namen gibt es nicht." Zwei verschiedene Probleme, zwei verschiedene Lösungen: Deklaration nach oben verschieben, gegenüber überhaupt deklarieren oder den Tippfehler beheben. Die Meldung zu lesen reicht, um sie zu unterscheiden - genau die Fähigkeit, die [M0](step:m0-03-read-a-test) aufgebaut hat.
 
 ## Die Aufgabe
 
@@ -94,6 +97,16 @@ node --test test/m1-01-let-const.test.js
 ```
 
 Behebe dann jeden Fehler an seiner Ursache. `count` ändert sich bei jedem passenden Wort, ist also keine Konstante. `suffix` wird eine Zeile vor seiner Definition gelesen, also muss die Deklaration umziehen - nicht das Schlüsselwort `const`. Beachte, dass `const word` im Kopf der `for...of`-Schleife völlig korrekt ist: diese Bindung wird in jedem Durchlauf neu erzeugt und nie neu zugewiesen.
+
+## So führst du diesen Step aus
+
+Öffne ein Terminal mit **Terminal > New Terminal** (oder drücke **F1** und tippe `Terminal: Create New Terminal`). Es öffnet sich im Panel am unteren Fensterrand, und sein Prompt muss auf `javascript-foundations` enden. Führe dann aus:
+
+```bash
+node --test test/m1-01-let-const.test.js
+```
+
+Der Befehl ist fertig, wenn der Prompt zurückkommt; die Zähler am Ende der Ausgabe sind das Urteil, und `fail 0` heißt Erfolg. `Cannot find module` heißt, dass das Terminal im falschen Ordner steht - führe `cd javascript-foundations` aus und versuch es erneut. Ändere nur Dateien unter `src/`; die Dateien unter `test/` sind das Prüfschema. Die vollständige Tour durch die Oberfläche steht in [Die Oberfläche bedienen](step:m0-01-using-the-ide).
 
 ## Woran du erkennst, dass es geklappt hat
 

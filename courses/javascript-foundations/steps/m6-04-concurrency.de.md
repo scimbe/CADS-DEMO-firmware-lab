@@ -29,6 +29,9 @@ misconceptions:
   - pattern: "ERR_UNHANDLED_REJECTION|Unhandled"
     question: { en: "One of the jobs rejected and nothing was waiting for it. Which combinator did you use?", de: "Einer der Aufträge hat abgelehnt, und niemand hat darauf gewartet. Welchen Kombinator hast du benutzt?" }
     hints: [ { en: "Promise.all rejects on the first failure, but the other jobs keep running and still need an owner.", de: "Promise.all lehnt beim ersten Fehlschlag ab, die übrigen Aufträge laufen aber weiter und brauchen weiterhin einen Besitzer." }, { en: "Promise.allSettled never rejects, so every outcome stays accounted for.", de: "Promise.allSettled lehnt nie ab, jedes Ergebnis bleibt also erfasst." }, { en: "settleAll must report a rejection as { status: 'rejected', reason: message }, not re-throw it.", de: "settleAll muss eine Ablehnung als { status: 'rejected', reason: message } melden und sie nicht erneut werfen." } ]
+  - pattern: "Cannot find module|MODULE_NOT_FOUND|no such file or directory"
+    question: { en: "Node could not find a file. Is the terminal in the right folder, and is the path in the command spelled as the step wrote it?", de: "Node hat eine Datei nicht gefunden. Steht das Terminal im richtigen Ordner, und ist der Pfad im Befehl so geschrieben wie im Step?" }
+    hints: [ { en: "Type pwd and press Enter; the path must end in javascript-foundations. If not, run cd javascript-foundations.", de: "Tippe pwd und drücke Enter; der Pfad muss auf javascript-foundations enden. Wenn nicht, führe cd javascript-foundations aus." }, { en: "Copy the command from the code block in this panel rather than retyping it; the file name carries the step id exactly.", de: "Kopiere den Befehl aus dem Codeblock in diesem Panel, statt ihn abzutippen; der Dateiname trägt die Step-Kennung exakt." }, { en: "ES module imports need the .js extension, so a path without it fails the same way.", de: "Importe in ES-Modulen brauchen die Endung .js, ein Pfad ohne sie scheitert genauso." } ]
 ---
 ## Lernziel
 
@@ -71,6 +74,16 @@ Nacheinander ist die richtige Antwort, wenn ein späterer Auftrag ein früheres 
 - `inSequence(jobs)` wartet einen Auftrag nach dem anderen ab, Ergebnisse in Reihenfolge.
 - `together(jobs)` startet jeden Auftrag und wartet danach alle ab, Ergebnisse weiterhin in Reihenfolge.
 - `settleAll(jobs)` meldet einen Eintrag je Auftrag, auch wenn manche ablehnen, wobei `reason` die Fehler**meldung** ist.
+
+## So führst du diesen Step aus
+
+Öffne ein Terminal mit **Terminal > New Terminal** (oder drücke **F1** und tippe `Terminal: Create New Terminal`). Es öffnet sich im Panel am unteren Fensterrand, und sein Prompt muss auf `javascript-foundations` enden. Führe dann aus:
+
+```bash
+node --test test/m6-04-concurrency.test.js
+```
+
+Der Befehl ist fertig, wenn der Prompt zurückkommt; die Zähler am Ende der Ausgabe sind das Urteil, und `fail 0` heißt Erfolg. `Cannot find module` heißt, dass das Terminal im falschen Ordner steht - führe `cd javascript-foundations` aus und versuch es erneut. Ändere nur Dateien unter `src/`; die Dateien unter `test/` sind das Prüfschema. Die vollständige Tour durch die Oberfläche steht in [Die Oberfläche bedienen](step:m0-01-using-the-ide).
 
 ## Woran du erkennst, dass es geklappt hat
 

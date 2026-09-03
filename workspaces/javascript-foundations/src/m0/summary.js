@@ -1,4 +1,4 @@
-// m0-02-read-a-test
+// m0-03-read-a-test
 // summarize(numbers) must return an object with exactly three properties:
 //   count   - how many numbers were passed
 //   total   - their sum

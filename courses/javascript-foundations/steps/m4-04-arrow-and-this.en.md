@@ -29,6 +29,9 @@ misconceptions:
   - pattern: "1 !== 2|0 !== 1"
     question: { en: "The count did not advance, or advanced on the wrong object. Where is the state kept?", de: "Der Zähler ist nicht weitergelaufen, oder auf dem falschen Objekt. Wo wird der Zustand gehalten?" }
     hints: [ { en: "A getter must report the same variable that tick increments.", de: "Ein Getter muss dieselbe Variable melden, die tick hochzählt." }, { en: "count: 0 as a plain property is still readable and writable from outside; a closure variable is not.", de: "count: 0 als einfache Eigenschaft bleibt von außen les- und schreibbar; eine Closure-Variable nicht." }, { en: "makeTicker must create fresh state on every call, exactly as makeCounter did in m4-03.", de: "makeTicker muss bei jedem Aufruf frischen Zustand erzeugen, genau wie makeCounter in m4-03." } ]
+  - pattern: "Cannot find module|MODULE_NOT_FOUND|no such file or directory"
+    question: { en: "Node could not find a file. Is the terminal in the right folder, and is the path in the command spelled as the step wrote it?", de: "Node hat eine Datei nicht gefunden. Steht das Terminal im richtigen Ordner, und ist der Pfad im Befehl so geschrieben wie im Step?" }
+    hints: [ { en: "Type pwd and press Enter; the path must end in javascript-foundations. If not, run cd javascript-foundations.", de: "Tippe pwd und drücke Enter; der Pfad muss auf javascript-foundations enden. Wenn nicht, führe cd javascript-foundations aus." }, { en: "Copy the command from the code block in this panel rather than retyping it; the file name carries the step id exactly.", de: "Kopiere den Befehl aus dem Codeblock in diesem Panel, statt ihn abzutippen; der Dateiname trägt die Step-Kennung exakt." }, { en: "ES module imports need the .js extension, so a path without it fails the same way.", de: "Importe in ES-Modulen brauchen die Endung .js, ein Pfad ohne sie scheitert genauso." } ]
 ---
 ## Learning goal
 
@@ -90,6 +93,16 @@ export function makeTicker() {
 ## The exercise
 
 Open [`src/m4/timer.js`](file:src/m4/timer.js). Run the test first: the method call passes and the detached call throws. Rewrite `makeTicker` so all three tests pass - including two tickers staying independent. `runTwice` must not change.
+
+## Running this step
+
+Open a terminal with **Terminal > New Terminal** (or press **F1** and type `Terminal: Create New Terminal`). It opens in the panel at the bottom of the window, and its prompt has to end in `javascript-foundations`. Then run:
+
+```bash
+node --test test/m4-04-arrow-and-this.test.js
+```
+
+The command has finished when the prompt comes back; the counts at the end of the output are the verdict, and `fail 0` is success. `Cannot find module` means the terminal is in the wrong folder - run `cd javascript-foundations` and try again. Change only files under `src/`; the files under `test/` are the marking scheme. The whole tour of the interface is in [operating the interface](step:m0-01-using-the-ide).
 
 ## How you know it worked
 

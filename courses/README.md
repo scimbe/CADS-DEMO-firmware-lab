@@ -11,7 +11,7 @@ the tutor platform. Nothing in any of them is invented.
 |---|---|---|---|---|---|
 | [`cads-zero-foundations`](cads-zero-foundations/) | firmware | required | remember → create | 41 | ~10 h |
 | [`cads-zero-projects`](cads-zero-projects/) | firmware | elective | create / evaluate | 6 | open |
-| [`javascript-foundations`](javascript-foundations/) | javascript | standalone | remember → create | 30 | ~9 h |
+| [`javascript-foundations`](javascript-foundations/) | javascript | standalone | remember → create | 31 | ~9 h |
 
 The firmware packs need the board; `javascript-foundations` needs nothing but
 Node 22 and its starter workspace at `workspaces/javascript-foundations`.
@@ -70,7 +70,7 @@ runs in one chain as well, M0 through the capstone, and every step is checked by
 ```mermaid
 graph TD
   subgraph JS["javascript-foundations (standalone)"]
-    J0["M0 Tooling<br/>node · reading a test · modules · first prediction"]
+    J0["M0 Tooling<br/>the interface · node · reading a test · modules · first prediction"]
     J1["M1 Values and types<br/>let/const · typeof · coercion · equality"]
     J2["M2 Control flow<br/>if/switch · truthy · try/catch/finally · error class"]
     J3["M3 Loops<br/>for/while · off-by-one · for...of vs for...in · break/continue"]
@@ -157,10 +157,11 @@ change; `evaluate` steps ask for a defended judgement graded against a rubric.
 
 | Step | scaffold | remember | understand | apply | analyze | evaluate | create |
 |---|---|:---:|:---:|:---:|:---:|:---:|:---:|
-| m0-01-first-run | worked | ● |  |  |  |  |  |
-| m0-02-read-a-test | worked |  | ● |  |  |  |  |
-| m0-03-modules | faded |  |  | ● |  |  |  |
-| m0-04-predict-output | independent |  | ● |  |  |  |  |
+| m0-01-using-the-ide | worked |  |  | ● |  |  |  |
+| m0-02-first-run | worked | ● |  |  |  |  |  |
+| m0-03-read-a-test | worked |  | ● |  |  |  |  |
+| m0-04-modules | faded |  |  | ● |  |  |  |
+| m0-05-predict-output | independent |  | ● |  |  |  |  |
 | m1-01-let-const | worked |  | ● |  |  |  |  |
 | m1-02-types-typeof | faded |  |  | ● |  |  |  |
 | m1-03-coercion-nan | faded |  |  |  | ● |  |  |
@@ -194,12 +195,12 @@ change; `evaluate` steps ask for a defended judgement graded against a rubric.
 |---|---:|---:|---:|
 | remember | 1 | 0 | 1 |
 | understand | 10 | 0 | 5 |
-| apply | 13 | 0 | 11 |
+| apply | 13 | 0 | 12 |
 | analyze | 9 | 0 | 9 |
 | evaluate | 3 | 1 | 2 |
 | create | 5 | 5 | 2 |
 
-`javascript-foundations` climbs the same way the firmware pack does, but it also carries the Addendum v1.1 scaffolding: eight `worked` steps that show the whole move, fourteen `faded` steps that leave the decisive line to the student, and eight `independent` steps. Every module holds at least one `predict` task, `recallFrom` brings an earlier step's question back from M1 onwards, and every step has at least one automatic check.
+`javascript-foundations` climbs the same way the firmware pack does, but it also carries the Addendum v1.1 scaffolding: nine `worked` steps that show the whole move, fourteen `faded` steps that leave the decisive line to the student, and eight `independent` steps. Every module holds at least one `predict` task, `recallFrom` brings an earlier step's question back from M1 onwards, and every step has at least one automatic check.
 ## Notes for course authors
 
 The schema lives in `docs/SPEC.md` §3.3; a few conventions this pack settled on:

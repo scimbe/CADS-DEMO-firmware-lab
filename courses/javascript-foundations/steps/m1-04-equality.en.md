@@ -26,6 +26,9 @@ misconceptions:
   - pattern: "sameValue|findById"
     question: { en: "Which comparison is in that line, and does the test want type conversion to happen there or not?", de: "Welcher Vergleich steht in dieser Zeile, und will der Test dort eine Typumwandlung oder nicht?" }
     hints: [ { en: "== converts before comparing, so '1' == 1 is true; === does not convert, so it is false.", de: "== wandelt vor dem Vergleich um, '1' == 1 ist also true; === wandelt nicht um und ist deshalb false." }, { en: "Neither == nor === can report NaN as equal to itself.", de: "Weder == noch === kann NaN als sich selbst gleich melden." }, { en: "Object.is is the third option and the only one that treats NaN as the same value.", de: "Object.is ist die dritte Möglichkeit und die einzige, die NaN als denselben Wert behandelt." } ]
+  - pattern: "Cannot find module|MODULE_NOT_FOUND|no such file or directory"
+    question: { en: "Node could not find a file. Is the terminal in the right folder, and is the path in the command spelled as the step wrote it?", de: "Node hat eine Datei nicht gefunden. Steht das Terminal im richtigen Ordner, und ist der Pfad im Befehl so geschrieben wie im Step?" }
+    hints: [ { en: "Type pwd and press Enter; the path must end in javascript-foundations. If not, run cd javascript-foundations.", de: "Tippe pwd und drücke Enter; der Pfad muss auf javascript-foundations enden. Wenn nicht, führe cd javascript-foundations aus." }, { en: "Copy the command from the code block in this panel rather than retyping it; the file name carries the step id exactly.", de: "Kopiere den Befehl aus dem Codeblock in diesem Panel, statt ihn abzutippen; der Dateiname trägt die Step-Kennung exakt." }, { en: "ES module imports need the .js extension, so a path without it fails the same way.", de: "Importe in ES-Modulen brauchen die Endung .js, ein Pfad ohne sie scheitert genauso." } ]
 ---
 ## Learning goal
 
@@ -79,6 +82,16 @@ Open [`src/m1/lookup.js`](file:src/m1/lookup.js):
 
 - `findById(items, "1")` must **not** find the item whose `id` is the number `1`. The function uses `==`, so it does. Switch the comparison.
 - `sameValue(NaN, NaN)` must be `true`, and `sameValue(1, "1")` must be `false`. No equality operator can do both. Use the third option.
+
+## Running this step
+
+Open a terminal with **Terminal > New Terminal** (or press **F1** and type `Terminal: Create New Terminal`). It opens in the panel at the bottom of the window, and its prompt has to end in `javascript-foundations`. Then run:
+
+```bash
+node --test test/m1-04-equality.test.js
+```
+
+The command has finished when the prompt comes back; the counts at the end of the output are the verdict, and `fail 0` is success. `Cannot find module` means the terminal is in the wrong folder - run `cd javascript-foundations` and try again. Change only files under `src/`; the files under `test/` are the marking scheme. The whole tour of the interface is in [operating the interface](step:m0-01-using-the-ide).
 
 ## How you know it worked
 

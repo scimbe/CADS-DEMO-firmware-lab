@@ -26,6 +26,9 @@ misconceptions:
   - pattern: "4 !== 2|visits"
     question: { en: "The scan kept going after it found the target. Which loop did your break actually leave?", de: "Der Durchlauf lief nach dem Fund weiter. Welche Schleife hat dein break tatsächlich verlassen?" }
     hints: [ { en: "An unlabelled break leaves only the innermost loop containing it.", de: "Ein unbenanntes break verlässt nur die innerste Schleife, die es enthält." }, { en: "The outer loop then starts its next row and keeps searching.", de: "Die äußere Schleife beginnt danach ihre nächste Zeile und sucht weiter." }, { en: "Either break to a label on the outer loop, or return the result immediately.", de: "Brich entweder zu einer Marke an der äußeren Schleife ab oder gib das Ergebnis sofort zurück." } ]
+  - pattern: "Cannot find module|MODULE_NOT_FOUND|no such file or directory"
+    question: { en: "Node could not find a file. Is the terminal in the right folder, and is the path in the command spelled as the step wrote it?", de: "Node hat eine Datei nicht gefunden. Steht das Terminal im richtigen Ordner, und ist der Pfad im Befehl so geschrieben wie im Step?" }
+    hints: [ { en: "Type pwd and press Enter; the path must end in javascript-foundations. If not, run cd javascript-foundations.", de: "Tippe pwd und drücke Enter; der Pfad muss auf javascript-foundations enden. Wenn nicht, führe cd javascript-foundations aus." }, { en: "Copy the command from the code block in this panel rather than retyping it; the file name carries the step id exactly.", de: "Kopiere den Befehl aus dem Codeblock in diesem Panel, statt ihn abzutippen; der Dateiname trägt die Step-Kennung exakt." }, { en: "ES module imports need the .js extension, so a path without it fails the same way.", de: "Importe in ES-Modulen brauchen die Endung .js, ein Pfad ohne sie scheitert genauso." } ]
 ---
 ## Lernziel
 
@@ -72,6 +75,16 @@ Das ist die eine Stelle, an der sich Marken lohnen. Die Alternativen sind eine F
 
 - `stripComments(lines)` behält die Zeilen, die weder leer sind noch mit `"#"` beginnen. Nutze `continue`.
 - `findInGrid(grid, target)` liefert `{ row, col }` für das erste Vorkommen, zeilenweise durchsucht, oder `null`. Beide Schleifen müssen beim Treffer anhalten.
+
+## So führst du diesen Step aus
+
+Öffne ein Terminal mit **Terminal > New Terminal** (oder drücke **F1** und tippe `Terminal: Create New Terminal`). Es öffnet sich im Panel am unteren Fensterrand, und sein Prompt muss auf `javascript-foundations` enden. Führe dann aus:
+
+```bash
+node --test test/m3-04-break-continue.test.js
+```
+
+Der Befehl ist fertig, wenn der Prompt zurückkommt; die Zähler am Ende der Ausgabe sind das Urteil, und `fail 0` heißt Erfolg. `Cannot find module` heißt, dass das Terminal im falschen Ordner steht - führe `cd javascript-foundations` aus und versuch es erneut. Ändere nur Dateien unter `src/`; die Dateien unter `test/` sind das Prüfschema. Die vollständige Tour durch die Oberfläche steht in [Die Oberfläche bedienen](step:m0-01-using-the-ide).
 
 ## Woran du erkennst, dass es geklappt hat
 
