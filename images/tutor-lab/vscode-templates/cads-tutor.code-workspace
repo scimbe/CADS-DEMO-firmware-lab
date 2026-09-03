@@ -1,0 +1,7 @@
+{
+  "folders": [
+    { "path": "rust-foundations", "name": "Rust Foundations" },
+    { "path": "javascript-foundations", "name": "JavaScript Foundations" }
+  ],
+  "settings": {}
+}

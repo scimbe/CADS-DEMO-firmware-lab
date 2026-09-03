@@ -90,7 +90,6 @@ describe('RSP packet layer', () => {
     assert.match(xml, /blocksize">0x20000/);
     assert.match(xml, /type="ram" start="0x20000000"/);
   });
-});
 
 describe('GdbSession against the simulated probe', () => {
   const probe = new MockProbe();
@@ -248,4 +247,54 @@ describe('GdbSession against the simulated probe', () => {
     assert.equal(probe.target.halted, false);
     assert.equal(probe.target.sysregs.get(0xe0002008), 0, 'breakpoints removed');
   });
+});
+});
+
+/*
+ * Characterisation, not a regression test: it passes on the current code and would have passed
+ * before it, and it does NOT reproduce the "Could not read registers; remote failure reply '01'"
+ * line seen once in a real debug console on 2026-09-03. That line is still unexplained; four
+ * attempts to reproduce it on hardware came back clean.
+ *
+ * What this does lock in is the contract that made the obvious explanation impossible, so nobody
+ * loosens it by accident: packets are serialised through one queue, so a register read that races
+ * a kill/detach is handled only after the teardown has closed the session, and a closed session
+ * answers nothing. Reorder the teardown to close the socket last and this still passes; make
+ * packet handling concurrent and it stops passing.
+ */
+describe('GdbSession teardown answers nothing once it has accepted a kill or detach', () => {
+  for (const [name, packet] of [['detach', 'D'], ['kill', 'k']] as const) {
+    it(`${name}: late packets go unanswered and the target ends up running`, async () => {
+      const probe = new MockProbe();
+      const conn = new TestConn();
+      await probe.attach();
+      const session = new GdbSession(conn, {
+        probe,
+        log: { info: () => undefined, warn: () => undefined, debug: () => undefined },
+      });
+      conn.session = session;
+      await session.start();
+      await conn.ask('Z1,8000400,2');
+
+      session.feed(encodePacket(packet));
+      await sleep(60);
+      const repliesAfterTeardown = conn.out.length;
+      assert.equal(conn.ended, true, 'the socket must be closed before the target work starts');
+
+      // Exactly the packet GDB sends one more time on its way out.
+      session.feed(encodePacket('g'));
+      session.feed(encodePacket('m8000000,4'));
+      await sleep(60);
+      assert.equal(
+        conn.out.length,
+        repliesAfterTeardown,
+        `late packets must go unanswered, got ${JSON.stringify(conn.out.slice(repliesAfterTeardown))}`,
+      );
+      assert.ok(!conn.out.includes('E01'), 'no error reply may reach the debug console');
+      assert.equal(probe.target.halted, false, 'and the firmware keeps running');
+      session.close();
+      await probe.service.detachUsb();
+      probe.target.dispose();
+    });
+  }
 });

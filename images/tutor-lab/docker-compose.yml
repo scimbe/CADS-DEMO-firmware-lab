@@ -1,0 +1,47 @@
+# CaDS Tutor Lab - run the Rust/JavaScript tutor image (SPEC.md Addendum v1.1 A4).
+#
+# Everything that matters for correctness (CMD flags, settings, seed) lives in
+# the image; this file adds the runtime bits: password, optional LLM and
+# telemetry credentials, the workspace volume and the loopback port mapping.
+#
+#   cp ../../.env.example .env      # or write .env here: TUTOR_LAB_PASSWORD=...
+#   docker compose up -d            # pulls ghcr.io/scimbe/cads-tutor-lab:<tag>
+#   open http://127.0.0.1:8084
+#
+# Local build instead of the registry image (build context = repository root):
+#   docker compose build            # uses the `build:` block below
+#
+# Deployment on the lab host: change the `image:` tag (next-<sha> from the CI
+# run, or `latest` after a merge to main), `docker compose pull && up -d`.
+services:
+  tutor-lab:
+    build:
+      context: ../..
+      dockerfile: images/tutor-lab/Dockerfile
+    image: ghcr.io/scimbe/cads-tutor-lab:${TUTOR_LAB_TAG:-next}
+    container_name: tutor-lab
+    restart: unless-stopped
+    environment:
+      # Never bake a password into the image; set it in .env.
+      - PASSWORD=${TUTOR_LAB_PASSWORD:?set TUTOR_LAB_PASSWORD (in .env) before starting}
+      # Optional: LLM behind the tutor's "ask" dialog (litellm-proxy convention,
+      # same as the firmware image). Unset = tutor works without LLM (manual checks).
+      - TUTOR_LLM_BASE_URL=${TUTOR_LLM_BASE_URL:-}
+      - TUTOR_LLM_API_KEY=${TUTOR_LLM_API_KEY:-}
+      - TUTOR_LLM_MODEL=${TUTOR_LLM_MODEL:-}
+      # Optional: learning-event telemetry to the teacher portal (SPEC A5).
+      # Unset = events stay local in ~/.cads-tutor/events.jsonl. In the
+      # multi-user deployment the broker sets both per container.
+      - CADS_TUTOR_TELEMETRY_URL=${CADS_TUTOR_TELEMETRY_URL:-}
+      - CADS_TUTOR_TELEMETRY_TOKEN=${CADS_TUTOR_TELEMETRY_TOKEN:-}
+    ports:
+      # Loopback only; the tunnel/gate on the lab host targets 127.0.0.1:8084.
+      # (The firmware image uses 8083 there.)
+      - "127.0.0.1:${TUTOR_LAB_PORT:-8084}:8080"
+    volumes:
+      # Both starter workspaces + cads-tutor.code-workspace live here
+      # (seeded on first start, never overwritten afterwards).
+      - tutor-lab-workspace:/home/coder/workspace
+
+volumes:
+  tutor-lab-workspace:

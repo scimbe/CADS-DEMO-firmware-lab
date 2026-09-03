@@ -21,12 +21,20 @@ for c in $COURSES; do cp -R "$c" "$STAGE/opt/cads-tutor/courses/"; done
 cp "$VSIX" "$STAGE/tmp/e2e/cads-tutor.vsix"
 cat > "$STAGE/tmp/e2e/settings.json" <<'JSON'
 { "workbench.startupEditor": "none", "security.workspace.trust.enabled": false, "cadsTutor.autoOpen": true,
-  "workbench.tips.enabled": false, "update.mode": "none", "telemetry.telemetryLevel": "off" }
+  "workbench.tips.enabled": false, "update.mode": "none", "telemetry.telemetryLevel": "off",
+  "extensions.ignoreRecommendations": true, "workbench.enableExperiments": false,
+  "chat.commandCenter.enabled": false, "files.autoSave": "off" }
 JSON
+
+# Optional telemetry target (SPEC A5); empty means local-only, which is the default.
+TELEMETRY_ENV=()
+[ -n "${CADS_TUTOR_TELEMETRY_URL:-}" ] && TELEMETRY_ENV+=(-e "CADS_TUTOR_TELEMETRY_URL=$CADS_TUTOR_TELEMETRY_URL")
+[ -n "${CADS_TUTOR_TELEMETRY_TOKEN:-}" ] && TELEMETRY_ENV+=(-e "CADS_TUTOR_TELEMETRY_TOKEN=$CADS_TUTOR_TELEMETRY_TOKEN")
+[ -n "${CADS_TUTOR_STUDENT:-}" ] && TELEMETRY_ENV+=(-e "CADS_TUTOR_STUDENT=$CADS_TUTOR_STUDENT")
 
 docker rm -f "$NAME" >/dev/null 2>&1 || true
 # Files are copied in (docker cp) instead of bind-mounted: Docker Desktop on macOS does not share /private/tmp.
-docker create --name "$NAME" -p "127.0.0.1:$PORT:8080" --user root --entrypoint bash codercom/code-server:latest -c \
+docker create --name "$NAME" -p "127.0.0.1:$PORT:8080" --user root "${TELEMETRY_ENV[@]}" --entrypoint bash codercom/code-server:latest -c \
   'chown -R coder:coder /home/coder/workspace /opt/cads-tutor /tmp/e2e && exec runuser -u coder -- bash -c "mkdir -p ~/.local/share/code-server/User && cp /tmp/e2e/settings.json ~/.local/share/code-server/User/settings.json && code-server --install-extension /tmp/e2e/cads-tutor.vsix && exec /usr/bin/entrypoint.sh --bind-addr 0.0.0.0:8080 --auth none --disable-workspace-trust --disable-telemetry --disable-update-check /home/coder/workspace/cads-zero"' >/dev/null
 docker cp "$STAGE/ws/." "$NAME:/home/coder/workspace"
 docker cp "$STAGE/opt/." "$NAME:/opt"

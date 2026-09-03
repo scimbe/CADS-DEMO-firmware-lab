@@ -42,3 +42,67 @@ check m0-01-welcome/hello [fileMatches] → passed: found /Hello ITS/ in apps/de
 | 3 | Sprachumschalter | „Willkommen im CaDS-Firmware-Labor“, Module auf Deutsch (M3 – Debugging als Handwerk …) | `22-foundations-german.png` |
 | 4 | `doc:docs/HARDWARE.md` | Markdown-Vorschau der cads-zero-Kopie öffnet sich | `23-doc-link.png` |
 | 5 | `step:` und `file:scripts/cads_env.sh#L28` | Step-Link springt zu m0-02 (gesperrt, Banner nennt den fehlenden Step); Datei-Link öffnet den Editor an Zeile 28 | `24-file-link.png` |
+
+## Dritter Lauf: Addendum v1.1 (2026-09-03, Strang `tutor2`)
+
+Eigenes Kurs-Pack `e2e/tutor/courses/v11-e2e` (drei Steps, ein Modul mit Reflexion), gestartet mit
+`COURSES=$PWD/e2e/tutor/courses/v11-e2e scripts/tutor-e2e-container.sh <cads-zero>`. Getrieben mit eigenem
+Headless-Chromium über Playwright; die Skripte liegen unter `e2e/tutor/v11/` und sind wiederholbar:
+
+```bash
+COURSES=$PWD/e2e/tutor/courses/v11-e2e PORT=8086 scripts/tutor-e2e-container.sh ~/git/cads-zero
+docker exec cads-tutor-e2e bash -lc 'printf "ANSWER=7\n" > /home/coder/workspace/cads-zero/e2e-answer.txt'
+SHOTS=e2e/tutor/screenshots node e2e/tutor/v11/01-testsuite.mjs
+SHOTS=e2e/tutor/screenshots node e2e/tutor/v11/02-predict-misconception-reflection.mjs
+SHOTS=e2e/tutor/screenshots node e2e/tutor/v11/03-editor-edit-and-recall.mjs
+```
+
+Kein LLM konfiguriert, keine Board-Bridge – alles unten läuft ohne beides.
+
+| # | Schritt | Erwartung | Beleg |
+|---|---|---|---|
+| 1 | Step öffnet | `scaffold: faded` als Badge „Guided" plus Einzeiler; Tree zeigt 0/3 | `30-v11-step-open.png` |
+| 2 | `testSuite` (runner `custom`, TAP) auf falschem Dateiinhalt | Fehlschlag benennt **den** Test: „expected test \"answer is 42\" to pass, but it failed; only 1 of the required 2 tests passed"; Hinweis kommt aus `test:answer is 42:failed`, nicht generisch | `31-v11-testsuite-failed.png` |
+| 3 | Datei **im Editor** korrigiert (Quick Open, Meta+A, tippen, Meta+S), Check erneut | „2 test(s) passed"; der Hinweis verschwindet mit dem Bestehen | `40-v11-editor-edit.png`, `41-v11-suite-green-after-editor-fix.png`, `32-v11-testsuite-passed.png` |
+| 4 | Wiederholungskarte auf Step 2 | „From an earlier step: Make the test suite green" mit der `question`-Aufgabe des erledigten Steps, „Skip" vorhanden; beantwortet → „Noted." | `34-v11-recall-card.png`, `42-v11-recall-answered.png` |
+| 5 | `predict` vor der Vorhersage | „Predict first", **kein** „Check"-Knopf, und `ANSWER=42` steht **nirgends** in der Seite | `35-v11-predict-before.png` |
+| 6 | Vorhersage „no" (2 Zeichen) | abgelehnt: „Write a prediction first (at least 10 characters)", `then` läuft nicht | – |
+| 7 | Echte Vorhersage | Vorhersage und tatsächliche Ausgabe nebeneinander, Ausgabe erst jetzt sichtbar, ohne LLM zwei Selbsteinschätzungs-Knöpfe | `36-v11-predict-after.png` |
+| 8 | Selbsteinschätzung „wich ab" | wird festgehalten, der Check bleibt bestanden | `37-v11-predict-selfassessed.png` |
+| 9 | `command`-Check ohne die Datei | Fehlkonzept greift auf „No such file or directory": authored Frage „Which directory does a command check run in?" statt generischem Hinweis | `38-v11-misconception.png` |
+| 10 | Letzter Step des Moduls erledigt | Reflexionskarte mit beiden Modul-Prompts; nach dem Speichern „Reflection saved." | `39-v11-reflection.png` |
+
+### Telemetrie (SPEC A5) gegen ein Schein-Portal
+
+Container mit `CADS_TUTOR_TELEMETRY_URL=http://host.docker.internal:8099`,
+`CADS_TUTOR_TELEMETRY_TOKEN=e2e-secret-token`, `CADS_TUTOR_STUDENT=a1b2c3d4e5f6`
+(`scripts/tutor-e2e-container.sh` reicht diese drei Variablen jetzt durch); Gegenstelle
+`node e2e/tutor/v11/fake-portal.mjs`.
+
+| Beobachtung | Ergebnis |
+|---|---|
+| Ziel und Header | `POST /ingest`, `X-CaDS-Student: a1b2c3d4e5f6`, `X-CaDS-Token: e2e-secret-token`, `content-type: application/json` |
+| Bündelung | zwei Requests im 10-s-Takt (2 und 5 Events), nicht ein Request je Ereignis |
+| Bereinigung | „contact me at student@example.org" kam als „contact me at **[redacted-email]**" an – die Adresse verlässt den Container nicht |
+| Feldbefund | `question.asked` nur aus dem Ask-Feld, mit `kind: "question"`; Rubriken und Objectives erzeugen kein solches Event |
+| Hinweis-Herkunft | `hint.shown` trägt `source: "test"` und `matched: "answer is 42"` |
+| Portal aus | drei weitere Checks liefen normal weiter, 11 Events lagen in `~/.cads-tutor/telemetry-queue.jsonl` | `44-v11-portal-down.png` |
+| Portal zurück | die 11 gestauten plus das neue Event kamen als ein Batch von 12 an, danach war die Warteschlange leer |
+
+`edit.metrics` wurde durch die Editor-Korrektur ausgelöst und kam als
+`{"typedChars": 9, "pastedChars": 0, "pasteEvents": 0}` an – neun getippte Zeichen für `ANSWER=42`.
+
+### Durch den Lauf gefunden und behoben
+
+1. **`session.end` doppelt.** Der Controller wird sowohl über `context.subscriptions` als auch von
+   `deactivate()` entsorgt; im Ereignis-Log standen fünf Paare identischer `session.end` im Abstand von
+   13–51 ms. `dispose()` ist jetzt idempotent. (Im Container ließ sich danach kein weiteres graceful
+   `deactivate` auslösen, um den Einzelfall zu beobachten; die Korrektur ist per Code belegt, nicht per Lauf.)
+2. **`predict.made` für eine Nicht-Vorhersage.** Die abgelehnten zwei Zeichen erzeugten trotzdem ein
+   `predict.made`; die Auswertung hätte eine Vorhersage gezählt, die nie stattfand. Das Ereignis entsteht jetzt
+   erst ab `minChars`.
+3. **Tastatur im Webview.** Workbench-Kürzel (Quick Open, Speichern) wirken erst, wenn der Fokus das
+   Panel-iframe verlassen hat, und code-server meldet dem Browser eine Mac-Plattform – also `Meta+A`/`Meta+S`,
+   nicht `Control`. Ohne das landeten die Tastenanschläge im Panel und lösten dort den Check erneut aus.
+4. **Empfehlungs-Toast blockiert Klicks.** `extensions.ignoreRecommendations: true` steht jetzt in den
+   E2E-Settings, und die Skripte räumen Benachrichtigungen vorher weg.

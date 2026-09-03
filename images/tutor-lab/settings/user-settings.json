@@ -1,0 +1,66 @@
+{
+  // CaDS Tutor Lab - user settings baked into the image
+  // (~/.local/share/code-server/User/settings.json). Same startup/noise policy
+  // as the firmware image, but only for what this image actually installs:
+  // the tutor, rust-analyzer, ESLint and CodeLLDB. Nothing here configures
+  // board, probe or firmware tooling - none of it is in this image.
+  // Per-workspace settings come from images/tutor-lab/vscode-templates.
+  "workbench.startupEditor": "none",
+  "security.workspace.trust.enabled": false,
+  "cadsTutor.autoOpen": true,
+  "editor.formatOnSave": true,
+
+  // No network-dependent noise for students: no update checks, no telemetry,
+  // no "install recommended extensions" prompts (they are all pre-installed).
+  "extensions.autoUpdate": false,
+  "extensions.autoCheckUpdates": false,
+  "extensions.ignoreRecommendations": true,
+  "telemetry.telemetryLevel": "off",
+  "update.mode": "none",
+  "update.showReleaseNotes": false,
+  "workbench.tips.enabled": false,
+  "workbench.welcomePage.walkthroughs.openOnInstall": false,
+  "workbench.enableExperiments": false,
+  // No Copilot chat UI in the lab (the tutor has its own views); the
+  // secondary side bar otherwise opens with an empty "Build with Agent" chat.
+  "chat.disableAIFeatures": true,
+  "workbench.secondarySideBar.defaultVisibility": "hidden",
+
+  // rust-analyzer: the server is bundled in the Open VSX VSIX, never download
+  // or ask; clippy on save is the check students should learn to read.
+  "rust-analyzer.updates.askBeforeDownload": false,
+  "rust-analyzer.check.command": "clippy",
+  "rust-analyzer.checkOnSave": true,
+  // CodeLLDB: platform package is baked in, no update prompts.
+  "lldb.suppressUpdateNotifications": true,
+  // JavaScript: without checkJs the built-in language service reports nothing
+  // at all for a .js file, so the starter's deliberate bugs (assignment to a
+  // const, use before declaration) would show no squiggle and no Problems entry.
+  // These two are scope "window" - VS Code IGNORES them in a folder's
+  // .vscode/settings.json, which is why they live here and not in the
+  // per-workspace template.
+  "js/ts.implicitProjectConfig.checkJs": true,
+  "js/ts.implicitProjectConfig.module": "ESNext",
+  // ... but not in TypeScript's voice. The implicit project is `strict` by
+  // default, and strict implies noImplicitAny, so every untyped parameter of
+  // perfectly good JavaScript is flagged "Parameter 'text' implicitly has an
+  // 'any' type (ts 7006)" - a TypeScript concept this course never teaches,
+  // sitting in the Problems view next to the real bug the step is about.
+  // strict off, the two useful halves kept on: "possibly undefined" and
+  // wrong-shaped callbacks still get reported, and so do the errors the
+  // exercises are built around (assignment to a const, use before declaration).
+  "js/ts.implicitProjectConfig.strict": false,
+  "js/ts.implicitProjectConfig.strictNullChecks": true,
+  "js/ts.implicitProjectConfig.strictFunctionTypes": true,
+  // npm scripts explorer/auto-detect runs `npm` on every folder - unnecessary.
+  "npm.autoDetect": "off",
+  "typescript.surveys.enabled": false,
+
+  "terminal.integrated.defaultProfile.linux": "bash",
+  // Multi-root workspace: without a fixed cwd every new terminal first asks
+  // "Select current working directory for new terminal" and lists both folders.
+  // The root keeps that prompt away; both tracks are one `cd` from here.
+  "terminal.integrated.cwd": "/home/coder/workspace",
+  "git.openRepositoryInParentFolders": "never",
+  "files.autoSave": "off"
+}

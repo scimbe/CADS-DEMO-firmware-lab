@@ -166,6 +166,13 @@ export interface Step {
   courseId: string;
   /** Language variants that exist on disk; `en` is required by the format, `de` optional. */
   variants: Partial<Record<Lang, StepContent>>;
+  /**
+   * The step is listed in course.json but has no usable file yet (missing, or its
+   * front matter did not validate). It is shown in the tree as "not yet available"
+   * so a course can ship module by module, and it never blocks anything: it can be
+   * neither opened nor completed, and `requires` skips it.
+   */
+  placeholder?: boolean;
 }
 
 export interface CourseModule {
@@ -277,7 +284,7 @@ export interface SessionState {
   recall?: Record<string, RecallRecord>;
 }
 
-export type StepStatus = "locked" | "open" | "active" | "done";
+export type StepStatus = "locked" | "open" | "active" | "done" | "unavailable";
 
 export function stepKey(courseId: string, stepId: string): string {
   return `${courseId}/${stepId}`;

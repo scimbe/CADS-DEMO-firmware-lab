@@ -6,3 +6,5 @@ node_modules/
 extensions/*/dist/
 extensions/*/out/
 e2e/artifacts/
+__pycache__/
+*.pyc

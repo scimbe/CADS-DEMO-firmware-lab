@@ -5,38 +5,65 @@ bloom: remember
 objectives: [firmware-hardware]
 requires: []
 estimatedMinutes: 10
+scaffold: worked
 links:
   - { step: m0-02-connect }
   - { doc: "docs/HARDWARE.md" }
   - { doc: "docs/ROADMAP.md" }
 sources: [README.md, docs/HARDWARE.md, docs/ROADMAP.md]
 tasks:
-  - id: opened
-    title: You have the tutor open
+  - id: oriented
+    title: You have found the task list at the bottom of this panel
     check: { type: manual }
   - id: what-board
     title: Name the three stacked pieces of hardware
-    check: { type: question, prompt: { en: "This lab targets one specific board. Which three physical pieces are stacked to make it, and which microcontroller sits at its core?", de: "Dieses Labor zielt auf ein bestimmtes Board. Aus welchen drei physischen Teilen ist es zusammengesteckt, und welcher Mikrocontroller sitzt in seinem Kern?" }, rubric: "Names NUCLEO-F429ZI (STM32F429ZI), the ITS adapter board, and the Waveshare 4-inch TFT touch shield.", bloom: remember }
+    check: { type: question, prompt: { en: "Three boards are stacked on your desk. Name each one and say what it contributes.", de: "Auf deinem Tisch liegen drei Platinen übereinander. Benenne jede und sage, was sie beisteuert." }, rubric: "Names the NUCLEO-F429ZI (carries the STM32F429ZI microcontroller and the debug probe), the ITS adapter board (outputs, inputs, interrupt lines) and the Waveshare 4-inch touch shield (colour screen with touch sensing). The piece-to-contribution mapping must be right; the exact spelling of the part numbers need not be.", bloom: remember }
 socratic:
-  - { trigger: "question:what-board:weak", question: { en: "The README's first section describes the device in one sentence. What does it say the board physically is?", de: "Der erste Abschnitt der README beschreibt das Gerät in einem Satz. Was steht dort, was das Board physisch ist?" }, hints: [ { en: "Open docs/HARDWARE.md section 1: 'What the board is'.", de: "Öffne docs/HARDWARE.md, Abschnitt 1: 'What the board is'." }, { en: "Three stacked pieces: a Nucleo, an adapter, and a display shield.", de: "Drei gestapelte Teile: ein Nucleo, ein Adapter und ein Display-Shield." }, { en: "NUCLEO-F429ZI (STM32F429ZI) + ITS adapter + Waveshare 4-inch ILI9486 touch shield.", de: "NUCLEO-F429ZI (STM32F429ZI) + ITS-Adapter + Waveshare-4-Zoll-ILI9486-Touch-Shield." } ] }
+  - { trigger: "task:oriented:stuck", question: { en: "This panel scrolls. What is at the very bottom of it, under the heading 'Tasks'?", de: "Dieses Panel lässt sich scrollen. Was steht ganz unten darin, unter der Überschrift „Aufgaben“?" }, hints: [ { en: "Put the mouse pointer inside this panel and scroll all the way down.", de: "Setz den Mauszeiger in dieses Panel und scroll ganz nach unten." }, { en: "Under 'Tasks' every task has its own box with buttons on the right.", de: "Unter „Aufgaben“ hat jede Aufgabe einen eigenen Kasten mit Knöpfen auf der rechten Seite." }, { en: "The button on this first task is called 'Mark as done'.", de: "Der Knopf bei dieser ersten Aufgabe heißt „Als erledigt markieren“." } ] }
+  - { trigger: "question:what-board:weak", question: { en: "Take them one at a time: which of the three carries the screen you can touch, and which one plugs into your computer by USB?", de: "Nimm sie einzeln: welche der drei trägt den Bildschirm, den du berühren kannst, und welche steckt per USB an deinem Rechner?" }, hints: [ { en: "The section 'The hardware, once' above lists all three in order, bottom to top.", de: "Der Abschnitt „Die Hardware, ein für alle Mal“ weiter oben zählt alle drei der Reihe nach auf, von unten nach oben." }, { en: "One board is the computer, one is the connector panel, one is the screen. Sort them into those three roles first, then look up the names.", de: "Eine Platine ist der Rechner, eine die Anschlussebene, eine der Bildschirm. Sortiere sie erst in diese drei Rollen, dann schlag die Namen nach." }, { en: "Open docs/HARDWARE.md, section 1 'What the board is'; the first sentence names all three.", de: "Öffne docs/HARDWARE.md, Abschnitt 1 „What the board is“; der erste Satz nennt alle drei." } ] }
 ---
 ## Learning goal
 
 Understand what you are about to build on: the CaDS Zero firmware, the board it runs on, and how this lab is wired together.
 
+## What you are looking at right now
+
+You see a single browser window. Inside it sits a complete development environment — it looks like a program on your own computer, but it runs on a university server. You need four areas of it:
+
+- **Far left** is a narrow strip of icons, the *activity bar*. The graduation-cap icon opens the **CaDS Tutor** — the course list with its modules and steps.
+- **Here on the right** you are reading this text: the **tutor panel**. At the very bottom of this panel, under the heading *Tasks*, are the boxes you use to finish this step. Scroll down there once so you know where they are.
+- **In the middle** your source files will open later. The fastest way to open one is `Ctrl`/`Cmd`+`P`, then type the file name.
+- **At the bottom** the menu *Terminal → New Terminal* opens an input window — the **terminal**. Whenever this course says "run" or "send", it means either that terminal or the board console; every step says which of the two.
+
+## What to do first
+
+1. Scroll to the very bottom of this panel, to the heading **Tasks**.
+2. On the first task ("You have found the task list at the bottom of this panel"), click **Mark as done**.
+3. Then read the second task and answer it in the text box below it, using what this step says about the hardware.
+
+## How you know it worked
+
+A finished task shows a green tick and its box turns green along the left edge. When every task of a step is green, the **Next** button at the bottom right becomes active and the next step in the list on the left stops being greyed out. Anything still red or grey means the step is still open — that is not a mistake on your part, only the state of things.
+
+If you want to see how to work the window once more at your own pace: press `F1`, type *Welcome: Open Walkthrough* and pick *CaDS Tutor*.
+
+**If you get stuck:** every task has a **Show hint** button. Use it after you have tried once yourself; each click makes it more concrete. If that does not help either, that is not a failure: ask in the lab and quote the step number from the header of this panel.
+
 ## What this lab is
 
-You are working in a browser IDE (VS Code via code-server) that runs on a server, while **the board is plugged into your own computer**. Flashing, debugging and the serial console all reach the hardware through the browser. You do not need any local toolchain; the container already carries the Arm GNU toolchain, CMake and Ninja.
+You are working in a **browser IDE** — a development environment that runs inside a browser window instead of as a program on your machine (here: VS Code via code-server). It runs on a server, while **the board is plugged into your own computer**. **Flashing** (transferring your program into the microcontroller's memory), **debugging** (halting the running program step by step and inspecting it) and the **serial console** (a text channel to the board over which it reports and accepts commands) all reach the hardware through the browser.
 
-The firmware you study and change is **CaDS Zero**: a clean-room firmware for the ITSboard, written along the lines of a Flipper Zero — a small kernel, a GUI framework, a menu of self-contained apps, and a mascot, Leo the lion. It is not a copy of anything; every symbol carries the `cads_` prefix, and the architecture is shaped by this board's real constraints.
+You do not need a local **toolchain** — that is the name for the bundle of compiler and helper programs that turns your C source into a file the microcontroller can execute. The **container** this environment runs in already carries it: the Arm GNU toolchain (the compiler for Arm processors), CMake and Ninja (the tools that drive the build).
+
+The firmware you study and change is **CaDS Zero**. *Firmware* is the program that lives permanently on a device and makes it what it is — here: a clean-room firmware for the ITSboard, written along the lines of a Flipper Zero, with a small kernel, a GUI framework, a menu of self-contained apps, and a mascot, Leo the lion. It is not a copy of anything; every function name carries the `cads_` prefix, and the architecture is shaped by this board's real constraints.
 
 ## The hardware, once
 
 Three pieces are stacked to make the board (see `docs/HARDWARE.md`):
 
-1. A **NUCLEO-F429ZI**, whose microcontroller is an **STM32F429ZI** — a Cortex-M4F at 180 MHz with 2 MB flash in two banks, 192 KB of DMA-capable SRAM and 64 KB of CCM.
-2. An **ITS adapter board**, which brings out 16 outputs, 8 inputs and 6 interrupt lines.
-3. A **Waveshare 4-inch TFT touch shield**: an ILI9486 480×320 colour panel with an XPT2046 touch controller.
+1. At the bottom a **NUCLEO-F429ZI**, whose microcontroller is an **STM32F429ZI** — a Cortex-M4F at 180 MHz. This is the computer: 2 MB of program memory (**flash** — it keeps its contents without power) in two separate halves, 192 KB of working memory (**SRAM**) and 64 KB of especially fast memory right at the core (**CCM**). What those differences mean only matters from M2 onwards.
+2. In the middle an **ITS adapter board**, which brings out 16 outputs, 8 inputs and 6 interrupt lines — the connector layer where you will later see lamps light and buttons respond.
+3. On top a **Waveshare 4-inch TFT touch shield**: a colour panel of 480×320 pixels with touch sensing.
 
 The board has no sub-GHz radio, no NFC and no infrared — that silicon is simply absent. What it has instead is **100 Mbit Ethernet**, a colour touchscreen and a graphics accelerator, and the firmware leans into exactly those.
 
@@ -46,7 +73,9 @@ CaDS Zero holds itself to a hard rule: **the display bus is write-only**, so sof
 
 ## How to work through the course
 
-Each step opens with its learning goal in one sentence, gives you a compact reading, and then hands you one to three tasks with automatic checks. Read `docs/ROADMAP.md` if you want the project's own running account of what is done and why; it is the firmware's memory of itself.
+Each step opens with its learning goal in one sentence, gives you a compact reading, and then hands you one to three tasks. Most tasks the tutor checks itself — it builds the firmware, searches files, or reads along on the board's replies. Tasks you finish with **Mark as done** are ones you confirm yourself; they are a reminder, not evidence. Read `docs/ROADMAP.md` if you want the project's own running account of what is done and why; it is the firmware's memory of itself.
+
+**What you should bring:** basic C — functions, `if` and `switch`, data types — and a willingness to open files in an editor and type commands into a terminal. Hexadecimal numbers, bits and the notation for hardware registers are introduced in M2 and are not assumed before that.
 
 ## Documentation
 
@@ -54,4 +83,4 @@ The lab has its own handbook with tutorials, how-tos and troubleshooting: [https
 
 ## Your task
 
-Confirm the tutor is open, then answer one question about the hardware from what you have just read. There is nothing to build yet — the next step connects the board.
+Find the task list at the bottom of this panel and tick off the first task. Then answer the question about the hardware. There is nothing to build yet — the next step connects the board.

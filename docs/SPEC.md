@@ -404,6 +404,72 @@ Einfügungen > 200 Zeichen zählen als Paste). Ausfall des Portals darf die Exte
   (Leistungsnachweise: je Studierendem × Kurs Steps/Checks/Reflexionen/Projekt, Status „offen/erreicht/bestätigt“,
   Lehrenden-Sign-off mit Zeitstempel, Export CSV/JSON, Notizfeld), **Regeln** (Schwellwerte in `portal.json`, dokumentiert).
 - Alle Berechnungen deterministisch und testbar (Python-Modul `analytics.py` mit Unit-Tests).
-- **Simulator** `deploy/portal/simulate.py`: erzeugt synthetische Kohorten (N Studierende, Personas: exzellent, solide,
+- **Korrektur A5.1 (2026-09-03, aus der Messung gegen eine Kontrollgruppe):** Der Indikator "Aktivität außerhalb
+der Session" wird gestrichen – er schlug bei 4 von 4 nachweislich unbeteiligten Studierenden an (Ursache dort: eine
+abgestürzte Sitzung) und hat damit keine Trennschärfe. Ebenso gilt: Ähnlichkeit zwischen Antworten wird als Anteil
+der Antwort gemessen, der bereits im Steptext steht (Containment), nicht als Jaccard-Ähnlichkeit; letztere lässt
+wörtliches Zitieren wie eigene Leistung aussehen, weil der Steptext um ein Vielfaches länger ist. Kein Kennzeichen
+trägt das Wort "Betrug"; das stärkste heißt "Auffällig – Rückfrage empfohlen", jedes Merkmal wird mit seiner
+harmlosen Gegenerklärung angezeigt, und kein Kennzeichen darf allein eine Bewertung tragen.
+
+**Simulator** `deploy/portal/simulate.py`: erzeugt synthetische Kohorten (N Studierende, Personas: exzellent, solide,
   schwach, abbrechend, betrügend; je Kurs, mehrere Lehrende) als Event-Ströme mit realistischen Verteilungen und speist sie
   per `/ingest` ein; Assertions, dass die Flags die Personas wiederfinden (Precision/Recall werden ausgegeben).
+
+## A6 Robuster Hardwarezugriff (2026-09-03, verbindlich)
+
+Aus drei realen Ausfällen des Debug-Adapters während der Verifikation abgeleitet. Alle drei Ursachen treffen
+Studierende im Normalbetrieb, deshalb sind die Gegenmaßnahmen Teil des Produkts, nicht der Testumgebung.
+
+**Ursache 1 – automatisch eingebundenes Massenspeicher-Laufwerk des Adapters.** Das Betriebssystem schreibt
+Verwaltungsdaten darauf, der Adapter deutet sie als Firmware und beschädigt den Flash des Ziels.
+Gegenmaßnahmen in dieser Rangfolge: (a) Adapter-Firmware ohne Massenspeicher, sofern verfügbar – beseitigt die
+Ursache; (b) dauerhafter Ausschluss vom automatischen Einbinden (`/etc/fstab`-Eintrag auf macOS, udev-Regel auf
+Linux) über `scripts/setup-host-*.sh`, idempotent, mit `--undo`, plus Abschalten der Indizierung für dieses
+Volume; (c) Hintergrunddienst, der es sofort wieder aushängt, nur für Nutzer ohne Administratorrecht.
+
+**Ursache 2 – abrupt beendete Browsersitzung mitten im Transfer.** Gegenmaßnahmen: (a) Freigabe des Geräts bei
+`visibilitychange` (versteckt, mit Verzug), `pagehide` und `deactivate()`; (b) wichtiger: **defensiver
+Wiedereinstieg**. Beim Verbinden wird grundsätzlich angenommen, dass die letzte Sitzung unsauber endete – der
+Adapter wird in einen definierten Zustand gezwungen (Zustand lesen, Debug-Modus verlassen und neu betreten,
+Fehler quittieren, Ziel neu identifizieren), erst danach gilt er als verbunden. Sauberes Beenden ist eine
+Optimierung, kein Verlass.
+
+**Ursache 3 – Dauerabfrage im Leerlauf.** Die Zustandsabfrage lief alle 100 ms weiter und die Verbindung fiel
+nach Minuten aus. Gegenmaßnahmen: Abfrage nur bei Bedarf (aktive Debugsitzung oder ausdrückliche Abfrage),
+adaptives Intervall (100 ms → 500 ms → 2 s → aus), Aussetzen bei verstecktem Panel, Freigabe des Geräts nach
+längerer Inaktivität, Zähler der USB-Transaktionen im Log.
+
+**Wiederherstellung ohne physisches Stecken.** Erkennt die Probe ein nicht mehr ansprechbares Ziel oder einen
+desynchronisierten Adapter, fährt sie automatisch eine Wiederherstellungskette (Schließen und Öffnen, Rücksetzen
+auf USB-Ebene, Debug-Modus neu betreten, Verbindungsaufbau mit gehaltenem Reset). Welche Schritte tatsächlich
+wirken, ist empirisch am realen Fehlerzustand zu ermitteln und in docs/BRIDGE-NOTES.md zu belegen. Erst wenn die
+Kette scheitert, erscheint die Aufforderung, das Kabel neu zu stecken, mit Schaltfläche zum erneuten Verbinden.
+
+## A7 Dokumentation je Tutor (2026-09-03, verbindlich)
+
+Jeder Tutor bekommt eine eigene, gleichwertig ausgearbeitete Nutzer-Dokumentation im Stil der Firmware-Doku
+(Diátaxis: Tutorials, How-to, Referenz, Erklärung, Fehlerhilfe; DE und EN mit identischen Kurzadressen,
+Bilder je Bedienhandlung), veröffentlicht über GitHub Pages, und auf der Demo-Übersichtsseite je Kachel
+verlinkt, sprachbewusst (Deutsch → /de/, Englisch → /en/). Betroffen: Firmware (vorhanden), Rust, JavaScript.
+Die Rust- und JavaScript-Doku entsteht nach Abschluss der Kurse; Quelle ist der jeweilige Kursinhalt, nicht
+eine Neuerfindung. Ein Tutor gilt erst als ausgeliefert, wenn seine Doku erreichbar und von der Kachel
+verlinkt ist.
+
+## A8 Regeln für Kursprüfungen (2026-09-03, verbindlich, aus drei Kursen gelernt)
+
+1. **Negativprobe ist Pflicht.** Jede automatische Prüfung wird zweimal ausgeführt: im unbearbeiteten Übungsstand
+   (muss fehlschlagen) und mit der Musterlösung (muss bestehen). Ohne diesen Nachweis gilt eine Prüfung als nicht
+   geliefert. Belegt: In drei Kursen fand die Probe je Fehler, die weder Schemaprüfung noch Lesen findet – eine
+   Prüfung, die nie bestehen konnte, eine, die nach dem Lösen aufhörte zu prüfen, und eine ohne passende Lösung.
+2. **Prüfen im Zielbild, nicht nur lokal.** Die Sonden laufen vor jeder Auslieferung im echten Container. Belegt:
+   Das Labor-Bild bringt eine neuere Rust-Werkzeugkette mit als der Entwicklungsrechner; eine neue Warnung der
+   statischen Analyse hätte den Abschlussschritt für jeden Studierenden scheitern lassen, während er lokal grün war.
+3. **Bedienanweisungen werden im Container wörtlich befolgt, nicht geschrieben.** Belegt: drei falsche Anweisungen
+   je Kurs, jede hätte im ersten Schritt gestrandet (Terminal startet im übergeordneten Ordner, die Befehlspalette
+   merkt sich die Eingabeart und braucht ein vorangestelltes Zeichen, ein Hinweistext verwies auf den falschen Ordner).
+   Wo möglich, wird der Bedienabschnitt aus den echten Prüfbefehlen erzeugt statt von Hand geschrieben.
+4. **Eine Prüfung darf nicht dieselbe Datei bewerten, die die Aufgabe verändert**, sonst hört sie mit dem Lösen auf
+   zu prüfen. Vorhersage- und Reparaturaufgaben brauchen getrennte, schreibgeschützte Zwillinge.
+5. **Lösungsablage:** flacher Spiegel des Projektwurzelverzeichnisses unter `solutions/`, zusätzlich optional eine
+   Sicht je Schritt unter `solutions/by-step/<step-id>/`. Der Validator versteht beide Formen.

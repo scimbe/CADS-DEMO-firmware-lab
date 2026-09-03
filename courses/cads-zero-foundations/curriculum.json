@@ -7,216 +7,394 @@
       "track": "firmware",
       "bloomLevel": "understand",
       "statement": "Student can explain why everything above the HAL builds for both the ITSboard and the SDL2 host simulator, and what that split buys.",
-      "sourceDocIds": ["cads-zero/docs/reference/module-layout.md", "cads-zero/docs/reference/hal.md", "cads-zero/docs/how-to/port-to-new-board.md"],
-      "prerequisiteObjectiveIds": ["firmware-reference-module-layout"]
+      "sourceDocIds": [
+        "cads-zero/docs/reference/module-layout.md",
+        "cads-zero/docs/reference/hal.md",
+        "cads-zero/docs/how-to/port-to-new-board.md"
+      ],
+      "prerequisiteObjectiveIds": [
+        "firmware-reference-module-layout"
+      ]
+    },
+    {
+      "id": "cz.mmio.registers",
+      "track": "firmware",
+      "bloomLevel": "understand",
+      "statement": "Student can explain how a memory-mapped register access works in C, why volatile is required, and how a register name encodes peripheral, bus and function.",
+      "sourceDocIds": [
+        "cads-zero/targets/itsboard/hal/hal_io.c",
+        "cads-zero/targets/itsboard/hal/hal_gpio.h",
+        "cads-zero/docs/HARDWARE.md"
+      ],
+      "prerequisiteObjectiveIds": [
+        "firmware-reference-hal"
+      ]
     },
     {
       "id": "cz.gpio.mmio",
       "track": "firmware",
       "bloomLevel": "apply",
       "statement": "Student can drive the adapter's output banks and on-board LEDs through the HAL and relate the calls to the underlying GPIO registers.",
-      "sourceDocIds": ["cads-zero/docs/HARDWARE.md", "cads-zero/docs/reference/hal.md", "cads-zero/core/cads_hal.h"],
-      "prerequisiteObjectiveIds": ["firmware-reference-hal"]
+      "sourceDocIds": [
+        "cads-zero/docs/HARDWARE.md",
+        "cads-zero/docs/reference/hal.md",
+        "cads-zero/core/cads_hal.h"
+      ],
+      "prerequisiteObjectiveIds": [
+        "cz.mmio.registers"
+      ]
     },
     {
       "id": "cz.gpio.buttons",
       "track": "firmware",
       "bloomLevel": "analyze",
       "statement": "Student can read the adapter's active-low buttons and interrupt lines correctly and explain why the HAL inverts the wiring in one place.",
-      "sourceDocIds": ["cads-zero/docs/HARDWARE.md", "cads-zero/docs/explanation/input-scheme.md", "cads-zero/docs/reference/explorer-console.md"],
-      "prerequisiteObjectiveIds": ["cz.gpio.mmio"]
+      "sourceDocIds": [
+        "cads-zero/docs/HARDWARE.md",
+        "cads-zero/docs/explanation/input-scheme.md",
+        "cads-zero/docs/reference/explorer-console.md"
+      ],
+      "prerequisiteObjectiveIds": [
+        "cz.gpio.mmio"
+      ]
     },
     {
       "id": "cz.explorer.extend",
       "track": "firmware",
       "bloomLevel": "create",
       "statement": "Student can add a new single-letter command to the bring-up explorer console and drive it from the host.",
-      "sourceDocIds": ["cads-zero/docs/reference/explorer-console.md", "cads-zero/apps/bringup/explorer.c"],
-      "prerequisiteObjectiveIds": ["cz.gpio.mmio"]
+      "sourceDocIds": [
+        "cads-zero/docs/reference/explorer-console.md",
+        "cads-zero/apps/bringup/explorer.c"
+      ],
+      "prerequisiteObjectiveIds": [
+        "cz.gpio.mmio"
+      ]
     },
     {
       "id": "cz.debug.registers-svd",
       "track": "firmware",
       "bloomLevel": "apply",
       "statement": "Student can inspect core and peripheral registers on the live board using the SVD-backed peripheral view under cortex-debug.",
-      "sourceDocIds": ["cads-zero/docs/how-to/vscode-setup.md", "cads-zero/docs/how-to/debug.md", "cads-zero/targets/itsboard/STM32F429.svd"],
-      "prerequisiteObjectiveIds": ["firmware-how-to-debug"]
+      "sourceDocIds": [
+        "cads-zero/docs/how-to/vscode-setup.md",
+        "cads-zero/docs/how-to/debug.md",
+        "cads-zero/targets/itsboard/STM32F429.svd"
+      ],
+      "prerequisiteObjectiveIds": [
+        "firmware-how-to-debug"
+      ]
     },
     {
       "id": "cz.debug.forensics",
       "track": "firmware",
       "bloomLevel": "analyze",
       "statement": "Student can read a fault dump and the CCM-resident forensic ring to identify the cause and source location of a crash.",
-      "sourceDocIds": ["cads-zero/docs/how-to/debug.md", "cads-zero/modules/diag/include/cads/diag/forensic.h", "cads-zero/targets/itsboard/startup/fault_handlers.c"],
-      "prerequisiteObjectiveIds": ["firmware-how-to-debug"]
+      "sourceDocIds": [
+        "cads-zero/docs/how-to/debug.md",
+        "cads-zero/modules/diag/include/cads/diag/forensic.h",
+        "cads-zero/targets/itsboard/startup/fault_handlers.c"
+      ],
+      "prerequisiteObjectiveIds": [
+        "firmware-how-to-debug"
+      ]
     },
     {
       "id": "cz.debug.stack-guard",
       "track": "firmware",
       "bloomLevel": "analyze",
       "statement": "Student can recognise the register signature of a stack overflow and use the stack-guard sentinel and forensic ring to confirm it.",
-      "sourceDocIds": ["cads-zero/docs/how-to/debug.md", "cads-zero/docs/ROADMAP.md", "cads-zero/core/cads_hal.h"],
-      "prerequisiteObjectiveIds": ["cz.debug.forensics"]
+      "sourceDocIds": [
+        "cads-zero/docs/how-to/debug.md",
+        "cads-zero/docs/ROADMAP.md",
+        "cads-zero/core/cads_hal.h"
+      ],
+      "prerequisiteObjectiveIds": [
+        "cz.debug.forensics"
+      ]
     },
     {
       "id": "cz.rtos.tasks",
       "track": "firmware",
       "bloomLevel": "apply",
       "statement": "Student can describe how CaDS Zero uses FreeRTOS with static allocation only, with task stacks placed in CCM and no kernel heap.",
-      "sourceDocIds": ["cads-zero/docs/reference/memory-map.md", "cads-zero/modules/kernel/include/cads/kernel/kernel.h", "cads-zero/docs/ROADMAP.md"],
-      "prerequisiteObjectiveIds": ["firmware-reference-memory-map"]
+      "sourceDocIds": [
+        "cads-zero/docs/reference/memory-map.md",
+        "cads-zero/modules/kernel/include/cads/kernel/kernel.h",
+        "cads-zero/docs/ROADMAP.md"
+      ],
+      "prerequisiteObjectiveIds": [
+        "firmware-reference-memory-map"
+      ]
     },
     {
       "id": "cz.rtos.ram-budget",
       "track": "firmware",
       "bloomLevel": "apply",
       "statement": "Student can read the RAM budget and heap-margin check and reason about the 48 KB heap floor the linker enforces.",
-      "sourceDocIds": ["cads-zero/docs/reference/measurements.md", "cads-zero/scripts/check_ram_budget.py", "cads-zero/targets/itsboard/linker/cads_itsboard.ld"],
-      "prerequisiteObjectiveIds": ["cz.rtos.tasks"]
+      "sourceDocIds": [
+        "cads-zero/docs/reference/measurements.md",
+        "cads-zero/scripts/check_ram_budget.py",
+        "cads-zero/targets/itsboard/linker/cads_itsboard.ld"
+      ],
+      "prerequisiteObjectiveIds": [
+        "cz.rtos.tasks"
+      ]
     },
     {
       "id": "cz.rtos.mutex",
       "track": "firmware",
       "bloomLevel": "analyze",
       "statement": "Student can explain why display and touch access is serialised under one bus claim, and how the PA7 conflict and a mutex bug shaped it.",
-      "sourceDocIds": ["cads-zero/docs/explanation/pa7-conflict.md", "cads-zero/docs/ROADMAP.md", "cads-zero/docs/reference/hal.md"],
-      "prerequisiteObjectiveIds": ["cz.rtos.tasks"]
+      "sourceDocIds": [
+        "cads-zero/docs/explanation/pa7-conflict.md",
+        "cads-zero/docs/ROADMAP.md",
+        "cads-zero/docs/reference/hal.md"
+      ],
+      "prerequisiteObjectiveIds": [
+        "cz.rtos.tasks"
+      ]
     },
     {
       "id": "cz.rtos.watchdog",
       "track": "firmware",
       "bloomLevel": "understand",
       "statement": "Student can explain how the independent watchdog and reset-cause reporting turn a lockup into a recoverable, diagnosable event.",
-      "sourceDocIds": ["cads-zero/core/cads_hal.h", "cads-zero/docs/SAFETY.md", "cads-zero/docs/ROADMAP.md"],
-      "prerequisiteObjectiveIds": ["cz.rtos.tasks"]
+      "sourceDocIds": [
+        "cads-zero/core/cads_hal.h",
+        "cads-zero/docs/SAFETY.md",
+        "cads-zero/docs/ROADMAP.md"
+      ],
+      "prerequisiteObjectiveIds": [
+        "cz.rtos.tasks"
+      ]
     },
     {
       "id": "cz.rtos.stack-sizing",
       "track": "firmware",
       "bloomLevel": "analyze",
       "statement": "Student can size a FreeRTOS task stack from evidence, using CCM budget and the stack-overflow case studies in the project's own record.",
-      "sourceDocIds": ["cads-zero/docs/ROADMAP.md", "cads-zero/docs/reference/memory-map.md"],
-      "prerequisiteObjectiveIds": ["cz.rtos.ram-budget", "cz.debug.stack-guard"]
+      "sourceDocIds": [
+        "cads-zero/docs/ROADMAP.md",
+        "cads-zero/docs/reference/memory-map.md"
+      ],
+      "prerequisiteObjectiveIds": [
+        "cz.rtos.ram-budget",
+        "cz.debug.stack-guard"
+      ]
     },
     {
       "id": "cz.gui.canvas",
       "track": "firmware",
       "bloomLevel": "apply",
       "statement": "Student can draw on the 4-bpp indexed canvas and use damage tracking so only what changed reaches the panel.",
-      "sourceDocIds": ["cads-zero/docs/reference/canvas.md", "cads-zero/gui/canvas.h", "cads-zero/docs/explanation/why-4bpp.md"],
-      "prerequisiteObjectiveIds": ["firmware-reference-hal"]
+      "sourceDocIds": [
+        "cads-zero/docs/reference/canvas.md",
+        "cads-zero/gui/canvas.h",
+        "cads-zero/docs/explanation/why-4bpp.md"
+      ],
+      "prerequisiteObjectiveIds": [
+        "firmware-reference-hal"
+      ]
     },
     {
       "id": "cz.gui.views",
       "track": "firmware",
       "bloomLevel": "understand",
       "statement": "Student can describe the view / view-dispatcher / widget model and how an app registers a view and receives input events.",
-      "sourceDocIds": ["cads-zero/docs/explanation/input-scheme.md", "cads-zero/apps/desktop/cads_desktop.h", "cads-zero/apps/menu/cads_menu_app.h"],
-      "prerequisiteObjectiveIds": ["cz.gui.canvas"]
+      "sourceDocIds": [
+        "cads-zero/docs/explanation/input-scheme.md",
+        "cads-zero/apps/desktop/cads_desktop.h",
+        "cads-zero/apps/menu/cads_menu_app.h"
+      ],
+      "prerequisiteObjectiveIds": [
+        "cz.gui.canvas"
+      ]
     },
     {
       "id": "cz.gui.app",
       "track": "firmware",
       "bloomLevel": "create",
       "statement": "Student can add a new menu app with its own view and a widget, and wire it into the app tree.",
-      "sourceDocIds": ["cads-zero/apps/about/cads_about.c", "cads-zero/apps/menu/cads_menu_app.c", "cads-zero/gui/canvas.h"],
-      "prerequisiteObjectiveIds": ["cz.gui.views"]
+      "sourceDocIds": [
+        "cads-zero/apps/about/cads_about.c",
+        "cads-zero/apps/menu/cads_menu_app.c",
+        "cads-zero/gui/canvas.h"
+      ],
+      "prerequisiteObjectiveIds": [
+        "cz.gui.views"
+      ]
     },
     {
       "id": "cz.gui.dirty-rects",
       "track": "firmware",
       "bloomLevel": "evaluate",
       "statement": "Student can judge the single-bounding-box damage design against a damage list, given the measured cost of a full-screen redraw.",
-      "sourceDocIds": ["cads-zero/docs/explanation/dirty-rectangles.md", "cads-zero/docs/reference/measurements.md", "cads-zero/docs/reference/canvas.md"],
-      "prerequisiteObjectiveIds": ["cz.gui.canvas"]
+      "sourceDocIds": [
+        "cads-zero/docs/explanation/dirty-rectangles.md",
+        "cads-zero/docs/reference/measurements.md",
+        "cads-zero/docs/reference/canvas.md"
+      ],
+      "prerequisiteObjectiveIds": [
+        "cz.gui.canvas"
+      ]
     },
     {
       "id": "cz.storage.littlefs",
       "track": "firmware",
       "bloomLevel": "understand",
       "statement": "Student can locate the littlefs volume in flash bank 2 and explain why a firmware update cannot destroy it.",
-      "sourceDocIds": ["cads-zero/docs/reference/memory-map.md", "cads-zero/docs/SAFETY.md", "cads-zero/modules/storage/include/cads/storage/storage.h"],
-      "prerequisiteObjectiveIds": ["firmware-reference-memory-map"]
+      "sourceDocIds": [
+        "cads-zero/docs/reference/memory-map.md",
+        "cads-zero/docs/SAFETY.md",
+        "cads-zero/modules/storage/include/cads/storage/storage.h"
+      ],
+      "prerequisiteObjectiveIds": [
+        "firmware-reference-memory-map"
+      ]
     },
     {
       "id": "cz.storage.config",
       "track": "firmware",
       "bloomLevel": "apply",
       "statement": "Student can read and change a running board's /config.txt with cads_config.py and explain the dump-edit-restore mechanism.",
-      "sourceDocIds": ["cads-zero/docs/reference/config-file.md", "cads-zero/docs/how-to/configure.md", "cads-zero/scripts/cads_config.py"],
-      "prerequisiteObjectiveIds": ["cz.storage.littlefs"]
+      "sourceDocIds": [
+        "cads-zero/docs/reference/config-file.md",
+        "cads-zero/docs/how-to/configure.md",
+        "cads-zero/scripts/cads_config.py"
+      ],
+      "prerequisiteObjectiveIds": [
+        "cz.storage.littlefs"
+      ]
     },
     {
       "id": "cz.storage.profiles",
       "track": "firmware",
       "bloomLevel": "apply",
       "statement": "Student can build a feature-selected image with a build profile and validate it with check_profile.py before building.",
-      "sourceDocIds": ["cads-zero/docs/reference/config-file.md", "cads-zero/docs/how-to/configure.md", "cads-zero/scripts/check_profile.py"],
-      "prerequisiteObjectiveIds": ["cz.storage.config"]
+      "sourceDocIds": [
+        "cads-zero/docs/reference/config-file.md",
+        "cads-zero/docs/how-to/configure.md",
+        "cads-zero/scripts/check_profile.py"
+      ],
+      "prerequisiteObjectiveIds": [
+        "cz.storage.config"
+      ]
     },
     {
       "id": "cz.net.lwip",
       "track": "firmware",
       "bloomLevel": "understand",
       "statement": "Student can describe how CaDS Zero brings up an lwIP netif over the RMII MAC and its static-IP default addressing.",
-      "sourceDocIds": ["cads-zero/modules/net/include/cads/net/net.h", "cads-zero/docs/reference/config-file.md", "cads-zero/docs/HARDWARE.md"],
-      "prerequisiteObjectiveIds": ["firmware-reference-hal"]
+      "sourceDocIds": [
+        "cads-zero/modules/net/include/cads/net/net.h",
+        "cads-zero/docs/reference/config-file.md",
+        "cads-zero/docs/HARDWARE.md"
+      ],
+      "prerequisiteObjectiveIds": [
+        "firmware-reference-hal"
+      ]
     },
     {
       "id": "cz.net.dhcp-lesson",
       "track": "firmware",
       "bloomLevel": "analyze",
       "statement": "Student can trace the DHCP-path console-stack overflow case study and explain the fix and how it was found.",
-      "sourceDocIds": ["cads-zero/docs/ROADMAP.md", "cads-zero/docs/reference/config-file.md", "cads-zero/docs/how-to/debug.md"],
-      "prerequisiteObjectiveIds": ["cz.net.lwip", "cz.debug.stack-guard"]
+      "sourceDocIds": [
+        "cads-zero/docs/ROADMAP.md",
+        "cads-zero/docs/reference/config-file.md",
+        "cads-zero/docs/how-to/debug.md"
+      ],
+      "prerequisiteObjectiveIds": [
+        "cz.net.lwip",
+        "cz.debug.stack-guard"
+      ]
     },
     {
       "id": "cz.net.recon",
       "track": "firmware",
       "bloomLevel": "analyze",
       "statement": "Student can use the passive recon commands (ARP watch, rogue-DHCP watch, L2 discovery, traffic overview) and read what they report.",
-      "sourceDocIds": ["cads-zero/docs/reference/explorer-console.md", "cads-zero/docs/ROADMAP.md", "cads-zero/modules/toolbox/include/cads/toolbox/dhcpwatch.h"],
-      "prerequisiteObjectiveIds": ["cz.net.lwip"]
+      "sourceDocIds": [
+        "cads-zero/docs/reference/explorer-console.md",
+        "cads-zero/docs/ROADMAP.md",
+        "cads-zero/modules/toolbox/include/cads/toolbox/dhcpwatch.h"
+      ],
+      "prerequisiteObjectiveIds": [
+        "cz.net.lwip"
+      ]
     },
     {
       "id": "cz.net.arbitration",
       "track": "firmware",
       "bloomLevel": "evaluate",
       "statement": "Student can evaluate the network cost of the PA7 display/Ethernet time-slice and the case for the SB121/SB122 fix.",
-      "sourceDocIds": ["cads-zero/docs/explanation/pa7-conflict.md", "cads-zero/docs/HARDWARE.md", "cads-zero/docs/reference/measurements.md"],
-      "prerequisiteObjectiveIds": ["cz.net.lwip", "cz.rtos.mutex"]
+      "sourceDocIds": [
+        "cads-zero/docs/explanation/pa7-conflict.md",
+        "cads-zero/docs/HARDWARE.md",
+        "cads-zero/docs/reference/measurements.md"
+      ],
+      "prerequisiteObjectiveIds": [
+        "cz.net.lwip",
+        "cz.rtos.mutex"
+      ]
     },
     {
       "id": "cz.quality.unit-tests",
       "track": "firmware",
       "bloomLevel": "apply",
       "statement": "Student can run and add a host unit test with Unity and ctest for a portable module.",
-      "sourceDocIds": ["cads-zero/docs/how-to/build.md", "cads-zero/tests/unit/CMakeLists.txt", "cads-zero/docs/reference/module-layout.md"],
-      "prerequisiteObjectiveIds": ["firmware-how-to-build"]
+      "sourceDocIds": [
+        "cads-zero/docs/how-to/build.md",
+        "cads-zero/tests/unit/CMakeLists.txt",
+        "cads-zero/docs/reference/module-layout.md"
+      ],
+      "prerequisiteObjectiveIds": [
+        "firmware-how-to-build"
+      ]
     },
     {
       "id": "cz.quality.golden",
       "track": "firmware",
       "bloomLevel": "analyze",
       "statement": "Student can explain golden-image testing for a write-only display and read a pixel-diff failure correctly.",
-      "sourceDocIds": ["cads-zero/tests/gallery/gallery.c", "cads-zero/docs/ROADMAP.md", "cads-zero/docs/reference/canvas.md"],
-      "prerequisiteObjectiveIds": ["cz.quality.unit-tests"]
+      "sourceDocIds": [
+        "cads-zero/tests/gallery/gallery.c",
+        "cads-zero/docs/ROADMAP.md",
+        "cads-zero/docs/reference/canvas.md"
+      ],
+      "prerequisiteObjectiveIds": [
+        "cz.quality.unit-tests"
+      ]
     },
     {
       "id": "cz.quality.cleanroom-pr",
       "track": "firmware",
       "bloomLevel": "evaluate",
       "statement": "Student can judge a change against the clean-room rule, the both-targets rule and the safety rules before proposing a PR.",
-      "sourceDocIds": ["cads-zero/docs/explanation/clean-room.md", "cads-zero/docs/how-to/agent-workflow.md", "cads-zero/docs/SAFETY.md"],
-      "prerequisiteObjectiveIds": ["firmware-explanation-clean-room", "cz.quality.golden"]
+      "sourceDocIds": [
+        "cads-zero/docs/explanation/clean-room.md",
+        "cads-zero/docs/how-to/agent-workflow.md",
+        "cads-zero/docs/SAFETY.md"
+      ],
+      "prerequisiteObjectiveIds": [
+        "firmware-explanation-clean-room",
+        "cz.quality.golden"
+      ]
     },
     {
       "id": "cz.quality.capstone",
       "track": "firmware",
       "bloomLevel": "create",
       "statement": "Student can deliver a small, reviewable change with a unit test and a passing CI-shaped local check.",
-      "sourceDocIds": ["cads-zero/docs/how-to/agent-workflow.md", "cads-zero/tests/unit/CMakeLists.txt", "cads-zero/scripts/check_ram_budget.py"],
-      "prerequisiteObjectiveIds": ["cz.quality.cleanroom-pr"]
+      "sourceDocIds": [
+        "cads-zero/docs/how-to/agent-workflow.md",
+        "cads-zero/tests/unit/CMakeLists.txt",
+        "cads-zero/scripts/check_ram_budget.py"
+      ],
+      "prerequisiteObjectiveIds": [
+        "cz.quality.cleanroom-pr"
+      ]
     }
   ]
 }

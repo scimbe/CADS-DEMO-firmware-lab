@@ -1,0 +1,54 @@
+{
+  "_comment": "Learning objectives contributed by the javascript-foundations pack. The seven objectives of the platform's javascript track (javascript-web-javascript-guide-*, content-packs/curriculum.json) cover the MDN guide chapters the javascript pack ingests and are reused directly in step front matter - they are NOT redefined here. The objectives below cover what this course teaches beyond that pack. Their sourceDocIds name the MDN guide pages reproduced under this pack's sources/ (CC-BY-SA 2.5, Mozilla and individual contributors) and the workspace files a student actually reads, in the same style as the cads-zero-foundations pack.",
+  "track": "javascript",
+  "objectives": [
+    {
+      "id": "js.tooling.node-test",
+      "track": "javascript",
+      "bloomLevel": "apply",
+      "statement": "Student can run Node's built-in test runner on a single file or a whole workspace, read the assertion diff it prints, and tell a module that failed to load from a test that failed an assertion.",
+      "sourceDocIds": ["javascript-foundations/README.md", "javascript-foundations/package.json"],
+      "prerequisiteObjectiveIds": []
+    },
+    {
+      "id": "js.modules.esm",
+      "track": "javascript",
+      "bloomLevel": "understand",
+      "statement": "Student can export named and default bindings from an ES module, import them from another file, and read the SyntaxError Node raises for a missing export.",
+      "sourceDocIds": ["courses/javascript-foundations/sources/mdn-javascript-modules.md", "javascript-foundations/src/m0/math-utils.js"],
+      "prerequisiteObjectiveIds": ["js.tooling.node-test"]
+    },
+    {
+      "id": "js.errors.custom-class",
+      "track": "javascript",
+      "bloomLevel": "create",
+      "statement": "Student can define an error class that extends Error, carries a name and extra fields, and survives instanceof checks, and can decide when a caller benefits from it over a plain Error.",
+      "sourceDocIds": ["courses/javascript-foundations/sources/mdn-using-classes.md", "javascript-foundations/src/m2/validation.js"],
+      "prerequisiteObjectiveIds": ["javascript-web-javascript-guide-control-flow-and-error-handling"]
+    },
+    {
+      "id": "js.async.promises",
+      "track": "javascript",
+      "bloomLevel": "apply",
+      "statement": "Student can create and consume promises, express the same flow with async/await, and explain why a value is a Promise until it is awaited.",
+      "sourceDocIds": ["courses/javascript-foundations/sources/mdn-using-promises.md", "javascript-foundations/src/m6/delay.js", "javascript-foundations/src/m6/store.js"],
+      "prerequisiteObjectiveIds": ["javascript-web-javascript-guide-functions"]
+    },
+    {
+      "id": "js.async.errors",
+      "track": "javascript",
+      "bloomLevel": "analyze",
+      "statement": "Student can diagnose why a try/catch around an un-awaited call never fires, and can wrap a rejection in a new error without losing the original as its cause.",
+      "sourceDocIds": ["courses/javascript-foundations/sources/mdn-using-promises.md", "javascript-foundations/src/m6/robust.js"],
+      "prerequisiteObjectiveIds": ["js.async.promises", "js.errors.custom-class"]
+    },
+    {
+      "id": "js.async.concurrency",
+      "track": "javascript",
+      "bloomLevel": "evaluate",
+      "statement": "Student can judge when work should run sequentially and when concurrently, and can choose between Promise.all and Promise.allSettled by what the caller must learn about partial failure.",
+      "sourceDocIds": ["courses/javascript-foundations/sources/mdn-using-promises.md", "javascript-foundations/src/m6/parallel.js"],
+      "prerequisiteObjectiveIds": ["js.async.errors"]
+    }
+  ]
+}

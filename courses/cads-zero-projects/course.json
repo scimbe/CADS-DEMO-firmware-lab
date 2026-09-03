@@ -14,7 +14,9 @@
     "root": "cads-zero",
     "repo": "https://github.com/scimbe/cads-zero"
   },
-  "prerequisites": ["cads-zero-foundations"],
+  "prerequisites": [
+    "cads-zero-foundations"
+  ],
   "grounding": {
     "pack": "firmware",
     "threshold": 5.0
@@ -33,7 +35,23 @@
         "p4-unit-test-golden",
         "p5-driver-extension",
         "p6-perf-measurement"
-      ]
+      ],
+      "reflection": {
+        "prompts": [
+          {
+            "en": "Which of your project's acceptance checks would still pass if you deleted the body of the function it names? If none, say why; if one would, say what you would add to close it.",
+            "de": "Welcher Abnahme-Check deines Projekts würde noch bestehen, wenn du den Rumpf der benannten Funktion löschtest? Wenn keiner: warum nicht; wenn einer: was würdest du ergänzen, um ihn zu schließen?"
+          },
+          {
+            "en": "Name one decision you took because of a constraint of this board rather than because of taste, and the measured number or documented rule behind it.",
+            "de": "Nenne eine Entscheidung, die du wegen eines Zwangs dieses Boards und nicht aus Geschmack getroffen hast, samt der gemessenen Zahl oder dokumentierten Regel dahinter."
+          },
+          {
+            "en": "What would a reviewer have to take on trust in your submission, and which test or check would you write next to remove that trust?",
+            "de": "Was müsste ein Reviewer deiner Einreichung glauben, ohne es prüfen zu können, und welchen Test oder Check würdest du als Nächstes schreiben, um dieses Vertrauen überflüssig zu machen?"
+          }
+        ]
+      }
     }
   ]
 }

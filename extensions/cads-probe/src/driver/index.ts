@@ -1,5 +1,7 @@
 export * from './types';
-export { ProbeService, type ProbeHost, FLASH_WINDOW_START, FLASH_WINDOW_END } from './probe';
+export { ProbeService, type ProbeHost, FLASH_WINDOW_START, FLASH_WINDOW_END, POLL_LADDER_MS, POLL_STEPS_PER_RUNG } from './probe';
+export { DeviceLock, deviceLockName, type LockManagerLike } from './deviceLock';
+export { diagnoseOpenFailure, isTargetUnresponsive, type BlockReason, type BlockDiagnosis } from './busy';
 export { ProbeError, type ProbeErrorCode } from './errors';
 export { type Logger, nullLogger, consoleLogger } from './logger';
 export { Mutex } from './mutex';

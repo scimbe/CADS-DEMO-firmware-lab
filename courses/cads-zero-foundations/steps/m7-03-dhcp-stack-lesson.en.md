@@ -5,49 +5,49 @@ bloom: analyze
 objectives: [cz.net.dhcp-lesson]
 requires: [m7-02-udp-hello]
 estimatedMinutes: 15
+scaffold: faded
+recallFrom: [m3-04-stack-guard, m4-05-stack-sizing]
 links:
   - { step: m7-04-recon-tools }
   - { step: m3-04-stack-guard }
+  - { step: m4-05-stack-sizing }
   - { doc: "docs/ROADMAP.md" }
-  - { doc: "docs/reference/config-file.md" }
   - { file: "apps/bringup/tasks.c", line: 74 }
-sources: [docs/ROADMAP.md, apps/bringup/tasks.c, docs/reference/config-file.md, docs/how-to/debug.md]
+  - { file: "lib/lwip/src/core/ipv4/dhcp.c", line: 176 }
+sources: [docs/ROADMAP.md, apps/bringup/tasks.c, lib/lwip/src/core/ipv4/dhcp.c, modules/net/src/cads_net_board.c, docs/how-to/debug.md]
 tasks:
-  - id: trace-the-crash
-    title: Explain the crash, the diagnosis and the cost of the fix
-    check: { type: question, prompt: { en: "Setting net.dhcp = 1 crashed the board on every reset. Explain (a) why enabling DHCP deepened the console task's stack in particular, (b) what evidence from a live GDB attach proved it was a stack overflow rather than a corrupt filesystem or a flaky debug session, and (c) why doubling CADS_CONSOLE_STACK cost nothing from the tight SRAM heap margin.", de: "net.dhcp = 1 ließ das Board bei jedem Reset abstürzen. Erkläre (a) warum DHCP ausgerechnet den Stack der Konsolen-Task vertieft hat, (b) welcher Beleg aus einem Live-GDB-Attach bewies, dass es ein Stack-Überlauf war und kein defektes Dateisystem und keine wacklige Debug-Sitzung, und (c) warum die Verdopplung von CADS_CONSOLE_STACK die knappe SRAM-Heap-Marge nichts gekostet hat." }, rubric: "(a) cads_net_poll() runs on the console task (explorer_app_demo main loop) and with net.dhcp=1 that executes lwIP's DHCP client state machine, deeper than the static-IP path, on the same stack already carrying the GUI/marauder/settings call chain; (b) st-util --no-reset + GDB showed the CPU trapped in the fault handler with SP clobbered to an absurd value and vApplicationIdleHook (the stack-guard sentinel) faulting on a garbage PC 0xF7FF0FF0, an instruction-fetch violation - the textbook overflow signature; reverting the config, reformatting littlefs and a real power-cycle all failed to change it, ruling those out; (c) task stacks live in CCM (about 59 KB free of 64 KB), not in the SRAM heap that check_ram_budget.py guards, so 512->1024 words cost 2 KB of CCM and left the 256 B floor margin untouched.", bloom: analyze }
+  - id: why-deeper
+    title: Explain the depth of the DHCP path
+    check: { type: question, prompt: { en: "Why is lwIP's DHCP path deeper on the stack than the static-address path?", de: "Warum ist der DHCP-Pfad von lwIP auf dem Stack tiefer als der Pfad mit statischer Adresse?" }, rubric: "The static path writes address, mask and gateway into the netif at init and is then done; it has no per-frame work. The DHCP client is a state machine that, for every arriving reply, parses the BOOTP options out of a received pbuf chain (the option table and reply parser in lib/lwip/src/core/ipv4/dhcp.c) and in the same pass builds and sends messages of its own - all nested calls on the stack of whoever polled. Second half of the answer: the polling happens inside cads_net_poll() on the console task, whose stack already carries the entire app-tree tick chain. An answer that only says DHCP is more complicated does not pass.", bloom: analyze }
+  - id: read-headroom
+    title: Read the high-water marks of the three task stacks
+    check: { type: serialExpect, send: "k\n", pattern: "console_free=", timeoutMs: 15000, bloom: analyze }
 socratic:
-  - { trigger: "question:trace-the-crash:weak", question: { en: "Which task runs cads_net_poll() in the app tree, and what extra work does that call do once DHCP is enabled?", de: "Welche Task führt cads_net_poll() im App-Baum aus, und welche zusätzliche Arbeit erledigt dieser Aufruf, sobald DHCP aktiv ist?" }, hints: [ { en: "explorer_app_demo.c's main loop calls cads_net_poll() every tick on the console task - the same stack that also runs cads_gui_tick and cads_marauder_tick.", de: "Die Hauptschleife von explorer_app_demo.c ruft cads_net_poll() jeden Tick auf der Konsolen-Task auf - derselbe Stack, der auch cads_gui_tick und cads_marauder_tick trägt." }, { en: "Look for the register signature: a garbage PC and a clobbered SP inside the fault handler are what an overflow looks like from GDB.", de: "Achte auf die Registersignatur: ein Müll-PC und ein zerstörter SP im Fault-Handler sind das, wonach ein Überlauf aus GDB aussieht." }, { en: "Read tasks.c line 34 onward: stacks are CCM_SECTION arrays; CCM is a separate 64 KB region, so growing them never touches __cads_heap_size.", de: "Lies tasks.c ab Zeile 34: die Stacks sind CCM_SECTION-Arrays; CCM ist eine eigene 64-KB-Region, ihr Wachstum berührt __cads_heap_size nie." } ] }
+  - { trigger: "question:why-deeper:weak", question: { en: "A static address is assigned once. What does a DHCP client have to do for every single reply frame that arrives?", de: "Eine statische Adresse wird einmal zugewiesen. Was muss ein DHCP-Client für jeden einzelnen ankommenden Antwort-Frame tun?" }, hints: [ { en: "One of the two paths only writes fields into a netif; the other reads a protocol out of a received buffer.", de: "Einer der beiden Pfade schreibt nur Felder in ein netif; der andere liest ein Protokoll aus einem empfangenen Puffer." }, { en: "lib/lwip/src/core/ipv4/dhcp.c has an option table and a reply parser; look at how a reply is walked and what it is walked over.", de: "lib/lwip/src/core/ipv4/dhcp.c hat eine Optionstabelle und einen Antwortparser; sieh dir an, wie eine Antwort abgelaufen wird und worüber." }, { en: "The answer has a second half: on whose stack all of that runs, and what was already on that stack before DHCP was switched on.", de: "Die Antwort hat eine zweite Hälfte: auf wessen Stack das alles läuft und was auf diesem Stack schon lag, bevor DHCP eingeschaltet wurde." } ] }
+  - { trigger: "task:read-headroom:failed", question: { en: "The report comes from the scheduler, so it needs a running scheduler and a console prompt. Which of the two is missing?", de: "Der Bericht kommt vom Scheduler, er braucht also einen laufenden Scheduler und einen Konsolen-Prompt. Welches der beiden fehlt?" }, hints: [ { en: "Send scripts/board_key.py quit first if the board is sitting in the app tree.", de: "Sende zuerst scripts/board_key.py quit, wenn das Board im App-Baum sitzt." }, { en: "This command reports nothing at all on the host build - there are no FreeRTOS tasks there to report about.", de: "Auf dem Host-Build meldet dieser Befehl gar nichts - dort gibt es keine FreeRTOS-Tasks, über die zu berichten wäre." }, { en: "The numbers are free headroom in bytes, not used bytes; a small number is the alarming one.", de: "Die Zahlen sind freier Spielraum in Byte, nicht verbrauchte Byte; die kleine Zahl ist die beunruhigende." } ] }
 ---
 ## Learning goal
 
-Analyse a real crash from the project's own record: how enabling DHCP overflowed a task stack, how a live debugger attach separated the true cause from two plausible wrong leads, and why the fix was cheap.
+Explain the network-specific half of a real crash: why enabling DHCP in particular deepened a task stack that static addressing had never strained.
 
-## The symptom
+## What you already know, and what is new here
 
-On 2026-08-28 the project lead wanted real internet on the board through a Mac's Internet Sharing. Setting `net.dhcp = 1` in `/config.txt` and resetting crashed the board every time. The console went silent — which, as you learned in M0, is not evidence of anything by itself.
+The case study itself — the sentinel in the idle hook, the garbage PC `0xF7FF0FF0`, `CADS_CONSOLE_STACK` 512 → 1024 words, the cost paid in CCM rather than the SRAM heap — is told in full in **M3-04** and turned into a sizing rule in **M4-05**. It is **not** retold here.
 
-## Two wrong leads, ruled out properly
+What was left open there is this step's question: `net.dhcp = 1` broke the console task's stack and `net.dhcp = 0` did not. Both run through the same `cads_net_poll()` call, in the same loop, on the same task. So the difference is inside the network stack itself.
 
-`docs/ROADMAP.md`'s log entry for that day records the dead ends so they are not retried blind:
+## Two paths through one function
 
-1. **Filesystem or config corruption.** Reverting `net.dhcp` to 0 did not stop the crash; a fresh `cads_config.py pull` read back clean content; a from-scratch reformatted littlefs volume crashed identically. Conclusively ruled out.
-2. **SWD or debug-session flakiness.** A real power-cycle (`reset cause: power-on`, forensic ring genuinely cleared to zero records — CCM survives a plain reset but not power loss) still crashed. Ruled out too.
+With `net.dhcp = 0` the address is **configuration**: `modules/net/src/cads_net_board.c` writes address, mask and gateway into the netif when the config is applied, and after that there is no further work for it. Every later `cads_net_poll()` only moves frames.
 
-A third cost was self-inflicted: this Nucleo enumerates two `/dev/cu.usbmodem*` devices, and several "still crashed" reads were really `board_cmd.py` pinned to the wrong port, querying dead air. The lesson recorded: trust a live GDB attach over console silence when the two disagree.
+With `net.dhcp = 1` the same code calls `dhcp_start()` on the netif, and from then on the address is a **protocol**. lwIP's client (`lib/lwip/src/core/ipv4/dhcp.c`) keeps a state machine; for every arriving reply it walks the options of a BOOTP packet — the file carries its own option table and a reply parser for that — and the payload it walks over is a **pbuf chain**, not a flat buffer. In the same pass it assembles its own next message and hands it over to be sent.
 
-## The real cause
+The polling happens from the main loop of `apps/bringup/explorer_app_demo.c` — on the **console task**, which by then already ran the whole app-tree tick chain (`cads_marauder_tick`, `cads_settings_service_config`, `cads_gui_tick`). Trace where the work from `dhcp.c` ends up when `cads_net_poll()` is called out of that loop — that is this step's question, and the answer has two halves.
 
-`apps/bringup/explorer_app_demo.c`'s main loop calls `cads_net_poll()` every tick on the **console task** (`apps/bringup/tasks.c`, then a 512-word / 2048 B stack). With `net.dhcp = 1` that call runs lwIP's DHCP client state machine — visibly deeper than the static-IP path — on the same stack that the evening's whole added call chain already used: `cads_marauder_tick`'s PCAP and join depth, `cads_settings_service_config`, `cads_gui_tick`.
+## Why console silence was not evidence
 
-Caught live with `st-util --no-reset` and GDB: the CPU was trapped inside the fault handler, SP clobbered to an absurd low value, and `vApplicationIdleHook()` — the project's own stack-guard sentinel check — had faulted with a garbage PC of `0xF7FF0FF0`, an instruction-fetch violation. That is the textbook signature of a stack overflow severe enough to corrupt the very code trying to detect it.
-
-## The fix, and why it was cheap
-
-`CADS_CONSOLE_STACK` was doubled from 512 to 1024 words. Look at `apps/bringup/tasks.c` line 74 and the arrays right below it: every task stack is a `CADS_CCM_SECTION` array. CCM is a separate 64 KB region with about 59 KB free at the time, so doubling cost 2 KB of CCM and **nothing** from the SRAM heap that `scripts/check_ram_budget.py` guards (256 B floor, 704 B margin then, unaffected). Verified: a real DHCP lease at `192.168.2.3` across two full runs, with the forensic ring not growing between them.
-
-Two days later the same class of bug hit `CADS_INPUT_STACK` (256 words, quadrupled to 1024) when navigating the Marauder menu — the input task runs every app's input handler synchronously. The pattern generalises: a task whose stack carries arbitrary app-specific depth cannot be sized by looking at its own loop.
+`docs/ROADMAP.md`'s log entry for 2026-08-28 records two dead ends — filesystem damage and a flaky debug session — so they are not retried blind, and a third that was self-inflicted: this Nucleo enumerates two `/dev/cu.usbmodem*` devices, and several "still crashes" readings were really `board_cmd.py` pinned to the wrong port, querying dead air. The lesson recorded: trust a live GDB attach over console silence when the two disagree.
 
 ## Your task
 
-Answer the three-part analysis question. Draw on the ROADMAP log entry and on `tasks.c`'s own comment block, which tells this story in the code itself.
+Answer the question of why the DHCP path is deeper than the static one — using what `dhcp.c` does per reply, and what was already on the same stack. Then run `k` on the board console and read the free high-water marks of the three tasks. That is the tool that lets you see this class of fault *before* the crash — and the reason M4-05 asks for evidence rather than a factor.

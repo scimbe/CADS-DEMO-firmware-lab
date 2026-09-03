@@ -4,6 +4,9 @@
 !media/**
 !courses/**
 !package.json
+# Without these the workbench shows raw %keys% instead of the view and command names.
+!package.nls.json
+!package.nls.*.json
 !README.md
 !LICENSE
 !CHANGELOG.md

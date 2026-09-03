@@ -13,6 +13,10 @@ export interface Probe {
   requestDevices(opts?: { usb?: boolean; serial?: boolean }): Promise<ProbeStatus>;
   reconnect(): Promise<ProbeStatus>;
   disconnect(): Promise<ProbeStatus>;
+  /** Close device + port and drop the profile-wide lock, so another tab can have the board. */
+  release(): Promise<ProbeStatus>;
+  /** Tell the probe whether live core state is worth USB traffic right now. */
+  setPollingWanted(wanted: boolean): Promise<ProbeStatus>;
   readonly lastStatus: ProbeStatus | null;
   onEvent(cb: (e: ProbeEvent) => void): { dispose(): void };
 }
@@ -85,6 +89,16 @@ export class VsCodeProbeClient implements Probe {
 
   async reconnect(): Promise<ProbeStatus> {
     this.lastStatus = await this.exec<ProbeStatus>('cads.probe.reconnect');
+    return this.lastStatus;
+  }
+
+  async release(): Promise<ProbeStatus> {
+    this.lastStatus = await this.exec<ProbeStatus>('cads.probe.release');
+    return this.lastStatus;
+  }
+
+  async setPollingWanted(wanted: boolean): Promise<ProbeStatus> {
+    this.lastStatus = await this.exec<ProbeStatus>('cads.probe.setPollingWanted', wanted);
     return this.lastStatus;
   }
 

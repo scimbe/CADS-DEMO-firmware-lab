@@ -33,7 +33,7 @@ describe("markdown", () => {
 });
 
 describe("webview", () => {
-  it("renders a step with CSP nonce, tasks, hint tier and language toggle", () => {
+  it("renders a step with CSP nonce, tasks, hint tier and the language choice", () => {
     const view: StepView = {
       lang: "de", courseId: "c", courseTitle: "Kurs", moduleTitle: "M0", stepId: "s", title: "Titel <x>", index: 0, total: 4, bloom: "apply",
       estimatedMinutes: 5, objectives: ["o1"], creates: [], status: "active", lockedBy: [], bodyHtml: "<p>hi</p>",
@@ -49,7 +49,12 @@ describe("webview", () => {
     assert.match(html, /<script nonce="NONCE123">/);
     assert.match(html, /Titel &lt;x&gt;/);
     assert.match(html, /Hinweis 2 von 3/);
-    assert.match(html, /id="lang-toggle"[^>]*>English</);
+    // The switcher names BOTH languages and marks the active one. It must never
+    // be a single button labelled with the other language, which read as a claim
+    // about the current state.
+    assert.match(html, /class="btn lang-choice active"[^>]*data-lang="de"[^>]*>Deutsch</);
+    assert.match(html, /data-lang="en"[^>]*>English</);
+    assert.doesNotMatch(html, /id="lang-toggle"/);
     assert.match(html, /data-tutor-link="doc" data-path="docs\/x.md"/);
     assert.match(html, /class="task status-failed" data-task="a"/);
     assert.match(html, /textarea class="answer" data-task="q"/);

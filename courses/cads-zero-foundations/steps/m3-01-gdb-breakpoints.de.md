@@ -5,21 +5,24 @@ bloom: apply
 objectives: [firmware-how-to-debug]
 requires: [m2-05-explorer-command]
 estimatedMinutes: 15
+scaffold: worked
 links:
   - { step: m3-02-registers-svd }
   - { doc: "docs/how-to/debug.md" }
   - { doc: "docs/how-to/vscode-setup.md" }
   - { file: "targets/itsboard/main.c", line: 13 }
-sources: [docs/how-to/debug.md, docs/how-to/vscode-setup.md, targets/itsboard/main.c, apps/bringup/bringup.c]
+  - { file: "targets/itsboard/startup/startup_stm32f429.c", line: 69 }
+sources: [docs/how-to/debug.md, docs/how-to/vscode-setup.md, targets/itsboard/main.c, apps/bringup/bringup.c, targets/itsboard/startup/startup_stm32f429.c]
 tasks:
   - id: stop-in-main
     title: An einem Breakpoint in main() anhalten
     check: { type: debugStop, file: "targets/itsboard/main.c", line: 14 }
-  - id: reset-on-attach
-    title: Warum der erste Backtrace den frühen Boot zeigt
-    check: { type: question, prompt: { en: "You start a debug session and immediately ask for a backtrace. Why does it show the board a few milliseconds into boot rather than where it was when you decided to look, and why is this easy to misread as a hang?", de: "Du startest eine Debug-Sitzung und forderst sofort einen Backtrace an. Warum zeigt er das Board wenige Millisekunden nach dem Boot statt dort, wo es war, als du hinschauen wolltest, und warum ist das leicht als Hänger fehlzudeuten?" }, rubric: "Nennt, dass die Launch-Konfiguration 'monitor reset halt' ausführt und bis zum Einsprungpunkt main() läuft, das Anhängen das Target also zurücksetzt; der erste Halt ist deshalb der frühe Boot, nicht der vorherige Live-Zustand, und ein Stack nahe Reset_Handler/main ist die normale Folge, kein Beleg für einen Hänger.", bloom: understand }
+  - id: backtrace-frame
+    title: Den Frame unter main() benennen
+    check: { type: question, prompt: { en: "Halt at your breakpoint and take a backtrace. Which frame sits directly below main()?", de: "Halte an deinem Breakpoint und nimm einen Backtrace. Welcher Frame steht direkt unter main()?" }, rubric: "Nennt Reset_Handler - oder gleichbedeutend den Startup- bzw. Reset-Handler - als den Frame unterhalb von main(). Belegbar in targets/itsboard/startup/startup_stm32f429.c, wo der einzige Aufruf von main() steht. Eine Antwort, die eine Task, die Idle-Task oder „nichts“ nennt, hat den Backtrace nicht gelesen oder das Target gar nicht angehalten. Die genaue Schreibweise des Symbolnamens zählt nicht.", bloom: apply }
 socratic:
-  - { trigger: "task:stop-in-main:failed", question: { en: "The session started but never stopped at your breakpoint. Did it stop at main() at all, and is the breakpoint on a line that actually contains code?", de: "Die Sitzung startete, hielt aber nie an deinem Breakpoint. Hat sie überhaupt bei main() gehalten, und liegt der Breakpoint auf einer Zeile, die tatsächlich Code enthält?" }, hints: [ { en: "The launch configuration runs to main() first; if that never happened, the ELF and the flashed image may differ - rebuild and use Build + Flash.", de: "Die Launch-Konfiguration läuft zuerst bis main(); geschah das nie, unterscheiden sich womöglich ELF und geflashtes Image - neu bauen und Build + Flash nutzen." }, { en: "A breakpoint on a comment or blank line slides or is ignored; put it on the cads_bringup_run() call.", de: "Ein Breakpoint auf einem Kommentar oder einer Leerzeile rutscht oder wird ignoriert; setze ihn auf den Aufruf cads_bringup_run()." }, { en: "Only one client may hold the probe: end any earlier debug session before pressing F5 again.", de: "Nur ein Client darf die Probe halten: beende jede frühere Debug-Sitzung, bevor du F5 erneut drückst." } ] }
+  - { trigger: "task:stop-in-main:failed", question: { en: "The session started but never stopped at your breakpoint. Did it stop at main() at all, and is the breakpoint on a line that actually contains code?", de: "Die Sitzung startete, hielt aber nie an deinem Breakpoint. Hat sie überhaupt bei main() gehalten, und liegt der Breakpoint auf einer Zeile, die tatsächlich Code enthält?" }, hints: [ { en: "Is the image on the board the one you are debugging - or did the last build never reach the flash?", de: "Ist das Image auf dem Board dasselbe, das du debuggst - oder hat der letzte Bau den Flash nie erreicht?" }, { en: "Open targets/itsboard/main.c and check which line your red dot sits on; a dot on a comment or a blank line slides or is dropped.", de: "Öffne targets/itsboard/main.c und sieh nach, auf welcher Zeile dein roter Punkt sitzt; ein Punkt auf einem Kommentar oder einer Leerzeile rutscht oder entfällt." }, { en: "Only one client may hold the probe at a time - check whether an earlier debug session is still open before pressing F5 again.", de: "Nur ein Client darf die Probe gleichzeitig halten - prüfe, ob noch eine frühere Debug-Sitzung offen ist, bevor du F5 erneut drückst." } ] }
+  - { trigger: "question:backtrace-frame:weak", question: { en: "How many lines does your Call Stack panel show, and did you take the backtrace after the halt or before it?", de: "Wie viele Zeilen zeigt dein Call-Stack-Panel, und hast du den Backtrace nach dem Halt genommen oder davor?" }, hints: [ { en: "A one-line stack usually means the target was still running when you looked - halt first, then read.", de: "Ein einzeiliger Stack heißt meistens, dass das Target beim Hinsehen noch lief - erst anhalten, dann lesen." }, { en: "Open targets/itsboard/startup/startup_stm32f429.c and search for the one place where main is called.", de: "Öffne targets/itsboard/startup/startup_stm32f429.c und suche die eine Stelle, an der main aufgerufen wird." }, { en: "Look up which single function the vector table names as the entry point after power-up - that one calls everything else.", de: "Sieh nach, welche einzelne Funktion die Vektortabelle als Einsprung nach dem Einschalten nennt - diese ruft alles Weitere auf." } ] }
 ---
 ## Lernziel
 
@@ -47,19 +50,23 @@ int main(void) {
 }
 ```
 
-`cads_hal_init()` bringt Takte, GPIO, Konsole und Display hoch; `cads_bringup_run()` (in `apps/bringup/bringup.c`) führt den Selbsttest aus, zeichnet den Splash, startet den Scheduler und kehrt nicht zurück. Ein Breakpoint auf Zeile 14, dem Aufruf `cads_bringup_run()`, hält dich also genau zwischen „Hardware bereit" und „Anwendung läuft" - ein guter Ort, um zu sehen, was die HAL hinterlassen hat.
+`cads_hal_init()` bringt Takte, GPIO, Konsole und Display hoch; `cads_bringup_run()` (in `apps/bringup/bringup.c`) führt den Selbsttest aus, zeichnet den Splash, startet den Scheduler und kehrt nicht zurück. Ein Breakpoint auf Zeile 14, dem Aufruf `cads_bringup_run()`, hält dich also genau zwischen „Hardware bereit“ und „Anwendung läuft“ - ein guter Ort, um zu sehen, was die HAL hinterlassen hat.
+
+Aber `main()` ist nicht der Anfang. Vor ihm läuft der Reset-Pfad in `targets/itsboard/startup/startup_stm32f429.c`: die Vektortabelle nennt eine Einsprungfunktion, diese kopiert `.data`, nullt `.bss`, setzt `VTOR` und ruft erst dann `main()` auf. Genau deshalb hat ein Stack an deinem Breakpoint einen Frame **unterhalb** von `main()` - und dieser Frame ist deine Aufgabe.
 
 ## Anhängen ist nicht umsonst
 
-Zwei Tatsachen über ein angehaltenes Target werden leicht fehlgedeutet (`docs/how-to/debug.md`, „Where am I?" und „Time is frozen while halted"):
+Zwei Tatsachen über ein angehaltenes Target werden leicht fehlgedeutet (`docs/how-to/debug.md`, „Where am I?“ und „Time is frozen while halted“):
 
-1. **Anhängen setzt das Target zurück.** Die Launch-Konfiguration führt `monitor reset halt` aus, der erste Halt liegt also wenige Millisekunden nach dem Boot. Ein Backtrace dort zeigt `main()` oder den Reset-Handler, nicht den Ort, an dem die Firmware vor F5 war. Das ist normal, kein Hänger. Um einen *laufenden* Absturz zu untersuchen, hängst du ohne Reset an - das manuelle How-to dokumentiert dafür `st-util --no-reset`; `monitor halt` über die Bridge ist hier das Gegenstück.
+1. **Anhängen setzt das Target zurück.** Die Launch-Konfiguration führt `monitor reset halt` aus, der erste Halt liegt also wenige Millisekunden nach dem Boot. Ein Backtrace dort zeigt den frühen Boot, nicht den Ort, an dem die Firmware vor F5 war. Das ist normal, kein Hänger. Um einen *laufenden* Absturz zu untersuchen, hängst du ohne Reset an - das manuelle How-to dokumentiert dafür `st-util --no-reset`; `monitor halt` über die Bridge ist hier das Gegenstück.
 2. **`DWT->CYCCNT` läuft im Halt nicht weiter.** Zweimal aus dem Debugger gelesen liefert denselben Wert; das ist kein kaputter Zähler.
 
 ## Schrittweise ausführen
 
 Bei angehaltenem Target führt *Step Over* (F10) `cads_hal_init()` als Einheit aus; *Step Into* (F11) steigt hinein. Das Panel **Call Stack** zeigt die Frames von `main()` aufwärts, das Panel **Variables** die lokalen Variablen des gewählten Frames. Continue (F5) setzt fort; Pause hält den laufenden Kern, wo er gerade ist - sobald der Scheduler läuft, meist in der Idle-Task.
 
+Einen Backtrace bekommst du auf zwei Wegen: das Panel **Call Stack** liest ihn ab, und in der Debug-Konsole tut `-exec bt` dasselbe in Textform. Beide zeigen dieselben Frames, oben der aktuelle.
+
 ## Deine Aufgabe
 
-Setze einen Breakpoint auf `targets/itsboard/main.c` Zeile 14 (den Aufruf `cads_bringup_run()`), starte die Sitzung mit F5 und lass sie in diesen Breakpoint laufen; der Check bestätigt den Halt. Beantworte dann, warum der erste Backtrace den frühen Boot zeigt. Der nächste Step liest Peripherieregister desselben angehaltenen Boards.
+Setze einen Breakpoint auf `targets/itsboard/main.c` Zeile 14 (den Aufruf `cads_bringup_run()`), starte die Sitzung mit F5 und lass sie in diesen Breakpoint laufen; der Check bestätigt den Halt. Lies dann den Call-Stack und benenne den Frame direkt unter `main()`. Der nächste Step liest Peripherieregister desselben angehaltenen Boards.

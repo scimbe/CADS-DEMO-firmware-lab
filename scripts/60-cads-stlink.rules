@@ -1,0 +1,27 @@
+# 60-cads-stlink.rules – Linux host rules for the CaDS firmware lab.
+#
+# Install:   sudo cp scripts/60-cads-stlink.rules /etc/udev/rules.d/
+#            sudo udevadm control --reload-rules && sudo udevadm trigger
+# Remove:    sudo rm /etc/udev/rules.d/60-cads-stlink.rules && sudo udevadm control --reload-rules
+#
+# Two jobs:
+# 1. Let a normal user talk to the ST-Link over WebUSB. Without this the browser sees the device
+#    but cannot open it, and the lab reports that another program is holding the board.
+# 2. Keep the desktop from auto-mounting the ST-Link's MBED mass-storage volume. The ST-Link reads
+#    writes to that volume as firmware for 0x08000000, and desktop environments write metadata to
+#    any volume they mount. This is the same hazard the macOS fstab entry closes.
+
+# ST-Link V2, V2-1 (with and without mass storage), V3 – readable and writable by the logged-in user.
+SUBSYSTEM=="usb", ATTR{idVendor}=="0483", ATTR{idProduct}=="3748", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="0483", ATTR{idProduct}=="374b", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="0483", ATTR{idProduct}=="3752", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="0483", ATTR{idProduct}=="374e", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="0483", ATTR{idProduct}=="374f", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="0483", ATTR{idProduct}=="3753", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="0483", ATTR{idProduct}=="3754", MODE="0666", TAG+="uaccess"
+
+# The virtual COM port of the ST-Link, for the board console.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0483", MODE="0666", TAG+="uaccess"
+
+# Do not auto-mount and do not index the MBED drive of the debug adapter.
+SUBSYSTEM=="block", ENV{ID_FS_LABEL}=="NOD_F429ZI", ENV{UDISKS_IGNORE}="1", ENV{UDISKS_AUTO}="0"

@@ -1,0 +1,13 @@
+{
+  "name": "javascript-foundations",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Starter workspace for the CaDS Tutor course javascript-foundations (MDN JavaScript Guide). Node 22+, no dependencies.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  }
+}

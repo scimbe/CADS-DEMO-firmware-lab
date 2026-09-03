@@ -4,7 +4,9 @@ title: The independent watchdog and the reset cause
 bloom: understand
 objectives: [cz.rtos.watchdog]
 requires: [m4-03-mutex-spi-bus]
-estimatedMinutes: 12
+estimatedMinutes: 14
+scaffold: independent
+recallFrom: [m3-03-fault-forensics]
 links:
   - { step: m4-05-stack-sizing }
   - { step: m3-03-fault-forensics }
@@ -12,16 +14,19 @@ links:
   - { file: "modules/kernel/src/kernel.c", line: 309 }
   - { file: "targets/itsboard/hal/hal_watchdog.c", line: 49 }
   - { doc: "docs/SAFETY.md" }
-sources: [core/cads_hal.h, modules/kernel/src/kernel.c, targets/itsboard/hal/hal_watchdog.c, docs/SAFETY.md]
+sources: [core/cads_hal.h, modules/kernel/src/kernel.c, targets/itsboard/hal/hal_watchdog.c, apps/bringup/explorer.c, docs/SAFETY.md]
 tasks:
   - id: reset-cause
     title: Read this boot's reset cause
-    check: { type: manual }
-  - id: feed-from-tick
-    title: Explain who feeds the watchdog and why
-    check: { type: question, prompt: { en: "The IWDG is fed from vApplicationTickHook, once per SysTick, and never from an application task. Why that choice, what class of lockup does it therefore not catch, and how does the firmware tell an IWDG reset apart from a power-on at the next boot?", de: "Der IWDG wird aus vApplicationTickHook gefüttert, einmal je SysTick, und nie aus einer Anwendungs-Task. Warum diese Wahl, welche Art von Hänger fängt er dadurch nicht, und wie unterscheidet die Firmware beim nächsten Boot einen IWDG-Reset von einem Power-on?" }, rubric: "Feeding from the 1 kHz tick proves the interrupt subsystem is alive and recovers from a HardFault-recursion loop or an interrupts-disabled deadlock, with zero risk of a spurious reset during a legitimate long operation such as a 448 ms flush or a minutes-long explorer demo, since those never stop the tick. It does NOT catch a task that spins forever while interrupts keep flowing. cads_hal_reset_cause() decodes RCC->CSR once per boot (IWDGRSTF -> CadsResetWatchdogIndependent vs POR/BOR -> CadsResetPowerOn), clears the sticky flags with RMVF, and caches the answer; the `E` command prints it.", bloom: understand }
+    check: { type: serialExpect, send: "E\n", pattern: "reset cause", timeoutMs: 15000 }
+  - id: iwdg-period
+    title: Settle the contradiction in the source
+    check: { type: question, prompt: { en: "Prescaler /64, reload 1000, LSI at about 32 kHz. The comment above the two defines in targets/itsboard/hal/hal_watchdog.c claims about 2.048 ms per tick and about 2.048 s in total. Which of the two figures - the comment's or your own - follows from the values given, and why?", de: "Prescaler /64, Reload 1000, LSI mit etwa 32 kHz. Der Kommentar über den beiden Defines in targets/itsboard/hal/hal_watchdog.c nennt etwa 2,048 ms je Tick und etwa 2,048 s insgesamt. Welche der beiden Zahlen - die des Kommentars oder deine eigene - folgt aus den angegebenen Werten, und warum?" }, rubric: "Your own arithmetic wins; the comment is wrong at this point. The prescaler divides the LSI frequency: 32,000 / 64 = 500 Hz, so one counter tick lasts 1/500 s = 2.0 ms. The counter runs down from 1000, making the period 2.0 s. The answer must also say where the 2.048 comes from: 2.048 ms per tick follows from 64 / 31,250 s, so it presupposes an LSI of 31.25 kHz rather than 32 kHz - a figure that appears neither in the comment nor anywhere this step cites. Passes if 2.0 ms and 2.0 s are named and the comment is explicitly called out as inconsistent with the 32 kHz it itself states; taking the 2.048 s on trust does not pass. The second half of the answer is the comparison: 2.0 s is about four times the firmware's longest normal blocking span, the 448 ms full-screen flush - which is why no legitimate operation can trip the watchdog. Multiplying 1000 ticks by the raw LSI period instead of the divided one lands at 31 ms and skipped the prescaler.", bloom: understand }
+misconceptions:
+  - { pattern: "reset cause: IWDG watchdog", question: { en: "The board says the watchdog reset it. Does that make this boot clean or suspect?", de: "Das Board meldet einen Watchdog-Reset. Ist dieser Boot damit sauber oder verdächtig?" }, hints: [ { en: "Something stopped the tick from reaching the watchdog for two whole seconds - is that ever normal here?", de: "Etwas hat den Tick zwei ganze Sekunden lang nicht bis zum Watchdog kommen lassen - ist das hier je normal?" }, { en: "Read on past the reset-cause line: the same E output lists the forensic ring underneath it.", de: "Lies über die Reset-Ursachen-Zeile hinaus: dieselbe E-Ausgabe listet darunter den Forensik-Ring." }, { en: "A record written shortly before the reset survives in CCM, so the reason string that preceded the reset is usually still readable.", de: "Ein kurz vor dem Reset geschriebener Datensatz überlebt im CCM, die Grundzeichenkette vor dem Reset ist also meist noch lesbar." } ] }
 socratic:
-  - { trigger: "question:feed-from-tick:weak", question: { en: "If a task spins in a loop with interrupts enabled, does SysTick still fire? What does that imply for a watchdog fed from the tick?", de: "Wenn eine Task mit aktivierten Interrupts endlos schleift, feuert SysTick dann noch? Was folgt daraus für einen aus dem Tick gefütterten Watchdog?" }, hints: [ { en: "core/cads_hal.h, the comment above cads_hal_watchdog_init(): the tick feed proves the interrupt subsystem is alive, nothing more.", de: "core/cads_hal.h, Kommentar über cads_hal_watchdog_init(): das Tick-Füttern beweist, dass das Interrupt-System lebt, mehr nicht." }, { en: "A cooperative task spinning forever is explicitly the 'different, harder problem this feature does not claim to solve'.", de: "Eine kooperative Task, die ewig schleift, ist ausdrücklich das 'andere, schwerere Problem, das dieses Feature nicht zu lösen beansprucht'." }, { en: "hal_watchdog.c: RCC_CSR_IWDGRSTF selects CadsResetWatchdogIndependent; RCC->CSR |= RMVF clears the flags for the next boot.", de: "hal_watchdog.c: RCC_CSR_IWDGRSTF wählt CadsResetWatchdogIndependent; RCC->CSR |= RMVF löscht die Flags für den nächsten Boot." } ] }
+  - { trigger: "task:reset-cause:failed", question: { en: "Did E produce any output at all, or is the board still inside the app tree that ignores plain typed bytes?", de: "Hat E überhaupt eine Ausgabe erzeugt, oder steckt das Board noch im App-Baum, der einfach getippte Bytes ignoriert?" }, hints: [ { en: "No echo at all usually means the prompt is not the thing listening right now.", de: "Gar kein Echo heißt meistens, dass gerade nicht der Prompt zuhört." }, { en: "Send scripts/board_key.py quit from the terminal, then let the check run again.", de: "Sende scripts/board_key.py quit aus dem Terminal, dann lass den Check erneut laufen." }, { en: "The reset-cause line is the first thing E prints, before the ring - if you see ring records but no cause line, the output was truncated at the top.", de: "Die Reset-Ursachen-Zeile ist das Erste, was E druckt, noch vor dem Ring - siehst du Ring-Datensätze, aber keine Ursachenzeile, wurde die Ausgabe oben abgeschnitten." } ] }
+  - { trigger: "question:iwdg-period:weak", question: { en: "What does a prescaler of /64 do to the 32 kHz before the counter ever sees it?", de: "Was macht ein Prescaler von /64 mit den 32 kHz, bevor der Zähler sie überhaupt sieht?" }, hints: [ { en: "Are you dividing the clock first and then counting, or counting at the raw clock rate?", de: "Teilst du den Takt zuerst und zählst dann, oder zählst du mit dem rohen Takt?" }, { en: "Read the comment block above the two defines in targets/itsboard/hal/hal_watchdog.c; it walks the same two steps but arrives at a different number - do the arithmetic yourself before you believe it.", de: "Lies den Kommentarblock über den beiden Defines in targets/itsboard/hal/hal_watchdog.c; er geht dieselben zwei Schritte durch, kommt aber auf eine andere Zahl - rechne selbst nach, bevor du sie glaubst." }, { en: "One counting step lasts as long as one cycle of the already-divided clock; the reload number only says how many steps it takes to reach zero.", de: "Ein Zählschritt dauert so lange wie eine Schwingung des bereits geteilten Takts; die Reload-Zahl sagt nur, wie viele Schritte bis null nötig sind." } ] }
 ---
 ## Learning goal
 
@@ -31,8 +36,10 @@ Understand how the independent watchdog turns "the board sits locked up with the
 
 `core/cads_hal.h` documents the design in the comment above `cads_hal_watchdog_init()`:
 
-1. **`cads_hal_watchdog_init()` / `cads_hal_watchdog_feed()`.** `modules/kernel/src/kernel.c` arms the IWDG at scheduler start with `CADS_WATCHDOG_TIMEOUT_MS` (2000 ms) and feeds it from `vApplicationTickHook()` — once per SysTick at 1 kHz — **never from an application task**.
+1. **`cads_hal_watchdog_init()` / `cads_hal_watchdog_feed()`.** `modules/kernel/src/kernel.c` arms the IWDG at scheduler start and feeds it from `vApplicationTickHook()` — once per SysTick at 1 kHz — **never from an application task**.
 2. **`cads_hal_reset_cause()`.** Decodes `RCC->CSR` before anything clears it, so a reset the watchdog caused is distinguishable from a power-on or a debugger reset.
+
+One subtlety stands out on reading: `cads_hal_watchdog_init()` does take a timeout parameter (`CADS_WATCHDOG_TIMEOUT_MS` from `kernel.c`), but discards it with `(void)timeout_ms` and uses fixed prescaler and reload values. The actual period is therefore not in the caller but in the hardware configuration further down — and you are about to work it out yourself.
 
 ## Why the tick, not a task
 
@@ -44,9 +51,22 @@ The honest limit: it does **not** catch a cooperative task spinning forever on s
 
 `targets/itsboard/hal/hal_watchdog.c` writes only IWDG, DBGMCU and `RCC->CSR` — no GPIO, so none of the pin rules in `docs/SAFETY.md` apply. Three things matter:
 
-- **One-way door.** Once started with key `0xCCCC`, the IWDG cannot be stopped by software, not by a peripheral reset either — only a full power-on. The prescaler is `/64` with reload 1000 on the ~32 kHz LSI RC oscillator, roughly 2 s: about 4× the worst normal blocking span.
+- **One-way door.** Once started with key `0xCCCC`, the IWDG cannot be stopped by software, not by a peripheral reset either — only a full power-on. It is clocked from the **LSI**, the chip's own RC oscillator at a nominal **32 kHz**, entirely independent of the PLL and HSE. It is configured with prescaler **`/64`** (`CADS_IWDG_PRESCALER_BITS`) and reload **1000** (`CADS_IWDG_RELOAD_VALUE`). How long a period that makes is your second task; compare the result with the 448 ms flush afterwards.
 - **Frozen on debug halt.** `DBGMCU->APB1FZ |= DBGMCU_APB1_FZ_DBG_IWDG_STOP`, so attaching GDB to a live panic never races a surprise reset out from under you. This keeps `docs/SAFETY.md`'s "halts usefully with a debugger attached" true. (It also explains a real bug you will read about in M7: a *reset* during flashing re-arms this watchdog before the core is halted again.)
 - **Sticky flags.** `RCC->CSR`'s reset-cause bits survive until cleared. `cads_hal_reset_cause()` reads them exactly once per boot — `RCC_CSR_IWDGRSTF` maps to `CadsResetWatchdogIndependent`, POR/BOR to `CadsResetPowerOn`, NRST to `CadsResetPin` — clears them with `RMVF`, and returns the cached answer on every later call.
+
+Incidentally, the LSI is an RC oscillator with no tight tolerance spec. Unlike HSE, the firmware never reads back what frequency it actually achieves; the computed period is therefore a nominal figure, not a guaranteed one. For a watchdog set about four times above the longest normal operation that is fine — and it is precisely why the margin is chosen so generously.
+
+## A comment that does not match its own numbers
+
+Do the arithmetic; do not copy it. The comment above the two defines in `targets/itsboard/hal/hal_watchdog.c` states two values:
+
+> `IWDG_PR prescaler /64 (PR=100b) gives a ~2.048 ms tick at nominal 32 kHz;`
+> `IWDG_RLR=1000 (max 0xFFF=4095) gives ~2.048 s.`
+
+The same comment gives the LSI's nominal frequency as 32 kHz. But those two numbers do not follow from 32 kHz and `/64`. Which figure does follow from the stated values, which does not, and what LSI frequency you would have to assume for the comment to be right — that is your second task. Open the file and read the comment in the original before judging it; the two lines above are a quotation, not a summary.
+
+This is not a contrived example: a number in a comment is a claim like any other, and this course does not adopt it unchecked merely because it sits in the source.
 
 ## Where you see it
 
@@ -54,4 +74,10 @@ The explorer's `E` command prints `# this boot's reset cause: ...` followed by t
 
 ## Your task
 
-Run `E` on the console and read this boot's reset cause. Then answer the question on why the tick feeds the watchdog and how a watchdog reset is recognised.
+Open the board console so you can read along — you do not have to send anything: the **Check** button on this task sends `E` itself and waits for the answer. Read this boot's reset cause. If the board is sitting in the app tree, run `python3 scripts/board_key.py quit` once in a terminal first. Then compute the watchdog period from the three hardware values above, settle the contradiction with the comment in `targets/itsboard/hal/hal_watchdog.c`, and compare the result with the firmware's longest normal blocking span.
+
+**Where you do this:**
+- Open a file: `Ctrl`/`Cmd`+`P`.
+- Open a terminal: menu *Terminal → New Terminal*.
+- Open the board console: `F1`, then *CaDS Board: Konsole öffnen*.
+- Build: menu *Terminal → Run Build Task…*.

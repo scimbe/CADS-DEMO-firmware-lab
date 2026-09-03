@@ -1,0 +1,11 @@
+[package]
+name = "rust-foundations"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "PLACEHOLDER starter workspace for the CaDS Tutor rust-foundations course"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]

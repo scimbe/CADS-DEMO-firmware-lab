@@ -5,6 +5,7 @@
  */
 import * as vscode from 'vscode';
 import {
+  type LockManagerLike,
   type Logger,
   ProbeError,
   ProbeService,
@@ -40,8 +41,8 @@ interface SerialNavigator {
   addEventListener(type: 'connect' | 'disconnect', cb: (ev: { target: SerialPortLike }) => void): void;
 }
 
-function nav(): { usb?: UsbNavigator; serial?: SerialNavigator } {
-  return (globalThis as unknown as { navigator?: { usb?: UsbNavigator; serial?: SerialNavigator } }).navigator ?? {};
+function nav(): { usb?: UsbNavigator; serial?: SerialNavigator; locks?: LockManagerLike } {
+  return (globalThis as unknown as { navigator?: { usb?: UsbNavigator; serial?: SerialNavigator; locks?: LockManagerLike } }).navigator ?? {};
 }
 
 function ping(): ProbePing {
@@ -91,7 +92,33 @@ export function activate(context: vscode.ExtensionContext): void {
     );
   };
 
-  const probe = new ProbeService({ emit, log, pollIntervalMs: 100 });
+  const probe = new ProbeService({ emit, log, pollIntervalMs: 100, locks: nav().locks });
+
+  /**
+   * Hand the board back. Called by the "Board freigeben" command, on shutdown, and whenever the
+   * window stops being used - a browser tab that is closed hard never runs any of this, which is
+   * exactly why connecting re-establishes the state instead of trusting a clean exit.
+   */
+  async function release(why: string): Promise<ProbeStatus> {
+    if (probe.isFlashing) {
+      log.warn(`release (${why}) refused: a flash is running`);
+      return probe.status();
+    }
+    log.info(`releasing the board (${why})`);
+    await probe.release();
+    return probe.status();
+  }
+
+  /** Give up the board after this long with the window unfocused. 0 disables it. */
+  const idleReleaseMs = (): number =>
+    Math.max(0, vscode.workspace.getConfiguration('cads.board').get<number>('idleReleaseSeconds', 0) * 1000);
+  let idleTimer: ReturnType<typeof setTimeout> | null = null;
+  const cancelIdleRelease = (): void => {
+    if (idleTimer) {
+      clearTimeout(idleTimer);
+      idleTimer = null;
+    }
+  };
 
   /** Attach the first granted ST-Link / ST serial port without a chooser (getDevices/getPorts). */
   async function reconnect(): Promise<ProbeStatus> {
@@ -190,6 +217,32 @@ export function activate(context: vscode.ExtensionContext): void {
       await probe.detachUsb();
       return probe.status();
     }),
+    vscode.commands.registerCommand('cads.probe.release', () => release('command')),
+    vscode.commands.registerCommand('cads.probe.setPollingWanted', (wanted: boolean) => {
+      probe.setPollingWanted(wanted !== false);
+      return probe.status();
+    }),
+    // The window losing focus is the closest thing a web-worker extension host has to
+    // visibilitychange: there is no document here, so document events are not reachable.
+    vscode.window.onDidChangeWindowState((st) => {
+      if (st.focused) {
+        cancelIdleRelease();
+        probe.setPollingWanted(true);
+        probe.noteActivity();
+        return;
+      }
+      probe.setPollingWanted(false);
+      const after = idleReleaseMs();
+      if (after > 0 && probe.isConnected) {
+        cancelIdleRelease();
+        idleTimer = setTimeout(() => void release('window idle'), after);
+      }
+    }),
+    { dispose: () => cancelIdleRelease() },
+    // Best effort on teardown. VS Code calls deactivate() on an orderly shutdown; a tab that is
+    // simply closed gets no notice at all, in any browser, which is why connect() re-establishes
+    // the ST-Link state rather than assuming the previous session ended cleanly.
+    { dispose: () => void probe.release().catch(() => undefined) },
     vscode.commands.registerCommand(
       'cads.probe.op',
       async (request: ProbeOp | { batch: ProbeOp[] }): Promise<ProbeResult | { results: ProbeResult[] }> => {

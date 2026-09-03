@@ -8,6 +8,8 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { BoardController, type BoardEvent, type BoardStatus } from './board';
 import { createHttpServer } from './http';
+import { boardMessage, boardMessageLine } from './messages';
+import { listenWithRetry } from './listen';
 import { VsCodeProbeClient } from './probeClient';
 import { GdbSession } from './rsp/server';
 import { SerialTcpServer, SocatPty } from './serialServer';
@@ -203,16 +205,14 @@ export function activate(context: vscode.ExtensionContext): BoardBridgeApi {
     sock.on('close', done);
     sock.on('error', done);
   });
-  gdbServer.on('error', (e) => log.error(`GDB server: ${e.message}`));
-  gdbServer.listen(gdbPort, '127.0.0.1', () => log.info(`GDB server listening on 127.0.0.1:${gdbPort}`));
-  context.subscriptions.push({ dispose: () => gdbServer.close() });
+  const gdbListener = listenWithRetry(gdbServer, gdbPort, '127.0.0.1', 'GDB server', log);
+  context.subscriptions.push({ dispose: () => { gdbListener.dispose(); gdbServer.close(); } });
 
   // ---- serial TCP + socat + HTTP ---------------------------------------------------------
   const serialPort = cfg('serialPort', 3334);
   const serialTcp = new SerialTcpServer(board, log);
-  serialTcp.server.on('error', (e) => log.error(`serial tcp: ${e.message}`));
-  serialTcp.server.listen(serialPort, '127.0.0.1', () => log.info(`serial TCP listening on 127.0.0.1:${serialPort}`));
-  context.subscriptions.push({ dispose: () => serialTcp.close() });
+  const serialListener = listenWithRetry(serialTcp.server, serialPort, '127.0.0.1', 'serial TCP', log);
+  context.subscriptions.push({ dispose: () => { serialListener.dispose(); serialTcp.close(); } });
   const socat = new SocatPty(cfg('consoleLink', '/home/coder/board-console'), serialPort, log);
   socat.start();
   context.subscriptions.push({ dispose: () => socat.stop() });
@@ -227,9 +227,8 @@ export function activate(context: vscode.ExtensionContext): BoardBridgeApi {
         }
       : undefined,
   });
-  httpServer.on('error', (e) => log.error(`http: ${e.message}`));
-  httpServer.listen(httpPort, '127.0.0.1', () => log.info(`HTTP shim API listening on 127.0.0.1:${httpPort}`));
-  context.subscriptions.push({ dispose: () => httpServer.close() });
+  const httpListener = listenWithRetry(httpServer, httpPort, '127.0.0.1', 'HTTP shim API', log);
+  context.subscriptions.push({ dispose: () => { httpListener.dispose(); httpServer.close(); } });
 
   // ---- commands --------------------------------------------------------------------------
   const flashCommand = async (file?: string): Promise<{ ok: boolean; error?: string }> => {
@@ -261,7 +260,14 @@ export function activate(context: vscode.ExtensionContext): BoardBridgeApi {
   context.subscriptions.push(
     vscode.commands.registerCommand('cads.board.connect', async () => {
       const s = await board.connect();
-      if (!s.connected) void vscode.window.showWarningMessage(`Board nicht verbunden${s.probe?.lastError ? `: ${s.probe.lastError}` : ''}`);
+      if (!s.connected) {
+        // The raw DOMException reads like a broken board; say who is holding it instead.
+        const m = boardMessage(s.probe?.blockReason, vscode.env.language);
+        const pick = await vscode.window.showWarningMessage(m.title, { modal: false, detail: m.action }, 'Erneut verbinden', 'Log anzeigen');
+        if (pick === 'Erneut verbinden') await vscode.commands.executeCommand('cads.board.connect');
+        else if (pick === 'Log anzeigen') await vscode.commands.executeCommand('cads.board.showPanel');
+        log.warn(`connect refused (${s.probe?.blockReason ?? 'unknown'}): ${s.probe?.lastError ?? '-'}`);
+      }
       return s;
     }),
     vscode.commands.registerCommand('cads.board.disconnect', () => board.disconnect()),
@@ -276,6 +282,11 @@ export function activate(context: vscode.ExtensionContext): BoardBridgeApi {
       out.show(true);
       return board.getStatus();
     }),
+    vscode.commands.registerCommand('cads.board.release', async () => {
+      const s = await board.release();
+      void vscode.window.setStatusBarMessage('$(check) Board freigegeben – ein anderer Tab kann es jetzt benutzen', 6000);
+      return s;
+    }),
     vscode.commands.registerCommand('cads.board.showMenu', async () => {
       const s = board.getStatus();
       const items: (vscode.QuickPickItem & { cmd: string })[] = s.connected
@@ -286,6 +297,7 @@ export function activate(context: vscode.ExtensionContext): BoardBridgeApi {
             { label: '$(terminal) Konsole öffnen', cmd: 'cads.board.openConsole' },
             { label: '$(output) Log anzeigen', cmd: 'cads.board.showPanel' },
             { label: '$(debug-disconnect) Trennen', cmd: 'cads.board.disconnect' },
+            { label: '$(circle-slash) Board freigeben (für einen anderen Tab)', cmd: 'cads.board.release' },
           ]
         : [
             { label: '$(plug) Board verbinden (USB/Serial freigeben)', cmd: 'cads.board.connect' },
