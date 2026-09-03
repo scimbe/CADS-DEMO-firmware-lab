@@ -562,6 +562,14 @@ TEXT = {
     "of": ("von", "of"),
     "forbidden": ("Kein Zugriff auf diesen Kurs.", "No access to this course."),
     "showing": ("Angezeigt", "Showing"),
+    "sidenote": ("Randnotiz (kein Signal)", "Side note (not a signal)"),
+    "outside_session": (
+        "Ereignisse außerhalb einer aufgezeichneten Session. Das ist keine Auffälligkeit und geht in keine "
+        "Bewertung ein: Eine abgestürzte Sitzung ohne session.end hinterlässt dieselbe Spur. Steht hier nur, "
+        "damit eine Lücke im Zeitstrahl erklärbar ist.",
+        "Events outside any recorded session. This is not an anomaly and enters no assessment: a crashed "
+        "session with no session.end leaves the same trace. It is here only so that a gap in the timeline "
+        "can be made sense of."),
     "all_events": ("Alle Ereignisse anzeigen", "Show all events"),
 }
 
@@ -1156,6 +1164,13 @@ def page_student(p: Portal, ctx: dict) -> str:
         ("answers pass/weak/fail", f'{m["answers_pass"]}/{m["answers_weak"]}/{m["answers_fail"]}'),
         (t("hints", lang), f'{m["hints"]} (T3 {m["tier3"]})'),
     ]))
+    diag = a["thresholds"].get("diagnostics") or {}
+    outside = an.outside_session_events(ev, diag.get("outsideSessionGraceSeconds", 120.0)).get(slug, [])
+    if len(outside) >= diag.get("outsideSessionMinToShow", 3):
+        sample = ", ".join(f'{o["type"]} {o["ts"]}' for o in outside[:3])
+        body.append(f'<div class="note"><strong>{esc(t("sidenote", lang))}:</strong> '
+                    f'{len(outside)} {esc(t("outside_session", lang))} '
+                    f'<span class="evidence">{esc(sample)}</span></div>')
     body.append(f"<h2>{esc(t('timeline', lang))}</h2>")
     rows = an.timeline(ev)
     body.append(svg_timeline(rows, title=t("timeline", lang)))
@@ -1231,7 +1246,7 @@ RULE_ROWS = [
                    "Criteria met with ease = absolute criteria: first-attempt pass rate above the floor, at most this many hints per step, a plausible median step time, enough checks. The cohort percentile appears only as a supplementary, norm-referenced note and decides nothing.")),
     ("struggling", ("Kriterien noch nicht erreicht = mindestens so viele absolute Indikatoren: niedrige Erstversuch-Quote, viele Hinweise der Stufe 3, Steps mit mehreren Versuchen ohne Bestehen, Abbrüche. z-Werte und Perzentile sind ergänzende Hinweise und zählen nicht als Kriterium.",
                     "Criteria not yet met = at least this many absolute indicators: low first-attempt pass rate, many tier-3 hints, steps with several attempts and no pass, abandoned steps. z-scores and percentiles are supplementary notes and do not count as criteria.")),
-    ("integrity", ("Auffällig – Rückfrage empfohlen = ein starkes Signal ODER mehrere schwache. Stark: Freitexte zweier Studierender, die deutlich ähnlicher sind als der Steptext selbst (Differenzmaß, nicht absoluter Schwellwert); Vorhersage exakt gleich der Ausgabe und erst nach dem Lauf geschrieben. Schwach: schnelles Bestehen mit hohem Paste-Anteil – aber nur, wenn vorher kein Hinweis der Stufe 2 oder 3 gezeigt wurde und der Steptext die Lösung nicht nennt; Ereignisse außerhalb einer Session.",
+    ("integrity", ("Auffällig – Rückfrage empfohlen = ein starkes Signal ODER mehrere schwache. Stark: Freitexte zweier Studierender, die deutlich ähnlicher sind als der Steptext selbst (Differenzmaß, nicht absoluter Schwellwert); Vorhersage exakt gleich der Ausgabe und erst nach dem Lauf geschrieben. Schwach: nur schnelles Bestehen mit hohem Paste-Anteil, und auch das nur, wenn vorher kein Hinweis der Stufe 2 oder 3 gezeigt wurde und der Steptext die Lösung nicht nennt. Da dies die einzige verbliebene schwache Signalart ist und für eine Rückfrage zwei verschiedene Arten nötig sind, kann der Paste-Anteil allein nie zu einer Rückfrage führen. Ereignisse außerhalb einer Session wurden als Signal entfernt (ohne Trennschärfe, siehe RULES.md 5.5).",
                    "Needs a conversation = one strong signal OR several weak ones. Strong: two students' free texts that are markedly more alike than the step's own text (a difference measure, not an absolute threshold); a prediction equal to the output and written only after the run. Weak: a fast pass with a high paste share, but only where no tier-2 or tier-3 hint had been shown and the step text does not state the answer; events outside any session.")),
     ("mastery", ("Gewichte für Mastery je Lernziel aus Checks, beantworteten Fragen und Vorhersagen.",
                  "Weights for mastery per objective from checks, answered questions and predictions.")),

@@ -55,9 +55,13 @@ DEFAULT_THRESHOLDS: dict = {
         "textMargin": 0.25,          # ... and how far it must exceed the step's own text
         "textMinTokens": 8,
         "textTypes": ["reflection.written"],   # only answers that require own wording
-        "outsideSessionMin": 3,
+        "weakForFollowup": 2,        # this many DISTINCT KINDS of weak signal warrant a question
+    },
+    # Not signals.  Observations kept for the deep dive so a teacher can make sense of a
+    # timeline, explicitly excluded from every flag.  See RULES.md section 5.5.
+    "diagnostics": {
         "outsideSessionGraceSeconds": 120,
-        "weakForFollowup": 2,        # this many weak signals together warrant a question
+        "outsideSessionMinToShow": 3,
     },
     "mastery": {"weights": {"check": 0.5, "question": 0.3, "predict": 0.2}},
 }
@@ -477,7 +481,14 @@ def identical_texts(events: list[dict], course: Optional[dict] = None, threshold
 
 
 def outside_session_events(events: list[dict], grace_s: float = 120.0) -> dict[str, list[dict]]:
-    """Events per student that fall outside every [session.start, session.end] window."""
+    """Events per student outside every [session.start, session.end] window.  NOT a signal.
+
+    This was an integrity signal until the control group measured it: it fired on 4 of 4
+    members of a demonstrably uninvolved group, because a crashed session leaves exactly the
+    same trace as working outside one.  A feature that flags 100 % of the innocent carries no
+    information, so it no longer contributes to any flag.  It survives only as a neutral note
+    in the deep dive, where it helps a teacher read a gappy timeline.  See RULES.md 5.5.
+    """
     by_student: dict[str, list[dict]] = defaultdict(list)
     for e in events:
         by_student[e["student"]].append(e)
@@ -588,7 +599,6 @@ def compute_flags(events: list[dict], metrics: dict[str, dict], thresholds: Opti
     fast = fast_paste_passes(metrics, course, ig["fastPassSeconds"], ig["pasteShare"])
     ident = identical_texts(events, course, ig["textJaccard"], ig["textMinTokens"],
                             ig["textMargin"], ig["textTypes"])
-    outside = outside_session_events(events, ig["outsideSessionGraceSeconds"])
     preds = prediction_anomalies(events)
     flags: dict[str, list[dict]] = {}
     for stu, m in sorted(metrics.items()):
@@ -626,7 +636,7 @@ def compute_flags(events: list[dict], metrics: dict[str, dict], thresholds: Opti
                 "en": "May also mean: the prediction was filled in afterwards because it had been forgotten - the "
                       "editor does not enforce the order."}})
         for hit in fast.get(stu, []):
-            reasons.append({"strength": "weak", "evidence": hit, "text": {
+            reasons.append({"strength": "weak", "kind": "paste", "evidence": hit, "text": {
                 "de": f"Step {hit['step']}: Check beim ersten Versuch nach {hit['seconds']} s bestanden, "
                       f"Paste-Anteil {hit['paste_share']:.0%}, ohne vorher gezeigten Hinweis der Stufe 2 oder 3",
                 "en": f"Step {hit['step']}: check passed first try after {hit['seconds']} s with "
@@ -638,17 +648,13 @@ def compute_flags(events: list[dict], metrics: dict[str, dict], thresholds: Opti
                 "en": "May also mean: the paste is material taken from a hint or from the course text, which the "
                       "course offers on purpose; the short working time is prior knowledge from work or earlier "
                       "study; or the solution was written in another editor."}})
-        outs = outside.get(stu, [])
-        if len(outs) >= ig["outsideSessionMin"]:
-            reasons.append({"strength": "weak", "evidence": {"count": len(outs), "sample": outs[:5]}, "text": {
-                "de": f"{len(outs)} Ereignisse außerhalb einer Session (z. B. {outs[0]['type']} {outs[0]['ts']})",
-                "en": f"{len(outs)} events outside any session (e.g. {outs[0]['type']} {outs[0]['ts']})"},
-                "counter": {
-                "de": "Kann auch bedeuten: abgestürzte Sitzung, fehlendes session.end, Arbeit über einen Neustart hinweg.",
-                "en": "May also mean: a crashed session, a missing session.end, work spanning a restart."}})
         strong = [r for r in reasons if r["strength"] == "strong"]
         weak = [r for r in reasons if r["strength"] == "weak"]
-        if strong or len(weak) >= ig["weakForFollowup"]:
+        # Distinct KINDS, not instances.  Repeating one weak observation is the same weak
+        # observation, not corroboration: counting instances would let the paste share alone
+        # reach a follow-up, which is exactly what it must never do (RULES.md 0a.1).
+        weak_kinds = {r.get("kind") for r in weak}
+        if strong or len(weak_kinds) >= ig["weakForFollowup"]:
             mine.append({"flag": "followup",
                          "label": {"de": "Auffällig – Rückfrage empfohlen", "en": "Needs a conversation"},
                          "reasons": reasons, "notes": []})

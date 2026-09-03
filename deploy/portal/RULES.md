@@ -235,22 +235,46 @@ schwaches Signal ergibt nur `notice` – zur Kenntnis, ohne Handlungsbedarf.
    *Gegenhypothese: die Vorhersage wurde nachgetragen, weil sie vorher vergessen wurde – der Editor
    erzwingt die Reihenfolge nicht.*
 
-**Schwache** Signale:
+**Schwaches** Signal – es gibt nur noch eines:
 
 3. **Schnell bestanden mit hohem Paste-Anteil.** Check ohne vorherigen Fehlschlag, Zeit unter
    `fastPassSeconds: 60`, Paste-Anteil über `pasteShare: 0.8` – **und** zusätzlich: vorher wurde **kein**
    Hinweis der Stufe 2 oder 3 gezeigt **und** der Steptext nennt die Lösung nicht. Fehlt eine dieser beiden
    Bedingungen, wird das Signal verworfen, nicht abgeschwächt. Begründung: Abschnitt 0a.1.
-   *Gegenhypothese: Codegerüst aus dem Kursmaterial übernommen, Vorwissen, oder eine Lösung, die in einem
-   anderen Editor entstanden ist.*
-4. **Aktivität außerhalb einer Session.** Mindestens `outsideSessionMin: 3` Ereignisse außerhalb jedes
-   `session.start`/`session.end`-Fensters (Toleranz `outsideSessionGraceSeconds: 120`).
-   *Gegenhypothese: abgestürzte Sitzung, fehlendes `session.end`, Arbeit über einen Neustart hinweg.*
+   *Gegenhypothese: Einfügen ist Übernahme aus einem Hinweis oder dem Kursmaterial, kurze Bearbeitungszeit
+   ist Vorwissen, oder die Lösung ist in einem anderen Editor entstanden.*
+
+**Zwei schwache Signale heißt: zwei verschiedene Arten.** Gezählt werden Signal*arten*, nicht
+Vorkommen. Zehnmal dieselbe Beobachtung ist dieselbe Beobachtung, keine Bestätigung durch eine zweite,
+unabhängige Quelle. Da der Paste-Anteil seit der Streichung in Abschnitt 5.5 die **einzige** verbliebene
+schwache Signalart ist, folgt daraus unmittelbar: **Der Paste-Anteil kann allein nie zu einer Rückfrage
+führen**, so oft er auch auftritt. Genau das verlangt Abschnitt 0a.1.
 
 ### 5.4 „Längere Zeit ohne Aktivität" (`dropped`)
 
 Fortschritt < 100 %, mindestens `minStepsOpened: 1` Step geöffnet und seit `inactiveDays: 14` Tagen kein
 Ereignis. Sagt nichts über die Gründe.
+
+### 5.5 Entfernt: Aktivität außerhalb einer Session
+
+Ereignisse außerhalb jedes `session.start`/`session.end`-Fensters galten ursprünglich als schwaches
+Signal. **Das Merkmal ist gestrichen** – aus der Bewertung und aus der Anzeige der Auffälligkeiten.
+
+**Grund, gemessen an der Störgruppe (Abschnitt 6a):** Es schlug bei **4 von 4** Mitgliedern einer
+nachweislich unbeteiligten Gruppe an, also bei 100 %. Der Grund ist strukturell und nicht durch einen
+besseren Schwellwert zu beheben: Eine abgestürzte Sitzung ohne `session.end` hinterlässt exakt dieselbe
+Spur wie Arbeit außerhalb der Sitzung. Ein Merkmal ohne Trennschärfe trägt keine Information; es stand nur
+in der Oberfläche herum, wo eine Lehrperson es überdeuten kann.
+
+Die zugrunde liegenden Ereignisse werden weiterhin erfasst und in der **Tiefenanalyse** als
+**Randnotiz** angezeigt – ausdrücklich als „kein Signal" gekennzeichnet, mit dem Hinweis auf die
+abgestürzte Sitzung. Sie helfen dort, eine Lücke im Zeitstrahl zu erklären. In keine Bewertung, keine
+Flag-Berechnung und keine Liste von Auffälligkeiten gehen sie ein (`analytics.outside_session_events`
+wird von `compute_flags` nicht mehr aufgerufen; die Schwellwerte stehen unter `diagnostics`, nicht unter
+`integrity`).
+
+Die Spezifikation A5 nennt dieses Merkmal noch als Betrugsindikator; der Messbefund hat Vorrang, die
+Spezifikation wird entsprechend nachgezogen.
 
 ---
 
@@ -320,20 +344,20 @@ dieselben Oberflächenmerkmale wie Abschreiben, aber aus harmlosen Gründen:
 Jedes `followup`-Flag, das diese Gruppe einsammelt, wäre im Betrieb eine Rückfrage an eine Person,
 die nichts falsch gemacht hat. Gemessen bei 40 Studierenden je Kurs, elf geprüfte Seeds:
 
-| Regelsatz | Störgruppe fälschlich als „Auffällig – Rückfrage empfohlen" |
+| Regelsatz | Störgruppe fälschlich markiert |
 |---|---|
 | vor dem Review (Paste-Anteil mit absoluten Schwellwerten) | **4 von 4 (100 %) in jedem der drei Kurse** |
-| heute (Abschnitte 0a.1 und 0a.2) | **0 von 4 (0 %), in allen elf Seeds** |
+| nach 0a.1 und 0a.2, mit Session-Signal | 0 von 4 als Rückfrage, aber **4 von 4** als `notice` |
+| heute (zusätzlich Abschnitt 5.5) | **0 von 4 (0 %) überhaupt, in allen elf Seeds** |
 
 Diese Gegenüberstellung ist der eigentliche Beleg dafür, dass die Korrektur etwas gebracht hat –
 nicht die Precision gegen die Personas.
 
-**Ehrlich dazugesagt:** Alle vier Mitglieder der Störgruppe erhalten weiterhin ein
-`notice` („Schwaches Signal, keine Wertung"), ausgelöst durch die Ereignisse außerhalb der
-Session. Dieses Signal feuert also bei 100 % einer nachweislich unschuldigen Gruppe und trägt
-damit praktisch keine Information. Es führt nie allein zu einer Rückfrage, aber es steht in der
-Oberfläche, und eine Lehrperson kann es überlesen oder überbewerten. Wenn es sich bei echten
-Daten genauso verhält, gehört es ersatzlos gestrichen.
+Die Störgruppe hat außerdem ein Merkmal zu Fall gebracht: Sie erhielt zunächst durchgehend ein
+`notice`, ausgelöst durch die Ereignisse außerhalb der Session – also 4 von 4 bei einer
+unbeteiligten Gruppe. Ein Merkmal ohne jede Trennschärfe ist wertlos, und es wurde ersatzlos
+gestrichen (Abschnitt 5.5). Seither erhält die Störgruppe **kein** Flag mehr, weder `followup`
+noch `notice`.
 
 Die Störgruppe hat außerdem einen echten Fehler im Regelwerk gefunden: Der Abgleich mit dem
 Steptext benutzte zunächst Jaccard-Ähnlichkeit. Weil der Steptext um ein Vielfaches länger ist als
