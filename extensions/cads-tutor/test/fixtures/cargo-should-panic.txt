@@ -1,0 +1,8 @@
+running 8 tests
+test m5_01_panic_vs_result::element_at_returns_none_for_an_empty_slice ... ok
+test m5_01_panic_vs_result::element_at_panics_with_a_useful_message - should panic ... ok
+test m5_01_panic_vs_result::divide_panics_on_zero - should panic ... ok
+test m5_01_panic_vs_result::element_at_returns_the_element ... ok
+test m5_01_panic_vs_result::broken_should_panic - should panic ... FAILED
+test m5_01_panic_vs_result::ignored_case - should panic ... ignored
+test result: FAILED. 4 passed; 1 failed; 1 ignored; 0 measured; 0 filtered out
