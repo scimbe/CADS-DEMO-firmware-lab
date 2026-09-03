@@ -99,12 +99,72 @@ failing assertion the interesting one. Every step's `expectPass` list includes a
 least one test that fails on the seed, which the validator's `--solutions` probe
 checks: 31 probes, 31 ok.
 
-## What could not be walked through
+## Pass 3: the tutor panel itself
 
-The tutor panel itself. The image carries `cads-tutor` 0.1.0, which predates
-Addendum v1.1 and rejects every step of this pack with `unknown check type
-"testSuite"`, so it shows "No courses found". Task check buttons, hint tiers,
-the recall card and the module reflection card therefore have not been exercised
-against a running extension. Both walkthroughs above ran the same commands the
-panel would run, so the checks themselves are verified; what is unverified is the
-panel's presentation of them.
+Run once the lab image was rebuilt with the v1.1 runtime. The pack loads clean:
+
+```
+INFO /opt/cads-tutor/courses/javascript-foundations: loaded course
+  "javascript-foundations" v1.0.0 (31 steps, image)
+courses: javascript-foundations, rust-foundations; 0 error(s)
+```
+
+No warnings against this pack, and the panel renders the step end to end: badges
+for Bloom level, scaffold and time, the tables and code blocks, the embedded
+screenshots, the `file:` and `step:` links, the task list, "Ask the tutor", and
+Back/Next. Pressing **Check** really runs the checks:
+
+| Task | Verdict in the panel |
+|---|---|
+| `node --version` (`command`) | passed, "exited with 0" |
+| the step's test (`testSuite`), exercise not yet done | failed, and hint 1 of 3 opened by itself |
+| the same test after the exercise is done | passed, "10 test(s) passed" |
+
+Editor support was checked at the same time and is in good order. JavaScript
+syntax highlighting works, and because the image sets
+`js/ts.implicitProjectConfig.checkJs`, the editor names both bugs of m1-01 in the
+**Problems** panel with red underlines - `Cannot assign to 'count' because it is
+a constant` (ts2588) and `Block-scoped variable 'suffix' used before its
+declaration` (ts2448). That is complementary rather than a spoiler: the step is
+about reading Node's runtime message, and m1-01 now points at the editor's
+wording and asks the student to compare the two. The screenshot is embedded there.
+
+### Three defects found, none of them in this pack
+
+**1. The runtime reports a failing test as a missing one.** With the exercise not
+yet done, the panel says:
+
+> expected test "m0-01 the workspace is ready" to pass, but no test of that name ran
+
+The test did run and failed. Feeding the exact TAP bytes from the same container
+to the validator's twin parser gives the correct verdict, `but it failed`, for
+both the bare and the single-file command, so the divergence is on the
+TypeScript side (`extensions/cads-tutor/src/checks/testParsers.ts`, which is
+meant to stay in step with the validator). It matters for beginners: the first
+thing a student sees before doing the exercise is a message claiming their test
+does not exist.
+
+**2. The course tree shows one pack's step titles under another pack.** Expanding
+"Rust – Foundations" lists this course's M1 steps - "let, const and the temporal
+dead zone", "Types and what typeof will not tell you" and the next two - with
+their JavaScript `requires:` ids, while the Rust pack's real titles are "Scope,
+owner, move" and so on. Confirmed in the accessibility tree, so it is data and
+not a repaint artifact. The JavaScript steps sit at tree level 3 under a module
+node; the mislabelled Rust ones sit at level 2 with no module node.
+
+**3. The platform content pack is not in the image.**
+
+```
+[platform:javascript-foundations] content pack "javascript" not loadable from
+  …/extensions/cads.cads-tutor-0.1.0/dist/content-packs/javascript:
+  ENOENT … sources.json
+```
+
+Grounding falls back to 209 chunks from this pack's own `sources/`, so "Ask the
+tutor" would answer from the three MDN pages shipped here and not from the seven
+guide chapters the pack was calibrated against. No language model is configured
+on this deployment either, so `question` checks correctly fall back to manual
+confirmation.
+
+All three are runtime or image issues and have been reported. Nothing in them
+requires a change to this course pack.

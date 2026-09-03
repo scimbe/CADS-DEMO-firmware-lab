@@ -93,6 +93,11 @@ export function makeLabel(prefix) {
 }
 ```
 
+The editor gets there before you do. With JavaScript checking switched on in this lab, both bugs are underlined in red and listed in the **Problems** panel while you read:
+
+![The Problems panel listing three diagnostics for counter.js, with red underlines in the editor](ide-problems-panel.png)
+*The editor's own verdict: `Cannot assign to 'count' because it is a constant` and `Block-scoped variable 'suffix' used before its declaration`. Worth comparing with what Node says at run time - same two bugs, different words.*
+
 Run the test and read **both** messages before you edit anything:
 
 ```bash

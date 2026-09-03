@@ -56,6 +56,12 @@ Das Fenster hat vier Bereiche, und du benutzt alle vier.
 
 Der Step, den du gerade liest, ist das **Tutor-Panel**. Seine Aufgabenliste hat je Aufgabe eine Prüf-Schaltfläche; ein Druck darauf führt die Prüfung aus und zeigt das Ergebnis neben der Aufgabe.
 
+![Das Tutor-Panel neben dem Editor, links der Kursbaum, rechts die Abzeichen und der Text des Steps](tutor-panel-step.png)
+*Wo du bist: links der Kursbaum, rechts dieser Step. Die Abzeichen unter dem Titel nennen die Bloom-Stufe, die Art der Anleitung und die geschätzte Zeit.*
+
+![Die Aufgabenliste des Panels, die ersten beiden Prüfungen bestanden, je ein grüner Haken daneben](tutor-panel-checks.png)
+*Dasselbe Panel, zur Aufgabenliste gescrollt. **Check** führt eine Aufgabe aus und schreibt das Urteil darunter - hier `exited with 0` und `10 test(s) passed`. **Show hint** öffnet die Hinweise Stufe für Stufe, und eine `question`-Aufgabe beantwortest du im Textfeld.*
+
 Ist das untere Panel nicht sichtbar, holt es das Menü **View > Terminal** zurück. Beim Ausblenden geht nichts verloren.
 
 ## Drei Wege, etwas auszuführen

@@ -93,6 +93,11 @@ export function makeLabel(prefix) {
 }
 ```
 
+Der Editor ist schneller als du. Da die JavaScript-Prüfung in diesem Labor eingeschaltet ist, sind beide Fehler schon beim Lesen rot unterringelt und stehen im Panel **Problems**:
+
+![Das Problems-Panel listet drei Diagnosen zu counter.js, im Editor rote Unterringelungen](ide-problems-panel.png)
+*Das Urteil des Editors: `Cannot assign to 'count' because it is a constant` und `Block-scoped variable 'suffix' used before its declaration`. Der Vergleich mit dem, was Node zur Laufzeit sagt, lohnt sich - dieselben zwei Fehler, andere Worte.*
+
 Lass den Test laufen und lies **beide** Meldungen, bevor du etwas änderst:
 
 ```bash
