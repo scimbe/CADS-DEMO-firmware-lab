@@ -70,14 +70,16 @@ Ohne das antwortet cargo mit `could not find Cargo.toml in /home/coder/workspace
 
 Zum Schließen eines Terminals drückst du das Papierkorbsymbol an seinem rechten Rand oder tippst `exit`. Es geht nichts verloren - ein Terminal hält keinen Zustand, den du brauchst. Öffne auf demselben Weg ein neues, und du bist wieder da, wo du warst.
 
-## Bilder zu diesen Schritten
+## Die Palette im Befehlsmodus
 
-*Screenshots des Fensters, der Palette im Befehlsmodus und eines Terminals nach
-dem `cd` gehören hierher und fehlen noch.* Sie wurden in einem echten
-Laborcontainer aufgenommen, dürfen aber nicht ausgeliefert werden, solange das
-Tutor-Panel den falschen Kurs öffnet; `courses/rust-foundations/assets/README.md`
-nennt die vier Dateien und den Fehler. Alles, was sie zeigen würden, steht oben
-in Worten.
+![Die Befehlspalette über dem Editor. Die Eingabe lautet
+'>Terminal: Create New Terminal', das erste gleichnamige Ergebnis ist
+ausgewählt; der Explorer links zeigt den Ordner
+rust-foundations.](palette-new-terminal.png)
+
+Achte auf das `>` ganz am Anfang der Eingabe und darauf, dass das oberste
+Ergebnis der gesuchte Befehl ist. Ohne das `>` steht in derselben Liste
+*No matching results*.
 
 ## Woran du erkennst, dass ein Befehl fertig ist
 
@@ -111,5 +113,9 @@ Die Schaltfläche **Prüfen** neben der Aufgabe oben führt genau diese Befehle 
 **Wie lange:** beim ersten Mal ein paar Sekunden, weil die Crate einmal übersetzt wird; bei jedem weiteren Lauf deutlich unter einer Sekunde.
 
 **Fertig ist es, wenn:** die Eingabeaufforderung unter der Ausgabe wieder erscheint. Solange sie fehlt, läuft der Befehl noch - ein blinkender Cursor ohne Eingabeaufforderung ist kein Hänger.
+
+![Ein Terminal im Bereich unten: die Eingabeaufforderung zeigt coder@…:~/workspace/rust-foundations, darunter der cargo-Befehl und seine Ausgabe.](terminal-run-a-step.png)
+
+*Die drei Handgriffe sind in jedem Step dieses Kurses dieselben - Terminal öffnen, mit `cd` in die Crate wechseln, den Befehl ausführen. Nur die letzte Zeile unterscheidet sich, und die Fassung dieses Steps steht im Block darüber.*
 
 **Wenn etwas nicht stimmt:** die Ausgabe steht im Reiter **Terminal** unten, nicht in **Problems** und nicht in **Output** - diese beiden zeigen anderes und sind der übliche Grund für „es passiert nichts". Hast du das Terminal versehentlich geschlossen, öffne auf demselben Weg ein neues; es geht nichts verloren. Antwortet cargo mit `could not find Cargo.toml`, hat dieses Terminal das `cd` von oben nicht bekommen - führe es aus und versuche es erneut.

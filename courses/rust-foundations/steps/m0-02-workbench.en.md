@@ -70,13 +70,15 @@ Without it, cargo answers `could not find Cargo.toml in /home/coder/workspace or
 
 To close a terminal, press the bin icon on its right-hand edge, or type `exit`. Nothing is lost - a terminal holds no state you need. Open a new one the same way and you are back where you were.
 
-## Pictures of these steps
+## The palette, in command mode
 
-*Screenshots of the window, the palette in command mode and a terminal after
-the `cd` belong here and are not in yet.* They were captured from a real lab
-container but cannot be shipped while the tutor panel opens the wrong course;
-`courses/rust-foundations/assets/README.md` names the four files and the
-defect. Everything they would show is written out above.
+![The command palette open over the editor. The input reads
+'>Terminal: Create New Terminal' and the first result of the same name is
+selected; the explorer on the left lists the rust-foundations
+folder.](palette-new-terminal.png)
+
+Note the `>` at the very start of the input, and that the top result is the
+command you want. Without the `>` this same list reads *No matching results*.
 
 ## How you know a command has finished
 
@@ -110,5 +112,9 @@ The **Check** button next to the task above runs exactly these commands for you 
 **How long:** a few seconds the first time, because the crate is compiled once; well under a second on every later run.
 
 **Finished when:** the shell prompt reappears below the output. Until it does, the command is still running - a blinking cursor with no prompt is not a hang.
+
+![A terminal in the panel at the bottom: the prompt reads coder@…:~/workspace/rust-foundations, then the cargo command, then its output.](terminal-run-a-step.png)
+
+*The three moves are the same in every step of this course - open a terminal, `cd` into the crate, run the command. Only the last line differs, and this step's version of it is in the block above.*
 
 **If something is off:** the output is in the **Terminal** tab at the bottom, not in **Problems** and not in **Output** - those two show different things and are the usual reason for "nothing happened". If you closed the terminal by accident, open a new one the same way; nothing is lost. If cargo answers `could not find Cargo.toml`, this terminal never got the `cd` above - run it and try again.

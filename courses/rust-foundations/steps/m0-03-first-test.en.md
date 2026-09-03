@@ -76,6 +76,11 @@ pub fn greet(name: &str) -> String {
 
 ## Run it, watch it fail, fix it
 
+![The editor shows src/m0/m0_03_first_test.rs with Rust syntax highlighting;
+the terminal below shows the failing test run, and the panic message names
+that same file at line 14. The status bar reads rust-analyzer and
+Rust.](editor-and-test-run.png)
+
 ```bash
 cargo test --test m0-03-first-test
 ```
@@ -116,5 +121,9 @@ The **Check** button next to the task above runs exactly these commands for you 
 **How long:** a few seconds the first time, because the crate is compiled once; well under a second on every later run.
 
 **Finished when:** the shell prompt reappears below the output. Until it does, the command is still running - a blinking cursor with no prompt is not a hang.
+
+![A terminal in the panel at the bottom: the prompt reads coder@…:~/workspace/rust-foundations, then the cargo command, then its output.](terminal-run-a-step.png)
+
+*The three moves are the same in every step of this course - open a terminal, `cd` into the crate, run the command. Only the last line differs, and this step's version of it is in the block above.*
 
 **If something is off:** the output is in the **Terminal** tab at the bottom, not in **Problems** and not in **Output** - those two show different things and are the usual reason for "nothing happened". If you closed the terminal by accident, open a new one the same way; nothing is lost. If cargo answers `could not find Cargo.toml`, this terminal never got the `cd` above - run it and try again.
