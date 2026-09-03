@@ -4,16 +4,25 @@
  * and the same code path runs in production.
  */
 import { lastFlashTime, type BoardBridgeApi } from "../bridge";
-import type { CheckSpec, Lang, TaskStatus } from "../types";
+import type { CheckSpec, Lang, PredictionOutcome, TaskStatus, TestCaseResult } from "../types";
 import { loc } from "../types";
+import { evaluateCommand, type CommandOutcome } from "./commandRunner";
 import { lookupSymbol } from "./elf";
 import { fileMatches, fileNotMatches, resolveInRoot } from "./fileChecks";
+import { defaultSuiteCommand, evaluateSuite, parseTestOutput } from "./testParsers";
 
 export interface CheckResult {
   status: TaskStatus;
   message: string;
   /** Extra data for the UI (e.g. rubric feedback). */
   detail?: string;
+  /** A1: captured stdout+stderr of a command/testSuite run; feeds misconception and `output:` triggers. */
+  output?: string;
+  /** A1: parsed cases of a testSuite run; feeds the `test:<name>:failed` trigger. */
+  tests?: TestCaseResult[];
+  /** A1: the prediction a `predict` check was judged against. */
+  prediction?: string;
+  predictionOutcome?: PredictionOutcome;
 }
 
 export interface DebugStopRecord {
@@ -50,11 +59,19 @@ export interface CheckContext {
   manualConfirmed(taskId: string): boolean;
   buildTaskLabel: string;
   env?: NodeJS.ProcessEnv;
+  /** A1: runs a shell command in the project root and captures its output. */
+  runCommand(command: string, cwd: string | undefined, timeoutMs: number): Promise<CommandOutcome>;
+  /** A1: the prediction the student entered before a `predict` check may run its `then`. */
+  predictionFor(taskId: string): string | undefined;
 }
 
 const DEFAULT_TASK_TIMEOUT = 10 * 60 * 1000;
 const DEFAULT_SERIAL_TIMEOUT = 30 * 1000;
 const DEFAULT_DEBUG_TIMEOUT = 60 * 1000;
+/** A1 default for `command`/`testSuite`; a course pack overrides it with `timeoutMs`. */
+const DEFAULT_COMMAND_TIMEOUT = 120 * 1000;
+/** A1: "mindestens 10 Zeichen" - a prediction shorter than this is not a prediction. */
+const DEFAULT_PREDICTION_MIN_CHARS = 10;
 
 function bridgeMissing(lang: Lang): CheckResult {
   return {
@@ -165,6 +182,81 @@ async function dispatch(spec: CheckSpec, taskId: string, ctx: CheckContext): Pro
       return ctx.manualConfirmed(taskId)
         ? { status: "passed", message: ctx.lang === "de" ? "manuell bestätigt" : "confirmed manually" }
         : { status: "pending", message: ctx.lang === "de" ? "noch nicht bestätigt" : "not confirmed yet" };
+    case "command": {
+      const outcome = await ctx.runCommand(spec.command, spec.cwd, spec.timeoutMs ?? DEFAULT_COMMAND_TIMEOUT);
+      const verdict = evaluateCommand(outcome, spec);
+      return {
+        status: verdict.passed ? "passed" : "failed",
+        message: verdict.message,
+        output: outcome.output,
+      };
+    }
+    case "testSuite": {
+      const command = defaultSuiteCommand(spec.runner, spec.command);
+      if (command === undefined) {
+        return { status: "unavailable", message: `testSuite runner "${spec.runner}" needs an explicit command` };
+      }
+      const outcome = await ctx.runCommand(command, spec.cwd, spec.timeoutMs ?? DEFAULT_COMMAND_TIMEOUT);
+      // Timeout before spawn error: the timeout kills the process, so it also
+      // surfaces as a signal exit, and it is the more useful diagnosis.
+      if (outcome.timedOut) {
+        return { status: "failed", message: `tests timed out after ${Math.round(outcome.durationMs / 1000)} s`, output: outcome.output, tests: [] };
+      }
+      if (outcome.spawnError !== undefined) {
+        return { status: "failed", message: `could not run the tests: ${outcome.spawnError}`, output: outcome.output };
+      }
+      // The runner's exit code is deliberately ignored: a suite with an expected
+      // failure (expectFail) exits non-zero by design, so the parsed per-test
+      // results are the authority.
+      const tests = parseTestOutput(outcome.output, spec.runner);
+      const verdict = evaluateSuite(tests, spec);
+      return {
+        status: verdict.passed ? "passed" : "failed",
+        message: verdict.message,
+        output: outcome.output,
+        tests,
+      };
+    }
+    case "predict": {
+      // A1: the prediction must exist before `then` runs, otherwise the exercise
+      // degenerates into reading the answer off the screen and writing it down.
+      const prediction = (ctx.predictionFor(taskId) ?? "").trim();
+      const min = spec.minChars ?? DEFAULT_PREDICTION_MIN_CHARS;
+      if (prediction.length < min) {
+        return {
+          status: "pending",
+          message:
+            ctx.lang === "de"
+              ? `Bitte zuerst eine Vorhersage schreiben (mindestens ${min} Zeichen), dann wird ausgeführt.`
+              : `Write a prediction first (at least ${min} characters); the check runs afterwards.`,
+        };
+      }
+      const inner = await dispatch(spec.then, taskId, ctx);
+      let outcome: PredictionOutcome | undefined;
+      let feedback: string | undefined;
+      if (spec.rubric) {
+        const observed = (inner.output ?? inner.message).slice(0, 4000);
+        const verdict = await ctx.gradeAnswer(
+          `${loc(spec.prompt, ctx.lang)}\n\nPrediction: ${prediction}\n\nActual output:\n${observed}`,
+          spec.rubric,
+          prediction,
+          spec.bloom ?? "evaluate",
+        );
+        if (verdict.kind === "pass" || verdict.kind === "fail") {
+          outcome = verdict.kind === "pass" ? "correct" : "deviated";
+          feedback = verdict.feedback;
+        }
+      }
+      // A1: passed when `then` passed and a prediction exists. Whether the
+      // prediction was right is recorded, never a gate - being wrong and seeing
+      // why is the point of the exercise.
+      return {
+        ...inner,
+        detail: feedback ?? inner.detail,
+        prediction,
+        predictionOutcome: outcome,
+      };
+    }
     case "all": {
       const results: CheckResult[] = [];
       for (const c of spec.checks) {

@@ -56,9 +56,10 @@ export interface TestSuiteCheck {
   cwd?: string;
   /** Optional override; required for `tap` and `custom`. */
   command?: string;
-  expectPass: string[];
+  /** Optional: the schema normalises a missing list to [], a hand-built spec may omit it. */
+  expectPass?: string[];
   minPass?: number;
-  expectFail: string[];
+  expectFail?: string[];
   timeoutMs?: number;
   seedMustFail?: boolean;
 }

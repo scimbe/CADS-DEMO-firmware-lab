@@ -7,6 +7,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { SERIAL_ERROR_PATTERNS, type BoardBridgeApi } from "./bridge";
+import { runCommand } from "./checks/commandRunner";
 import { isLocalCheck, referencedFiles, runCheck, type CheckContext } from "./checks/runner";
 import { openEventStore, type OpenedEventStore } from "./events";
 import { normalizeLang, ui } from "./i18n";
@@ -564,6 +565,8 @@ export class TutorController implements vscode.Disposable {
       manualConfirmed: (taskId) => getTaskState(progress, taskId).status === "passed" || this.confirmedNow.has(stepKey(course.manifest.id, step.id) + "/" + taskId),
       buildTaskLabel: cfg.get<string>("buildTaskLabel", "CaDS: Build"),
       env: process.env,
+      runCommand: (command, cwd, timeoutMs) => runCommand({ command, root, cwd, timeoutMs, env: process.env }),
+      predictionFor: (taskId) => getTaskState(progress, taskId).prediction,
     };
   }
 
