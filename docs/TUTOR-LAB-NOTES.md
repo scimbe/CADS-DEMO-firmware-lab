@@ -184,6 +184,50 @@ that is what makes cargo's absolute-path fingerprints reusable – and then dele
 `~/.cargo/registry` is still copied (it is empty today) so the mechanism is in place the moment
 a course takes its first dependency; re-measure then.
 
+## Blocked: the tutor extension is a schema version behind the courses (2026-09-03)
+
+With the real content merged (`next` 5f54794 for both workspaces, plus the first
+`courses/javascript-foundations` pack) the image builds and both workspaces seed, but **the
+tutor loads no course at all** and reports *"No course packs found"*. The pack is intact in the
+image – 14 files, byte-identical to the repository. The reason is in the CaDS Tutor output
+channel:
+
+```
+ERROR …/steps/m0-01-first-run.de.md: tasks[0].check.type: unknown check type "command"
+  (known: board, task, build, fileMatches, fileNotMatches, symbolInElf, flash, serialExpect,
+   debugStop, question, manual, all, any)
+ERROR …/steps/m0-02-read-a-test.de.md: tasks[0].check.type: unknown check type "testSuite"
+ERROR …/steps/m0-04-predict-output.de.md: tasks[0].check.type: unknown check type "predict"
+ERROR course "javascript-foundations": step "m0-01-first-run" … has no valid step file
+```
+
+`command`, `testSuite` and `predict` are the SPEC Addendum v1.1 check types. The course content
+is written against v1.1; `cads-tutor` still implements v1 – `CHECK_TYPES` in
+`extensions/cads-tutor/src/types.ts` lists the thirteen old types and none of the three new
+ones, so the packaged VSIX is not stale, the feature is simply not built yet. Every step's
+first check uses one of the three, so every step file is invalid, so every declared step has no
+valid file, so the course is dropped and the tutor sees nothing.
+
+Corroboration that the content is right and the extension is behind:
+`scripts/validate-courses.py` on `next` (956596c) does know `command`, `testSuite` and
+`predict` and raises no unknown-check-type error for the same pack.
+
+**Nothing about the image changes because of this.** The pack is copied correctly, the
+workspaces seed, the toolchains work. What is missing is the check types in the tutor
+extension, which belongs to the tutor stream. The smoke test fails on purpose in this state and
+prints the rejection reason from the output channel, so the break is diagnosed rather than
+guessed at; it turns green by itself once the extension speaks v1.1.
+
+Everything on the workspace side of the same build was verified:
+
+| Check | Result |
+|---|---|
+| Course pack in the image | `javascript-foundations`, 14 files ✔ (rust pack not written yet) |
+| Workspace seeds | both real, 0 placeholders ✔ |
+| Rust per-step check `cargo test --test m0-02-first-test` | 1 passed, 2 failed, < 1 s ✔ (starter) |
+| JavaScript `node --test` | 73 tests, 8 passed, 65 failed, 1 s ✔ (starter) |
+| Extensions and PATH | the four expected, no board tooling ✔ |
+
 ## Open dependencies (streams `rust` / `js`)
 
 `courses/rust-foundations`, `courses/javascript-foundations`, `workspaces/rust-foundations` and

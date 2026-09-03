@@ -48,6 +48,21 @@ function ok(msg) {
 function dexec(cmd) {
   return execFileSync("docker", ["exec", CONTAINER, "bash", "-lc", cmd], { encoding: "utf8" });
 }
+// The tutor writes why it rejected a pack into its output channel, which
+// code-server mirrors to a log file. When packs are on disk but the tutor
+// loaded none, that file holds the actual reason (a check type the extension
+// does not know, a step file that failed to parse) - say it instead of making
+// the reader guess.
+function tutorLog(maxLines = 8) {
+  const cmd =
+    'f=$(ls -t "$HOME"/.local/share/code-server/logs/*/exthost*/output_logging_*/*"CaDS Tutor.log" 2>/dev/null | head -1); ' +
+    '[ -n "$f" ] && grep -E "ERROR|WARN" "$f" | head -' + maxLines + ' || echo "(no CaDS Tutor output channel log found)"';
+  try {
+    return dexec(cmd).trim();
+  } catch {
+    return "(could not read the CaDS Tutor output channel log)";
+  }
+}
 function findPlaywright() {
   if (process.env.PW_MODULE) return process.env.PW_MODULE;
   const npx = join(process.env.HOME ?? "", ".npm/_npx");
@@ -229,7 +244,17 @@ try {
       ok(`no course packs in this image yet - tutor reports it (${JSON.stringify(tutorUi.notifications)}); panel checks skipped`);
       await page.keyboard.press("Escape");
     } else {
-      if (!tutorOpen) fail(`tutor view did not open: ${JSON.stringify(tutorUi)}`);
+      // Packs ARE in the image. If the tutor still says it found none, the pack
+      // and the extension disagree - that is an integration break worth naming,
+      // not a missing course.
+      const rejected = tutorUi.notifications.some((n) => /no course packs|keine kurse/i.test(n));
+      if (rejected) {
+        fail(
+          `the image ships ${courses.length} course pack(s) (${JSON.stringify(courses)}) but the tutor loaded none.\n` +
+            `The extension rejected them; the CaDS Tutor output channel says:\n${tutorLog(10)}`
+        );
+      }
+      if (!tutorOpen) fail(`tutor view did not open: ${JSON.stringify(tutorUi)}\ntutor log:\n${tutorLog(6)}`);
       ok(`tutor view open: side bar="${tutorUi.sidebar}", views=${JSON.stringify(tutorUi.views)}, editors=${JSON.stringify(tutorUi.editors)}, course packs=${JSON.stringify(courses)}`);
     }
   }
