@@ -103,7 +103,7 @@ The first amd64 image itself is built by CI.
 |---|---|
 | `docker images` (disk usage, arm64) | 3.33 GB |
 | content size | 820 MB |
-| `docker save cads-tutor-lab:dev \| gzip \| wc -c` | **814 318 854 B = 0.81 GB** ✔ |
+| `docker save cads-tutor-lab:dev \| gzip \| wc -c` | **0.85 GB** ✔ (0.81 GB before the TOML extension; even-better-toml adds 69 MB unpacked, ≈40 MB compressed) |
 
 Largest contributions: code-server base 737 MB, Debian base + packages 156 MB + 261 MB,
 build-essential/libssl/python layer 624 MB, CodeLLDB 171 MB, rustup toolchain 577 MB on disk,

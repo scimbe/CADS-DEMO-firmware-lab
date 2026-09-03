@@ -10,13 +10,13 @@ extension, the user-settings policy and the CI shape.
 |---|---|
 | Base | `codercom/code-server:latest` (Debian 13), multi-arch amd64 + arm64 |
 | Toolchains | rustup `stable` (profile minimal + rustfmt, clippy, rust-src; no rust-docs), Node 22 (official tarball, SHA-256 checked), build-essential, pkg-config, libssl-dev, python3, git |
-| Extensions | `rust-lang.rust-analyzer` (Open VSX, platform VSIX with bundled server), `dbaeumer.vscode-eslint` (Open VSX), `vadimcn.vscode-lldb` (CodeLLDB 1.12.3, platform VSIX from the GitHub release, SHA-256 pinned – Open VSX only has the bootstrap that downloads at runtime), `cads.cads-tutor` (VSIX from `extensions/cads-tutor/dist`) |
+| Extensions | `rust-lang.rust-analyzer` (Open VSX, platform VSIX with bundled server), `dbaeumer.vscode-eslint` (Open VSX), `tamasfe.even-better-toml` (Open VSX – nothing else in code-server claims `.toml`, so `Cargo.toml` would open as plain text), `vadimcn.vscode-lldb` (CodeLLDB 1.12.3, platform VSIX from the GitHub release, SHA-256 pinned – Open VSX only has the bootstrap that downloads at runtime), `cads.cads-tutor` (VSIX from `extensions/cads-tutor/dist`) |
 | Course packs | `courses/rust-foundations`, `courses/javascript-foundations` → `/opt/cads-tutor/courses/` (the firmware packs are **not** in this image) |
 | Workspaces | `workspaces/rust-foundations`, `workspaces/javascript-foundations` → `/opt/cads-seed/<name>`, seeded to `/home/coder/workspace/<name>` on first start; `cads-tutor.code-workspace` (multi-root, both folders) is what code-server opens |
 | Warm caches | the image build runs `cargo build --all-targets && cargo test` in the Rust seed and `node --test` (plus `npm ci` when there is a lock file) in the JavaScript seed; `target/` and `~/.cargo/registry` ship in the image |
 | Port | container 8080, host loopback `127.0.0.1:8084` (lab) / `127.0.0.1:8089` (development machine) |
 | Env | `PASSWORD` (required), `TUTOR_LLM_BASE_URL` / `TUTOR_LLM_API_KEY` / `TUTOR_LLM_MODEL` (optional, LLM for the tutor; the base URL **must be `https://`**), `CADS_TUTOR_TELEMETRY_URL` / `CADS_TUTOR_TELEMETRY_TOKEN` (optional, SPEC A5 teacher portal; unset = events stay local, and `cads-tutor@0.1.0` does not read them yet) |
-| Size | 0.81 GB compressed (`docker save \| gzip`), 3.3 GB unpacked; a from-scratch build takes ≈4 min |
+| Size | 0.85 GB compressed (`docker save \| gzip`), 3.4 GB unpacked; a from-scratch build takes ≈4 min |
 
 Verification log, sizes and deviations: [docs/TUTOR-LAB-NOTES.md](../../docs/TUTOR-LAB-NOTES.md).
 
