@@ -56,6 +56,12 @@ The window has four regions, and you will use all four.
 
 The step you are reading is the **tutor panel**. Its task list carries a check button per task; pressing one runs the check and shows the result next to the task.
 
+![The tutor panel beside the editor, with the course tree on the left and the step's badges and text on the right](tutor-panel-step.png)
+*Where you are: the course tree on the left, this step on the right. The badges under the title give the Bloom level, the kind of scaffolding and the estimated time.*
+
+![The panel's task list with the first two checks passed and a green tick beside each](tutor-panel-checks.png)
+*The same panel scrolled to its task list. **Check** runs one task and prints the verdict under it - here `exited with 0` and `10 test(s) passed`. **Show hint** opens the hints one tier at a time, and a `question` task is answered in the box.*
+
 If the bottom panel is not visible, the menu **View > Terminal** brings it back. Nothing is lost when it is hidden.
 
 ## Three ways to run something
