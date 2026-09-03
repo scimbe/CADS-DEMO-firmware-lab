@@ -301,6 +301,13 @@ Corroboration that the content is right and the extension is behind:
 `scripts/validate-courses.py` on `next` (956596c) does know `command`, `testSuite` and
 `predict` and raises no unknown-check-type error for the same pack.
 
+**Update, both packs now on `next`.** `courses/rust-foundations` (62 files) and
+`courses/javascript-foundations` (75 files) are both in the image and both are rejected the same
+way: 78 `testSuite`, 34 `predict` and 10 `command` checks that the extension does not know, 90
+of the errors from the Rust pack alone. The Rust starter now carries 27 test targets (26
+compile, `m1-03-copy-types` deliberately does not) and 119 tests of which 1 passes; JavaScript
+has 74 tests of which 8 pass.
+
 **Nothing about the image changes because of this.** The pack is copied correctly, the
 workspaces seed, the toolchains work. What is missing is the check types in the tutor
 extension, which belongs to the tutor stream. The smoke test fails on purpose in this state and
