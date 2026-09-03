@@ -660,6 +660,7 @@ ul.reasons{margin:.2rem 0;padding-left:1.1rem}
 ul.reasons li{margin:.15rem 0}
 details summary{cursor:pointer;color:var(--muted);font-size:.82rem}
 .evidence{font-size:.78rem;color:var(--muted)}
+.nowrap{white-space:nowrap}
 .note{background:var(--chip);border-left:3px solid var(--accent);padding:.5rem .7rem;border-radius:0 8px 8px 0;
 margin:.6rem 0;font-size:.88rem}
 """
@@ -1182,7 +1183,7 @@ def page_board(p: Portal, ctx: dict) -> str:
         label = f'<a href="{esc(link(ctx, "student", s=s))}"><code>{esc(s)}</code></a>'
         if name:
             label += f' <span class="evidence">{esc(name)}</span>'
-        crits = " ".join(("✓" if v else "·") + k[:1].upper() for k, v in r["criteria"].items())
+        crits = "\u00a0".join(("\u2713" if v else "\u00b7") + k[:1].upper() for k, v in r["criteria"].items())
         target = "open" if r["status"] == "confirmed" else "confirmed"
         button_label = t("revoke", lang) if r["status"] == "confirmed" else t("signoff", lang)
         form = (f'<form class="inline" method="post" action="/portal/board/signoff">'
@@ -1198,7 +1199,7 @@ def page_board(p: Portal, ctx: dict) -> str:
         trows.append([label, badge(r["status"], t(r["status"], lang)),
                       f'{r["steps_done"]}/{r["steps_total"]}', f'{r["checks_passed"]}/{r["checks_total"]}',
                       str(r["reflections"]), "✓" if r["project"] else "·",
-                      f'<code>{esc(crits)}</code>', signed, form])
+                      f'<code class="nowrap">{esc(crits)}</code>', signed, form])
     body.append(table([t("students", lang), t("status", lang), t("step", lang), t("checks", lang),
                        t("reflections", lang), t("project", lang), t("criteria", lang),
                        t("signed_by", lang), t("signoff", lang)], trows, numeric={2, 3, 4}))
