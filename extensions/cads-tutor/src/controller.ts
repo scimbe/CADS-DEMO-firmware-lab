@@ -8,7 +8,8 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { SERIAL_ERROR_PATTERNS, type BoardBridgeApi } from "./bridge";
 import { runCommand } from "./checks/commandRunner";
-import { isLocalCheck, referencedFiles, runCheck, type CheckContext } from "./checks/runner";
+import { failedTestNames } from "./checks/testParsers";
+import { isLocalCheck, referencedFiles, runCheck, type CheckContext, type CheckResult } from "./checks/runner";
 import { openEventStore, type OpenedEventStore } from "./events";
 import { normalizeLang, ui } from "./i18n";
 import { loadCourses, orderedSteps, resolveProjectRoot, type ExtensionCourseContribution } from "./loader";
@@ -16,6 +17,17 @@ import { createRenderer, type TutorLink } from "./markdown";
 import { PANEL_VIEW_TYPE, StepPanel } from "./panel";
 import { readLlmConfig, TutorPlatform, type AskOutcome } from "./platform";
 import { ProgressTreeProvider } from "./progressView";
+import {
+  accumulateEdit,
+  classifyQuestionText,
+  emptyEditMetrics,
+  excerptOutput,
+  hasEdits,
+  resolveStudentId,
+  TelemetryClient,
+  type EditMetrics,
+  type TelemetryInput,
+} from "./telemetry";
 import {
   adjacentStep,
   defaultStart,
@@ -35,9 +47,9 @@ import {
   stepStatus,
   writeSession,
 } from "./session";
-import { eventTrigger, hintTierForFailures, selectTaskHint } from "./socratic";
+import { eventTrigger, hintTierForFailures, selectInsight, selectTaskHint, type MatchedInsight } from "./socratic";
 import { CoursesTreeProvider, type TreeNode } from "./tree";
-import { loc, stepKey, type Course, type Lang, type LoadDiagnostic, type SessionState, type Step, type StepContent, type TaskSpec, type TaskStatus } from "./types";
+import { loc, stepKey, type Course, type Lang, type LoadDiagnostic, type SessionState, type Step, type StepContent, type TaskSpec, type TaskState, type TaskStatus } from "./types";
 import { DebugStopTracker, ensureBridge, runShellTask, runTaskByLabel } from "./vscodeChecks";
 import type { AskView, FromWebview, HintView, LinkView, NoteView, StepRef, StepView, TaskView } from "./webview";
 
@@ -57,6 +69,9 @@ export class TutorController implements vscode.Disposable {
   private treeView: vscode.TreeView<TreeNode> | undefined;
   private readonly statusBar: vscode.StatusBarItem;
   private eventStore: OpenedEventStore | undefined;
+  private telemetry: TelemetryClient | undefined;
+  /** A5: typed vs pasted characters, aggregated per step and emitted on save. */
+  private readonly editMetrics = new Map<string, EditMetrics>();
   private readonly platforms = new Map<string, TutorPlatform>();
   private readonly debugTracker = new DebugStopTracker();
   private bridge: BoardBridgeApi | undefined;
@@ -116,6 +131,7 @@ export class TutorController implements vscode.Disposable {
     this.treeView = vscode.window.createTreeView("cadsTutor.courses", { treeDataProvider: this.tree, showCollapseAll: true });
     this.disposables.push(this.treeView, vscode.window.registerTreeDataProvider("cadsTutor.progress", this.progress));
     this.disposables.push(
+      vscode.workspace.onDidChangeTextDocument((e) => this.onDocumentChanged(e)),
       vscode.workspace.onDidSaveTextDocument((doc) => this.onSaved(doc)),
       vscode.workspace.onDidChangeConfiguration((e) => {
         if (e.affectsConfiguration("cadsTutor.extraCourseDirs")) this.reloadCourses();
@@ -150,6 +166,32 @@ export class TutorController implements vscode.Disposable {
     const dir = path.join(os.homedir(), ".cads-tutor");
     this.eventStore = openEventStore(dir, (m) => this.log(m));
     this.log(`learning events: ${this.eventStore.backend} (${this.eventStore.file})`);
+    // A5: the JSONL log is written whether or not a portal is configured, so a
+    // course can be evaluated later even when telemetry was off during the run.
+    this.telemetry = new TelemetryClient({
+      dir,
+      student: resolveStudentId(process.env, this.session.studentId),
+      url: process.env.CADS_TUTOR_TELEMETRY_URL?.trim() || undefined,
+      token: process.env.CADS_TUTOR_TELEMETRY_TOKEN?.trim() || undefined,
+      log: (m) => this.log(m),
+    });
+    this.log(`telemetry: ${this.telemetry.enabled ? `${process.env.CADS_TUTOR_TELEMETRY_URL}/ingest` : "local only"}`);
+    this.emit({ type: "session.start" });
+  }
+
+  /**
+   * Records one telemetry event, filling in the current course/module/step.
+   * Deliberately fire-and-forget: A5 requires that a portal outage never
+   * disturbs the student, so no caller awaits delivery.
+   */
+  private emit(input: TelemetryInput): void {
+    const cur = this.current;
+    this.telemetry?.record({
+      course: input.course ?? cur?.course.manifest.id,
+      module: input.module ?? cur?.step.moduleId,
+      step: input.step ?? cur?.step.id,
+      ...input,
+    });
   }
 
   private get hasSession(): boolean {
@@ -312,6 +354,13 @@ export class TutorController implements vscode.Disposable {
     }
     setCurrentStep(this.session, courseId, stepId);
     this.saveSession();
+    this.emit({
+      type: "step.open",
+      course: courseId,
+      module: step.moduleId,
+      step: stepId,
+      data: { bloom: step.variants.en!.meta.bloom, scaffold: step.variants.en!.meta.scaffold },
+    });
     this.renderCurrent(false, preserveFocus);
     this.tree.refresh();
     this.updateStatusBar();
@@ -590,18 +639,28 @@ export class TutorController implements vscode.Disposable {
     this.running.add(key);
     try {
       const ctx = this.checkContext(cur.course, cur.step);
+      const before = getTaskState(getStepProgress(this.session, cur.course.manifest.id, cur.step.id), taskId);
+      const startedAt = Date.now();
+      this.emit({ type: "check.run", data: { taskId, checkType: task.check.type, attempt: (before.attempts ?? 0) + 1 } });
       const result = await runCheck(task.check, taskId, ctx);
       this.confirmedNow.delete(key);
       const wasDone = stepStatus(this.session, cur.course, cur.step, this.courses) === "done";
-      const rec = recordTaskResult(this.session, cur.course, cur.step, taskId, result.status, result.message, this.courses);
+      const rec = recordTaskResult(this.session, cur.course, cur.step, taskId, result.status, result.message, this.courses, new Date(), {
+        output: result.output,
+        tests: result.tests,
+        prediction: result.prediction,
+        predictionOutcome: result.predictionOutcome,
+        predictionFeedback: result.predictionOutcome !== undefined ? result.detail : undefined,
+      });
       this.saveSession();
       this.recordLearningEvent(cur.course, cur.step, task, result.status, rec.state.hintTier);
+      this.emitCheckOutcome(task, rec.state, result, Date.now() - startedAt);
       this.log(`check ${cur.step.id}/${taskId} [${task.check.type}] → ${result.status}: ${result.message}`);
 
       let hint: HintView | undefined;
       if (result.status === "failed") {
         const reason = task.check.type === "question" && ctx.answerFor(taskId) ? "weak" : "failed";
-        hint = await this.escalate(cur, task, rec.state.failures, result.message, opts.silent ?? false, reason);
+        hint = await this.escalate(cur, task, rec.state.failures, result.message, opts.silent ?? false, reason, result);
       }
       this.postTask(cur, task, result.status, result.message, hint);
       if (rec.stepCompleted || (!wasDone && stepStatus(this.session, cur.course, cur.step, this.courses) === "done")) {
@@ -638,6 +697,22 @@ export class TutorController implements vscode.Disposable {
   }
 
   private onStepCompleted(cur: { course: Course; step: Step; content: StepContent }, unlocked: Step[]): void {
+    const progress = getStepProgress(this.session, cur.course.manifest.id, cur.step.id);
+    const started = progress?.startedAt ? Date.parse(progress.startedAt) : undefined;
+    const tasks = Object.values(progress?.tasks ?? {});
+    this.emit({
+      type: "step.done",
+      course: cur.course.manifest.id,
+      module: cur.step.moduleId,
+      step: cur.step.id,
+      data: {
+        durationMs: started !== undefined ? Date.now() - started : undefined,
+        bloom: cur.step.variants.en!.meta.bloom,
+        // "First try" means every check passed on its first run with no hint shown.
+        firstTry: tasks.every((t) => (t.attempts ?? 1) <= 1 && t.hintTier === 0),
+        maxHintTier: tasks.reduce((m, t) => Math.max(m, t.hintTier), 0),
+      },
+    });
     const s = ui(this.lang);
     const refs: StepRef[] = unlocked.map((u) => ({ stepId: u.id, title: this.contentFor(u).meta.title }));
     this.panel.post({ type: "stepDone", unlocked: refs });
@@ -697,10 +772,22 @@ export class TutorController implements vscode.Disposable {
   }
 
   /** Socratic escalation after a failure: authored hint tier n, else LLM/generic. */
-  private async escalate(cur: { course: Course; step: Step; content: StepContent }, task: TaskSpec, failures: number, message: string, silent: boolean, reason: "failed" | "stuck" | "weak" = "failed"): Promise<HintView | undefined> {
+  private async escalate(cur: { course: Course; step: Step; content: StepContent }, task: TaskSpec, failures: number, message: string, silent: boolean, reason: "failed" | "stuck" | "weak" = "failed", result?: CheckResult): Promise<HintView | undefined> {
     const tier = hintTierForFailures(failures);
     setHintTier(this.session, cur.course.manifest.id, cur.step.id, task.id, tier);
     this.saveSession();
+    // A2: a misconception or a named failing test explains THIS error, while
+    // `task:<id>:failed` only knows the task broke, so the specific hint wins.
+    const insight = selectInsight(cur.content.meta, {
+      output: result?.output,
+      failedTests: result?.tests ? failedTestNames(result.tests) : undefined,
+      failures,
+      lang: this.lang,
+    });
+    if (insight) {
+      this.recordInsightEvent(cur, task, insight);
+      return { tier: insight.tier, question: insight.question, hint: insight.hint };
+    }
     const authored = selectTaskHint(cur.content.meta, task.id, task.check.type, reason, failures, this.lang);
     if (authored) return { tier: authored.tier, question: authored.question, hint: authored.hint };
     if (silent) return undefined;
@@ -730,6 +817,48 @@ export class TutorController implements vscode.Disposable {
     const reason = state.status === "failed" ? (task.check.type === "question" ? "weak" : "failed") : "stuck";
     const hint = await this.escalate(cur, task, failures, state.message ?? "", false, reason);
     if (hint) this.postTask(cur, task, state.status, state.message, hint);
+  }
+
+  /** A5: check.pass / check.fail, plus the predict pair when the check was one. */
+  private emitCheckOutcome(task: TaskSpec, state: TaskState, result: CheckResult, durationMs: number): void {
+    if (result.status !== "passed" && result.status !== "failed") return;
+    const failedTests = result.tests ? failedTestNames(result.tests) : [];
+    this.emit({
+      type: result.status === "passed" ? "check.pass" : "check.fail",
+      data: {
+        taskId: task.id,
+        checkType: task.check.type,
+        attempt: state.attempts ?? 1,
+        hintTier: state.hintTier,
+        durationMs,
+        // Only an excerpt: the full output can be 64 KB and may hold anything
+        // the student's code printed.
+        outputExcerpt: result.status === "failed" ? excerptOutput(result.output) : undefined,
+        failedTests: failedTests.length > 0 ? failedTests.slice(0, 10) : undefined,
+      },
+    });
+    if (result.prediction !== undefined) {
+      this.emit({
+        type: "predict.compared",
+        data: {
+          taskId: task.id,
+          bloom: task.check.type === "predict" ? (task.check.bloom ?? "evaluate") : undefined,
+          verdict: result.predictionOutcome,
+          graded: result.predictionOutcome !== undefined,
+        },
+      });
+    }
+  }
+
+  /** A5: hint.shown, with the misconception or failing test that triggered it. */
+  private recordInsightEvent(cur: { course: Course; step: Step }, task: TaskSpec, insight: MatchedInsight): void {
+    this.emit({
+      type: "hint.shown",
+      course: cur.course.manifest.id,
+      module: cur.step.moduleId,
+      step: cur.step.id,
+      data: { taskId: task.id, hintTier: insight.tier, source: insight.source, matched: insight.matched, outputExcerpt: insight.excerpt },
+    });
   }
 
   private recordLearningEvent(course: Course, step: Step, task: TaskSpec, status: TaskStatus, hintTier: number): void {
@@ -775,7 +904,18 @@ export class TutorController implements vscode.Disposable {
     const platform = this.platformFor(cur.course);
     const progress = getStepProgress(this.session, cur.course.manifest.id, cur.step.id);
     const attempts = Math.max(1, ...Object.values(progress?.tasks ?? {}).map((t) => t.failures));
+    // A5 field finding: this is the ONLY place that emits question.asked. Rubric
+    // strings, objective ids and save-triggered check-ins are not questions and
+    // must never reach the question log, which is why they do not call emit here.
+    this.emit({ type: "question.asked", data: { question: q, kind: classifyQuestionText(q), bloom: cur.content.meta.bloom, attempt: attempts } });
     const outcome = await platform.ask(q, this.lang, { bloomLevel: cur.content.meta.bloom, attemptNumber: attempts });
+    this.emit({
+      type: "question.answered",
+      data: (() => {
+        const citations = "citations" in outcome ? outcome.citations.length : 0;
+        return { kind: outcome.kind, grounded: outcome.kind === "answer" && citations > 0, citations };
+      })(),
+    });
     this.log(`ask "${q.slice(0, 80)}" → ${outcome.kind}`);
     this.panel.post({ type: "ask", outcome: this.toAskView(outcome) });
   }
@@ -798,6 +938,40 @@ export class TutorController implements vscode.Disposable {
   // Proactive: save → checks + check-in; bridge events → contextual question
   // ------------------------------------------------------------------------------------------
 
+  /**
+   * A5: aggregates typed vs pasted characters per step. Runs on every keystroke,
+   * so it does no more than add up lengths - anything heavier here would be felt
+   * while typing.
+   */
+  private onDocumentChanged(e: vscode.TextDocumentChangeEvent): void {
+    const cur = this.current;
+    if (!cur || e.document.uri.scheme !== "file" || e.contentChanges.length === 0) return;
+    const root = resolveProjectRoot(cur.course, this.workspaceRoot);
+    if (!root) return;
+    const rel = path.relative(root, e.document.uri.fsPath).replace(/\\/g, "/");
+    if (rel.startsWith("..")) return; // outside the project: not the student's exercise
+    const key = stepKey(cur.course.manifest.id, cur.step.id);
+    const metrics = this.editMetrics.get(key) ?? emptyEditMetrics();
+    for (const change of e.contentChanges) accumulateEdit(metrics, change.text.length);
+    this.editMetrics.set(key, metrics);
+  }
+
+  /** Emits and clears the accumulated edit metrics (on save, on step change, on exit). */
+  private flushEditMetrics(): void {
+    for (const [key, metrics] of this.editMetrics) {
+      if (!hasEdits(metrics)) continue;
+      const [courseId, stepId] = key.split("/");
+      this.emit({
+        type: "edit.metrics",
+        course: courseId,
+        step: stepId,
+        module: this.courseById(courseId)?.steps.get(stepId)?.moduleId,
+        data: { ...metrics },
+      });
+    }
+    this.editMetrics.clear();
+  }
+
   private onSaved(doc: vscode.TextDocument): void {
     if (!vscode.workspace.getConfiguration("cadsTutor").get<boolean>("checkInOnSave", true)) return;
     const cur = this.current;
@@ -816,6 +990,7 @@ export class TutorController implements vscode.Disposable {
   private async afterSave(doc: vscode.TextDocument, rel: string, isReferenced: boolean): Promise<void> {
     const cur = this.current;
     if (!cur) return;
+    this.flushEditMetrics();
     await this.runLocalChecks();
     if (!isReferenced) return;
     const platform = this.platformFor(cur.course);
@@ -901,6 +1076,11 @@ export class TutorController implements vscode.Disposable {
   dispose(): void {
     if (this.saveTimer) clearTimeout(this.saveTimer);
     if (this.reloadTimer) clearTimeout(this.reloadTimer);
+    this.flushEditMetrics();
+    this.emit({ type: "session.end" });
+    // Best effort: whatever does not make it stays in the on-disk queue and is
+    // sent by the next session.
+    void this.telemetry?.dispose();
     for (const w of this.watchers) w.dispose();
     for (const d of this.disposables) d.dispose();
     this.eventStore?.store.close();

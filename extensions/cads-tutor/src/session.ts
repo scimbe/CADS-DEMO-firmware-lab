@@ -10,7 +10,7 @@ import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { orderedSteps } from "./loader";
-import { stepKey, type Course, type Lang, type SessionState, type Step, type StepProgress, type StepStatus, type TaskState, type TaskStatus } from "./types";
+import { stepKey, type Course, type Lang, type PredictionOutcome, type SessionState, type Step, type StepProgress, type StepStatus, type TaskState, type TaskStatus, type TestCaseResult } from "./types";
 
 export function newSession(now = new Date()): SessionState {
   const iso = now.toISOString();
@@ -105,6 +105,14 @@ export interface RecordResult {
  * Records a check result. Consecutive failures are counted for the Socratic hint tier; a pass
  * resets them. `unavailable` (e.g. Board-Bridge missing) neither counts as a failure nor resets.
  */
+export interface TaskRunExtras {
+  output?: string;
+  tests?: TestCaseResult[];
+  prediction?: string;
+  predictionOutcome?: PredictionOutcome;
+  predictionFeedback?: string;
+}
+
 export function recordTaskResult(
   session: SessionState,
   course: Course,
@@ -113,7 +121,10 @@ export function recordTaskResult(
   status: TaskStatus,
   message: string | undefined,
   allCourses: Course[],
-  now = new Date()
+  now = new Date(),
+  /** Addendum v1.1: what a command/testSuite/predict check produced, kept for triggers,
+   *  the progress view and the telemetry events. */
+  extra: TaskRunExtras = {}
 ): RecordResult {
   const wasDone = isStepDone(session, step);
   const lockedBefore = new Set(orderedSteps(course).filter((s) => !isStepUnlocked(session, course, s, allCourses)).map((s) => s.id));
@@ -122,6 +133,15 @@ export function recordTaskResult(
   const state: TaskState = { ...prev, status, message, checkedAt: now.toISOString() };
   if (status === "failed") state.failures = prev.failures + 1;
   else if (status === "passed") state.failures = 0;
+  // `attempts` counts every completed run, so "passed on the first try" is
+  // attempts === 1 && hintTier === 0. A pending run (a predict still waiting for
+  // its prediction) is not an attempt - nothing was checked yet.
+  if (status === "passed" || status === "failed") state.attempts = (prev.attempts ?? 0) + 1;
+  if (extra.output !== undefined) state.output = extra.output;
+  if (extra.tests !== undefined) state.tests = extra.tests;
+  if (extra.prediction !== undefined) state.prediction = extra.prediction;
+  if (extra.predictionOutcome !== undefined) state.predictionOutcome = extra.predictionOutcome;
+  if (extra.predictionFeedback !== undefined) state.predictionFeedback = extra.predictionFeedback;
   progress.tasks[taskId] = state;
   session.updatedAt = now.toISOString();
 
