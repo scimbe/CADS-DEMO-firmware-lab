@@ -15,7 +15,7 @@ sources: [README.md, package.json, src/m0/hello.js, test/m0-01-first-run.test.js
 tasks:
   - id: node-runs
     title: Node answers on the terminal
-    check: { type: command, command: "node --version", expectExitCode: 0, expectStdout: "v(2[2-9]|[3-9][0-9])", timeoutMs: 20000 }
+    check: { type: command, command: "node --version", expectExitCode: 0, expectStdout: "v(2[2-9]|[3-9][0-9])", timeoutMs: 20000, seedMustFail: false }
   - id: greet
     title: The first test is green
     check: { type: testSuite, runner: node-test, expectPass: ["m0-01 greet returns the greeting"], minPass: 1 }

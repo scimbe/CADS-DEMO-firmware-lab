@@ -25,9 +25,12 @@ What it checks, per the task brief:
      `modules[].reflection.prompts` in course.json.
   8. `--solutions DIR`: every top-level `testSuite`/`command` check is executed
      twice in a scratch copy of PROJECT_ROOT - without the solution it must FAIL,
-     with DIR overlaid (same relative paths) it must PASS. Skipped with a note
-     when the toolchain binary the command runs (leading `VAR=value`
-     assignments skipped) is not installed.
+     with DIR overlaid it must PASS. DIR may mirror the project root directly, or
+     hold one directory per step id (SPEC v1.1 A4), in which case every step
+     directory is overlaid. A check that is meant to pass on the untouched seed -
+     a toolchain probe such as `node --version` - declares `seedMustFail: false`.
+     Skipped with a note when the toolchain binary the command runs (leading
+     `VAR=value` assignments skipped) is not installed.
      A check that legitimately passes on the seed opts out with
      `seedMustFail: false`.
 
@@ -197,9 +200,26 @@ except ImportError:
             key = m.group(1).strip()
             rest = m.group(2).strip()
             if rest == "":
-                # nested block
-                val, idx = _parse_block(lines, idx + 1, indent + 1)
-                obj[key] = val
+                # Nested block. The child's indent is DISCOVERED from its first
+                # significant line, not assumed to be indent + 1: a block map
+                # under `check:` is normally indented by two, and assuming one
+                # made _parse_map bail out immediately and yield {} - so every
+                # block-style check parsed as type None. A sequence may also sit
+                # at the key's own indent, which is legal YAML.
+                j = idx + 1
+                while j < len(lines) and (not lines[j].strip() or lines[j].lstrip().startswith("#")):
+                    j += 1
+                if j < len(lines):
+                    child = _indent(lines[j])
+                    is_seq = lines[j].lstrip().startswith("- ")
+                    if child > indent or (is_seq and child == indent):
+                        val, idx = _parse_block(lines, idx + 1, child)
+                        obj[key] = val
+                        continue
+                # A key with nothing under it is an explicit null, as in PyYAML.
+                obj[key] = None
+                idx += 1
+                continue
             elif rest[0] in "[{":
                 val, _ = _parse_flow(rest, 0)
                 obj[key] = val
@@ -894,6 +914,28 @@ def _copy_tree(src, dst):
     shutil.copytree(src, dst, symlinks=True, ignore=shutil.ignore_patterns(".git", "node_modules", "target"), dirs_exist_ok=True)
 
 
+def _overlay_solutions(solutions_dir, dst, step_ids):
+    """Lay the reference solutions over a copy of the seed workspace.
+
+    Two layouts are in use and both are valid. A solutions directory may mirror
+    the project root directly (solutions/src/... over <root>/src/...), or it may
+    be split into one directory per step (SPEC v1.1 A4: solutions/<step-id>/src/...),
+    which is what the rust-foundations and javascript-foundations workspaces ship
+    so that a single step's solution can be inspected on its own. Anything that is
+    not a step directory - a README, for instance - is left alone.
+
+    Returns the number of per-step directories applied (0 for the flat layout).
+    """
+    entries = sorted(e for e in os.listdir(solutions_dir) if not e.startswith("."))
+    per_step = [e for e in entries if e in step_ids and os.path.isdir(os.path.join(solutions_dir, e))]
+    if not per_step:
+        _copy_tree(solutions_dir, dst)
+        return 0
+    for entry in per_step:
+        _copy_tree(os.path.join(solutions_dir, entry), dst)
+    return len(per_step)
+
+
 def run_solution_probes(probes, root, solutions_dir, report):
     """Seed copy must fail each check, seed+solutions copy must pass it."""
     if not probes:
@@ -907,7 +949,10 @@ def run_solution_probes(probes, root, solutions_dir, report):
     solved = os.path.join(tmp, "solved")
     _copy_tree(root, seed)
     _copy_tree(root, solved)
-    _copy_tree(solutions_dir, solved)
+    step_ids = {where.rsplit("/", 1)[-1] for where, _, _ in probes}
+    n_step_dirs = _overlay_solutions(solutions_dir, solved, step_ids)
+    if n_step_dirs:
+        print(f"solutions: {n_step_dirs} per-step solution director{'y' if n_step_dirs == 1 else 'ies'} applied")
     n_ok = n_skip = 0
     try:
         for where, task_id, check in probes:
