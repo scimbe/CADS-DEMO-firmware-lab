@@ -116,3 +116,21 @@ Serial-Policy `SerialAllowUsbDevicesForUrls` nur auf Ebene „Obligatorisch" (ro
 im Chrome-Serial-Dialog den ST-Link-VCP (VID 0x0483) wählen; danach hält `getPorts()` den Port über Reloads.
 Für die automatisierte E2E wurde der serielle Pfad mit Mocks vollständig abgedeckt (2 Tests: Datenfluss,
 Schreiben, sauberes Schließen, Geräteverlust); der Boot-Beweis lief über die Mac-VCP.
+
+### Stand des ST-Links am Sessionende (2026-09-03, wichtig)
+Nach Abschluss aller B3-Nachweise, beim finalen Aufräumen vom Mac aus (`st-flash reset`, direkt nachdem Chrome
+das USB-Gerät freigegeben hatte), ist der ST-Link in den bekannten Wedge-Zustand gelaufen: `st-flash reset`
+→ `LIBUSB_ERROR_TIMEOUT` (DEBUG_EXIT), danach `st-info --probe` → `chipid 0x000`, auch
+`--connect-under-reset` läuft in Timeout. Der VCP (`/dev/cu.usbmodem1303`) ist weiter enumeriert; nur die
+SWD-Protokoll-Zustandsmaschine des ST-Links hängt. Gemäß den cads-zero-Regeln **nicht weiter probiert**.
+
+Wichtig: Das ist **kein** Fehler des WebUSB-Pfads. Über den gesamten Lauf hat WebUSB (Flash, Debug,
+Disconnect) den ST-Link **nie** gewedged; die B3-Nachweise liefen sauber, inkl. sauberem Disconnect, nach dem
+`st-info` das Gerät wieder sah. Der Wedge entstand erst durch ein Mac-seitiges `st-flash reset`, das mit der
+USB-Freigabe durch Chrome zusammenfiel (ST-Link-Wedge-Ursache #2 aus cads-zero/CLAUDE.md: Client-Zugriff, der
+mit einem Übergang kollidiert). Die Firmware im Flash ist intakt (vielfach geflasht, verifiziert, gebootet).
+
+**Recovery (Operator):** ST-Link einmal physisch ab- und wieder anstecken, dann
+`diskutil list external` → `diskutil unmountDisk /dev/diskN` für `NOD_F429ZI`, danach
+`st-flash write /Users/dev/Documents/git/cads-zero/build/itsboard/cads-zero.bin 0x08000000 && st-flash reset`
+(oder nur `st-flash reset`, da die Firmware unverändert ist). Danach bootet das Board wieder normal.
