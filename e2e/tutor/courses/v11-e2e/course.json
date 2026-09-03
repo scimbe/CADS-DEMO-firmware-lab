@@ -1,0 +1,43 @@
+{
+  "id": "v11-e2e",
+  "version": "1.0.0",
+  "schema": 1,
+  "title": {
+    "de": "v1.1 Integrationstest",
+    "en": "v1.1 integration test"
+  },
+  "description": {
+    "de": "Kurs-Pack nur für den Container-Test der Addendum-v1.1-Features.",
+    "en": "Course pack used only by the container test for the Addendum v1.1 features."
+  },
+  "project": {
+    "root": "cads-zero"
+  },
+  "prerequisites": [],
+  "modules": [
+    {
+      "id": "m1",
+      "title": {
+        "de": "v1.1-Features",
+        "en": "v1.1 features"
+      },
+      "steps": [
+        "e1-tests",
+        "e2-predict",
+        "e3-misconception"
+      ],
+      "reflection": {
+        "prompts": [
+          {
+            "de": "Was hat der fehlschlagende Test dir über die Datei verraten?",
+            "en": "What did the failing test tell you about the file?"
+          },
+          {
+            "de": "Wo wich deine Vorhersage ab?",
+            "en": "Where did your prediction differ?"
+          }
+        ]
+      }
+    }
+  ]
+}

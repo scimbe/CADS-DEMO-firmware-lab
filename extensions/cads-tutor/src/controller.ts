@@ -9,7 +9,7 @@ import * as vscode from "vscode";
 import { SERIAL_ERROR_PATTERNS, type BoardBridgeApi } from "./bridge";
 import { runCommand } from "./checks/commandRunner";
 import { failedTestNames } from "./checks/testParsers";
-import { isLocalCheck, referencedFiles, runCheck, type CheckContext, type CheckResult } from "./checks/runner";
+import { DEFAULT_PREDICTION_MIN_CHARS, isLocalCheck, referencedFiles, runCheck, type CheckContext, type CheckResult } from "./checks/runner";
 import { openEventStore, type OpenedEventStore } from "./events";
 import { normalizeLang, ui } from "./i18n";
 import { loadCourses, orderedSteps, resolveProjectRoot, type ExtensionCourseContribution } from "./loader";
@@ -81,6 +81,7 @@ export class TutorController implements vscode.Disposable {
   private readonly running = new Set<string>();
   private pendingNote: NoteView | undefined;
   private reloadTimer: NodeJS.Timeout | undefined;
+  private disposed = false;
 
   constructor(private readonly context: vscode.ExtensionContext) {
     this.panel = new StepPanel(context.extensionUri, () => this.courses.map((c) => vscode.Uri.file(c.dir)));
@@ -901,7 +902,14 @@ export class TutorController implements vscode.Disposable {
     delete state.predictionFeedback;
     progress.tasks[taskId] = state;
     this.saveSession();
-    this.emit({ type: "predict.made", data: { taskId, length: prediction.length } });
+    // The text is kept either way so the student does not lose it, but a
+    // prediction too short for the check to run is not a prediction: recording
+    // it would tell the portal a student predicted when they did not.
+    const task = this.findTask(cur.step, taskId);
+    const minChars = task?.check.type === "predict" ? (task.check.minChars ?? DEFAULT_PREDICTION_MIN_CHARS) : DEFAULT_PREDICTION_MIN_CHARS;
+    if (prediction.length >= minChars) {
+      this.emit({ type: "predict.made", data: { taskId, length: prediction.length } });
+    }
     this.log(`prediction for ${key}/${taskId}: ${prediction.length} chars`);
     await this.runTask(taskId);
   }
@@ -1280,6 +1288,11 @@ export class TutorController implements vscode.Disposable {
   }
 
   dispose(): void {
+    // VS Code disposes the controller through context.subscriptions AND
+    // deactivate() calls it again, so without this guard every shutdown emitted
+    // two session.end events and the portal saw twice as many sessions as ended.
+    if (this.disposed) return;
+    this.disposed = true;
     if (this.saveTimer) clearTimeout(this.saveTimer);
     if (this.reloadTimer) clearTimeout(this.reloadTimer);
     this.flushEditMetrics();
