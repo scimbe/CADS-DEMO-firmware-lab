@@ -10,6 +10,14 @@ Ein Kurs ist ein Verzeichnis. Der Tutor lädt Kurse aus (Reihenfolge = Vorrang b
 `cads.tutor.reloadCourses`. Fehler stehen im Output-Channel **CaDS Tutor** mit Datei und Feldpfad.
 Vollständiges Beispiel: `extensions/cads-tutor/courses/_example`.
 
+> **Dieses Dokument sagt, wie ein Kurs aufgebaut ist. [`PEDAGOGY-RULES.md`](PEDAGOGY-RULES.md) sagt, wie ein Step
+> aussehen muss, damit er etwas taugt** — und das ist verbindlich, nicht empfohlen. Die Kurzfassung: die Antwort
+> steht nicht im Steptext; jeder Check muss fehlschlagen können; Hinweis-Stufe 3 ist nie die Lösung; eine Frage je
+> Aufgabe; jeder Fachbegriff wird bei erster Verwendung erklärt; die deklarierte Bloom-Stufe muss durch einen
+> Check belegt sein, der sie misst. Jede Regel nennt das Review-Finding, aus dem sie stammt
+> ([`review/round-1-firmware.md`](review/round-1-firmware.md),
+> [`review/round-2-firmware.md`](review/round-2-firmware.md)).
+
 ```
 <course>/course.json
 <course>/steps/<stepId>.en.md      Pflicht (Front Matter + Markdown)
