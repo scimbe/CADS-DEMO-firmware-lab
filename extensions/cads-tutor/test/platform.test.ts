@@ -3,6 +3,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { describe, it } from "node:test";
+import { stepTerms } from "../src/askRouting";
 import { masteryFor, openEventStore } from "../src/events";
 import { loadCoursePack } from "../src/loader";
 import { readLlmConfig, TutorPlatform } from "../src/platform";
@@ -142,5 +143,63 @@ describe("language reaches the model", () => {
     const p = withLang("de", prompts);
     const out = await p.ask("how do I build the firmware with cmake presets?", "de");
     assert.equal(out.kind, "answer", "still grounded, so retrieval was not disturbed");
+  });
+});
+
+describe("a question asked in German still reaches the sources", () => {
+  // The corpus is English. Before this, BM25 scored a German question near zero
+  // on every chunk, so the tutor refused it before any model was asked.
+  function platform(prompts: string[]) {
+    return new TutorPlatform({
+      course,
+      packsDir: PACKS,
+      studentId: "s1",
+      memoryDir: tmp(),
+      llm: null,
+      llmClient: { complete: async (p: string) => (prompts.push(p), "Antwort") },
+      lang: () => "de",
+    });
+  }
+  const buildStep = { objectives: ["firmware-how-to-build"], creates: [], sources: [], links: [], title: "Build the firmware with cmake presets" };
+
+  it("was refused without the step's vocabulary", async () => {
+    const p = platform([]);
+    const out = await p.ask("Wie baue ich die Firmware?", "de");
+    assert.equal(out.kind, "refused", "this is the fault being fixed, kept as the baseline");
+  });
+
+  it("grounds and answers once the step's vocabulary is supplied", async () => {
+    const prompts: string[] = [];
+    const out = await platform(prompts).ask("Wie baue ich die Firmware?", "de", { stepTerms: stepTerms(buildStep as never) });
+    assert.equal(out.kind, "answer", `still refused: ${JSON.stringify(out)}`);
+    if (out.kind === "answer") assert.ok(out.citations.length > 0, "the answer is still evidenced by real sources");
+  });
+
+  it("answers in German, and the prompt says so", async () => {
+    const prompts: string[] = [];
+    await platform(prompts).ask("Wie baue ich die Firmware?", "de", { stepTerms: stepTerms(buildStep as never) });
+    assert.equal(prompts.length, 1);
+    assert.match(prompts[0], /ausschließlich auf Deutsch/);
+  });
+
+  it("asks about what the student asked, not about the added search terms", async () => {
+    const prompts: string[] = [];
+    await platform(prompts).ask("Wie baue ich die Firmware?", "de", { stepTerms: stepTerms(buildStep as never) });
+    assert.match(prompts[0], /Wie baue ich die Firmware\?/);
+  });
+
+  it("keeps refusing when nothing in the corpus matches, whatever the context", async () => {
+    // The rule that an answer comes only from evidenced sources must survive.
+    const out = await platform([]).ask("Was ist die Hauptstadt von Frankreich?", "de", {
+      stepTerms: stepTerms(buildStep as never),
+    });
+    assert.equal(out.kind, "refused", `answered an off-topic question: ${JSON.stringify(out)}`);
+  });
+
+  it("does not disturb an English question that already grounded", async () => {
+    const prompts: string[] = [];
+    const out = await platform(prompts).ask("how do I build the firmware with cmake presets?", "de", { stepTerms: stepTerms(buildStep as never) });
+    assert.equal(out.kind, "answer");
+    assert.equal(prompts.length, 1, "no second retrieval attempt was needed");
   });
 });

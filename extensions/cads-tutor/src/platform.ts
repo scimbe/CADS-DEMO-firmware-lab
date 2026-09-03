@@ -27,6 +27,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import type { QuestionVerdict } from "./checks/runner";
 import type { EventStoreLike } from "./events";
+import { questionIsSupported, retrievalQuery } from "./askRouting";
 import { withLanguageDirective } from "./prompts";
 import type { Course, Lang } from "./types";
 
@@ -236,7 +237,11 @@ export class TutorPlatform {
     return this.toCitations(answer.citations);
   }
 
-  async ask(question: string, lang: Lang, options: { bloomLevel?: BloomLevel; attemptNumber?: number } = {}): Promise<AskOutcome> {
+  async ask(
+    question: string,
+    lang: Lang,
+    options: { bloomLevel?: BloomLevel; attemptNumber?: number; stepTerms?: readonly string[] } = {},
+  ): Promise<AskOutcome> {
     const trimmed = question.trim().slice(0, MAX_QUESTION_CHARS);
     if (!this.session) {
       return { kind: "unconfigured", message: this.unconfiguredMessage(lang), citations: this.citationsFor(trimmed) };
@@ -247,7 +252,61 @@ export class TutorPlatform {
     } catch (err) {
       return { kind: "llm-error", message: err instanceof Error ? err.message : String(err), citations: [] };
     }
-    return this.toOutcome(result);
+    if (result.kind !== "refused") return this.toOutcome(result);
+
+    // The question did not ground. Before refusing, retry RETRIEVAL with the
+    // step's own English vocabulary added: a German question scores near zero
+    // against an English corpus however low the threshold, and refusing a
+    // student who asked in their own language is the worst outcome here. The
+    // answer is still generated from the student's own wording, and if the
+    // enriched query does not ground either, the refusal stands.
+    const enriched = await this.askWithContext(trimmed, options);
+    return enriched ?? this.toOutcome(result);
+  }
+
+  /**
+   * Second attempt at a question that did not ground: same corpus, same
+   * threshold, wider query. Returns undefined when it still does not ground, so
+   * the caller keeps the original refusal.
+   */
+  private async askWithContext(
+    question: string,
+    options: { bloomLevel?: BloomLevel; attemptNumber?: number; stepTerms?: readonly string[] },
+  ): Promise<AskOutcome | undefined> {
+    if (!this.llm) return undefined;
+    const { query, added } = retrievalQuery(question, options.stepTerms ?? []);
+    if (added.length === 0) return undefined;
+    const answer = this.engine.ask(query);
+    if (!answer.grounded) {
+      this.log(`ask: not grounded even with context terms (${added.join(" ")})`);
+      return undefined;
+    }
+    // The context terms can ground on their own, which would answer a question
+    // the student did not ask. The retrieved material must speak to their words.
+    const retrieved = answer.citations.map((c) => `${c.chunk.section} ${c.chunk.text}`).join("\n");
+    if (!questionIsSupported(question, retrieved)) {
+      this.log(`ask: context terms grounded, but nothing in the sources speaks to the question – keeping the refusal`);
+      return undefined;
+    }
+    this.log(`ask: grounded on the second attempt with context terms (${added.join(" ")})`);
+    // buildTutorPrompt gets the STUDENT'S question, not the enriched query, so
+    // the answer addresses what was asked.
+    const built = buildTutorPrompt(this.engine, question, answer, {
+      bloomLevel: options.bloomLevel,
+      attemptNumber: options.attemptNumber,
+    });
+    try {
+      const text = await this.llm.complete(built.prompt);
+      return {
+        kind: "answer",
+        text,
+        citations: this.toCitations(answer.citations),
+        bloomLevel: built.bloomLevel,
+        hintTier: built.hintTier,
+      };
+    } catch (err) {
+      return { kind: "llm-error", message: err instanceof Error ? err.message : String(err), citations: this.toCitations(answer.citations) };
+    }
   }
 
   /** Proactive check-in on an objective; `null` when there is no LLM or the objective is unknown. */
