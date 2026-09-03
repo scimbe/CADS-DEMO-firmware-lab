@@ -1,4 +1,4 @@
-//! m0-02-first-test: read a test, then make it pass.
+//! m0-03-first-test: read a test, then make it pass.
 //!
 //! `add` is complete and shows the shape of a function: parameters with
 //! types, a return type after `->`, and the last expression (no `;`) as the

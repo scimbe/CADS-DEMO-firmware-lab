@@ -1,4 +1,4 @@
-//! Reference solution for m0-02-first-test.
+//! Reference solution for m0-03-first-test.
 
 /// Returns the sum of `a` and `b`.
 pub fn add(a: i32, b: i32) -> i32 {

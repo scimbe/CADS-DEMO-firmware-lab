@@ -1,7 +1,7 @@
-//! Tests for step m0-03-predict-output. Run: `cargo test --test m0-03-predict-output`
-use rust_foundations::m0::m0_03_predict::{celsius_to_fahrenheit, fahrenheit_to_celsius};
+//! Tests for step m0-04-predict-output. Run: `cargo test --test m0-04-predict-output`
+use rust_foundations::m0::m0_04_predict::{celsius_to_fahrenheit, fahrenheit_to_celsius};
 
-mod m0_03_predict_output {
+mod m0_04_predict_output {
     use super::*;
 
     #[test]

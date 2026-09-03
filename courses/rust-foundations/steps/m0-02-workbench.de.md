@@ -1,0 +1,90 @@
+---
+id: m0-02-workbench
+title: "Die Oberfläche bedienen"
+bloom: apply
+objectives: [ "rust-tooling-cargo" ]
+requires: [ "m0-01-welcome" ]
+estimatedMinutes: 20
+scaffold: worked
+links:
+  - { step: "m0-03-first-test" }
+  - { file: "README.md" }
+  - { file: "Cargo.toml" }
+  - { url: "https://code.visualstudio.com/docs/terminal/basics", title: "VS Code docs: Integrated Terminal" }
+sources: [ "README.md", "Cargo.toml", "src/lib.rs" ]
+tasks:
+  - id: toolchain
+    title: "Alle drei Werkzeuge antworten"
+    check: { type: "command", command: "cargo --version && cargo fmt --version && cargo clippy --version", expectExitCode: 0, expectStdout: "clippy", seedMustFail: false, timeoutMs: 120000 }
+  - id: build
+    title: "Der Workspace übersetzt aus dem Terminal"
+    check: { type: "command", command: "cargo build", expectExitCode: 0, seedMustFail: false, timeoutMs: 180000 }
+  - id: panels
+    title: "Du kannst sagen, wo Ausgabe erscheint"
+    check: { type: "question", prompt: { en: "You ran cargo build and saw nothing. Name the three places at the bottom of the window where output can appear, say which one a terminal command writes to, and say how you can tell from the terminal alone that a command has finished rather than hung.", de: "Du hast cargo build ausgeführt und nichts gesehen. Nenne die drei Stellen unten im Fenster, an denen Ausgabe erscheinen kann, sage, in welche davon ein Terminalbefehl schreibt, und sage, woran du allein am Terminal erkennst, dass ein Befehl fertig ist und nicht hängt." }, rubric: "Names Terminal, Problems and Output as the three panel tabs, states that a command typed in the terminal writes to the Terminal tab only (Problems shows diagnostics collected by extensions, Output shows extension logs), and states that the shell prompt reappearing under the output is the finished signal - a cursor with no prompt means it is still running. Credit for noting that the Check button shows the same output inside the tutor panel.", bloom: "understand", minChars: 60 }
+socratic:
+  - { trigger: "task:build:failed", question: { en: "Which folder does the terminal say it is in, and is a Cargo.toml there?", de: "Welchen Ordner nennt das Terminal, und liegt dort eine Cargo.toml?" }, hints: [ { en: "Type `pwd` and press Enter; the answer must end in the rust-foundations folder.", de: "Tippe `pwd` und drücke die Eingabetaste; die Antwort muss auf den Ordner rust-foundations enden." }, { en: "Close the terminal with the bin icon on its right-hand side and open a fresh one with Terminal → New Terminal; a new terminal always starts in the workspace folder.", de: "Schließe das Terminal über das Papierkorbsymbol an seiner rechten Seite und öffne mit Terminal → Neues Terminal ein frisches; ein neues Terminal startet immer im Workspace-Ordner." }, { en: "If `cargo` itself is not found, the toolchain is missing from this container - that is an environment fault, not something you can fix in the editor.", de: "Wird `cargo` selbst nicht gefunden, fehlt die Toolchain in diesem Container - das ist ein Umgebungsfehler und nichts, was du im Editor beheben kannst." } ] }
+  - { trigger: "task:toolchain:failed", question: { en: "Which of the three commands failed? Run them one at a time to find out.", de: "Welcher der drei Befehle ist gescheitert? Führe sie einzeln aus, um es herauszufinden." }, hints: [ { en: "`&&` stops at the first failure, so the last line you see is the one that broke.", de: "`&&` bricht beim ersten Fehlschlag ab, die letzte sichtbare Zeile ist also die gescheiterte." }, { en: "`cargo fmt --version` and `cargo clippy --version` need the rustfmt and clippy components; both belong in this image.", de: "`cargo fmt --version` und `cargo clippy --version` brauchen die Komponenten rustfmt und clippy; beide gehören in dieses Image." }, { en: "If one is genuinely absent, report it - the last step of the course checks formatting and lints with exactly these two.", de: "Fehlt eines wirklich, melde es - der letzte Step des Kurses prüft Formatierung und Lints mit genau diesen beiden." } ] }
+misconceptions:
+  - { pattern: "could not find `Cargo\\.toml`", question: { en: "cargo did not find a package. Which folder is your terminal in, and does that folder contain Cargo.toml?", de: "cargo hat kein Paket gefunden. In welchem Ordner steht dein Terminal, und liegt dort eine Cargo.toml?" }, hints: [ { en: "`pwd` prints the current folder; it has to be the rust-foundations workspace, the one holding Cargo.toml.", de: "`pwd` gibt den aktuellen Ordner aus; er muss der rust-foundations-Workspace sein, in dem die Cargo.toml liegt." }, { en: "A terminal opened with Terminal → New Terminal starts in the workspace folder; one you navigated away from does not.", de: "Ein über Terminal → Neues Terminal geöffnetes Terminal startet im Workspace-Ordner; eines, aus dem du herausnavigiert bist, nicht." }, { en: "The message names the folder cargo searched, so compare that path with where the file actually is.", de: "Die Meldung nennt den Ordner, in dem cargo gesucht hat; vergleiche diesen Pfad damit, wo die Datei wirklich liegt." } ] }
+---
+## Lernziel
+
+Bediene dieses Fenster mit Absicht: wisse, wofür jeder Bereich da ist, kenne die drei Wege, einen Befehl auszuführen, und erkenne, dass ein Befehl fertig ist.
+
+## Was auf dem Bildschirm ist
+
+Fünf Bereiche, von außen nach innen:
+
+- **Aktivitätsleiste**, der Streifen mit Symbolen ganz links. Das Doktorhut-Symbol öffnet **CaDS Tutor**; das oberste Symbol öffnet den Datei-Explorer. Ein Klick auf ein bereits aktives Symbol blendet dessen Seitenleiste aus - das ist die übliche Erklärung für „meine Dateien sind weg".
+- **Seitenleiste** daneben. Mit gewähltem Explorer listet sie den Workspace-Ordner: `src/`, `tests/`, `Cargo.toml`. Ein Klick zeigt eine Datei zur Vorschau, ein Doppelklick hält sie offen.
+- **Editor**, der große Bereich in der Mitte. Hier änderst du Dateien. Ein Punkt statt des Schließkreuzes auf einem Reiter bedeutet ungesicherte Änderungen.
+- **Bereich unten** mit den Reitern **Terminal**, **Problems** und **Output**. Er ist geschlossen, bis du ihn brauchst.
+- **Statusleiste**, der schmale Streifen ganz unten.
+
+Das Panel **CaDS Tutor** zeigt den Step, den du liest, die Aufgaben mit je einer Schaltfläche **Prüfen** und das Feld für eine Frage an den Tutor. Die Schaltfläche Prüfen führt den echten Befehl des Steps aus und zeigt dessen echte Ausgabe; sie simuliert nichts.
+
+## Die drei Reiter unten sind nicht austauschbar
+
+Das ist der häufigste Weg, zehn Minuten zu verlieren:
+
+- **Terminal** zeigt, was ein von dir getippter Befehl ausgibt. Alles in diesem Kurs landet hier.
+- **Problems** zeigt Diagnosen, die eine Erweiterung gesammelt hat, als Liste. In diesem Kurs bleibt der Reiter leer; warte nicht darauf.
+- **Output** zeigt die Protokolle der Erweiterungen selbst. Nichts, was du ausführst, erscheint hier.
+
+Hat ein Befehl „nichts ausgegeben", prüfe zuerst, ob du auf **Terminal** schaust.
+
+## Drei Wege, dasselbe auszuführen
+
+1. **Integriertes Terminal.** Menü **Terminal → Neues Terminal**. Es öffnet sich im Bereich unten, bereits im Workspace-Ordner. Befehl tippen, Eingabetaste. Diesen Weg nutzt der Kurs durchgehend, weil du dabei genau das siehst, was die Prüfungen sehen.
+2. **Befehlspalette.** Drücke **F1**. Im Browser ist das zuverlässiger als Strg+Umschalt+P, was der Browser selbst abfangen kann. Tippe, was du willst (`Terminal: Create New Terminal`), Eingabetaste.
+3. **Die Schaltfläche Prüfen** im Tutor-Panel neben einer Aufgabe. Sie führt den Befehl dieser Aufgabe aus und zeigt die Ausgabe im Panel.
+
+Zum Schließen eines Terminals drückst du das Papierkorbsymbol an seinem rechten Rand oder tippst `exit`. Es geht nichts verloren - ein Terminal hält keinen Zustand, den du brauchst. Öffne auf demselben Weg ein neues, und du bist wieder da, wo du warst.
+
+## Woran du erkennst, dass ein Befehl fertig ist
+
+Die Eingabeaufforderung erscheint wieder unter der Ausgabe. Solange sie fehlt, läuft der Befehl noch: ein blinkender Cursor ohne Eingabeaufforderung ist laufende Arbeit, kein Hänger. Das erste `cargo build` dauert ein paar Sekunden, weil die Crate einmal übersetzt wird; danach antwortet es sofort.
+
+## Deine Aufgabe
+
+Öffne ein Terminal und führe die beiden Befehle unten aus. Beantworte dann, wo Ausgabe erscheint und woran du einen fertigen Befehl erkennst. Der nächste Step bringt einen fehlschlagenden Test zum Bestehen.
+
+## So führst du das aus
+
+Öffne ein Terminal über das Menü **Terminal → Neues Terminal**, oder drücke **F1** (im Browser zuverlässiger als Strg+Umschalt+P), tippe `Terminal: Create New Terminal` und drücke die Eingabetaste. Das Terminal öffnet sich im Bereich unten, bereits im Workspace-Ordner. Führe dann aus:
+
+```bash
+cargo --version && cargo fmt --version && cargo clippy --version
+cargo build
+```
+
+Die Schaltfläche **Prüfen** neben der Aufgabe oben führt genau diese Befehle für dich aus und zeigt dieselbe Ausgabe im Tutor-Panel; das Terminal ist dafür da, dass du es selbst siehst und wiederholen kannst.
+
+**Was du siehst:** die Ausgabe des Programms, darin `clippy`.
+
+**Wie lange:** beim ersten Mal ein paar Sekunden, weil die Crate einmal übersetzt wird; bei jedem weiteren Lauf deutlich unter einer Sekunde.
+
+**Fertig ist es, wenn:** die Eingabeaufforderung unter der Ausgabe wieder erscheint. Solange sie fehlt, läuft der Befehl noch - ein blinkender Cursor ohne Eingabeaufforderung ist kein Hänger.
+
+**Wenn etwas nicht stimmt:** die Ausgabe steht im Reiter **Terminal** unten, nicht in **Problems** und nicht in **Output** - diese beiden zeigen anderes und sind der übliche Grund für „es passiert nichts". Hast du das Terminal versehentlich geschlossen, öffne auf demselben Weg ein neues; es geht nichts verloren. Antwortet cargo mit `could not find Cargo.toml`, steht das Terminal im falschen Ordner - wechsle mit `cd` zurück in den Workspace-Ordner.
