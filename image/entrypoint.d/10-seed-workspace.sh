@@ -88,7 +88,13 @@ write_templates() {
                 git ls-files --error-unmatch "$f" >/dev/null 2>&1 && git update-index --skip-worktree "$f" 2>/dev/null
             done
             mkdir -p .git/info
-            grep -qx '.clangd' .git/info/exclude 2>/dev/null || echo '.clangd' >> .git/info/exclude
+            # Everything the container/extensions create inside the workspace
+            # that cads-zero's own .gitignore does not cover: the clangd config
+            # written above, the tutor's session directory (SPEC §3.3), clangd's
+            # index cache. Source Control must show nothing after the seed.
+            for pattern in '.clangd' '.cads-tutor/' '.cache/' 'CMakeUserPresets.json'; do
+                grep -qxF "$pattern" .git/info/exclude 2>/dev/null || echo "$pattern" >> .git/info/exclude
+            done
         )
     fi
 }

@@ -110,11 +110,15 @@ try {
   const explorerHeader = await page.evaluate(() =>
     [...document.querySelectorAll(".explorer-viewlet .pane-header")].map((h) => h.innerText.trim())
   );
-  if (!explorerHeader.some((h) => h.toLowerCase().includes("cads-zero")) && !explorerRoot.includes("CMakePresets.json")) {
-    fail(`explorer does not show cads-zero: headers=${explorerHeader.join("|")} rows=${explorerRoot.join(",")}`);
+  // With cads-tutor installed (cadsTutor.autoOpen) the side bar may show the
+  // tutor view instead of the Explorer; then the Explorer is not in the DOM.
+  const sidebarTitle = await page.evaluate(() => document.querySelector(".sidebar .composite.title h2")?.innerText.trim() ?? "");
+  const explorerOk = explorerHeader.some((h) => h.toLowerCase().includes("cads-zero")) || explorerRoot.includes("CMakePresets.json");
+  if (!explorerOk && !sidebarTitle) {
+    fail(`neither Explorer with cads-zero nor another side bar view: headers=${explorerHeader.join("|")} rows=${explorerRoot.join(",")}`);
   }
   await page.screenshot({ path: join(OUT, "01-workbench.png") });
-  ok(`workbench: title="${title}", no Restricted Mode, explorer shows cads-zero (${explorerRoot.length} entries)`);
+  ok(`workbench: title="${title}", no Restricted Mode, side bar="${sidebarTitle}"${explorerOk ? `, explorer shows cads-zero (${explorerRoot.length} entries)` : ""}`);
 
   // cmake.configureOnOpen is off in the image: no CMake Tools preset prompt
   // and no Copilot chat side bar may greet the student.
@@ -134,6 +138,21 @@ try {
   if (startupUi.prompt) fail(`a prompt is open after startup: "${startupUi.prompt}"`);
   if (startupUi.chatBar) fail("the secondary side bar (Copilot chat) is visible after startup");
   ok(`no preset prompt, no chat side bar after startup (notifications: ${JSON.stringify(startupUi.notifications)})`);
+
+  // Status bar: no CMake Tools items, no pending Source Control changes.
+  const statusbar = await page.evaluate(() =>
+    [...document.querySelectorAll("#workbench\\.parts\\.statusbar .statusbar-item")]
+      .map((e) => e.innerText.trim())
+      .filter(Boolean)
+  );
+  await page.screenshot({ path: join(OUT, "01c-statusbar.png"), clip: { x: 0, y: 878, width: 1400, height: 22 } });
+  const cmakeItems = statusbar.filter((t) => /preset|ctest|cpack|workflow|^build$|^debug$|^launch$/i.test(t));
+  if (cmakeItems.length) fail(`CMake Tools status bar items visible: ${JSON.stringify(cmakeItems)}`);
+  const pending = statusbar.find((t) => /pending change/i.test(t));
+  if (pending) fail(`Source Control shows pending changes: "${pending}"`);
+  const porcelain = dexec(`git -C ${WS} status --porcelain -uall`).trim();
+  if (porcelain) fail(`git status is not clean after seed:\n${porcelain}`);
+  ok(`status bar has no CMake items and no pending changes (${JSON.stringify(statusbar)}); git status clean`);
   await page.keyboard.press("Escape");
 
   // 3. task "CaDS: Build" - force real work: drop the binary, touch a source
