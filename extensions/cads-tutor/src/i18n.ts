@@ -127,6 +127,11 @@ export const UI = {
     nextTaskIs: (title: string) => `Next task: ${title}`,
     allTasksDone: "Every task in this step is done.",
     stepFinished: "Step finished.",
+    selfCheckTitle: "Check your own answer",
+    selfCheckIntro: "No language model is configured, so nobody grades this for you. Compare your answer with what a full answer has to contain:",
+    selfCheckConfirm: "I have compared my answer with this",
+    selfReportedBadge: "self-assessed",
+    selfReportedNote: "Self-assessed tasks count towards finishing the step, but not towards the mastery shown in Progress.",
   },
   de: {
     tutor: "CaDS Tutor",
@@ -251,6 +256,11 @@ export const UI = {
     nextTaskIs: (title: string) => `Nächste Aufgabe: ${title}`,
     allTasksDone: "Alle Aufgaben dieses Schritts sind erledigt.",
     stepFinished: "Schritt abgeschlossen.",
+    selfCheckTitle: "Antwort selbst prüfen",
+    selfCheckIntro: "Es ist kein Sprachmodell konfiguriert, niemand bewertet das also für dich. Vergleiche deine Antwort damit, was eine vollständige Antwort enthalten muss:",
+    selfCheckConfirm: "Ich habe meine Antwort damit verglichen",
+    selfReportedBadge: "selbst eingeschätzt",
+    selfReportedNote: "Selbst eingeschätzte Aufgaben zählen für den Abschluss des Schritts, aber nicht für die im Fortschritt angezeigte Beherrschung.",
   },
 } as const;
 

@@ -1292,24 +1292,52 @@ export class TutorController implements vscode.Disposable {
     if (status !== "passed" && status !== "failed") return;
     const meta = step.variants.en!.meta;
     const platform = this.platformFor(course);
-    const objectiveId = meta.objectives[0];
-    try {
-      store.record({
-        entityId: this.session.studentId,
-        sessionId: this.session.startedAt,
-        track: platform.track,
-        objectiveId,
-        unitId: step.moduleId,
-        bloomLevel: task.check.type === "question" && task.check.bloom ? task.check.bloom : meta.bloom,
-        exchangeType: null,
-        source: task.check.type === "question" ? "explicit_quiz" : task.check.type === "task" || task.check.type === "build" ? "task_run" : "tool_check",
-        hintTierReached: hintTier,
-        outcome: status === "passed" ? (hintTier > 0 ? "assisted_success" : "independent_success") : "failure",
-        artifactRef: `${course.manifest.id}/${step.id}/${task.id}`,
-      });
-    } catch (err) {
-      this.log(`learning event not recorded: ${err instanceof Error ? err.message : String(err)}`);
+
+    // A pass the student awarded themselves is not evidence of mastery. Without
+    // a language model every `question` check falls back to manual confirmation,
+    // and `manual` never had any verification to begin with; recording either as
+    // independent success made the progress view - and the teacher's portal -
+    // report mastery that nobody checked. Such a pass is still visible as a
+    // telemetry event, it just carries no weight in the mastery estimate.
+    if (status === "passed" && !this.isVerifiedPass(task, platform)) {
+      this.log(`self-confirmed pass ${step.id}/${task.id} [${task.check.type}] recorded WITHOUT mastery weight (no automatic verification)`);
+      this.emit({ type: "check.pass", data: { taskId: task.id, checkType: task.check.type, selfReported: true } });
+      return;
     }
+
+    // Every objective of the step, not only the first: a step that serves three
+    // objectives was crediting one of them.
+    const objectiveIds = meta.objectives.length > 0 ? meta.objectives : [undefined];
+    for (const objectiveId of objectiveIds) {
+      try {
+        store.record({
+          entityId: this.session.studentId,
+          sessionId: this.session.startedAt,
+          track: platform.track,
+          objectiveId: objectiveId as string,
+          unitId: step.moduleId,
+          bloomLevel: task.check.type === "question" && task.check.bloom ? task.check.bloom : meta.bloom,
+          exchangeType: null,
+          source: task.check.type === "question" ? "explicit_quiz" : task.check.type === "task" || task.check.type === "build" ? "task_run" : "tool_check",
+          hintTierReached: hintTier,
+          outcome: status === "passed" ? (hintTier > 0 ? "assisted_success" : "independent_success") : "failure",
+          artifactRef: `${course.manifest.id}/${step.id}/${task.id}`,
+        });
+      } catch (err) {
+        this.log(`learning event not recorded: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+  }
+
+  /**
+   * Did anything other than the student decide this passed? `manual` is a
+   * self-declaration by definition, and a `question` without a language model
+   * falls back to the same thing.
+   */
+  private isVerifiedPass(task: TaskSpec, platform: TutorPlatform): boolean {
+    if (task.check.type === "manual") return false;
+    if (task.check.type === "question") return platform.hasLlm;
+    return true;
   }
 
   // ------------------------------------------------------------------------------------------
