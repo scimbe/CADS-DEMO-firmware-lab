@@ -511,3 +511,30 @@ exercised honestly rather than skipped.
   what the seed workspace needed.
 - Course packs are read from `/opt/cads-tutor/courses` inside the image, so **adding a course
   means a new image**, not a volume change.
+
+## Ausstehender Deploy (2026-09-04)
+
+Geprüfter, auslieferbarer Tag: **`ghcr.io/scimbe/cads-tutor-lab:next-0d432d3`** (amd64 + arm64,
+CI grün, Rauchtest bestanden, Kurskollision behoben und dreifach gegengeprüft).
+
+Der Deploy hängt daran, dass der Labor-Host (`cads-lambda`, `/home/becke/CADS-DEMO-tutor-lab`,
+Compose, Port 8084) erreichbar ist; weder diese Sitzung noch der Services-Host erreichen ihn
+derzeit. Der Operator muss die Labor-Sitzung aktivieren.
+
+Beim Einspielen gilt:
+
+1. Nur den Image-Verweis tauschen — und die Zeile `command:` aus der Compose-Datei **entfernen**.
+   Das Image trägt seine Betriebsflags selbst; eine überschriebene Kommandozeile schaltet den
+   eingeschränkten Modus wieder ein und damit alle Erweiterungen ab (so ist der erste Anlauf
+   gescheitert).
+2. Zwei Einstiegslinks bewerben, je Sprache einer:
+   `…/?folder=/home/coder/workspace/rust-foundations` und
+   `…/?folder=/home/coder/workspace/javascript-foundations`. Jeder zeigt nur seinen eigenen Kurs.
+   Die nackte Adresse öffnet, was der Browser zuletzt offen hatte, und taugt nicht als Einstieg.
+3. `PASSWORD` ist Pflicht. `TUTOR_LLM_BASE_URL` (https), `TUTOR_LLM_API_KEY` und `TUTOR_LLM_MODEL`
+   müssen gesetzt sein, bevor eine Lerngruppe damit arbeitet — sonst fällt der Tutor auf
+   Selbstkontrolle zurück und alle Verständnisfragen und Hilfestufen bleiben wirkungslos.
+4. Vollständige Anleitung: [`images/tutor-lab/README.md`](../images/tutor-lab/README.md).
+
+Der Firmware-Tutor (`ghcr.io/scimbe/cads-firmware-lab:next-0d432d3`) ist am 2026-09-04 auf dem
+Services-Host produktiv, live verifiziert, Sprachmodell dort gesetzt; Rücksprung `next-dbfa3c5`.
