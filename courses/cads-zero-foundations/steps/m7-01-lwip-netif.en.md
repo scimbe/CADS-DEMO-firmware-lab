@@ -37,7 +37,9 @@ Understand how CaDS Zero brings up its network interface, why a caller has to po
 
 ## The hardware advantage, in one module
 
-Ethernet is what this board has that a Flipper Zero does not: a LAN8742A PHY over RMII, at 100 Mbit. `modules/net` wraps lwIP around that MAC behind a deliberately small portable API in `modules/net/include/cads/net/net.h`. Two implementations exist, on the same pattern as storage: `cads_net_board.c` owns a real lwIP netif over the RMII MAC; `cads_net_sim.c` is an honest stub that reports "no link, ever" — there is no RMII hardware to simulate, and pretending otherwise would let an app hide a dependency on network behaviour until it hits the board.
+Ethernet is what this board has that a Flipper Zero does not: a LAN8742A PHY over RMII, at 100 Mbit. `modules/net` wraps lwIP around that MAC behind a deliberately small portable API. Two implementations exist: `cads_net_board.c` owns a real lwIP netif over the RMII MAC; `cads_net_sim.c` is an honest stub that never reports a link. Pretending otherwise would let an app hide its dependency on network behaviour until it hits the board.
+
+Open the header to read along: press `Ctrl`/`Cmd`+`P`, type `modules/net/include/cads/net/net.h` and press Enter. Without the keyboard: the top icon in the narrow icon bar on the far left (the file explorer), then click through the tree. The file opens as a tab in the middle, next to the step-text tab `CaDS Tutor: <title>`.
 
 ## Three calls
 
@@ -47,28 +49,52 @@ void cads_net_poll(void);                            /* rx, tx, lwIP timeouts */
 void cads_net_status(cads_net_status_t* status);     /* the LAST poll's result */
 ```
 
-`cads_net_init()` is idempotent on purpose: any caller that wants networking "on" — a diagnostic command, the real app tree — calls it, and only the first call across the whole image does anything. `cads_net_poll()` pumps receive, transmit and lwIP's internal timeouts; it is cheap when idle and must run every iteration of the loop that owns it.
+`cads_net_init()` is idempotent on purpose: only the first call across the whole image does anything. `cads_net_poll()` pumps receive, transmit and lwIP's internal timeouts; it is cheap when idle and must run every iteration of the loop that owns it.
 
-The contract that trips people up: **nothing detects link-up on its own.** `cads_net_status()` reports the cached result of the last poll and does not ask the hardware. What shape a caller has to derive from that is the third question of this step; you will write exactly that shape as code in the next one.
-
-`cads_net_status_t` also tells you `ip_addr`, `gw_addr`, `dns_addr` (host byte order, 0 when unset), `dhcp_bound`, speed and duplex, and frame counters. The status-bar indicator in the app tree reads these to print "no link", "no lease" or "100M".
+The contract that trips people up: **nothing detects link-up on its own.** `cads_net_status()` reports the cached result of the last poll and does not ask the hardware. What shape a caller has to derive from that is the third question of this step. `cads_net_status_t` also tells you address, gateway, DNS, `dhcp_bound`, speed, duplex and frame counters.
 
 ## Addressing out of the box
 
-The board is **static, not DHCP**, by default. `cads_net_board.c` carries the built-in default `192.168.33.99/24`, gateway `192.168.33.1`, and `/config.txt` exposes it as `net.dhcp = 0`, `net.ip`, `net.netmask`, `net.gateway` (`docs/reference/config-file.md`). Setting `net.dhcp = 1` starts lwIP's DHCP client once the link is up; on link-down the driver calls `dhcp_stop()` rather than releasing, because by then there is no carrier to send a release over. That static default is why the lab works with a plain cable between board and laptop and no DHCP server anywhere.
+The board is **static, not DHCP**, by default. `cads_net_board.c` carries the built-in default `192.168.33.99/24`, gateway `192.168.33.1`, and `/config.txt` exposes it as `net.dhcp = 0`, `net.ip`, `net.netmask`, `net.gateway`. Setting `net.dhcp = 1` starts lwIP's DHCP client once the link is up. That static default is why the lab works with a plain cable between board and computer and no DHCP server anywhere.
 
 ## What the stack costs in RAM
 
-A network stack is not an idea, it is memory. lwIP gets two separate pots here, and both are in `modules/net/include/lwipopts.h`: a **heap of its own** for the stack's structures, and a **pool of receive buffers** every arriving frame is served from. The heap is written as a byte count, the pool as a number of slots — and slots only become bytes once you know how big one is, which is exactly the figure the project measured from the linker map and wrote into the comment beside it.
+A network stack is not an idea, it is memory. lwIP gets two separate pots here, both in `modules/net/include/lwipopts.h`: a **heap of its own** for the stack's structures, and a **pool of receive buffers** every arriving frame is served from. The heap is written as a byte count, the pool as a number of slots — slots only become bytes once you know how big one is, and that is exactly the figure the project measured from the linker map and noted beside it. The same RAM carries the 48 KB floor `scripts/check_ram_budget.py` guards.
 
-Why every line in that file is commented: the same RAM carries the 48 KB floor `scripts/check_ram_budget.py` guards (M4-02). Growing any lwIP buffer is a decision against something else. The second task of this step has you estimate these two items first and look them up afterwards. They are not the whole price of the stack — the `MEMP_NUM_*` pools, the ARP table, the TCP PCBs and the MAC descriptor rings sit beside them — but they are the two largest single items and the ones this project actually made decisions about.
+## Task 1 — run the net gate
 
-## Your task
+You do not type the console command `h 10` yourself: the check button sends it, you only read the answer. The **Check** button sits on this task at the bottom of the step text, the tab in the middle; **Run all checks** at the top of that same tab starts every task of this step.
 
-Open the board console so you can read along — you do not have to send anything: the **Check** button on this task sends `h 10` itself and waits for the answer. If the board is sitting in the app tree, run `python3 scripts/board_key.py quit` once in a terminal first. Read what the gate reports: link state, speed, and the packet and byte counters. Then predict the RAM price of those two items and compare against the constants in `modules/net/include/lwipopts.h`. Finally answer the question on how a caller learns about link-up.
+A freshly flashed board starts in the touchscreen app tree and mishears single letters. So open a terminal first — click the icon with the three bars (**☰**) at the very top left, then **`Terminal` → `New Terminal`**; if the terminal area is folded away, `Ctrl`/`Cmd`+`J` opens it and folds it back. The working directory is the project root. Run once:
 
-**Where you do this:**
-- Open a file: `Ctrl`/`Cmd`+`P`.
-- Open a terminal: menu *Terminal → New Terminal*.
-- Open the board console: `F1`, then *CaDS Board: Konsole öffnen*.
-- Build: menu *Terminal → Run Build Task…*.
+```
+python3 scripts/board_key.py quit
+```
+
+In the lab the scripts reach the board through the bridge's console PTY; if the call finds no port, name it explicitly (`docs/SPEC.md`):
+
+```
+python3 scripts/board_key.py quit --port /home/coder/board-console
+```
+
+To watch while it sends, also open the board console: press **`F1`**, type `CaDS Board: Konsole öffnen` and press Enter. `Ctrl`/`Cmd`+`Shift`+`P` opens the palette too, but a browser often swallows it; `F1` is the reliable way. **If the palette does not react at all, the browser swallowed the shortcut** — press `F1`, or go through **☰ → `Terminal`**.
+
+Then click **Check**. The gate brings the netif up, polls for ten seconds and reports two lines starting `# net: link=` and `# net: mmc delta rx_unicast=`: link state, speed, packet and byte counters. Expect ten to fifteen seconds; the task turns green as soon as the first line arrives.
+
+<!-- SHOT: m7-net-gate-output | Board console after the net gate: the line # net: link=UP netif rx=.. tx=.. rx_dropped=.. and the mmc delta line below it | HARDWARE -->
+
+## Task 2 — predict the RAM price
+
+Write your estimate into the field on the task and submit it **before** you look — the comparison is the reveal. The **Check** button runs a command of its own that fetches both constants with their comments out of `modules/net/include/lwipopts.h`:
+
+```
+grep -n -B24 -E '^#define (MEM_SIZE|PBUF_POOL_SIZE)' modules/net/include/lwipopts.h
+```
+
+Its output appears in under a second **in the terminal area at the bottom**. **If you look for it in the wrong window:** it is not in the step text and not in the editor, but at the bottom in the terminal named after the command — `Ctrl`/`Cmd`+`J` opens the area, and the list on the right selects the terminal. You can also read the file yourself: `Ctrl`/`Cmd`+`P`, then `modules/net/include/lwipopts.h`, Enter.
+
+## Task 3 — how link-up is learned
+
+A free-text answer in the field on the task, then **Check**. If a task stays red, the **Show hint** button on that same task takes you further.
+
+**Where you work in this step.** The interface is in English while the course text is German — so the menu item is called `New Terminal`. There is no visible menu bar: the menus `File`, `Edit`, `Selection`, `View`, `Go`, `Run`, `Terminal`, `Help` sit behind the icon with the three bars (**☰**) at the very top left. The course tree is on the left in the side bar, behind the graduation-cap icon of the outermost bar. Open a file: `Ctrl`/`Cmd`+`P`. Fold the terminal area: `Ctrl`/`Cmd`+`J`. Command palette: `F1`. Run a task: **☰ → `Terminal` → `Run Task...`**.

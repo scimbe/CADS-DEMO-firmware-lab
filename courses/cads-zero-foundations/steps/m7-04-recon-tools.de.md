@@ -36,7 +36,7 @@ Analysiere, wie die passiven Aufklärungsbefehle des Explorers unterhalb der IP-
 
 ## Was das Board sehen kann, ohne etwas zu senden
 
-Alles in diesem Step ist passiv: das Board lauscht auf seinem netif und injiziert nie einen Frame. Das aktive Gegenstück mit gefälschtem Verkehr (M9 in `docs/ROADMAP.md`) ist absichtlich nicht gebaut, bis seine Bestätigungs-UX entschieden ist — diese Werkzeuge können andere Geräte in einem LAN vom Netz nehmen, „nur beobachten" ist deshalb die sichere Vorgabe, an der diese Suite festhält.
+Alles in diesem Step ist passiv: das Board lauscht auf seinem netif und injiziert nie einen Frame. Das aktive Gegenstück mit gefälschtem Verkehr (M9 in `docs/ROADMAP.md`) ist absichtlich nicht gebaut, bis seine Bestätigungs-UX entschieden ist — diese Werkzeuge können andere Geräte in einem LAN vom Netz nehmen, „nur beobachten“ ist deshalb die sichere Vorgabe, an der diese Suite festhält.
 
 Die Befehle aus `docs/reference/explorer-console.md` laufen alle eine begrenzte Anzahl Sekunden und drucken dann eine Zusammenfassung:
 
@@ -51,7 +51,9 @@ Die Befehle aus `docs/reference/explorer-console.md` laufen alle eine begrenzte 
 
 ## Wie die DHCP-Wache entscheidet
 
-`modules/toolbox/src/dhcpwatch.c` läuft Ethernet → IPv4 (liest die IHL, statt 20 Bytes anzunehmen) → UDP → BOOTP/DHCP ab. Sie ist dabei **zweifach wählerisch**: sie prüft die Richtung am UDP-Portpaar und zusätzlich den DHCP-Nachrichtentyp im Paket. Beide Bedingungen stehen in `modules/toolbox/include/cads/toolbox/dhcpwatch.h`; zusammen sorgen sie dafür, dass die Anfrage eines Clients nie für die Antwort eines Servers gehalten wird. Jede verschiedene Server-Quelle landet in einer Tabelle fester Kapazität, und `cads_dhcpwatch_table_multiple_servers()` (dort Zeile 102) fasst diese Tabelle zu einem einzigen Boolean zusammen. Lies die Funktion und sag in Worten, wofür sie wahr liefert — das ist die zweite Aufgabe dieses Steps. Der Parser selbst hat 15 Host-Unit-Test-Fälle (`tests/unit/test_dhcpwatch.c`) aus von Hand gebauten Frames.
+`modules/toolbox/src/dhcpwatch.c` läuft Ethernet → IPv4 (liest die IHL, statt 20 Bytes anzunehmen) → UDP → BOOTP/DHCP ab. Sie ist dabei **zweifach wählerisch**: sie prüft die Richtung am UDP-Portpaar und zusätzlich den DHCP-Nachrichtentyp im Paket. Beide Bedingungen stehen in `modules/toolbox/include/cads/toolbox/dhcpwatch.h`; zusammen sorgen sie dafür, dass die Anfrage eines Clients nie für die Antwort eines Servers gehalten wird. Jede verschiedene Server-Quelle landet in einer Tabelle fester Kapazität, und `cads_dhcpwatch_table_multiple_servers()` (dort Zeile 102) fasst diese Tabelle zu einem einzigen Boolean zusammen.
+
+Öffne den Header und lies die Funktion: drücke `Strg`/`Cmd`+`P`, tippe `modules/toolbox/include/cads/toolbox/dhcpwatch.h` und drücke Enter. Ohne Tastatur: ganz links in der schmalen Symbolleiste das oberste Symbol (der Datei-Explorer), dann durch den Baum klicken. Die Datei öffnet sich als Reiter in der Mitte, neben dem Steptext-Reiter `CaDS Tutor: <Titel>`. Sag dann in Worten, wofür die Funktion wahr liefert — das ist die zweite Aufgabe. Der Parser selbst hat 15 Host-Unit-Test-Fälle (`tests/unit/test_dhcpwatch.c`) aus von Hand gebauten Frames.
 
 ## Wie die ARP-Wache entscheidet
 
@@ -59,14 +61,34 @@ Die Befehle aus `docs/reference/explorer-console.md` laufen alle eine begrenzte 
 
 ## Was die Werkbank tatsächlich sah
 
-Das solltest du wissen, bevor du Drama erwartest: die Entwicklungs-Werkbank hat keinen DHCP-Server und fast keinen Umgebungsverkehr. `R 8` lief sauber durch — `0 frame(s) seen, 0 DHCP servers` — und das ist an einem stillen Kabel das korrekte, wohlgeformte Ergebnis, kein Versagen des Befehls. Einträge erscheinen nur auf einem Segment, auf dem etwas spricht.
+Das solltest du wissen, bevor du Drama erwartest: die Entwicklungs-Werkbank hat keinen DHCP-Server und fast keinen Umgebungsverkehr. `R 8` lief sauber durch und meldete `0 frame(s) seen`, `0 DHCP server repl(y/ies)`, `0 distinct server(s)` und `one or zero servers, nothing suspicious`. Das ist an einem stillen Kabel das korrekte, wohlgeformte Ergebnis, kein Versagen des Befehls. Einträge erscheinen nur auf einem Segment, auf dem etwas spricht.
 
-## Deine Aufgabe
+## Aufgabe 1 — die Rogue-DHCP-Wache laufen lassen
 
-Öffne die Board-Konsole, damit du mitliest — senden musst du nichts: der Knopf **Prüfen** an dieser Aufgabe schickt `R 20` selbst und wartet auf die Antwort. Steht das Board im App-Baum, führe vorher einmal `python3 scripts/board_key.py quit` in einem Terminal aus. Der Check wartet auf die Zusammenfassungszeile, nicht auf Einträge — null Frames an einem stillen Kabel bestehen ihn. Beantworte danach die zwei Analysefragen getrennt: welche Bedingung die DHCP-Wache meldet, und warum die ARP-Wache ihren Befund einen Indikator nennt.
+Den Konsolenbefehl `R 20` tippst du **nicht** selbst: der Prüfknopf sendet ihn, du liest nur die Antwort mit. Der Knopf **Prüfen** sitzt an dieser Aufgabe unten im Steptext, dem Reiter in der Mitte; **Run all checks** oben im selben Reiter startet alle drei Aufgaben dieses Steps.
 
-**Wo du das machst:**
-- Datei öffnen: `Strg`/`Cmd`+`P`.
-- Terminal öffnen: Menü *Terminal → New Terminal*.
-- Board-Konsole öffnen: `F1`, dann *CaDS Board: Konsole öffnen*.
-- Bauen: Menü *Terminal → Run Build Task…*.
+Ein frisch geflashtes Board startet im Touchscreen-App-Baum und überhört einzelne Buchstaben. Öffne darum vorher ein Terminal — klicke auf das Symbol mit den drei Strichen (**☰**) ganz oben links, dann **`Terminal` → `New Terminal`**; ist der Terminal-Bereich zugeklappt, klappt ihn `Strg`/`Cmd`+`J` auf und wieder zu. Das Arbeitsverzeichnis ist die Projektwurzel. Führe dort einmal aus:
+
+```
+python3 scripts/board_key.py quit
+```
+
+Im Labor erreichen die Skripte das Board über den Konsolen-PTY des Bridge; findet der Aufruf keinen Port, gib ihn ausdrücklich an (`docs/SPEC.md`):
+
+```
+python3 scripts/board_key.py quit --port /home/coder/board-console
+```
+
+Willst du beim Senden zusehen, öffne zusätzlich die Board-Konsole: drücke **`F1`**, tippe `CaDS Board: Konsole öffnen` und drücke Enter. **Reagiert die Palette gar nicht, hat der Browser `Strg`/`Cmd`+`Umschalt`+`P` abgefangen** — nimm `F1`, oder den Weg über **☰ → `Terminal`**.
+
+Klicke dann **Prüfen** und **warte zwanzig Sekunden**: die Wache lauscht die volle Dauer und druckt erst danach ihre Zusammenfassungszeile, die mit `# dhcpwatch: done,` beginnt. Der Check wartet auf genau diese Zeile, nicht auf Einträge — null Frames an einem stillen Kabel bestehen ihn.
+
+<!-- SHOT: m7-dhcpwatch-summary | Board-Konsole nach R 20: die Zeile # dhcpwatch: done, N frame(s) seen, ... distinct server(s) - one or zero servers, nothing suspicious | HARDWARE -->
+
+**Schließe das Terminal nicht, solange die Wache läuft.** Das Kreuz am Terminal beendet den Prozess darin und schneidet die Zusammenfassung ab; zum Wegklappen nimm `Strg`/`Cmd`+`J`, das lässt ihn weiterlaufen. **Und suche die Zeile nicht im falschen Fenster:** sie steht nicht im Steptext und nicht im Editor, sondern in der Board-Konsole; die Ausgabe eines Terminalbefehls steht unten im Terminal-Bereich in dem Terminal, in dem du ihn gestartet hast — `Strg`/`Cmd`+`J` klappt den Bereich auf, rechts in der Liste wählst du das richtige Terminal.
+
+## Aufgaben 2 und 3 — die beiden Analysefragen
+
+Je eine Freitextantwort in das Feld an der Aufgabe, dann **Prüfen** daneben: welche Bedingung die DHCP-Wache meldet, und warum die ARP-Wache ihren Befund einen Indikator nennt. Bleibt eine Aufgabe rot, hilft der Knopf **Hinweis anzeigen** an derselben Aufgabe.
+
+Die Bedienoberfläche ist englisch, der Kurstext deutsch — der Menüpunkt heißt also `New Terminal`, nicht „Neues Terminal“.

@@ -25,9 +25,10 @@ tasks:
 misconceptions:
   - { pattern: "reset cause: IWDG watchdog", question: { en: "The board says the watchdog reset it. Does that make this boot clean or suspect?", de: "Das Board meldet einen Watchdog-Reset. Ist dieser Boot damit sauber oder verdächtig?" }, hints: [ { en: "Something stopped the tick from reaching the watchdog for two whole seconds - is that ever normal here?", de: "Etwas hat den Tick zwei ganze Sekunden lang nicht bis zum Watchdog kommen lassen - ist das hier je normal?" }, { en: "Read on past the reset-cause line: the same E output lists the forensic ring underneath it.", de: "Lies über die Reset-Ursachen-Zeile hinaus: dieselbe E-Ausgabe listet darunter den Forensik-Ring." }, { en: "A record written shortly before the reset survives in CCM, so the reason string that preceded the reset is usually still readable.", de: "Ein kurz vor dem Reset geschriebener Datensatz überlebt im CCM, die Grundzeichenkette vor dem Reset ist also meist noch lesbar." } ] }
 socratic:
-  - { trigger: "task:reset-cause:failed", question: { en: "Did E produce any output at all, or is the board still inside the app tree that ignores plain typed bytes?", de: "Hat E überhaupt eine Ausgabe erzeugt, oder steckt das Board noch im App-Baum, der einfach getippte Bytes ignoriert?" }, hints: [ { en: "No echo at all usually means the prompt is not the thing listening right now.", de: "Gar kein Echo heißt meistens, dass gerade nicht der Prompt zuhört." }, { en: "Send scripts/board_key.py quit from the terminal, then let the check run again.", de: "Sende scripts/board_key.py quit aus dem Terminal, dann lass den Check erneut laufen." }, { en: "The reset-cause line is the first thing E prints, before the ring - if you see ring records but no cause line, the output was truncated at the top.", de: "Die Reset-Ursachen-Zeile ist das Erste, was E druckt, noch vor dem Ring - siehst du Ring-Datensätze, aber keine Ursachenzeile, wurde die Ausgabe oben abgeschnitten." } ] }
+  - { trigger: "task:reset-cause:failed", question: { en: "Did E produce any output at all, or is the board still inside the app tree that ignores plain typed bytes?", de: "Hat E überhaupt eine Ausgabe erzeugt, oder steckt das Board noch im App-Baum, der einfach getippte Bytes ignoriert?" }, hints: [ { en: "No echo at all usually means the prompt is not the thing listening right now.", de: "Gar kein Echo heißt meistens, dass gerade nicht der Prompt zuhört." }, { en: "Open a terminal at the bottom (menu icon with three lines at the top left, then Terminal, then New Terminal), run python3 scripts/board_key.py quit there, then let the check run again.", de: "Öffne unten ein Terminal (Symbol mit den drei Strichen oben links, dann Terminal, dann New Terminal), führe dort python3 scripts/board_key.py quit aus, dann lass den Check erneut laufen." }, { en: "The reset-cause line is the first thing E prints, before the ring - if you see ring records but no cause line, the output was truncated at the top.", de: "Die Reset-Ursachen-Zeile ist das Erste, was E druckt, noch vor dem Ring - siehst du Ring-Datensätze, aber keine Ursachenzeile, wurde die Ausgabe oben abgeschnitten." } ] }
   - { trigger: "question:iwdg-period:weak", question: { en: "What does a prescaler of /64 do to the 32 kHz before the counter ever sees it?", de: "Was macht ein Prescaler von /64 mit den 32 kHz, bevor der Zähler sie überhaupt sieht?" }, hints: [ { en: "Are you dividing the clock first and then counting, or counting at the raw clock rate?", de: "Teilst du den Takt zuerst und zählst dann, oder zählst du mit dem rohen Takt?" }, { en: "Read the comment block above the two defines in targets/itsboard/hal/hal_watchdog.c; it walks the same two steps but arrives at a different number - do the arithmetic yourself before you believe it.", de: "Lies den Kommentarblock über den beiden Defines in targets/itsboard/hal/hal_watchdog.c; er geht dieselben zwei Schritte durch, kommt aber auf eine andere Zahl - rechne selbst nach, bevor du sie glaubst." }, { en: "One counting step lasts as long as one cycle of the already-divided clock; the reload number only says how many steps it takes to reach zero.", de: "Ein Zählschritt dauert so lange wie eine Schwingung des bereits geteilten Takts; die Reload-Zahl sagt nur, wie viele Schritte bis null nötig sind." } ] }
 ---
+
 ## Learning goal
 
 Understand how the independent watchdog turns "the board sits locked up with the red LED on" into "the board recovers on its own, and the cause is still readable afterwards".
@@ -39,45 +40,53 @@ Understand how the independent watchdog turns "the board sits locked up with the
 1. **`cads_hal_watchdog_init()` / `cads_hal_watchdog_feed()`.** `modules/kernel/src/kernel.c` arms the IWDG at scheduler start and feeds it from `vApplicationTickHook()` — once per SysTick at 1 kHz — **never from an application task**.
 2. **`cads_hal_reset_cause()`.** Decodes `RCC->CSR` before anything clears it, so a reset the watchdog caused is distinguishable from a power-on or a debugger reset.
 
-One subtlety stands out on reading: `cads_hal_watchdog_init()` does take a timeout parameter (`CADS_WATCHDOG_TIMEOUT_MS` from `kernel.c`), but discards it with `(void)timeout_ms` and uses fixed prescaler and reload values. The actual period is therefore not in the caller but in the hardware configuration further down — and you are about to work it out yourself.
+One subtlety: `cads_hal_watchdog_init()` takes a timeout parameter (`CADS_WATCHDOG_TIMEOUT_MS`), discards it with `(void)timeout_ms` and uses fixed values. The period is therefore not in the caller but in the hardware configuration — and you are about to work it out.
 
 ## Why the tick, not a task
 
-Feeding from the tick is a deliberate scope choice. It proves that the interrupt subsystem is alive and reliably recovers from a true lockup — a HardFault recursion loop, or interrupts globally disabled — with **zero** risk of a spurious reset during any legitimate long-running operation. A 448 ms full-screen flush or a minutes-long explorer demo never stops the tick from running, so they can never trip it.
-
-The honest limit: it does **not** catch a cooperative task spinning forever on something that will never happen while interrupts keep flowing. That is a different, harder problem, and the HAL comment says so rather than implying otherwise.
+Feeding from the tick proves that the interrupt subsystem is alive and recovers from a true lockup — HardFault recursion, interrupts globally disabled — with **zero** risk of a spurious reset: a 448 ms full-screen flush never stops the tick. The honest limit: it does **not** catch a cooperative task spinning forever on something that will never happen.
 
 ## What the hardware does
 
 `targets/itsboard/hal/hal_watchdog.c` writes only IWDG, DBGMCU and `RCC->CSR` — no GPIO, so none of the pin rules in `docs/SAFETY.md` apply. Three things matter:
 
-- **One-way door.** Once started with key `0xCCCC`, the IWDG cannot be stopped by software, not by a peripheral reset either — only a full power-on. It is clocked from the **LSI**, the chip's own RC oscillator at a nominal **32 kHz**, entirely independent of the PLL and HSE. It is configured with prescaler **`/64`** (`CADS_IWDG_PRESCALER_BITS`) and reload **1000** (`CADS_IWDG_RELOAD_VALUE`). How long a period that makes is your second task; compare the result with the 448 ms flush afterwards.
-- **Frozen on debug halt.** `DBGMCU->APB1FZ |= DBGMCU_APB1_FZ_DBG_IWDG_STOP`, so attaching GDB to a live panic never races a surprise reset out from under you. This keeps `docs/SAFETY.md`'s "halts usefully with a debugger attached" true. (It also explains a real bug you will read about in M7: a *reset* during flashing re-arms this watchdog before the core is halted again.)
-- **Sticky flags.** `RCC->CSR`'s reset-cause bits survive until cleared. `cads_hal_reset_cause()` reads them exactly once per boot — `RCC_CSR_IWDGRSTF` maps to `CadsResetWatchdogIndependent`, POR/BOR to `CadsResetPowerOn`, NRST to `CadsResetPin` — clears them with `RMVF`, and returns the cached answer on every later call.
-
-Incidentally, the LSI is an RC oscillator with no tight tolerance spec. Unlike HSE, the firmware never reads back what frequency it actually achieves; the computed period is therefore a nominal figure, not a guaranteed one. For a watchdog set about four times above the longest normal operation that is fine — and it is precisely why the margin is chosen so generously.
+- **One-way door.** Once started with key `0xCCCC`, the IWDG cannot be stopped by software — only a full power-on. It is clocked from the **LSI**, the chip's own RC oscillator at a nominal **32 kHz**, independent of the PLL and HSE. It is configured with prescaler **`/64`** (`CADS_IWDG_PRESCALER_BITS`) and reload **1000** (`CADS_IWDG_RELOAD_VALUE`). The LSI has no tight tolerance spec and is never read back: the period is a nominal figure, not a guaranteed one. How long it is, is your second task.
+- **Frozen on debug halt.** `DBGMCU->APB1FZ |= DBGMCU_APB1_FZ_DBG_IWDG_STOP`, so attaching GDB to a live panic never races a surprise reset out from under you.
+- **Sticky flags.** `RCC->CSR`'s reset-cause bits survive until cleared. `cads_hal_reset_cause()` reads them exactly once per boot — `RCC_CSR_IWDGRSTF` maps to `CadsResetWatchdogIndependent` — clears them with `RMVF`, and returns the cached answer later.
 
 ## A comment that does not match its own numbers
 
-Do the arithmetic; do not copy it. The comment above the two defines in `targets/itsboard/hal/hal_watchdog.c` states two values:
+Do the arithmetic; do not copy it. **Open the file yourself first:** press `Ctrl`/`Cmd`+`P`, type `hal_watchdog.c`, Enter — it appears as a tab **in the middle** of the window. Without the keyboard: the topmost icon of the narrow bar on the far left (the file explorer), then click through the tree. The comment sits directly above the two defines and states two values:
 
 > `IWDG_PR prescaler /64 (PR=100b) gives a ~2.048 ms tick at nominal 32 kHz;`
 > `IWDG_RLR=1000 (max 0xFFF=4095) gives ~2.048 s.`
 
-The same comment gives the LSI's nominal frequency as 32 kHz. But those two numbers do not follow from 32 kHz and `/64`. Which figure does follow from the stated values, which does not, and what LSI frequency you would have to assume for the comment to be right — that is your second task. Open the file and read the comment in the original before judging it; the two lines above are a quotation, not a summary.
+The same comment gives the LSI's nominal frequency as 32 kHz. But those two numbers do not follow from 32 kHz and `/64`. Which one does, which does not, and what LSI frequency you would have to assume for the comment to be right — that is your second task. The two lines above are a quotation: read them in the original before judging them. A number in a comment is a claim like any other.
 
-This is not a contrived example: a number in a comment is a claim like any other, and this course does not adopt it unchecked merely because it sits in the source.
+## Task 1 — read this boot's reset cause
 
-## Where you see it
+**Step 1 — open the board console.** Press **`F1`**, type `CaDS Board: Konsole öffnen`, Enter. **At the bottom** of the terminal area a terminal named `CaDS Board Console` appears, the board's serial console at 115200 baud. That area carries the tabs `PROBLEMS`, `OUTPUT`, `DEBUG CONSOLE`, `TERMINAL`, `PORTS`, `MEMORY`, `XRTOS`; `Ctrl`/`Cmd`+`J` folds it open and shut. It takes a second.
 
-The explorer's `E` command prints `# this boot's reset cause: ...` followed by the forensic ring from M3-03. Together they answer "did this boot follow a crash?" before you assume it was clean. A ring that does not grow across a good run is proof that old records are inert, not that a fault is recurring.
+<!-- SHOT: m4-palette-board-console | Die geoeffnete Befehlspalette mit eingetipptem CaDS Board und der gefilterten Liste der Board-Befehle -->
 
-## Your task
+**Step 2 — bring the board to the prompt.** A freshly flashed board starts in the touchscreen app tree and mishears single letters. So open a terminal first (**☰ → `Terminal` → `New Terminal`**; ☰ is the three-line icon at the very top left, there is no visible menu bar) and run once:
 
-Open the board console so you can read along — you do not have to send anything: the **Check** button on this task sends `E` itself and waits for the answer. Read this boot's reset cause. If the board is sitting in the app tree, run `python3 scripts/board_key.py quit` once in a terminal first. Then compute the watchdog period from the three hardware values above, settle the contradiction with the comment in `targets/itsboard/hal/hal_watchdog.c`, and compare the result with the firmware's longest normal blocking span.
+```bash
+python3 scripts/board_key.py quit
+```
 
-**Where you do this:**
-- Open a file: `Ctrl`/`Cmd`+`P`.
-- Open a terminal: menu *Terminal → New Terminal*.
-- Open the board console: `F1`, then *CaDS Board: Konsole öffnen*.
-- Build: menu *Terminal → Run Build Task…*.
+The working directory is the project root, and it takes under a second.
+
+**Step 3 — read along.** You do not type `E` yourself: the **Check** button on this task sends it, you only read the answer. That button sits at the bottom of the step text, the tab `CaDS Tutor: The independent watchdog and the reset cause` **in the middle**; the top of that tab also carries **Run all checks**. The answer arrives in under a second; its first line reads `# this boot's reset cause: ...`, with the forensic ring from M3-03 underneath.
+
+<!-- SHOT: m4-console-reset-cause | Das Terminal CaDS Board Console mit der Zeile this boot reset cause und darunter dem Forensik-Ring | HARDWARE -->
+
+## Task 2 — do the arithmetic
+
+Compute the watchdog period from the three hardware values above, settle the contradiction with the comment, and compare the result with the firmware's longest normal blocking span.
+
+## When the interface gets in the way
+
+- **The command ran, but you are looking for its output in the wrong window.** It is not in the step text and not in the editor, but in the terminal area at the bottom, in the terminal `CaDS Board Console` — `Ctrl`/`Cmd`+`J` opens the area, and the list on the right selects the terminal.
+- **You closed the terminal and ended the running process with it.** The cross on a terminal kills the process inside it and drops the console — use `Ctrl`/`Cmd`+`J` to fold the area away instead.
+- **The palette does not react to the shortcut.** The browser swallowed `Ctrl`/`Cmd`+`Shift`+`P` — press `F1` instead, or go through **☰ → `Terminal`**.

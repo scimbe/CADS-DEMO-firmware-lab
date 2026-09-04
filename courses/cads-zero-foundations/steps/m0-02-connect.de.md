@@ -19,23 +19,51 @@ tasks:
     title: Erkläre, was die eine Verbindung trägt
     check: { type: question, prompt: { en: "The debugger halts the board, but the console window stays silent. Can an unplugged USB cable be the cause?", de: "Der Debugger hält das Board an, aber im Konsolenfenster bleibt es still. Kann ein abgezogenes USB-Kabel die Ursache sein?" }, rubric: "Nein — und die Begründung zählt: Debug- und Flash-Zugriff (SWD) und die serielle Konsole (virtueller COM-Port an USART3) laufen über dieselbe Probe und dasselbe Kabel. Solange der Debugger das Board anhält, steckt das Kabel nachweislich. Die Antwort muss die gemeinsame Leitung als Begründung nennen und die Ursache anderswo suchen, etwa falscher serieller Port, Konsole nicht geöffnet, Firmware sendet nichts.", bloom: understand }
 socratic:
-  - { trigger: "task:connected:failed", question: { en: "Did a device chooser open at all, and did you pick something in it?", de: "Ging überhaupt ein Geräte-Dialog auf, und hast du darin etwas ausgewählt?" }, hints: [ { en: "Most often it is not the board: the chooser never opened, or it was closed without a choice.", de: "Meistens liegt es nicht am Board: der Geräte-Dialog ging nie auf, oder er wurde ohne Auswahl geschlossen." }, { en: "Open the command palette with F1, type CaDS Board: Verbinden and run the entry; the chooser then comes from the browser, not from the IDE — look at the top edge of the browser window.", de: "Öffne die Befehlspalette mit F1, tippe „CaDS Board: Verbinden“ und führe den Eintrag aus; der Dialog kommt danach vom Browser, nicht von der Umgebung — sieh am oberen Rand des Browserfensters nach." }, { en: "The chooser only lists devices with vendor id 0x0483. If the list stays empty, the browser does not hear the cable at all: another USB port, a cable that carries data wires, then run the command again. What the bridge currently sees is printed by CaDS Board: Status (JSON).", de: "Der Dialog listet nur Geräte mit der Vendor-ID 0x0483. Bleibt die Liste leer, hört der Browser das Kabel gar nicht: anderer USB-Anschluss, ein Kabel mit Datenadern, dann den Befehl erneut. Was die Bridge gerade sieht, druckt „CaDS Board: Status (JSON)“." } ] }
+  - { trigger: "task:connected:failed", question: { en: "Did a device chooser open at all, and did you pick something in it?", de: "Ging überhaupt ein Geräte-Dialog auf, und hast du darin etwas ausgewählt?" }, hints: [ { en: "Most often it is not the board: the chooser never opened, or it was closed without a choice.", de: "Meistens liegt es nicht am Board: der Geräte-Dialog ging nie auf, oder er wurde ohne Auswahl geschlossen." }, { en: "Open the command palette with F1, type CaDS Board: Verbinden and run the entry; the chooser then comes from the browser, not from the IDE — look at the top edge of the browser window.", de: "Öffne die Befehlspalette mit F1, tippe „CaDS Board: Verbinden“ und führe den Eintrag aus; der Dialog kommt danach vom Browser, nicht von der Umgebung — sieh am oberen Rand des Browserfensters nach." }, { en: "The chooser only lists devices with vendor id 0x0483. If the list stays empty, the browser does not hear the cable at all: another USB port, a cable that carries data wires, then run the command again. What the bridge currently sees is in the channel CaDS Board under the OUTPUT tab at the bottom; the palette command CaDS Board: Log anzeigen takes you there.", de: "Der Dialog listet nur Geräte mit der Vendor-ID 0x0483. Bleibt die Liste leer, hört der Browser das Kabel gar nicht: anderer USB-Anschluss, ein Kabel mit Datenadern, dann den Befehl erneut. Was die Bridge gerade sieht, steht unten im Reiter OUTPUT im Kanal „CaDS Board“; dorthin führt der Palettenbefehl „CaDS Board: Log anzeigen“." } ] }
   - { trigger: "question:probe-identity:weak", question: { en: "Count the cables first: how many plugs join the board and your computer?", de: "Zähl zuerst die Kabel: wie viele Stecker verbinden Board und Rechner?" }, hints: [ { en: "The most common wrong assumption is that debugger and console take separate paths. Test that assumption before you answer.", de: "Die häufigste falsche Annahme ist, dass Debugger und Konsole getrennte Wege nehmen. Prüf diese Annahme, bevor du antwortest." }, { en: "The section One probe, two jobs above numbers exactly two services. Read both items and match each to something the lab does.", de: "Der Abschnitt „Eine Probe, zwei Aufgaben“ weiter oben nummeriert genau zwei Dienste. Lies beide Punkte und ordne jedem eine Tätigkeit im Labor zu." }, { en: "If the debugger is working, the wire is demonstrably there. So the question is not whether something is plugged in, but which of the two services is silent.", de: "Wenn der Debugger arbeitet, ist die Leitung nachweislich da. Die Frage ist also nicht, ob etwas steckt, sondern welcher der beiden Dienste gerade schweigt." } ] }
 ---
 ## Lernziel
 
 Bringe das Board dazu, vom Labor erkannt zu werden, und verstehe, was die eine USB-Verbindung zwischen deinem Rechner und dem Board tatsächlich trägt.
 
-## Wo du das machst
+## Der Handgriff: das Board freigeben
 
-Für das Verbinden gibt es keinen Knopf im Fenster. Der Befehl liegt in der **Befehlspalette** — der Eingabezeile, über die diese Umgebung jeden ihrer Befehle anbietet:
+Für das Verbinden gibt es keinen Knopf im Fenster. Der Befehl liegt in der **Befehlspalette** — der Eingabezeile, über die diese Umgebung jeden ihrer Befehle anbietet. Die Bedienoberfläche ist englisch, dieser Kurstext deutsch; unsere eigenen Board-Befehle heißen trotzdem deutsch, weil sie aus unserer Extension kommen.
 
-1. Drücke `F1` (oder `Strg`/`Cmd`+`Shift`+`P`). Oben in der Mitte des Fensters klappt eine Eingabezeile auf.
-2. Tippe `CaDS Board: Verbinden`. Der vollständige Eintrag heißt **CaDS Board: Verbinden (USB/Serial freigeben)**; sobald er in der Liste steht, wähle ihn mit `Enter`.
-3. Jetzt fragt **der Browser**, nicht die Umgebung: am oberen Rand des Browserfensters erscheint ein Auswahldialog mit den angeschlossenen USB-Geräten. Diesen Dialog stellt der Browser selbst, deshalb sieht er auf jedem Rechner ein wenig anders aus.
-4. Wähle darin die ST-Link aus und bestätige.
+1. Drücke **`F1`**. Oben in der Mitte des Fensters klappt eine Eingabezeile auf. (`Strg`/`Cmd`+`Umschalt`+`P` tut dasselbe, wird im Browser aber oft abgefangen — nimm `F1`.)
+2. Tippe in diese Zeile:
 
-**Woran du erkennst, dass es geklappt hat:** Scroll in diesem Panel nach unten zur ersten Aufgabe und drücke **Prüfen**. Der Check fragt das Labor, ob eine Probe verbunden ist, und wird grün, wenn ja. Zwei weitere Befehle derselben Palette helfen beim Nachsehen: **CaDS Board: Status (JSON)** druckt den Verbindungszustand als Text, **CaDS Board: Log anzeigen** das Protokoll der **Bridge** — so heißt das Vermittlungsstück im Container, das die im Browser hergestellte Verbindung an die Werkzeuge weiterreicht.
+```
+CaDS Board: Verbinden
+```
+
+Der vollständige Eintrag heißt `CaDS Board: Verbinden (USB/Serial freigeben)`; sobald er in der Liste steht, wähle ihn mit `Enter`.
+
+3. Ganz ohne Tastatur geht derselbe Befehl über die **Statusleiste unten links**: dort steht `Board: getrennt`. Ein Klick darauf öffnet ein kleines Menü mit `Board verbinden (USB/Serial freigeben)` und `Log anzeigen`.
+
+![Die Statusleiste unten links mit dem Eintrag Board: getrennt](board-statusbar-disconnected.png)
+
+![Das Board-Menü im getrennten Zustand, mit Board verbinden und Log anzeigen](board-menu-disconnected.png)
+
+4. Jetzt fragt **der Browser**, nicht die Umgebung: am oberen Rand des Browserfensters erscheint ein Auswahldialog mit den angeschlossenen USB-Geräten. Diesen Dialog stellt der Browser selbst, deshalb sieht er auf jedem Rechner ein wenig anders aus. Wähle darin die ST-Link aus und bestätige. Das dauert wenige Sekunden.
+
+<!-- SHOT: browser-usb-chooser | Der USB-Auswahldialog des Browsers am oberen Fensterrand, in der Liste ein Eintrag der ST-Link, Knopf zum Verbinden sichtbar | HARDWARE -->
+
+**Woran du erkennst, dass es geklappt hat:** derselbe Eintrag in der Statusleiste liest sich jetzt `Board: verbunden · läuft`. Fahre mit dem Mauszeiger darauf, dann nennt der Tooltip die gefundene Probe und den Chip.
+
+![Die Statusleiste nach dem Verbinden: Board: verbunden · läuft](board-statusbar-connected.png)
+
+![Der Tooltip nennt ST-Link V2-1 und STM32F42x/F43x mit 2048 KB Flash](board-statusbar-tooltip.png)
+
+Danach scroll in diesem Steptext nach unten zur ersten Aufgabe und drücke den Knopf **Prüfen**. Der Check fragt das Labor, ob eine Probe verbunden ist, und wird grün, wenn ja.
+
+**Zwei Bedienfehler, die hier passieren.** Erstens: *das Tastenkürzel für die Palette tut nichts* — dann hat der Browser es abgefangen; nimm `F1`, oder den Weg über die Statusleiste, der ohne Tastatur auskommt. Zweitens: *du suchst eine Ausgabe im falschen Fenster* — das Verbinden schreibt keine Zeile in ein Terminal. Sein Protokoll steht unten im Reiter `OUTPUT`, im Kanal `CaDS Board`; dorthin führt der Palettenbefehl
+
+```
+CaDS Board: Log anzeigen
+```
+
+Ist der Bereich unten zugeklappt, klappt `Strg`/`Cmd`+`J` ihn auf.
 
 ## Eine Probe, zwei Aufgaben
 
@@ -44,7 +72,7 @@ Das NUCLEO-F429ZI hat eine **fest aufgelötete ST-Link/V2-1-Debug-Probe**. Eine 
 1. **SWD** — *Serial Wire Debug*, eine Schnittstelle mit nur zwei Leitungen (`SWDIO` an PA13, `SWCLK` an PA14), über die der Chip von außen steuerbar ist. Alles, was flasht, anhält, schrittweise ausführt oder Speicher liest, läuft hierüber.
 2. **Ein virtueller COM-Port** — die **USART3** des STM32 (eine der seriellen Sendeeinheiten im Chip: sie schiebt Zeichen einzeln nacheinander über eine Leitung) wird auf ein USB-Serial-Gerät gebrückt. Dein Rechner zeigt daraufhin eine serielle Schnittstelle an, obwohl physisch nur USB da ist — daher *virtuell*. Die Konsole der Firmware erscheint dort mit **115200 Baud, 8N1**: 115200 Symbole je Sekunde, 8 Datenbits, keine Parität, 1 Stoppbit. Beide Seiten müssen dieselbe Einstellung benutzen, sonst kommt nur Zeichensalat an.
 
-„Das Board verbinden“ heißt also, dem Browser die Erlaubnis zu geben, mit dieser Probe zu sprechen. Der Dialog filtert auf die **Vendor-ID** `0x0483` von STMicroelectronics — die Nummer, mit der sich ein USB-Gerät als Produkt seines Herstellers ausweist. Das `0x` davor heißt: die Zahl ist hexadezimal geschrieben, also im Sechzehnersystem; wie man das liest, führt M2 in Ruhe ein. Wähle die ST-Link, und ab dann erreicht die Bridge sie ohne erneutes Nachfragen, auch über ein Aus- und Wiedereinstecken hinweg.
+„Das Board verbinden“ heißt also, dem Browser die Erlaubnis zu geben, mit dieser Probe zu sprechen. Der Dialog filtert auf die **Vendor-ID** `0x0483` von STMicroelectronics — die Nummer, mit der sich ein USB-Gerät als Produkt seines Herstellers ausweist. Das `0x` davor heißt: die Zahl ist hexadezimal geschrieben, also im Sechzehnersystem; wie man das liest, führt M2 in Ruhe ein. Wähle die ST-Link, und ab dann erreicht die Bridge sie ohne erneutes Nachfragen — die **Bridge** ist das Vermittlungsstück im Container, das die im Browser hergestellte Verbindung an die Werkzeuge weiterreicht.
 
 ## Das Board, das dieses Repository kennt
 
@@ -56,10 +84,8 @@ chipid:     0x419          -> STM32F42x/F43x
 flash:      2097152 (pagesize: 16384)
 ```
 
-## Warum das Board an deinem Rechner hängt, nicht am Server
-
-Die IDE läuft in einem Container, aber das Board hängt an deinem eigenen Rechner. Serverseitiges USB-Passthrough wäre die falsche Architektur — das Board ist nicht am Server — deshalb wird die Verbindung in deinem Browser hergestellt und an die Bridge im Container weitergereicht. Darum klickst du, nicht ein Administrator, den Dialog.
+Die IDE läuft übrigens in einem Container, das Board hängt an deinem eigenen Rechner. Serverseitiges USB-Passthrough wäre die falsche Architektur — deshalb wird die Verbindung in deinem Browser hergestellt und an die Bridge weitergereicht. Darum klickst du den Dialog, nicht ein Administrator.
 
 ## Deine Aufgabe
 
-Verbinde das Board über die Befehlspalette, bis der erste Check grün wird. Beantworte dann die Frage dazu, was diese eine Verbindung trägt. Ist verbunden, baut der nächste Step die Firmware.
+Verbinde das Board wie oben beschrieben (`F1` → `CaDS Board: Verbinden` → `Enter` → im Browserdialog die ST-Link wählen), bis der erste Check nach einem Druck auf **Prüfen** grün wird. Beantworte dann im Feld der zweiten Aufgabe die Frage dazu, was diese eine Verbindung trägt, und drücke **Antwort abgeben**. Ist verbunden, baut der nächste Step die Firmware.

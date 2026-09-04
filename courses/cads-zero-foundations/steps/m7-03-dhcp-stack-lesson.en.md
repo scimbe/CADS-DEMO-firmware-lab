@@ -40,14 +40,46 @@ What was left open there is this step's question: `net.dhcp = 1` broke the conso
 
 With `net.dhcp = 0` the address is **configuration**: `modules/net/src/cads_net_board.c` writes address, mask and gateway into the netif when the config is applied, and after that there is no further work for it. Every later `cads_net_poll()` only moves frames.
 
-With `net.dhcp = 1` the same code calls `dhcp_start()` on the netif, and from then on the address is a **protocol**. lwIP's client (`lib/lwip/src/core/ipv4/dhcp.c`) keeps a state machine; for every arriving reply it walks the options of a BOOTP packet — the file carries its own option table and a reply parser for that — and the payload it walks over is a **pbuf chain**, not a flat buffer. In the same pass it assembles its own next message and hands it over to be sent.
+With `net.dhcp = 1` the same code calls `dhcp_start()` on the netif, and from then on the address is a **protocol**. lwIP's client keeps a state machine; for every arriving reply it walks the options of a BOOTP packet — the file carries its own option table and a reply parser for that — and the payload it walks over is a **pbuf chain**, not a flat buffer. In the same pass it assembles its own next message and hands it over to be sent.
 
-The polling happens from the main loop of `apps/bringup/explorer_app_demo.c` — on the **console task**, which by then already ran the whole app-tree tick chain (`cads_marauder_tick`, `cads_settings_service_config`, `cads_gui_tick`). Trace where the work from `dhcp.c` ends up when `cads_net_poll()` is called out of that loop — that is this step's question, and the answer has two halves.
+Read that for yourself: press `Ctrl`/`Cmd`+`P`, type `lib/lwip/src/core/ipv4/dhcp.c` and press Enter. Without the keyboard: the top icon in the narrow icon bar on the far left (the file explorer), then click through the tree. The file opens as a tab in the middle, next to the step-text tab `CaDS Tutor: <title>`. It is large; `Ctrl`/`Cmd`+`F` searches inside it.
+
+The polling happens from the main loop of `apps/bringup/explorer_app_demo.c` — on the **console task**, which by then already ran the whole app-tree tick chain (`cads_marauder_tick`, `cads_settings_service_config`, `cads_gui_tick`). Trace where the work from `dhcp.c` ends up when `cads_net_poll()` is called out of that loop — that is this step's first question, and the answer has two halves.
 
 ## Why console silence was not evidence
 
 `docs/ROADMAP.md`'s log entry for 2026-08-28 records two dead ends — filesystem damage and a flaky debug session — so they are not retried blind, and a third that was self-inflicted: this Nucleo enumerates two `/dev/cu.usbmodem*` devices, and several "still crashes" readings were really `board_cmd.py` pinned to the wrong port, querying dead air. The lesson recorded: trust a live GDB attach over console silence when the two disagree.
 
-## Your task
+## Task 1 — explain the depth of the DHCP path
 
-Answer the question of why the DHCP path is deeper than the static one — using what `dhcp.c` does per reply, and what was already on the same stack. Then run `k` on the board console and read the free high-water marks of the three tasks. That is the tool that lets you see this class of fault *before* the crash — and the reason M4-05 asks for evidence rather than a factor.
+A free-text answer in the field on the task, then the **Check** button beside it. The tasks are at the bottom of the step text, the tab in the middle; **Run all checks** at the top of that same tab starts both tasks of this step at once. If one stays red, the **Show hint** button on that same task helps.
+
+## Task 2 — read the high-water marks of the three task stacks
+
+You do not type the console command `k` yourself: the check button sends it, you only read the answer.
+
+A freshly flashed board starts in the touchscreen app tree and mishears single letters. So open a terminal first — click the icon with the three bars (**☰**) at the very top left, then **`Terminal` → `New Terminal`**; if the terminal area is folded away, `Ctrl`/`Cmd`+`J` opens it and folds it back. The working directory is the project root. Run once:
+
+```
+python3 scripts/board_key.py quit
+```
+
+In the lab the scripts reach the board through the bridge's console PTY; if the call finds no port, name it explicitly (`docs/SPEC.md`):
+
+```
+python3 scripts/board_key.py quit --port /home/coder/board-console
+```
+
+**Do not close this terminal while something is running in it.** The cross on a terminal kills the process inside it; use `Ctrl`/`Cmd`+`J` to fold it away instead, which leaves it running.
+
+To watch while it sends, also open the board console: press **`F1`**, type `CaDS Board: Konsole öffnen` and press Enter. **If the palette does not react at all, the browser swallowed `Ctrl`/`Cmd`+`Shift`+`P`** — press `F1`, or go through **☰ → `Terminal`**.
+
+Then click **Check**. Within a few seconds exactly one line comes back, starting `# tasks  ui_free=` and following with `input_free=`, `console_free=`, `tasks=`, `events=` and `last_key=`. The three `*_free` numbers are **free headroom in bytes**, not bytes used: the small number is the alarming one. On the host build the command reports nothing at all — there are no tasks there to report about.
+
+<!-- SHOT: m7-task-stack-report | Board console after k: the line # tasks ui_free=.. input_free=.. console_free=.. tasks=.. events=.. last_key=.. | HARDWARE -->
+
+**If you look for that line in the wrong window:** it is not in the step text and not in the editor. The board's answer is in the board console; the output of a terminal command is at the bottom in the terminal you started it from — `Ctrl`/`Cmd`+`J` opens the area, and the list on the right selects the right terminal.
+
+That is the tool that lets you see this class of fault *before* the crash — and the reason M4-05 asks for evidence rather than a factor.
+
+The interface is in English while the course text is German — so the menu item is called `New Terminal`.

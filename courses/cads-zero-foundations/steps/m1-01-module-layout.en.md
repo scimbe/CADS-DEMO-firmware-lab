@@ -33,11 +33,21 @@ Read the firmware's tree as a **dependency graph** — a picture of who uses who
 
 ## Where you work in this step
 
-The fastest way to open a file is `Ctrl`/`Cmd`+`P` and typing its name. The first task at the bottom of this panel is a **prediction**: you write down what you expect, and only then does **Check** run the search that compares it against the real tree. The second task is not a task for you but an **assurance** about the repository — it passes for as long as the layering rule holds in the tree, and it is green today without your doing anything. The line numbers from the comparison are the actual yield — they tell you where to jump in the editor.
+This step asks for two handgrips: opening files, and having a prediction checked.
+
+**Opening a file.** Press `Ctrl`/`Cmd`+`P`, type the file name (part of it is enough) and take the hit with `Enter`. The file opens as a tab **in the middle**, next to this step text's tab; the tab bar takes you back. Without a keyboard: the topmost icon in the narrow bar on the far left opens the **file explorer**, where you click through the folders.
+
+**Checking a task.** The first task at the bottom of this step text is a **prediction**: write what you expect into the field — nothing happens without it, the check demands it first — and then press **Check**. Only now does the tutor run the search that compares your expectation against the real tree. **The output appears right at the task inside the step text, not in a terminal**; the line number in it tells you where to jump in the editor. You can reproduce the same search by hand: **☰ → `Terminal` → `New Terminal`** (☰ is the three-line icon at the very top left; there is no menu bar) and there
+
+```
+grep -n 'PRIVATE .*/src' modules/toolbox/CMakeLists.txt
+```
+
+The second task is not a task for you but an **assurance** about the repository — it passes for as long as the layering rule holds in the tree, and it is green today without your doing anything.
 
 ## Libraries, not a blob
 
-CaDS Zero is built as a set of independent CMake **libraries**. A library is a bundle of compiled source files that is later attached to the program as a whole; that attaching is called **linking**. Each library has a declared **public API** — the set of functions and types others are allowed to use. It becomes visible through `#include`, the line with which a C file pulls in a header file and thereby says which foreign names it wants to know.
+CaDS Zero is built as a set of independent CMake **libraries**. A library is a bundle of compiled source files that is later attached to the program as a whole; that attaching is called **linking**. Each library has a declared **public API** — the set of functions and types others are allowed to use. It becomes visible through `#include`, the line with which a C file pulls in a header file.
 
 The top-level `CMakeLists.txt` adds the libraries in dependency order: `modules/toolbox`, `modules/storage`, `modules/config`, `modules/net`, `modules/cli`, `modules/diag`, the kernel (board only), then the portable GUI layer (`gui/`), the services (`services/`), the apps under `apps/`, and finally one target directory — `targets/itsboard` or `targets/sim`.
 
@@ -74,27 +84,21 @@ A feature module never includes a target header. `hal_api` is **headers only**, 
 
 The mechanism is one CMake keyword: a module's `src/` is registered as a `PRIVATE` include directory. In CMake, `PRIVATE` means "applies only while compiling this module itself", as opposed to `PUBLIC`: "applies to everyone who uses me as well". A module's own headers are therefore unreachable from outside, and the public header stays the only way in.
 
-That is the line the first task's comparison reveals. The second task is the counter-test and no achievement of yours: in `gui/`, `apps/` and `services/` not a single file includes the chip vendor's register header `stm32f4xx.h`. As long as both hold, the rule holds not only in the diagram but in the real tree.
+That is the line the first task's comparison reveals. The second task is the counter-test: in `gui/`, `apps/` and `services/` not a single file includes the chip vendor's register header `stm32f4xx.h`. As long as both hold, the rule holds not only in the diagram but in the real tree.
 
 ## Why it costs to ignore this
 
-Three reasons, in order of how much they cost when ignored:
-
 1. **The simulator.** Everything above the HAL must build for the host as well as the board. That only stays true if hardware dependence is confined to one module with a declared interface, not diffused through `#include "stm32f4xx.h"` in whatever file needed a register.
 2. **Parallel work.** A module with a narrow public header can be implemented, reviewed and merged without reading the rest of the tree.
-3. **Reuse.** The canvas, the font renderer and the toolbox are not specific to this firmware.
-
-The inventory in the reference marks which modules are reusable beyond this project (`toolbox` entirely, `canvas` for any indexed framebuffer, `net` not at all) and what each depends on.
+3. **Reuse.** The canvas, the font renderer and the toolbox are not specific to this firmware; the reference marks which modules travel beyond this project and what each depends on.
 
 ## The one file that appears to break ranks
 
-Exactly one source file below `modules/` does include the register header `stm32f4xx.h`: `modules/storage/src/cads_flash_stm32f4.c`, the driver for the chip's internal flash memory. `modules/storage` nevertheless builds for the host too, and the host compiler never gets to see that file.
-
-How that works is not written in the C file. It is written in `modules/storage/CMakeLists.txt` — reading it there is your second task.
+Exactly one source file below `modules/` does include the register header `stm32f4xx.h`: `modules/storage/src/cads_flash_stm32f4.c`, the driver for the chip's internal flash memory. `modules/storage` nevertheless builds for the host too, and the host compiler never gets to see that file. How that works is not written in the C file; it is written in `modules/storage/CMakeLists.txt`.
 
 ## Your task
 
-1. Write down your prediction on the first task, press **Check**, and then open, with `Ctrl`/`Cmd`+`P`, the file whose line appears in the output (`modules/toolbox/CMakeLists.txt`). Look at `PUBLIC` and `PRIVATE` side by side there, and in the explorer (`Ctrl`/`Cmd`+`Shift`+`E`) at the public `modules/toolbox/include/cads/toolbox/`, the private `modules/toolbox/src/` and the module README.
-2. Then open `modules/storage/CMakeLists.txt` and answer why the host build tolerates the file from the previous section.
+1. Write your prediction into the first task's field, press **Check**, and then open, with `Ctrl`/`Cmd`+`P`, the file from the output (`modules/toolbox/CMakeLists.txt`). Look at `PUBLIC` and `PRIVATE` side by side there, and in the file explorer (`Ctrl`/`Cmd`+`Shift`+`E`, or the topmost icon on the left) at the public `modules/toolbox/include/cads/toolbox/`, the private `modules/toolbox/src/` and the module README.
+2. Then open `modules/storage/CMakeLists.txt` with `Ctrl`/`Cmd`+`P`, read the block from line 34, and answer in the third task's field why the host build tolerates the file from the previous section. **Submit answer** sends it off.
 
 The next step looks at the boundary itself.

@@ -51,7 +51,9 @@ The commands, from `docs/reference/explorer-console.md`, all run for a bounded n
 
 ## How the DHCP watch decides
 
-`modules/toolbox/src/dhcpwatch.c` walks Ethernet → IPv4 (reading the IHL rather than assuming 20 bytes) → UDP → BOOTP/DHCP. It is **selective twice over**: it checks the direction from the UDP port pair and, on top of that, the DHCP message type inside the packet. Both conditions are stated in `modules/toolbox/include/cads/toolbox/dhcpwatch.h`; together they ensure a client's request is never taken for a server's reply. Each distinct server source lands in a fixed-capacity table, and `cads_dhcpwatch_table_multiple_servers()` (line 102 of that header) reduces that table to a single boolean. Read the function and say in words what it returns true for — that is the second task of this step. The parser itself has 15 host unit-test cases (`tests/unit/test_dhcpwatch.c`) built from hand-constructed frames.
+`modules/toolbox/src/dhcpwatch.c` walks Ethernet → IPv4 (reading the IHL rather than assuming 20 bytes) → UDP → BOOTP/DHCP. It is **selective twice over**: it checks the direction from the UDP port pair and, on top of that, the DHCP message type inside the packet. Both conditions are stated in `modules/toolbox/include/cads/toolbox/dhcpwatch.h`; together they ensure a client's request is never taken for a server's reply. Each distinct server source lands in a fixed-capacity table, and `cads_dhcpwatch_table_multiple_servers()` (line 102 of that header) reduces that table to a single boolean.
+
+Open the header and read the function: press `Ctrl`/`Cmd`+`P`, type `modules/toolbox/include/cads/toolbox/dhcpwatch.h` and press Enter. Without the keyboard: the top icon in the narrow icon bar on the far left (the file explorer), then click through the tree. The file opens as a tab in the middle, next to the step-text tab `CaDS Tutor: <title>`. Then say in words what the function returns true for — that is the second task. The parser itself has 15 host unit-test cases (`tests/unit/test_dhcpwatch.c`) built from hand-constructed frames.
 
 ## How the ARP watch decides
 
@@ -59,14 +61,34 @@ The commands, from `docs/reference/explorer-console.md`, all run for a bounded n
 
 ## What the bench actually saw
 
-This is worth knowing before you expect drama: the development bench has no DHCP server and near-zero ambient traffic. `R 8` ran clean — `0 frame(s) seen, 0 DHCP servers` — and that is the correct, well-formed result on a quiet cable, not a failure of the command. Entries populate only on a segment where something is talking.
+This is worth knowing before you expect drama: the development bench has no DHCP server and near-zero ambient traffic. `R 8` ran clean and reported `0 frame(s) seen`, `0 DHCP server repl(y/ies)`, `0 distinct server(s)` and `one or zero servers, nothing suspicious`. On a quiet cable that is the correct, well-formed result, not a failure of the command. Entries populate only on a segment where something is talking.
 
-## Your task
+## Task 1 — run the rogue-DHCP watch
 
-Open the board console so you can read along — you do not have to send anything: the **Check** button on this task sends `R 20` itself and waits for the answer. If the board is sitting in the app tree, run `python3 scripts/board_key.py quit` once in a terminal first. The check waits for the summary line, not for entries — zero frames on a quiet cable passes it. Then answer the two analysis questions separately: which condition the DHCP watch flags, and why the ARP watch calls its finding an indicator.
+You do not type the console command `R 20` yourself: the check button sends it, you only read the answer. The **Check** button sits on this task at the bottom of the step text, the tab in the middle; **Run all checks** at the top of that same tab starts all three tasks of this step.
 
-**Where you do this:**
-- Open a file: `Ctrl`/`Cmd`+`P`.
-- Open a terminal: menu *Terminal → New Terminal*.
-- Open the board console: `F1`, then *CaDS Board: Konsole öffnen*.
-- Build: menu *Terminal → Run Build Task…*.
+A freshly flashed board starts in the touchscreen app tree and mishears single letters. So open a terminal first — click the icon with the three bars (**☰**) at the very top left, then **`Terminal` → `New Terminal`**; if the terminal area is folded away, `Ctrl`/`Cmd`+`J` opens it and folds it back. The working directory is the project root. Run once:
+
+```
+python3 scripts/board_key.py quit
+```
+
+In the lab the scripts reach the board through the bridge's console PTY; if the call finds no port, name it explicitly (`docs/SPEC.md`):
+
+```
+python3 scripts/board_key.py quit --port /home/coder/board-console
+```
+
+To watch while it sends, also open the board console: press **`F1`**, type `CaDS Board: Konsole öffnen` and press Enter. **If the palette does not react at all, the browser swallowed `Ctrl`/`Cmd`+`Shift`+`P`** — press `F1`, or go through **☰ → `Terminal`**.
+
+Then click **Check** and **wait twenty seconds**: the watch listens for the full duration and only then prints its summary line, which starts `# dhcpwatch: done,`. The check waits for exactly that line, not for entries — zero frames on a quiet cable passes it.
+
+<!-- SHOT: m7-dhcpwatch-summary | Board console after R 20: the line # dhcpwatch: done, N frame(s) seen, ... distinct server(s) - one or zero servers, nothing suspicious | HARDWARE -->
+
+**Do not close the terminal while the watch is running.** The cross on a terminal kills the process inside it and cuts the summary off; use `Ctrl`/`Cmd`+`J` to fold it away instead, which leaves it running. **And do not look for the line in the wrong window:** it is not in the step text and not in the editor, but in the board console; the output of a terminal command is at the bottom in the terminal you started it from — `Ctrl`/`Cmd`+`J` opens the area, and the list on the right selects the right terminal.
+
+## Tasks 2 and 3 — the two analysis questions
+
+One free-text answer each in the field on the task, then **Check** beside it: which condition the DHCP watch flags, and why the ARP watch calls its finding an indicator. If a task stays red, the **Show hint** button on that same task helps.
+
+The interface is in English while the course text is German — so the menu item is called `New Terminal`.

@@ -27,9 +27,29 @@ socratic:
   - { trigger: "question:pin-verdict:weak", question: { en: "The PR is code, not a board. So what exactly is the harm, and who would encounter it?", de: "Der PR ist Code, kein Board. Worin besteht der Schaden also genau, und wer träfe darauf?" }, hints: [ { en: "docs/SAFETY.md section 3 names two pin groups that are inputs and says why they must stay inputs.", de: "docs/SAFETY.md Abschnitt 3 nennt zwei Pin-Gruppen, die Eingänge sind, und sagt, warum sie Eingänge bleiben müssen." }, { en: "The adapter can drive those nets; ask what happens when two push-pull drivers meet on one net.", de: "Der Adapter kann diese Netze treiben; frag dich, was geschieht, wenn zwei Push-Pull-Treiber auf einem Netz aufeinandertreffen." }, { en: "Merged code gets flashed eventually by someone who did not read this PR - say what that makes of the never-flashed argument.", de: "Gemergter Code wird irgendwann von jemandem geflasht, der diesen PR nicht gelesen hat - sag, was das aus dem Nie-geflasht-Argument macht." } ] }
   - { trigger: "question:reviewable:weak", question: { en: "Separate what is wrong with the design from what is simply absent from the submission. The question asks about the second.", de: "Trenne, was am Entwurf falsch ist, von dem, was der Einreichung schlicht fehlt. Gefragt ist das Zweite." }, hints: [ { en: "A module that includes a vendor header cannot build for one of the two targets; that is an absence, not an opinion.", de: "Ein Modul, das einen Hersteller-Header einbindet, baut für eines der beiden Targets nicht; das ist ein Fehlen, keine Meinung." }, { en: "docs/how-to/agent-workflow.md lists what a reviewable PR carries; go through that list against this submission.", de: "docs/how-to/agent-workflow.md listet, was ein begutachtbarer PR enthält; geh diese Liste gegen diese Einreichung durch." }, { en: "The claim that it needs the board is worth testing: name the parts of a tone driver that are portable logic.", de: "Die Behauptung, es brauche das Board, lohnt eine Prüfung: benenne die Teile eines Ton-Treibers, die portable Logik sind." } ] }
 ---
+
 ## Lernziel
 
 Wende die vier stehenden Regeln des Projekts — Clean Room, beide Targets, Sicherheit und der Beitragsworkflow — so an, wie ein Reviewer es täte, auf eine Änderung, die alle vier auf einmal verletzt.
+
+**Der erste Handgriff:** öffne `docs/explanation/clean-room.md` und `docs/SAFETY.md`. Wie das geht, steht gleich hier.
+
+## Wo du in diesem Step arbeitest
+
+Dieser Step startet keinen Task und baut nichts. Du liest vier Dokumente und schreibst drei Urteile.
+
+**Ein Dokument öffnen:** `Strg`/`Cmd`+`P`, dann den Pfad tippen, Enter. Oder ganz links das oberste Symbol der Leiste (Datei-Explorer) und durch den Baum klicken. Die vier Pfade dieses Steps:
+
+```
+docs/explanation/clean-room.md
+docs/SAFETY.md
+docs/how-to/agent-workflow.md
+docs/reference/module-layout.md
+```
+
+**Deine Antworten schreibst du im Steptext**, dem Reiter in der Mitte mit dem Namen `CaDS Tutor: Eine Änderung beurteilen, bevor sie ein PR wird`. Der Kursbaum steht links in der Seitenleiste, hinter dem Doktorhut-Symbol in der Leiste ganz links. Jede der drei Aufgaben unten im Steptext hat einen Knopf **Prüfen** und einen Knopf **Hinweis anzeigen**; der Knopf **Run all checks** oben im Reiter prüft alle drei auf einmal.
+
+**Wenn ein Tastenkürzel nichts tut:** Der Browser fängt `Strg`/`Cmd`+`Umschalt`+`P` oft ab — die Befehlspalette erreichst du zuverlässig mit **`F1`**, und alles, was sie kann, geht auch über das Symbol mit den drei Strichen (**☰**) ganz oben links, das `File`, `Edit`, `Selection`, `View`, `Go`, `Run`, `Terminal`, `Help` öffnet. Die Bedienoberfläche ist englisch, der Kurstext deutsch. Die beiden anderen klassischen Bedienfehler — die Ausgabe eines Tasks im falschen Fenster suchen und ein Terminal schließen, das noch etwas ausführt — können dir hier nicht passieren, weil dieser Step nichts startet; ab dem nächsten Step wieder.
 
 ## Der Vorschlag, den du beurteilst
 
@@ -40,17 +60,17 @@ Ein Contributor öffnet einen PR:
 > `stm32f4xx.h` direkt ein, um den Timer zu programmieren; er konfiguriert **PG0** als Push-Pull-Ausgang, an dem
 > ein Piezo hängt. Kein Host-Test, „weil es das Board braucht". Sonst nichts im PR.
 
-Dieser eine Vorschlag verletzt alle vier stehenden Regeln des Projekts auf einmal. Die drei Aufgaben dieses Steps zerlegen ihn: Lizenz, Pinwahl, Begutachtbarkeit.
+Dieser eine Vorschlag verletzt alle vier stehenden Regeln auf einmal. Die drei Aufgaben zerlegen ihn: Lizenz, Pinwahl, Begutachtbarkeit.
 
 ## Die vier Regeln, die ein Reviewer hält
 
 **1. Clean Room.** Diese Firmware enthält keinen Code aus `flipperzero-firmware` — nicht kopiert, nicht übernommen, nicht transliteriert. Jenes Projekt steht unter GPL-3.0; einen nennenswerten Teil davon einzubinden macht dieses MIT-Projekt ebenfalls zu GPL, unumkehrbar, denn eine Historie lässt sich nicht ent-GPLen. Upstream zu lesen, um zu verstehen, was eine gute Handheld-Firmware tut, ist erlaubt; eine Funktion mit dem Original daneben neu zu schreiben, ist es nicht. Der Test ist eine Frage: *Warum ist es so geformt?* Lautet die Antwort „weil sie es so gemacht haben", ist es eine Kopie. Lautet sie „weil dieses Display nur beschreibbar ist und 448 ms pro Bild kostet", ist es eigenständige Arbeit (`docs/explanation/clean-room.md`).
 
-**2. Beide Targets.** Alles oberhalb der HAL baut für Board und Simulator. Ein Modul, das `stm32f4xx.h` einbindet, hat die Schichtung aus M1 gebrochen: Hardwarezugriff läuft über `core/cads_hal.h`, mit einer Implementierung unter `targets/itsboard/` und einer unter `targets/sim/`. Ein Feature, das nur für ein Target baut, ist nicht fertig.
+**2. Beide Targets.** Alles oberhalb der HAL baut für Board und Simulator. Ein Modul, das `stm32f4xx.h` einbindet, hat die Schichtung gebrochen: Hardwarezugriff läuft über `core/cads_hal.h`, mit einer Implementierung unter `targets/itsboard/` und einer unter `targets/sim/`. Ein Feature, das nur für ein Target baut, ist nicht fertig.
 
-**3. Sicherheit.** `docs/SAFETY.md` ist bindend, auch für Code, den du nicht ausführen kannst. PA13/PA14 und PH0/PH1 werden nie angefasst; PF0..7 und PG0..5 sind hochgezogene Eingänge und werden **nie** als Ausgänge konfiguriert. Den elektrischen Grund dafür nennt `docs/SAFETY.md` Abschnitt 3, und ob er auch für Code gilt, der nie auf ein Board kommt, ist die zweite Aufgabe dieses Steps.
+**3. Sicherheit.** `docs/SAFETY.md` ist bindend, auch für Code, den du nicht ausführen kannst. PA13/PA14 und PH0/PH1 werden nie angefasst; PF0..7 und PG0..5 sind hochgezogene Eingänge und werden **nie** als Ausgänge konfiguriert. Den elektrischen Grund nennt `docs/SAFETY.md` Abschnitt 3, und ob er auch für Code gilt, der nie auf ein Board kommt, ist die zweite Aufgabe.
 
-**4. Der Workflow.** Der Maintainer hält die Hardware exklusiv: Contributors flashen nicht, setzen nicht zurück und hängen keinen Debugger an. Du nimmst `swarm-ready`-Issues (in sich geschlossen, hardwarefrei); `hardware-gate`-Punkte gehören dem Maintainer. Was ein begutachtbarer PR außerdem mitbringen muss — Beilagen zur eigentlichen Änderung —, listet `docs/how-to/agent-workflow.md` in einem Absatz auf. Geh diese Liste gegen die Einreichung oben durch; die dritte Aufgabe fragt nach dem, was fehlt.
+**4. Der Workflow.** Der Maintainer hält die Hardware exklusiv: Contributors flashen nicht, setzen nicht zurück und hängen keinen Debugger an. Du nimmst `swarm-ready`-Issues (in sich geschlossen, hardwarefrei); `hardware-gate`-Punkte gehören dem Maintainer. Was ein begutachtbarer PR außerdem mitbringen muss, listet `docs/how-to/agent-workflow.md` in einem Absatz auf. Geh diese Liste gegen die Einreichung oben durch; die dritte Aufgabe fragt nach dem, was fehlt.
 
 ## Bewerten heißt, begründet Nein zu sagen
 
@@ -58,4 +78,10 @@ Ein Review ist kein Abhaken. Die Frage ist, ob jede Regel erfüllt ist, und fall
 
 ## Deine Aufgabe
 
-Drei getrennte Urteile zum Vorschlag oben. Erst die Lizenz: welche kleinste Änderung macht den Code zulässig? Dann die Pinwahl: hält das Argument „wird ja nie geflasht"? Zuletzt die Form: was fehlt, bevor ein Reviewer überhaupt anfangen kann? Der letzte Step verlangt von dir eine Änderung, die dieses Review selbst besteht.
+Drei getrennte Urteile zum Vorschlag oben, jedes in seinem Feld unten im Steptext, jedes mit eigenem Knopf **Prüfen**.
+
+1. **Die Lizenz.** Welche kleinste Änderung macht den Code zulässig?
+2. **Die Pinwahl.** Hält das Argument „wird ja nie geflasht"?
+3. **Die Form.** Was fehlt, bevor ein Reviewer überhaupt anfangen kann?
+
+Der letzte Step verlangt von dir eine Änderung, die dieses Review selbst besteht.

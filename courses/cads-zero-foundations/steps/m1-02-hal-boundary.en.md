@@ -31,21 +31,29 @@ socratic:
 
 Know the one header that separates portable code from hardware, and the two contracts in it that are easiest to break.
 
-## Where you read
+## Where you read, and how you get there
 
-Open `core/cads_hal.h` with `Ctrl`/`Cmd`+`P` and by typing the name `cads_hal.h`. The first task at the bottom of this panel (button **Check**) searches for three places in exactly that file and prints their line numbers. Jump to each in the editor — `Ctrl`/`Cmd`+`G` and the number — and you will have read the three paragraphs this step is about.
+**Opening the file.** Press `Ctrl`/`Cmd`+`P`, type `cads_hal.h`, take the hit with `Enter`. The file appears as a tab **in the middle**, next to this step text's tab; the tab bar takes you back. Without a keyboard: the topmost icon in the narrow bar on the far left opens the **file explorer**, where it sits under `core/`.
+
+**Checking the first task.** Scroll down in this step text to the first task and press **Check**. It searches for three places in exactly that file. **The output with the line numbers appears at the task itself, not in a terminal** — that is the commonest mistake here: nothing about it shows up in the terminal area below. The same search by hand: **☰ → `Terminal` → `New Terminal`** (☰ is the three-line icon at the very top left) and there
+
+```
+grep -nE 'CADS_DMA_SECTION|display_readable|no FIFO' core/cads_hal.h
+```
+
+**Jumping to a line.** In the open editor press `Ctrl`/`Cmd`+`G`, type the number, `Enter`. Inside the file you search with `Ctrl`/`Cmd`+`F`. If a shortcut does nothing, the browser swallowed it; reach the command palette with **`F1`** instead of `Ctrl`/`Cmd`+`Shift`+`P`.
 
 ## One header, two implementations
 
 `core/cads_hal.h` is the entire boundary between the firmware and the silicon. Everything above it compiles unchanged for the board and for the host simulator. Two implementations exist: `targets/itsboard/hal/` against STM32F429 registers, and `targets/sim/hal_sim.c` against SDL2. Keeping the surface this narrow is what makes the simulator honest — if a feature is not expressible here, it cannot silently work in only one of the two worlds.
 
-The header groups roughly forty functions: lifecycle (`cads_hal_early_init`, `cads_hal_init`), time, console, display, touch, adapter I/O, on-board indicators, panic, watchdog and reset cause, and the hardware random generator. Time is derived from the **DWT cycle counter** — a counter in the core's debug unit that counts every processor clock — rather than from a periodic interrupt. That is why it stays correct inside a **critical section**, that is a piece of code for whose duration interrupts are disabled.
+The header groups roughly forty functions: lifecycle, time, console, display, touch, adapter I/O, on-board indicators, panic, watchdog and reset cause, and the hardware random generator. Time is derived from the **DWT cycle counter** — a counter in the core's debug unit that counts every processor clock — rather than from an interrupt. That is why it stays correct inside a **critical section**, where interrupts are disabled.
 
 ## Ask the descriptor, do not assume
 
 `cads_hal_board_info()` returns a `cads_board_info_t` — a **descriptor**: a struct that hands out properties of the board as data fields instead of hiding them in code. Layers above ask it questions rather than testing which board they are on: `has_network`, `has_touch`, `button_count`, `display_width`.
 
-The `CADS_DISPLAY_WIDTH`/`HEIGHT` macros exist only so the canvas can size its static **framebuffer** at **link time**. A framebuffer is the region of RAM in which the picture stands complete before it goes to the panel; link time is the moment the linker assigns addresses — long before the program first runs. Layout code, by contrast, uses the descriptor. Two of its fields carry the most weight:
+The `CADS_DISPLAY_WIDTH`/`HEIGHT` macros exist only so the canvas can size its static **framebuffer** at **link time**. A framebuffer is the region of RAM in which the picture stands complete before it goes to the panel; link time is the moment the linker assigns addresses. Layout code, by contrast, uses the descriptor. Two of its fields carry the most weight:
 
 - **`display_readable`** is `false` on the ITSboard: the bus has no return path, so nothing can read video memory back. The simulator sets it `true`, because an SDL surface can be read.
 - **`display_pixels_per_second`** is measured (342 000), not calculated. A GUI deciding whether an animation is affordable should look it up.
@@ -55,14 +63,14 @@ The `CADS_DISPLAY_WIDTH`/`HEIGHT` macros exist only so the canvas can size its s
 `cads_hal_display_blit()` hands a rectangle of **RGB565** pixels to DMA and returns immediately. A **blit** is the copying of a rectangular piece of image from one memory to another; *RGB565* is the panel's pixel format: sixteen bits per pixel, split between red, green and blue. **DMA** (direct memory access) is a copying engine beside the CPU: it fetches the bytes from memory itself while the processor carries on computing.
 
 - `pixels` must stay valid until `cads_hal_display_busy()` reports false.
-- On hardware the buffer **must live in DMA-capable SRAM, never in CCM**. CCM at `0x10000000` is invisible to every DMA controller on this part; a transfer sourced there produces nothing — no fault, no error flag, just wrong output. The header supplies `CADS_DMA_SECTION` for that: it places a buffer in the **linker section** `.dmaram`, that is in a named drawer of the memory plan to which the linker assigns a fixed region — here guaranteed in SRAM and readable in the map file. `CADS_CCM_SECTION` is its counterpart for things only the CPU touches, such as task stacks.
+- On hardware the buffer **must live in DMA-capable SRAM, never in CCM**. CCM at `0x10000000` is invisible to every DMA controller on this part; a transfer sourced there produces nothing — no fault, no error flag, just wrong output. The header supplies `CADS_DMA_SECTION` for that: it places a buffer in the **linker section** `.dmaram`, that is in a named drawer of the memory plan to which the linker assigns a fixed region — here guaranteed in SRAM. `CADS_CCM_SECTION` is its counterpart for things only the CPU touches, such as task stacks.
 
-The console receive path is the other contract: interrupt-driven with a **ring buffer**. A ring buffer is a fixed-size array that starts again at the front when it is full at the back, buffering a stream of bytes between writer and reader; it is also called a **FIFO**, first in, first out. It is needed because the STM32F4 USART has a one-byte receive register and no FIFO of its own in the part. At 115200 baud a byte lands every 87 µs, and any slower polling loop drops characters. The ring buffer is filled by the receive interrupt handler, that is by the CPU itself. The two counters `cads_hal_console_dropped()` and `cads_hal_console_overruns()` exist so such loss can never again be silent — it once presented as a display fault.
+The console receive path is the other contract: interrupt-driven with a **ring buffer**. A ring buffer is a fixed-size array that starts again at the front when it is full at the back; it is also called a **FIFO**, first in, first out. It is needed because the STM32F4 USART has a one-byte receive register and no FIFO of its own. At 115200 baud a byte lands every 87 µs, and any slower polling loop drops characters. The ring buffer is filled by the receive interrupt handler, that is by the CPU itself. The counters `cads_hal_console_dropped()` and `cads_hal_console_overruns()` exist so such loss never stays silent — it once presented as a display fault.
 
 ## Your task
 
-1. Press **Check** on the first task and read the three printed places in `core/cads_hal.h`.
-2. Then decide which of the two named buffers may live in CCM, and justify it.
-3. Finally, diagnose the widget that draws correctly on only one of the two sides.
+1. Press **Check** on the first task, open `core/cads_hal.h` with `Ctrl`/`Cmd`+`P` and jump with `Ctrl`/`Cmd`+`G` to the three printed line numbers.
+2. Then decide, in the second task's field, which of the two named buffers may live in CCM, justify it and press **Submit answer**.
+3. Finally, diagnose in the third field the widget that draws correctly on only one of the two sides.
 
 The next step shows what the boundary buys: the same code running with no board attached.

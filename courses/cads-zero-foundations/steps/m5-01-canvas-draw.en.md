@@ -34,6 +34,8 @@ socratic:
 
 Draw on the canvas the way every app in this firmware does, and see why every drawing call also records *damage* so only what changed reaches the panel.
 
+**Concretely:** add one drawing call to `gui/cads_splash.c`, run the task `CaDS: Build`, flash, and open the test pattern on the panel. Each of those four steps is spelled out below with its full operating path.
+
 ## The surface: 480×320 at 4 bits per pixel
 
 A truecolour RGB565 framebuffer for this panel is 300 KB; the part has 192 KB of DMA-capable SRAM. So the canvas (`gui/canvas.h`) is **indexed at 4 bpp**: two pixels per byte, 75 KB total, against a **sixteen-colour palette**. Colours are never raw numbers — they are `cads_color_t` slots with names:
@@ -41,13 +43,10 @@ A truecolour RGB565 framebuffer for this panel is 300 KB; the part has 192 KB of
 | Slot | Name | Colour |
 |---|---|---|
 | 2 | `CadsColorBrand` | `#204C86` |
-| 3 | `CadsColorBrandLight` | `#B5C4D8` |
-| 4 | `CadsColorAccent` | `#9CB33B` |
-| 8–10 | `CadsColorRed / Amber / Teal` | |
 | 13 | `CadsColorMagenta` | |
 | 15 | `CadsColorBackground` | `#101418` |
 
-The full list is the enum in `gui/canvas.h`; the table here is an extract. `cads_canvas_set_palette()` re-tints every pixel in a slot at the next flush, which is what makes a theme one table rather than a repaint. The palette is stored pre-byte-swapped to big-endian RGB565, so per-pixel conversion is a lookup and a store.
+The table here is an extract from the enum in `gui/canvas.h`.
 
 ## The drawing API
 
@@ -58,18 +57,58 @@ cads_canvas_draw_text(12, 8, &cads_font16, "CaDS Zero", CadsColorWhite);
 cads_canvas_flush();   /* pushes only what changed */
 ```
 
-`cads_canvas_draw_text()` places the **top of the line box** at `y`, not the baseline, and returns the pen position so runs in different colours chain. Clipping nests via `cads_canvas_push_clip()` / `pop_clip()`, eight levels deep.
+`cads_canvas_draw_text()` places the **top of the line box** at `y`, not the baseline.
 
 ## Damage, and why it is not optional
 
-Every drawing call extends one bounding box. `cads_canvas_flush()` converts exactly that region to RGB565 in 16-row bands, pushes each band out over DMA, and returns the pixel count transferred. A full screen costs about 448 ms on this bus; a 40×40 update costs 4.7 ms. That factor of 95 is the difference between a usable UI and one that repaints at 2 fps. Widgets that write the buffer directly must call `cads_canvas_damage()` themselves.
+Every drawing call extends one bounding box. `cads_canvas_flush()` converts exactly that region to RGB565 in 16-row bands and pushes each band out over DMA. A full screen costs about 448 ms on this bus, a 40×40 update 4.7 ms. Widgets that write the buffer directly call `cads_canvas_damage()` themselves.
 
-How many bands can be in flight at once is a separate question — and one the comment block at the top of `gui/canvas.c` answers out loud, including the number that decision would have cost. Part of the answer is a HAL function that exists and that nobody calls: `cads_hal_display_busy()` in `core/cads_hal.h`. The third task of this step sends you exactly there.
+How many bands can be in flight at once is answered out loud by the comment block at the top of `gui/canvas.c`, including the number that decision would have cost. Part of the answer is a HAL function that exists and that nobody calls: `cads_hal_display_busy()` in `core/cads_hal.h`. The third task sends you there.
 
-Two limits to keep in mind: no alpha or blending (an indexed buffer cannot express partial coverage), and the canvas is **not thread safe** — one task owns the display, guarded by a mutex (`apps/bringup/tasks.c`).
+## Step 1 — open the file and add the call
 
-## Your task
+Press `Ctrl`/`Cmd`+`P`, type `gui/cads_splash.c` and press Enter; the file opens as a tab in the middle. Without the keyboard: the top icon in the narrow bar on the far left (the file explorer), then expand `gui` in the tree and click the file.
 
-`cads_test_pattern_draw()` in `gui/cads_splash.c` (reachable on the panel via **Settings → Test pattern**) draws a brand header, sixteen palette swatches, four corner markers and two diagonals. It uses eleven of the sixteen slots — `CadsColorMagenta` is not among them. Draw a small block in that slot with `cads_canvas_fill_rect(...)` inside that function (the empty lower half is a good place), rebuild, flash, and open the test pattern to see it.
+`cads_test_pattern_draw()` starts at line 65 there and draws a brand header, sixteen palette swatches, four corner markers and two diagonals. It uses eleven of the sixteen slots — `CadsColorMagenta` is not among them. Add a `cads_canvas_fill_rect(...)` call **inside that function** that draws a small block in that slot; the empty lower half is a good place. Five arguments: x, y, width, height, colour slot. Save with `Ctrl`/`Cmd`+`S`.
 
-The first check runs `gui/cads_splash.c` through the C preprocessor and only then looks for the slot name as an argument of a `fill_rect` call. The preprocessor throws comments away — so neither a line comment nor a block comment passes it. Then comes the prediction about the staging banks.
+The first check runs the file through the C preprocessor and only then looks for the slot name as an argument of a `fill_rect` call. The preprocessor throws comments away — so neither a line comment nor a block comment passes it.
+
+## Step 2 — build
+
+Start the task **`CaDS: Build`**: press **`F1`**, type `Tasks: Run Task`, press Enter, then pick **`CaDS: Build`** from the list. Without the keyboard: the three-line icon (**☰**) at the very top left, then **`Terminal` → `Run Task...` → `CaDS: Build`**. The user interface is in English while this course is in German — the menu entry really is called `Run Task...`.
+
+A terminal named `CaDS: Build` opens in the terminal area at the bottom, with the compiler lines scrolling through it. The first time takes about a minute, after that seconds. It is finished when no new lines appear and a prompt is back. It worked when the last line is the build tool's and not a compiler error, and the `PROBLEMS` tab stays empty.
+
+## Step 3 — flash
+
+Start the task **`CaDS: Build + Flash`**: press **`F1`**, type `Tasks: Run Task`, press Enter, then pick **`CaDS: Build + Flash`**. Without the keyboard: **☰ → `Terminal` → `Run Task...` → `CaDS: Build + Flash`**. It builds first and then flashes; the flash takes about 15 seconds. You see it worked in the status bar at the bottom.
+
+![Flashed successfully: the status bar names the byte count and the duration of the last flash](flash-ok.png)
+
+## Step 4 — open the test pattern on the panel
+
+Open the board console: press **`F1`**, type `CaDS Board: Konsole öffnen`, press Enter. Type `d` there and press Enter — that starts the app tree on the panel, and from then on the board no longer reacts to single typed letters.
+
+Navigation happens from a terminal. Open one with **☰ → `Terminal` → `New Terminal`**; if the terminal area is folded away, `Ctrl`/`Cmd`+`J` opens and closes it. The working directory is the project root:
+
+```bash
+python3 scripts/board_key.py ok ok down down down ok
+```
+
+The first `ok` opens the menu from the desktop, the second the top row `Settings`, the three `down` presses reach the fourth row `Test pattern`, the last `ok` opens it. The script prints one `| sent: <key>` line per key; the pattern appears on the panel. Back to the prompt:
+
+```bash
+python3 scripts/board_key.py quit
+```
+
+<!-- SHOT: m5-testpattern-magenta | Das Testmuster auf dem Panel, mit dem zusaetzlich gezeichneten Magenta-Block in der unteren Haelfte | HARDWARE -->
+
+## Three operating mistakes almost everyone makes here
+
+- **The task ran, but you are looking for its output in the wrong window.** It is not in the step text and not in the editor, but in the terminal area at the bottom, in the terminal named after the task — `Ctrl`/`Cmd`+`J` opens the area, and the list on the right selects the terminal.
+- **You closed the terminal and ended the running process with it.** The cross on a terminal kills the process inside it — use `Ctrl`/`Cmd`+`J` to fold the area away instead, which leaves it running. In the middle of a build, closing it means the build was aborted.
+- **The palette does not react to the shortcut.** The browser swallowed `Ctrl`/`Cmd`+`Shift`+`P` — press `F1` instead, or go through **☰ → `Terminal`**.
+
+## Afterwards
+
+Check a task with the **Prüfen** button next to it at the bottom of the step text, or all of them with **Run all checks** at the top of the `CaDS Tutor: Draw on the 4-bpp canvas` tab.

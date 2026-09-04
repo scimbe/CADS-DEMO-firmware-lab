@@ -27,34 +27,75 @@ socratic:
   - { trigger: "task:tests-green:failed", question: { en: "ctest prints the failing subject's name first. Is it your test - and if so, did it fail to compile, fail an assertion, or never get registered?", de: "ctest druckt zuerst den Namen des scheiternden Subjekts. Ist es dein Test - und falls ja, kompilierte er nicht, scheiterte eine Zusicherung oder wurde er nie registriert?" }, hints: [ { en: "Is it your subject that is red, or another one? A new subject needs a registration and a link line in tests/unit/CMakeLists.txt, then a reconfigure, before ctest knows it at all.", de: "Ist dein Subjekt rot oder ein anderes? Ein neues Subjekt braucht eine Registrierung und eine Link-Zeile in tests/unit/CMakeLists.txt, dann eine Neukonfiguration, bevor ctest es überhaupt kennt." }, { en: "Every RUN_TEST must appear in main() between UNITY_BEGIN() and UNITY_END(); a case defined but not run passes vacuously.", de: "Jedes RUN_TEST muss in main() zwischen UNITY_BEGIN() und UNITY_END() stehen; ein definierter, aber nicht ausgeführter Fall besteht leer." }, { en: "Read the expected/actual line before changing the assertion: the header documents what the parsers do on failure, and it is not what most people guess.", de: "Lies die Expected/Actual-Zeile, bevor du die Zusicherung änderst: der Header dokumentiert, was die Parser im Fehlerfall tun, und das ist nicht, was die meisten raten." } ] }
   - { trigger: "question:self-review:weak", question: { en: "Point at the sentence in the header that documents the behaviour, then at the existing test file. What is in the first and not in the second?", de: "Zeig auf den Satz im Header, der das Verhalten dokumentiert, und dann auf die vorhandene Testdatei. Was steht im ersten und nicht in der zweiten?" }, hints: [ { en: "Are you asserting an edge of the contract or the normal case? A contract has edges: an empty input, a prefix without digits, a value one past the maximum.", de: "Sicherst du einen Rand des Vertrags zu oder den Normalfall? Ein Vertrag hat Ränder: eine leere Eingabe, ein Präfix ohne Ziffern, ein Wert eins über dem Maximum." }, { en: "Read the sentence in the header that documents the behaviour, and put tests/unit/test_str.c beside it; what stands in the first and not in the second is your case.", de: "Lies den Satz im Header, der das Verhalten dokumentiert, und stell tests/unit/test_str.c daneben; was im ersten steht und in der zweiten nicht, ist dein Fall." }, { en: "modules/toolbox/include/cads/toolbox/str.h documents what each parser promises on failure - the return value and what it leaves *value and end at. That contract is where an uncovered edge is found.", de: "modules/toolbox/include/cads/toolbox/str.h dokumentiert, was jeder Parser im Fehlerfall verspricht - den Rückgabewert und den Zustand von *value und end. In diesem Vertrag findet sich ein noch nicht abgedeckter Rand." } ] }
 ---
+
 ## Learning goal
 
-Deliver one small change that would survive the review you performed in the previous step: a new host unit test for a portable module, registered in the build, passing under ctest, and described the way the agent workflow expects.
+Ship a small change that would survive the review from the previous step: a new host unit test for a portable module, registered in the build, passing under ctest, and described the way the agent workflow expects.
+
+**The first move:** open `modules/toolbox/include/cads/toolbox/str.h` and `tests/unit/test_str.c` side by side. The next section gives the path.
+
+## Where you work
+
+The user interface is in English while this course text is not, so the menu item is called `Run Task...`.
+
+**Opening a file:** `Ctrl`/`Cmd`+`P`, type the path, Enter. Or use the topmost symbol in the bar on the far left (the file explorer) and click through the tree. The three paths for this step:
+
+```
+modules/toolbox/include/cads/toolbox/str.h
+tests/unit/test_str.c
+tests/unit/CMakeLists.txt
+```
+
+**Opening a terminal** (for `git diff`, for a command with no task): **☰ → `Terminal` → `New Terminal`**; if the terminal area is folded away, `Ctrl`/`Cmd`+`J` opens and closes it. The working directory is the project root.
+
+**Checking your tasks:** in the step text, the tab in the middle named `CaDS Tutor: Capstone - a reviewable change with a passing test`. Each task at the bottom has a **Prüfen** button and a **Hinweis anzeigen** button; **Run all checks** at the top of the tab checks everything at once.
 
 ## The change
 
-Pick a portable toolbox function whose contract is documented in its header and add a test case for a behaviour the existing suite does not assert. `modules/toolbox/include/cads/toolbox/str.h` is a good subject: its parsers `cads_str_to_uint`, `cads_str_to_int` and `cads_str_to_hex` promise to return `false` and leave `*value` untouched when no digit was consumed or the value does not fit, and to set `end` to the first non-digit so a command loop can read several arguments from one line. `tests/unit/test_str.c` already covers much of this; look for an edge that is documented but unasserted — a `0x` prefix with no digits after it, a value one past `UINT32_MAX`, leading tabs versus spaces.
+Pick a portable toolbox function whose contract is documented in the header, and add a test case for a behaviour the existing suite does not assert. `modules/toolbox/include/cads/toolbox/str.h` is a good subject: its parsers `cads_str_to_uint`, `cads_str_to_int` and `cads_str_to_hex` promise to return `false` and leave `*value` untouched when no digit was consumed or the value does not fit, and to point `end` at the first non-digit character so a command loop can read several arguments from one line. `tests/unit/test_str.c` covers much of that; look for a documented but unasserted edge — a `0x` prefix with no digits after it, a value one past `UINT32_MAX`, leading tabs instead of spaces.
 
-Two ways to land it, both reviewable:
+Two routes, both reviewable:
 
 1. **A new case in the existing file.** Add a `static void test_...(void)` to `tests/unit/test_str.c` and a matching `RUN_TEST` in `main()`. Smallest diff, no CMake change.
-2. **A new subject.** Create `tests/unit/test_<name>.c` with its own `main()`, then register it in `tests/unit/CMakeLists.txt` exactly like its neighbours:
+2. **A new subject.** Create `tests/unit/test_<name>.c` with its own `main()` and register it in `tests/unit/CMakeLists.txt` exactly like its neighbours:
 
 ```cmake
 cads_add_unit_test(test_<name> test_<name>.c)
 target_link_libraries(test_<name> PRIVATE cads_toolbox)
 ```
 
-Either way, the rule from M8-01 applies: one executable per subject, sixty-second timeout, Unity assertions, nothing that needs a board.
+Either way: one executable per subject, sixty-second timeout, Unity assertions, nothing that needs a board.
 
-## Proving it, the way CI does
+## Proving it the way CI does
 
-Run **CaDS: Host tests**. ctest must list your test and end green. Then run **CaDS: Build** once more: a host-only test adds no object to the firmware image, so the size report and `__cads_heap_size` — the symbol `scripts/check_ram_budget.py` reads to gate the 48 KB floor with its 256-byte margin — are unchanged. Say so in your review; a reviewer should not have to infer it.
+**Running the test.** Press **`F1`**, type `Tasks: Run Task`, Enter, then pick **`CaDS: Host tests`** from the list. Without the keyboard: the three-line symbol (**☰**) at the very top left, then **`Terminal` → `Run Task...` → `CaDS: Host tests`**. (`Ctrl`/`Cmd`+`Shift`+`P` opens the palette too, but a browser often swallows it; `F1` is the reliable way.) A terminal named after the task opens at the bottom. You see CMake, the compiler, and one line per subject; it takes about half a minute. **Success:** your test file appears in the list with `Passed`, and the closing line reads `100% tests passed, 0 tests failed out of N`, with an N one larger than before if you added a new subject.
+
+**Building the image.** Then **`F1`** → `Tasks: Run Task` → Enter → **`CaDS: Build`**, or **☰ → `Terminal` → `Run Task...` → `CaDS: Build`**. About a minute the first time, seconds after that. A pure host test adds no object to the firmware image, so the size report and `__cads_heap_size` — the symbol `scripts/check_ram_budget.py` reads to guard the 48 KB floor with its 256-byte margin — stay unchanged. You can confirm that with **`F1`** → `Tasks: Run Task` → **`CaDS: RAM budget`**, under a second. Say the result in your review; a reviewer should not have to infer it.
+
+**Seeing what the check sees.** The first check reads the *added lines* under `tests/unit`, not the file list. Open a terminal with **☰ → `Terminal` → `New Terminal`** and run:
+
+```
+git diff -- tests/unit
+```
+
+If that prints nothing, your change either landed somewhere else or is already committed — in which case the check cannot see it.
+
+<!-- SHOT: m8-capstone-diff | Terminal-Bereich unten, git diff -- tests/unit mit den hinzugefuegten RUN_TEST- und TEST_ASSERT-Zeilen in gruen -->
+
+## Three operating mistakes that happen right here
+
+- **The task ran, but you are looking for its output in the wrong window.** It is not in the step text and not in the editor, but in the terminal area at the bottom, in the terminal named after the task — `Ctrl`/`Cmd`+`J` opens the area, and the list on the right selects the terminal.
+- **You closed the terminal and ended the running process with it.** The cross on a terminal kills the process inside it; in the middle of `CaDS: Build` that means the build is aborted and the image incomplete. Use `Ctrl`/`Cmd`+`J` to fold the area away instead, which leaves it running.
+- **The palette does not react to the shortcut.** The browser swallowed `Ctrl`/`Cmd`+`Shift`+`P` — press `F1` instead, or go through **☰ → `Terminal`**.
 
 ## Describing it
 
-`docs/how-to/agent-workflow.md` says what a reviewable PR contains: the change and nothing unrelated; tests where the logic allows; `docs/ROADMAP.md` updated; a bench note only if a hardware path changed (yours did not); the new size report only if memory usage changed (yours did not). Write that summary as if you were opening the PR — title in the `[M<n>] ...` form, a body that names the file, the contract tested, and the two green runs.
+`docs/how-to/agent-workflow.md` says what a reviewable PR carries: the change and nothing unrelated; tests where the logic allows them; `docs/ROADMAP.md` updated; a bench note only if a hardware path changed (yours did not); the new size report only if memory use changed (yours did not).
 
 ## Your task
 
-Add the test — the first check only looks that something of yours is under `tests/unit`, the second that the suite stays green with it. Then answer which documented promise your case newly covers. Finally write the PR-shaped summary per `docs/how-to/agent-workflow.md`: a title in the `[M<n>] ...` form, a body naming the file, the contract tested and the two green runs, and the sentence about the untouched RAM budget. This closes the foundations course; the projects course builds on exactly this discipline at larger scale.
+1. **Add the test.** The first check looks for added lines under `tests/unit` carrying `RUN_TEST(` and `TEST_ASSERT` — a comment does not count.
+2. **Keep the suite green.** Start `CaDS: Host tests` as above: **`F1`** → `Tasks: Run Task` → Enter → **`CaDS: Host tests`**.
+3. **The self-review.** Answer which documented promise your case newly covers.
+
+Finally write the PR-shaped summary per `docs/how-to/agent-workflow.md`: a title of the form `[M<n>] ...`, a body naming the file, the contract tested and the two green runs, and the sentence about the unchanged RAM budget. That completes the foundations course; the projects course builds on exactly this discipline.
