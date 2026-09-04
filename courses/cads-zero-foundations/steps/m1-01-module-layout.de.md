@@ -33,11 +33,21 @@ Lies den Quellbaum der Firmware als **Abhängigkeitsgraphen** — als Bild davon
 
 ## Wo du in diesem Step arbeitest
 
-Dateien öffnest du am schnellsten mit `Strg`/`Cmd`+`P` und dem getippten Dateinamen. Die erste Aufgabe unten in diesem Panel ist eine **Vorhersage**: du schreibst deine Erwartung auf, und erst der Knopf **Prüfen** führt den Suchlauf aus, der sie mit dem echten Baum vergleicht. Die zweite Aufgabe ist keine Aufgabe an dich, sondern eine **Zusicherung** über das Repository — sie besteht, solange die Schichtregel im Baum hält, und ist ohne dein Zutun heute grün. Die Zeilennummern aus dem Vergleich sind der eigentliche Ertrag — sie sagen dir, wohin du im Editor springen sollst.
+Dieser Step verlangt zwei Handgriffe: Dateien öffnen und eine Vorhersage prüfen lassen.
+
+**Eine Datei öffnen.** Drücke `Strg`/`Cmd`+`P`, tippe den Dateinamen (Teile davon genügen) und wähle den Treffer mit `Enter`. Die Datei öffnet sich als Reiter **in der Mitte**, neben dem Reiter dieses Steptextes; über die Reiterleiste wechselst du zurück. Ohne Tastatur: das oberste Symbol der schmalen Leiste ganz links öffnet den **Datei-Explorer**, in dem du dich durch die Ordner klickst.
+
+**Eine Aufgabe prüfen.** Die erste Aufgabe unten in diesem Steptext ist eine **Vorhersage**: schreib deine Erwartung in das Feld — ohne Text passiert nichts, der Check verlangt sie zuerst — und drücke dann **Prüfen**. Erst jetzt führt der Tutor den Suchlauf aus, der deine Erwartung mit dem echten Baum vergleicht. **Die Ausgabe erscheint direkt an der Aufgabe im Steptext, nicht in einem Terminal**; die Zeilennummer darin sagt dir, wohin du im Editor springst. Denselben Suchlauf kannst du von Hand nachvollziehen: **☰ → `Terminal` → `New Terminal`** (☰ ist das Symbol mit den drei Strichen ganz oben links, eine Menüleiste gibt es nicht) und dort
+
+```
+grep -n 'PRIVATE .*/src' modules/toolbox/CMakeLists.txt
+```
+
+Die zweite Aufgabe ist keine Aufgabe an dich, sondern eine **Zusicherung** über das Repository — sie besteht, solange die Schichtregel im Baum hält, und ist ohne dein Zutun heute grün.
 
 ## Bibliotheken, kein Klumpen
 
-CaDS Zero ist als Satz unabhängiger CMake-**Bibliotheken** gebaut. Eine Bibliothek ist ein Bündel übersetzter Quelldateien, das später als Ganzes zum Programm dazugebunden wird; dieses Dazubinden heißt **linken**. Jede Bibliothek hat eine deklarierte **öffentliche API** — die Menge der Funktionen und Typen, die andere benutzen dürfen. Sichtbar wird sie über `#include`, die Zeile, mit der eine C-Datei eine Header-Datei hereinholt und damit sagt, welche fremden Namen sie kennen will.
+CaDS Zero ist als Satz unabhängiger CMake-**Bibliotheken** gebaut. Eine Bibliothek ist ein Bündel übersetzter Quelldateien, das später als Ganzes zum Programm dazugebunden wird; dieses Dazubinden heißt **linken**. Jede Bibliothek hat eine deklarierte **öffentliche API** — die Menge der Funktionen und Typen, die andere benutzen dürfen. Sichtbar wird sie über `#include`, die Zeile, mit der eine C-Datei eine Header-Datei hereinholt.
 
 Das oberste `CMakeLists.txt` fügt die Bibliotheken in Abhängigkeitsreihenfolge hinzu: `modules/toolbox`, `modules/storage`, `modules/config`, `modules/net`, `modules/cli`, `modules/diag`, den Kernel (nur Board), dann die portable GUI-Schicht (`gui/`), die Dienste (`services/`), die Apps unter `apps/` und zuletzt genau ein Target-Verzeichnis — `targets/itsboard` oder `targets/sim`.
 
@@ -74,27 +84,21 @@ Ein Feature-Modul bindet nie einen Target-Header ein. `hal_api` besteht **nur au
 
 Der Mechanismus ist ein einziges CMake-Schlüsselwort: das `src/` eines Moduls wird als `PRIVATE`-Include-Verzeichnis eingetragen. `PRIVATE` heißt in CMake „gilt nur beim Übersetzen dieses Moduls selbst“, im Gegensatz zu `PUBLIC`: „gilt auch für alle, die mich benutzen“. Die eigenen Header eines Moduls sind damit von außen unerreichbar, und der öffentliche Header bleibt der einzige Weg hinein.
 
-Genau diese Zeile enthüllt der Vergleich der ersten Aufgabe. Die zweite Aufgabe ist die Gegenprobe und keine Leistung von dir: in `gui/`, `apps/` und `services/` bindet keine einzige Datei den Registerheader `stm32f4xx.h` des Chipherstellers ein. Solange beides gilt, hält die Regel nicht nur im Diagramm, sondern im echten Baum.
+Genau diese Zeile enthüllt der Vergleich der ersten Aufgabe. Die zweite Aufgabe ist die Gegenprobe: in `gui/`, `apps/` und `services/` bindet keine einzige Datei den Registerheader `stm32f4xx.h` des Chipherstellers ein. Solange beides gilt, hält die Regel nicht nur im Diagramm, sondern im echten Baum.
 
 ## Warum es kostet, das zu ignorieren
 
-Drei Gründe, geordnet danach, wie teuer ihre Missachtung ist:
-
 1. **Der Simulator.** Alles oberhalb der HAL muss für den Host genauso bauen wie für das Board. Das bleibt nur wahr, wenn die Hardwareabhängigkeit auf ein Modul mit deklarierter Schnittstelle beschränkt ist — nicht verstreut über `#include "stm32f4xx.h"` in jeder Datei, die ein Register brauchte.
 2. **Parallele Arbeit.** Ein Modul mit schmalem öffentlichem Header lässt sich implementieren, prüfen und mergen, ohne den Rest des Baums zu lesen.
-3. **Wiederverwendung.** Canvas, Font-Renderer und Toolbox sind nicht spezifisch für diese Firmware.
-
-Die Inventarliste in der Referenz markiert, welche Module über dieses Projekt hinaus wiederverwendbar sind (`toolbox` vollständig, `canvas` für jeden indizierten Framebuffer, `net` gar nicht) und wovon jedes abhängt.
+3. **Wiederverwendung.** Canvas, Font-Renderer und Toolbox sind nicht spezifisch für diese Firmware; die Referenz markiert, welche Module über dieses Projekt hinaus taugen und wovon jedes abhängt.
 
 ## Die eine Datei, die auszuscheren scheint
 
-Genau eine Quelldatei unterhalb von `modules/` bindet den Registerheader `stm32f4xx.h` doch ein: `modules/storage/src/cads_flash_stm32f4.c`, der Treiber für den internen Flash-Speicher des Chips. Trotzdem baut `modules/storage` auch für den Host, und der Host-Compiler bekommt diese Datei nie zu sehen.
-
-Wie das zugeht, steht nicht in der C-Datei. Es steht in `modules/storage/CMakeLists.txt` — das dort nachzulesen ist deine zweite Aufgabe.
+Genau eine Quelldatei unterhalb von `modules/` bindet den Registerheader `stm32f4xx.h` doch ein: `modules/storage/src/cads_flash_stm32f4.c`, der Treiber für den internen Flash-Speicher des Chips. Trotzdem baut `modules/storage` auch für den Host, und der Host-Compiler bekommt diese Datei nie zu sehen. Wie das zugeht, steht nicht in der C-Datei, sondern in `modules/storage/CMakeLists.txt`.
 
 ## Deine Aufgabe
 
-1. Schreib bei der ersten Aufgabe deine Vorhersage auf, drücke **Prüfen** und öffne dann mit `Strg`/`Cmd`+`P` die Datei, deren Zeile in der Ausgabe steht (`modules/toolbox/CMakeLists.txt`). Sieh dir dort `PUBLIC` und `PRIVATE` nebeneinander an und dazu im Explorer (`Strg`/`Cmd`+`Shift`+`E`) das öffentliche `modules/toolbox/include/cads/toolbox/`, das private `modules/toolbox/src/` und die Modul-README.
-2. Öffne dann `modules/storage/CMakeLists.txt` und beantworte, warum der Host-Build die Datei aus dem vorigen Abschnitt verträgt.
+1. Schreib bei der ersten Aufgabe deine Vorhersage in das Feld, drücke **Prüfen** und öffne dann mit `Strg`/`Cmd`+`P` die Datei aus der Ausgabe (`modules/toolbox/CMakeLists.txt`). Sieh dir dort `PUBLIC` und `PRIVATE` nebeneinander an, dazu im Datei-Explorer (`Strg`/`Cmd`+`Umschalt`+`E`, oder das oberste Symbol links) das öffentliche `modules/toolbox/include/cads/toolbox/`, das private `modules/toolbox/src/` und die Modul-README.
+2. Öffne dann mit `Strg`/`Cmd`+`P` die Datei `modules/storage/CMakeLists.txt`, lies den Block ab Zeile 34 und beantworte im Feld der dritten Aufgabe, warum der Host-Build die Datei aus dem vorigen Abschnitt verträgt. **Antwort abgeben** schickt sie ab.
 
 Der nächste Step betrachtet die Grenze selbst.

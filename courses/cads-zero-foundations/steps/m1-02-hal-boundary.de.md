@@ -31,21 +31,29 @@ socratic:
 
 Kenne den einen Header, der portablen Code von Hardware trennt, und die zwei Verträge darin, die am leichtesten brechen.
 
-## Wo du liest
+## Wo du liest, und wie du dorthin kommst
 
-`core/cads_hal.h` öffnest du mit `Strg`/`Cmd`+`P` und dem getippten Namen `cads_hal.h`. Die erste Aufgabe unten in diesem Panel (Knopf **Prüfen**) sucht drei Stellen in genau dieser Datei und gibt ihre Zeilennummern aus. Spring im Editor nacheinander dorthin — mit `Strg`/`Cmd`+`G` und der Nummer —, dann hast du die drei Absätze gelesen, um die es hier geht.
+**Die Datei öffnen.** `Strg`/`Cmd`+`P` drücken, `cads_hal.h` tippen, mit `Enter` den Treffer nehmen. Die Datei erscheint als Reiter **in der Mitte**, neben dem Reiter dieses Steptextes; über die Reiterleiste kommst du zurück. Ohne Tastatur: das oberste Symbol der schmalen Leiste ganz links öffnet den **Datei-Explorer**, dort liegt sie unter `core/`.
+
+**Die erste Aufgabe prüfen.** Scroll unten in diesem Steptext zur Aufgabe *Zusicherung — der HAL-Header führt die drei Stellen dieses Steps* und drücke **Prüfen**. Sie sucht drei Stellen in genau dieser Datei. **Die Ausgabe mit den Zeilennummern erscheint an der Aufgabe selbst, nicht in einem Terminal** — das ist der häufigste Irrtum: unten im Terminal-Bereich steht dazu nichts. Dieselbe Suche von Hand: **☰ → `Terminal` → `New Terminal`** (☰ ist das Symbol mit den drei Strichen ganz oben links) und dort
+
+```
+grep -nE 'CADS_DMA_SECTION|display_readable|no FIFO' core/cads_hal.h
+```
+
+**Zu einer Zeile springen.** Im geöffneten Editor `Strg`/`Cmd`+`G`, die Nummer tippen, `Enter`. Innerhalb der Datei suchst du mit `Strg`/`Cmd`+`F`. Tut ein Tastenkürzel nichts, hat der Browser es abgefangen; die Befehlspalette erreichst du dann mit **`F1`** statt mit `Strg`/`Cmd`+`Umschalt`+`P`.
 
 ## Ein Header, zwei Implementierungen
 
 `core/cads_hal.h` ist die gesamte Grenze zwischen Firmware und Silizium. Alles darüber kompiliert unverändert für das Board und für den Host-Simulator. Zwei Implementierungen existieren: `targets/itsboard/hal/` gegen STM32F429-Register und `targets/sim/hal_sim.c` gegen SDL2. Diese schmale Oberfläche macht den Simulator ehrlich — was sich hier nicht ausdrücken lässt, kann nicht stillschweigend nur in einer der beiden Welten funktionieren.
 
-Der Header gruppiert rund vierzig Funktionen: Lebenszyklus (`cads_hal_early_init`, `cads_hal_init`), Zeit, Konsole, Display, Touch, Adapter-I/O, Board-LEDs, Panic, Watchdog und Reset-Ursache sowie den Hardware-Zufallsgenerator. Die Zeit ist dabei aus dem **DWT-Zykluszähler** abgeleitet — einem Zähler in der Debug-Einheit des Kerns, der jeden Prozessortakt mitzählt — und nicht aus einem regelmäßigen Unterbrechungssignal. Deshalb stimmt sie auch in einem **kritischen Abschnitt**, also in einem Codestück, für dessen Dauer Unterbrechungen gesperrt sind.
+Der Header gruppiert rund vierzig Funktionen: Lebenszyklus, Zeit, Konsole, Display, Touch, Adapter-I/O, Board-LEDs, Panic, Watchdog und Reset-Ursache sowie den Hardware-Zufallsgenerator. Die Zeit ist aus dem **DWT-Zykluszähler** abgeleitet — einem Zähler in der Debug-Einheit des Kerns, der jeden Prozessortakt mitzählt — und nicht aus einem Unterbrechungssignal. Deshalb stimmt sie auch in einem **kritischen Abschnitt**, also dort, wo Unterbrechungen gesperrt sind.
 
 ## Frag den Descriptor, statt anzunehmen
 
 `cads_hal_board_info()` liefert ein `cads_board_info_t` — einen **Descriptor**: eine Struktur, die Eigenschaften des Boards als Datenfelder ausliefert, statt sie im Code zu verstecken. Die Schichten darüber stellen ihm Fragen, statt zu prüfen, auf welchem Board sie laufen: `has_network`, `has_touch`, `button_count`, `display_width`.
 
-Die Makros `CADS_DISPLAY_WIDTH`/`HEIGHT` existieren nur, damit das Canvas seinen statischen **Framebuffer** zur **Linkzeit** dimensionieren kann. Ein Framebuffer ist der Speicherbereich im RAM, in dem das Bild vollständig steht, bevor es zum Panel geht; Linkzeit ist der Moment, in dem der Linker die Adressen vergibt — also lange vor dem ersten Programmstart. Layout-Code nutzt dagegen den Descriptor. Zwei seiner Felder wiegen am schwersten:
+Die Makros `CADS_DISPLAY_WIDTH`/`HEIGHT` existieren nur, damit das Canvas seinen statischen **Framebuffer** zur **Linkzeit** dimensionieren kann. Ein Framebuffer ist der Speicherbereich im RAM, in dem das Bild vollständig steht, bevor es zum Panel geht; Linkzeit ist der Moment, in dem der Linker die Adressen vergibt. Layout-Code nutzt dagegen den Descriptor. Zwei seiner Felder wiegen am schwersten:
 
 - **`display_readable`** ist auf dem ITSboard `false`: der Bus hat keinen Rückweg, nichts kann Videospeicher zurücklesen. Der Simulator setzt `true`, weil eine SDL-Oberfläche lesbar ist.
 - **`display_pixels_per_second`** ist gemessen (342 000), nicht gerechnet. Eine GUI, die entscheidet, ob eine Animation bezahlbar ist, soll nachschlagen.
@@ -55,14 +63,14 @@ Die Makros `CADS_DISPLAY_WIDTH`/`HEIGHT` existieren nur, damit das Canvas seinen
 `cads_hal_display_blit()` übergibt ein Rechteck **RGB565**-Pixel an DMA und kehrt sofort zurück. Ein **Blit** ist das Kopieren eines rechteckigen Bildausschnitts von einem Speicher in einen anderen; *RGB565* ist das Pixelformat des Panels: sechzehn Bit je Bildpunkt, aufgeteilt in Rot, Grün und Blau. **DMA** (Direct Memory Access) ist ein Kopierwerk neben der CPU: es holt die Bytes selbst aus dem Speicher, während der Prozessor weiterrechnet.
 
 - `pixels` muss gültig bleiben, bis `cads_hal_display_busy()` false meldet.
-- Auf Hardware **muss der Puffer in DMA-fähigem SRAM liegen, nie im CCM**. CCM bei `0x10000000` ist für jeden DMA-Controller dieses Chips unsichtbar; ein Transfer von dort erzeugt nichts — kein Fault, kein Fehlerflag, nur falsche Ausgabe. Der Header stellt dafür `CADS_DMA_SECTION` bereit: es legt einen Puffer in die **Linker-Sektion** `.dmaram`, also in eine benannte Schublade des Speicherplans, der der Linker eine feste Region zuweist — hier garantiert im SRAM und in der Map-Datei nachlesbar. `CADS_CCM_SECTION` ist das Gegenstück für Dinge, die nur die CPU anfasst, etwa Task-Stacks.
+- Auf Hardware **muss der Puffer in DMA-fähigem SRAM liegen, nie im CCM**. CCM bei `0x10000000` ist für jeden DMA-Controller dieses Chips unsichtbar; ein Transfer von dort erzeugt nichts — kein Fault, kein Fehlerflag, nur falsche Ausgabe. Der Header stellt dafür `CADS_DMA_SECTION` bereit: es legt einen Puffer in die **Linker-Sektion** `.dmaram`, also in eine benannte Schublade des Speicherplans, der der Linker eine feste Region zuweist — hier garantiert im SRAM. `CADS_CCM_SECTION` ist das Gegenstück für Dinge, die nur die CPU anfasst, etwa Task-Stacks.
 
-Der Konsolen-Empfangspfad ist der andere Vertrag: interruptgetrieben mit **Ringpuffer**. Ein Ringpuffer ist ein Feld fester Größe, das vorn wieder anfängt, wenn es hinten voll ist, und so einen Strom von Bytes zwischen Schreiber und Leser puffert; man nennt ihn auch **FIFO**, first in, first out. Nötig ist er, weil die STM32F4-USART ein Ein-Byte-Empfangsregister und keinen eigenen FIFO im Baustein hat. Bei 115200 Baud landet alle 87 µs ein Byte, und jede langsamere Abfrageschleife verliert Zeichen. Gefüllt wird der Ringpuffer von der Empfangs-Unterbrechungsroutine, also von der CPU selbst. Die zwei Zähler `cads_hal_console_dropped()` und `cads_hal_console_overruns()` existieren, damit solcher Verlust nie wieder stumm bleibt — er trat einmal als Displayfehler auf.
+Der Konsolen-Empfangspfad ist der andere Vertrag: interruptgetrieben mit **Ringpuffer**. Ein Ringpuffer ist ein Feld fester Größe, das vorn wieder anfängt, wenn es hinten voll ist; man nennt ihn auch **FIFO**, first in, first out. Nötig ist er, weil die STM32F4-USART ein Ein-Byte-Empfangsregister und keinen eigenen FIFO hat. Bei 115200 Baud landet alle 87 µs ein Byte, und jede langsamere Abfrageschleife verliert Zeichen. Gefüllt wird der Ringpuffer von der Empfangs-Unterbrechungsroutine, also von der CPU selbst. Die Zähler `cads_hal_console_dropped()` und `cads_hal_console_overruns()` existieren, damit solcher Verlust nie stumm bleibt — er trat einmal als Displayfehler auf.
 
 ## Deine Aufgabe
 
-1. Drücke bei der ersten Aufgabe **Prüfen** und lies die drei ausgegebenen Stellen in `core/cads_hal.h` nach.
-2. Entscheide dann, welcher der beiden genannten Puffer ins CCM darf, und begründe es.
-3. Diagnostiziere zuletzt das Widget, das nur auf einer der beiden Seiten richtig zeichnet.
+1. Drücke bei der ersten Aufgabe **Prüfen**, öffne `core/cads_hal.h` mit `Strg`/`Cmd`+`P` und spring mit `Strg`/`Cmd`+`G` zu den drei ausgegebenen Zeilennummern.
+2. Entscheide dann im Feld der zweiten Aufgabe, welcher der beiden genannten Puffer ins CCM darf, begründe es und drücke **Antwort abgeben**.
+3. Diagnostiziere zuletzt im dritten Feld das Widget, das nur auf einer der beiden Seiten richtig zeichnet.
 
 Der nächste Step zeigt, was die Grenze einbringt: derselbe Code läuft ohne angeschlossenes Board.

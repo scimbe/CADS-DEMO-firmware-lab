@@ -14,7 +14,7 @@ links:
 sources: [tests/gallery/gallery.c, targets/sim/tests/golden_check.py, targets/sim/tests/CMakeLists.txt, targets/sim/golden/README.md, docs/ROADMAP.md]
 tasks:
   - id: suite-green
-    title: Die Host-Suite einschließlich der Golden-Szenen ist grün
+    title: Der Host-Test-Task läuft fehlerfrei durch
     check: { type: task, label: "CaDS: Host tests", expectExitCode: 0, bloom: analyze }
   - id: read-a-diff
     title: Lies einen Pixel-Diff
@@ -23,39 +23,69 @@ tasks:
     title: Wann ein Golden neu erzeugt werden darf
     check: { type: question, prompt: { en: "When are you allowed to regenerate a golden with update_golden?", de: "Wann darfst du ein Golden mit update_golden neu erzeugen?" }, rubric: "Erst wenn geklärt ist, dass die Änderung beabsichtigt war - danach, nie davor. Der Weg ist ausdrücklich ein Build-Target, damit die neue Referenz als begutachteter Diff zweier PNGs in denselben Commit kommt und keine stille Bearbeitung ist. Voraussetzung ist die Sichtprüfung des Diff-PNG, denn ein Golden, das einen Fehler festgehalten hat, ist schlimmer als gar keines: es macht den Fehler ab sofort zur Sollvorgabe. Nennt die Reihenfolge Urteil vor Regeneration; wer nur das Target nennt, besteht nicht.", bloom: analyze }
 socratic:
-  - { trigger: "task:suite-green:failed", question: { en: "Is the failing test a unit test or one of the two golden scenes? The two fail for completely different reasons.", de: "Ist der scheiternde Test ein Unit-Test oder eine der beiden Golden-Szenen? Die beiden scheitern aus völlig verschiedenen Gründen." }, hints: [ { en: "ctest names the test; the golden ones are named after the scene they capture.", de: "ctest nennt den Test; die Golden-Tests sind nach der Szene benannt, die sie aufnehmen." }, { en: "A golden mismatch writes a diff PNG next to the reference - open it before drawing any conclusion.", de: "Eine Golden-Abweichung schreibt ein Diff-PNG neben die Referenz - öffne es, bevor du irgendetwas schließt." }, { en: "The two scenes differ only in how long the panel is allowed to settle before the frame is taken.", de: "Die beiden Szenen unterscheiden sich nur darin, wie lange das Panel sich beruhigen darf, bevor das Bild genommen wird." } ] }
+  - { trigger: "task:suite-green:failed", question: { en: "This task excludes the golden scenes, so a unit test failed. Which subject does ctest name, and did it fail to compile or fail an assertion?", de: "Dieser Task schließt die Golden-Szenen aus, es scheiterte also ein Unit-Test. Welches Subjekt nennt ctest, und scheiterte es beim Kompilieren oder an einer Zusicherung?" }, hints: [ { en: "Look in the terminal at the bottom named after the task, not in the step text; the failing subject is named in the summary block at the end.", de: "Sieh unten im Terminal nach, das den Namen des Tasks trägt, nicht im Steptext; das gescheiterte Subjekt steht im Schlussblock." }, { en: "The task already passes --output-on-failure, so the failing assertion is printed in full with its file and line.", de: "Der Task übergibt bereits --output-on-failure, die gescheiterte Zusicherung steht also vollständig mit Datei und Zeile da." }, { en: "If the run stopped before any test line appeared, it was the build, not a test; read the first compiler error rather than the last line.", de: "Brach der Lauf ab, bevor eine Testzeile erschien, war es der Build und kein Test; lies den ersten Compilerfehler statt der letzten Zeile." } ] }
   - { trigger: "question:read-a-diff:weak", question: { en: "Where does the colour of a flat block come from, and where does the colour of an anti-aliased edge come from?", de: "Woher kommt die Farbe einer flachen Fläche, und woher die Farbe einer geglätteten Kante?" }, hints: [ { en: "Flat regions come straight out of the sixteen-colour palette; there is nothing there for a conversion to round.", de: "Flache Flächen kommen direkt aus der Palette mit sechzehn Farben; dort gibt es für eine Konvertierung nichts zu runden." }, { en: "Compare the size of the delta in this case against the deltas the 2026-08-30 investigation found.", de: "Vergleich die Größe des Deltas in diesem Fall mit den Deltas, die die Untersuchung vom 2026-08-30 fand." }, { en: "Say what you would check in git next, and what result would confirm your reading.", de: "Sag, was du als Nächstes im git prüfen würdest und welches Ergebnis deine Lesart bestätigte." } ] }
   - { trigger: "question:regeneration-rule:weak", question: { en: "A golden is a record of what the code should draw. What does regenerating it do to that record?", de: "Ein Golden hält fest, was der Code zeichnen soll. Was macht ein Neuerzeugen mit dieser Aufzeichnung?" }, hints: [ { en: "The regeneration path is a build target on purpose, so the new reference lands in a commit and can be looked at.", de: "Der Regenerationspfad ist mit Absicht ein Build-Target, damit die neue Referenz in einem Commit landet und angesehen werden kann." }, { en: "Ask what a golden is worth once it has recorded a bug rather than the intended picture.", de: "Frag, was ein Golden wert ist, sobald es einen Fehler statt des beabsichtigten Bildes festhält." }, { en: "Your answer needs the order of the two acts: which one comes first, the judgement or the regeneration?", de: "Deine Antwort braucht die Reihenfolge der beiden Handlungen: welche kommt zuerst, das Urteil oder die Regeneration?" } ] }
 ---
+
 ## Lernziel
 
 Verstehe, wie eine Firmware, deren Panel nicht zurückgelesen werden kann, dennoch prüft, was sie zeichnet, und lerne, einen Golden-Image-Fehlschlag zu lesen, ohne ein Rundungsartefakt für einen Bug zu halten.
 
+**Der erste Handgriff:** starte den Task `CaDS: Host tests`, danach den Task `CaDS: Golden images (informativ)`. Beide Wege stehen im nächsten Abschnitt.
+
+## Die zwei Tasks starten
+
+Die Bedienoberfläche ist englisch, der Kurstext deutsch — der Menüpunkt heißt also `Run Task...`.
+
+Drücke **`F1`**, tippe `Tasks: Run Task`, Enter, dann **`CaDS: Host tests`** aus der Liste wählen. Ohne Tastatur: das Symbol mit den drei Strichen (**☰**) ganz oben links, dann **`Terminal` → `Run Task...` → `CaDS: Host tests`**. (`Strg`/`Cmd`+`Umschalt`+`P` öffnet die Palette auch, wird im Browser aber oft abgefangen; `F1` ist der zuverlässige Weg.) Unten im Terminal-Bereich öffnet sich ein eigenes Terminal mit dem Namen des Tasks; ist der Bereich zugeklappt, klappt ihn `Strg`/`Cmd`+`J` auf und zu. Dauer etwa eine halbe Minute, Schlusszeile bei Erfolg `100% tests passed, 0 tests failed out of 35`.
+
+**Dieser Task enthält die Golden-Szenen nicht.** Sein Kommando endet auf `-E '^golden_'`, schließt sie also ausdrücklich aus. Die Szenen laufen im zweiten Task: **`F1`** → `Tasks: Run Task` → Enter → **`CaDS: Golden images (informativ)`**, oder **☰ → `Terminal` → `Run Task...` → `CaDS: Golden images (informativ)`**. Auch er baut zuerst das Host-Preset, dauert also etwa eine halbe Minute, und führt `ctest` mit `-R '^golden_'` aus: zwei Zeilen, `golden_splash` und `golden_boot_desktop`, jede mit `Passed` oder `Failed`.
+
+Der Zusatz **(informativ)** ist wörtlich zu nehmen: die SDL2-Version in diesem Container rundet Kantenpixel um ±1 anders als die Aufnahmemaschine. Ein Fehlschlag hier ist deshalb kein Urteil über deinen Code — darum prüft die erste Aufgabe den Host-Test-Task.
+
+<!-- SHOT: m8-golden-task-run | Terminal-Bereich unten, Terminal mit dem Namen CaDS: Golden images (informativ), die zwei ctest-Zeilen golden_splash und golden_boot_desktop -->
+
+## Drei Bedienfehler, die genau hier passieren
+
+- **Der Task lief, aber die Ausgabe wird im falschen Fenster gesucht.** Sie steht nicht im Steptext und nicht im Editor, sondern unten im Terminal-Bereich in dem Terminal, das den Namen des Tasks trägt — `Strg`/`Cmd`+`J` klappt den Bereich auf, rechts in der Liste wählst du das richtige Terminal. Weil du hier zwei Tasks startest, liegen zwei gleichnamige Ausgaben nebeneinander; achte auf den Namen.
+- **Das Terminal geschlossen und damit den Vorgang beendet.** Das Kreuz am Terminal beendet den Prozess darin — zum Wegklappen `Strg`/`Cmd`+`J` nehmen, das lässt ihn weiterlaufen.
+- **Die Palette reagiert nicht auf das Tastenkürzel.** Der Browser hat `Strg`/`Cmd`+`Umschalt`+`P` abgefangen — nimm `F1`, oder den Weg über **☰ → `Terminal`**.
+
 ## Die einzige Wahrheit liegt im RAM
 
-Der Displaybus hat keinen Rückkanal, das Panel kann also nie gefragt werden, was es zeigt. Aber das Canvas ist ein gehaltener 4-bpp-Framebuffer im RAM, und dieser Puffer ist ohnehin die Quelle der Wahrheit für das Panel. Alles, was den Puffer lesen kann, kann daher das Bild prüfen — und der Host kann es.
+Der Displaybus hat keinen Rückkanal, das Panel kann also nie gefragt werden, was es zeigt. Aber das Canvas ist ein gehaltener 4-bpp-Framebuffer im RAM, und dieser Puffer ist ohnehin die Quelle der Wahrheit. Alles, was ihn lesen kann, kann das Bild prüfen — und der Host kann es.
 
-Zwei Mechanismen tun das:
+Zwei Mechanismen tun das. **`tests/gallery/gallery.c`** rendert jede Ansicht gegen `tests/unit/fake_hal.c` und schreibt ein PPM je Bildschirm. **Die Golden-Tests** in `targets/sim/tests/` starten den SDL2-Simulator mit `--screenshot`, der das erste Bild nach Ruhe des Panels sichert, und vergleichen es Pixel für Pixel mit einer Referenz in `targets/sim/golden/`. Zwei Szenen: `splash.png` (250 ms Ruhe) und `boot_desktop.png` (2000 ms Ruhe, wo ein gebootetes Board landet).
 
-- **`tests/gallery/gallery.c`** rendert jede Anwendungsansicht (Desktop, Menü, Settings, About, GPIO, Netinfo, Dateibrowser, Spiel, Active Tools) gegen `tests/unit/fake_hal.c`, läuft die Palette Pixel für Pixel ab und schreibt ein PPM je Bildschirm. Es existiert, damit alle Oberflächen der Firmware auf einmal begutachtet werden können, ohne das echte Board von Hand durch sie zu führen.
-- **Die Golden-Tests** in `targets/sim/tests/` starten den SDL2-Simulator mit `--screenshot`, der das erste Bild nach Ruhe des Panels sichert, und vergleichen es Pixel für Pixel mit einem Referenz-PNG in `targets/sim/golden/`. Zwei Szenen existieren: `splash.png` (250 ms Ruhe, das Boot-Zeichen) und `boot_desktop.png` (2000 ms Ruhe, wo ein gebootetes Board tatsächlich landet, weil `boot.autostart` an ist). Eine Abweichung schreibt ein Diff-PNG, in dem jedes abweichende Pixel gesättigt rot markiert ist.
+Eine Abweichung schreibt ein Diff-PNG, in dem jedes abweichende Pixel gesättigt rot markiert ist. Öffne es mit `Strg`/`Cmd`+`P` und diesem Pfad — der Editor zeigt PNGs in der Mitte als Bild an:
 
-Der Regenerationspfad ist ein CMake-Target, `update_golden`, sodass eine beabsichtigte UI-Änderung ein begutachteter Diff zweier PNGs im selben Commit ist — keine stille Bearbeitung.
+```
+build/host/targets/sim/tests/splash.diff.png
+```
+
+Der Regenerationspfad ist ein CMake-Target, kein Task. Öffne ein Terminal mit **☰ → `Terminal` → `New Terminal`** — Arbeitsverzeichnis ist die Projektwurzel — und führe aus:
+
+```
+cmake --build build/host --target update_golden
+```
+
+So ist eine beabsichtigte UI-Änderung ein begutachteter Diff zweier PNGs im selben Commit.
 
 ## Einen Fehlschlag richtig lesen
 
-Am 2026-08-30 scheiterten beide Golden-Tests mit 18 866 und 14 273 abweichenden Pixeln. Die naheliegende Lesart ist eine Rendering-Regression. Die Maintainer erstellten stattdessen ein Delta-Histogramm je Pixel und fanden, dass jedes abweichende Pixel um genau **+1** in einem oder mehreren von R, G, B daneben lag — Deltas nur von (1,1,0), (1,1,1) oder (1,0,1) — und nur an geglätteten Textkanten, während jede flache Palettenfläche exakt übereinstimmte. Seit Erzeugung der Goldens war kein renderingrelevanter Commit gelandet. Das ist die Signatur der RGB565-nach-24-bpp-Konvertierung von SDL, die auf diesem Host anders rundet als auf der Maschine, die die Goldens aufnahm: `golden_check.py` dokumentiert, dass SDL, nicht das Projekt, diese Konvertierung ausführt. Die Lösung war, die Goldens über `update_golden` zu regenerieren, 37/37 Host-Tests zu bestätigen und zu prüfen, dass der Board-Build unberührt blieb. Der vollständige Bericht steht in `docs/ROADMAP.md` (2026-09-01).
+Am 2026-08-30 scheiterten beide Golden-Tests mit 18 866 und 14 273 abweichenden Pixeln von 153 600 — naheliegend eine Rendering-Regression. Ein Delta-Histogramm zeigte etwas anderes: jedes abweichende Pixel lag um genau **+1** in mindestens einem von R, G, B daneben, und nur an geglätteten Textkanten, während jede flache Palettenfläche stimmte. Kein renderingrelevanter Commit war seit der Erzeugung gelandet. Das ist die Signatur der RGB565-nach-24-bpp-Konvertierung von SDL. Der Bericht steht in `docs/ROADMAP.md`.
 
-Die Lehre verallgemeinert sich zu drei Fragen, die man an jeden Fehlschlag stellt: **wo** liegen die abweichenden Pixel, **wie groß** sind die Deltas, und **was** hat sich seit der letzten Regeneration in git geändert. Eine Diff-Zahl allein ist keine Diagnose.
+Daraus werden drei Fragen an jeden Fehlschlag: **wo** liegen die abweichenden Pixel, **wie groß** sind die Deltas, **was** hat sich seit der letzten Regeneration in git geändert. Eine Diff-Zahl allein ist keine Diagnose.
 
-Für die zweite Frage lohnt eine Größenordnung: das Panel arbeitet in RGB565, ein Kanal hat also 5 oder 6 Bit. Ein Delta von 1 in einem 8-Bit-Ausgabekanal ist Rundung; der Abstand zwischen zwei *benachbarten* darstellbaren Werten ist im 5-Bit-Kanal 8 und im 6-Bit-Kanal 4, in 8 Bit hochgerechnet also deutlich größer. Ein Delta dieser Größe bedeutet, dass ein anderer Wert gezeichnet wurde, nicht derselbe anders gerundet.
+Für die zweite Frage: das Panel arbeitet in RGB565, ein Kanal hat 5 oder 6 Bit. Ein Delta von 1 in einem 8-Bit-Ausgabekanal ist Rundung; der Abstand zwischen zwei *benachbarten* darstellbaren Werten ist im 5-Bit-Kanal 8 und im 6-Bit-Kanal 4. Ein Delta dieser Größe heißt: ein anderer Wert wurde gezeichnet, nicht derselbe anders gerundet.
 
 ## Deine Aufgabe
 
-Führe die Host-Suite aus; sie enthält beide Golden-Szenen. Lies die Aufnahmeschleife der Galerie und den Kopf von `golden_check.py`. Beurteile dann den Fehlschlag, den die zweite Aufgabe beschreibt — er hat andere Zahlen als der Fall von 2026-08-30, das Verfahren ist dasselbe; rechne den Nachbarabstand des betroffenen Kanals aus, bevor du das Delta einordnest. Beantworte zuletzt, wann ein Golden neu erzeugt werden darf. Der nächste Step wendet sich vom Beweisen zum Beurteilen von Code.
+Drei Aufgaben, jede mit ihrem eigenen Knopf **Prüfen** unten im Steptext; **Run all checks** oben im Reiter `CaDS Tutor: Golden Images für ein nur beschreibbares Display` prüft alle auf einmal.
 
-**Wo du das machst:**
-- Datei öffnen: `Strg`/`Cmd`+`P`.
-- Terminal öffnen: Menü *Terminal → New Terminal*.
-- Board-Konsole öffnen: `F1`, dann *CaDS Board: Konsole öffnen*.
-- Bauen: Menü *Terminal → Run Build Task…*.
+1. **Der Host-Test-Task läuft durch.** Starte ihn wie oben: **`F1`** → `Tasks: Run Task` → Enter → **`CaDS: Host tests`**.
+2. **Lies einen Diff.** Beurteile den Fehlschlag, den die Aufgabe beschreibt — er hat andere Zahlen als der Fall von 2026-08-30, das Verfahren ist dasselbe; rechne den Nachbarabstand des betroffenen Kanals aus, bevor du das Delta einordnest.
+3. **Die Regenerationsregel.** Beantworte, wann ein Golden neu erzeugt werden darf.
+
+Lies dazu die Aufnahmeschleife der Galerie und den Kopf von `golden_check.py`, beide mit `Strg`/`Cmd`+`P`. Der nächste Step wendet sich vom Beweisen zum Beurteilen von Code.

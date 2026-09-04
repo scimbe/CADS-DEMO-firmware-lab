@@ -24,42 +24,72 @@ tasks:
 misconceptions:
   - { pattern: "outputs = 0085", question: { en: "The board echoed 0085, not 0055. In which number base does the o command read its argument?", de: "Das Board hat 0085 geantwortet, nicht 0055. In welchem Zahlensystem liest der Befehl o sein Argument?" }, hints: [ { en: "Did you type the decimal value of the pattern instead of its hex digits?", de: "Hast du den Dezimalwert des Musters getippt statt seiner Hexziffern?" }, { en: "Look at the help line for o in apps/bringup/explorer.c: the argument is documented as <hex>.", de: "Sieh dir die Hilfezeile zu o in apps/bringup/explorer.c an: das Argument ist als <hex> dokumentiert." }, { en: "The console never prints a 0x prefix; the four digits it echoes are already hex, so 85 there means 0x85, not eighty-five.", de: "Die Konsole druckt nie ein 0x-Präfix; die vier Ziffern, die sie zurückgibt, sind bereits hexadezimal, 85 dort heißt also 0x85, nicht fünfundachtzig." } ] }
 socratic:
-  - { trigger: "task:odr-after-write:failed", question: { en: "Did the board answer at all, or is it still inside the touchscreen app tree that ignores plain typed bytes?", de: "Hat das Board überhaupt geantwortet, oder steckt es noch im Touchscreen-App-Baum, der einfach getippte Bytes ignoriert?" }, hints: [ { en: "A console command that produces no echo at all usually means the prompt is not the thing listening right now.", de: "Ein Konsolenbefehl ganz ohne Echo heißt meistens, dass gerade nicht der Prompt zuhört." }, { en: "Send scripts/board_key.py quit from the terminal first, then let the check run again.", de: "Sende zuerst scripts/board_key.py quit aus dem Terminal, dann lass den Check erneut laufen." }, { en: "The board is also deaf while a debug session has it halted - resume or end the session before writing to the console.", de: "Das Board ist auch taub, solange eine Debug-Sitzung es angehalten hat - setze fort oder beende die Sitzung, bevor du auf die Konsole schreibst." } ] }
+  - { trigger: "task:odr-after-write:failed", question: { en: "Did the board answer at all, or is it still inside the touchscreen app tree that ignores plain typed bytes?", de: "Hat das Board überhaupt geantwortet, oder steckt es noch im Touchscreen-App-Baum, der einfach getippte Bytes ignoriert?" }, hints: [ { en: "A console command that produces no echo at all usually means the prompt is not the thing listening right now.", de: "Ein Konsolenbefehl ganz ohne Echo heißt meistens, dass gerade nicht der Prompt zuhört." }, { en: "Open a terminal with the menu icon at the top left, Terminal, New Terminal, run python3 scripts/board_key.py quit there, then let the check run again.", de: "Öffne mit dem Menü-Symbol oben links, Terminal, New Terminal ein Terminal, führe dort python3 scripts/board_key.py quit aus und lass den Check dann erneut laufen." }, { en: "The board is also deaf while a debug session has it halted - press Continue or Stop on the debug toolbar at the top before writing to the console.", de: "Das Board ist auch taub, solange eine Debug-Sitzung es angehalten hat - drücke Continue oder Stop in der Debug-Werkzeugleiste oben, bevor du auf die Konsole schreibst." } ] }
   - { trigger: "question:sws-mask:weak", question: { en: "Which single bit is bit 2, written as a hex number, and which is bit 3?", de: "Welches einzelne Bit ist Bit 2, als Hexzahl geschrieben, und welches ist Bit 3?" }, hints: [ { en: "Are you counting bit positions from the right-hand end of the word, starting at zero?", de: "Zählst du die Bitpositionen vom rechten Ende des Wortes, beginnend bei null?" }, { en: "Write 1 << 2 and 1 << 3 as binary, put them side by side, and combine them with a bitwise or.", de: "Schreib 1 << 2 und 1 << 3 binär hin, leg sie nebeneinander und verknüpfe sie mit einem bitweisen Oder." }, { en: "Two adjacent bits sitting anywhere but at the far right: what you cut out is not yet the small number the datasheet talks about.", de: "Zwei benachbarte Bits, die nicht ganz rechts sitzen: was du herausschneidest, ist noch nicht die kleine Zahl aus dem Datenblatt." } ] }
 ---
+
 ## Learning goal
 
 Read the STM32's own registers on the live board through the debugger, so you can answer hardware questions - is the clock right, what does an output pin hold - by looking rather than guessing.
 
+## Opening the session you will read in
+
+The user interface is in English while this course text is in German, and there is no visible menu bar: the menus hide behind the three-line icon (**☰**) at the very top left, which opens `File`, `Edit`, `Selection`, `View`, `Go`, `Run`, `Terminal` and `Help`.
+
+Click the **bug icon** in the bar on the far left, which opens the **Run and Debug** view. Pick **`Debug CaDS Zero (Board im Browser)`** in the configuration list at the top and press **`F5`**; without the keyboard, **☰ → `Run` → `Start Debugging`**. In the terminal area at the bottom, `CaDS: Build + Flash` runs first in terminals of its own - about a minute plus 15 seconds the first time. Execution then halts at `main()`, which you can tell from the debug toolbar at the top and from `Paused on breakpoint` in `CALL STACK`.
+
+You can only read registers on a **halted** target. If it is running, press the pause button on the debug toolbar at the top.
+
 ## Core registers
 
-With the target halted, the **Variables** panel has a **Registers** section: `r0`-`r12`, `sp`, `lr`, `pc`, `xPSR`. These are the CPU's state at the halt. `pc` is where execution will resume; `lr` is the return address of the current function; `sp` is the active stack pointer (MSP before the scheduler starts, PSP inside a task). You will need all three when you read a fault dump in the next step.
+The **`VARIABLES`** section lists `Local`, `Global`, `Static` and **`Registers`**. Expand `Registers`.
+
+![The VARIABLES pane with its Local, Global, Static and Registers sections](debug-variables.png)
+
+Inside are `r0`-`r12`, `sp`, `lr`, `pc`, `xPSR` with live values - the CPU's state at the halt. `pc` is where execution will resume; `lr` is the return address of the current function; `sp` is the active stack pointer (MSP before the scheduler starts, PSP inside a task). You will need all three in the next step.
+
+![Registers expanded, with the live values of r0, r1 and the remaining core registers](debug-registers.png)
 
 ## Peripheral registers through the SVD
 
-Raw core registers rarely answer the embedded question you have. What you want is "is `RCC->CR` showing HSE ready?" or "what is in `GPIOD->ODR`?". `cortex-debug` answers those with an **SVD file**: `targets/itsboard/STM32F429.svd` is STMicroelectronics' own description of every peripheral, register, field and reset value, vendored into the repository (Apache-2.0) and wired into the launch configuration. During a session an **XPeripherals** panel appears in the Run and Debug sidebar with every peripheral by name and base address; expand one for its registers and their live values. Outside a session it reads "No active debug session", which is correct.
+Raw core registers rarely answer the embedded question you have. What you want is "is `RCC->CR` showing HSE ready?" or "what is in `GPIOD->ODR`?". `cortex-debug` answers those with an **SVD file**: `targets/itsboard/STM32F429.svd` describes every peripheral, register, field and reset value, from STMicroelectronics itself and wired into the configuration.
+
+During a session an **`XPeripherals`** section appears in the Run and Debug view with every peripheral by name and base address. Click the arrow in front of a name for its registers and their live values, the arrow in front of a register for its fields. Outside a session it reads "No active debug session", which is correct.
+
+![The XPeripherals section from the SVD, with ADC1 at 0x40012000 and CAN1 at 0x40006400](debug-peripherals-svd.png)
 
 ## Cutting a field out of a register
 
-A register is rarely one number; it is a row of **fields**, each a few bits wide. The SVD breaks them out for you, but the moment you compute one yourself - in GDB, in a script, in your head - you need the craft, and it is two steps:
-
-1. **Mask.** A field on bits *h:l* is isolated with a mask that has exactly those bits set. Bit *n* is `1 << n`; several bits are joined with a bitwise or. Bit positions always count from the right-hand end of the word, starting at zero.
-2. **Shift.** The masked word is not yet the field value - the field still sits at its position. Only `>> l` moves it all the way right and turns the masked word into the small number the datasheet talks about.
-
-You need both steps for `SWS` in a moment.
+A register is rarely one number; it is a row of **fields**. The SVD breaks them out; the moment you compute one yourself you need the two moves from the MMIO primer: **mask** with a mask that has exactly bits *h:l* set (bit *n* is `1 << n`, counting from the right-hand end from zero), and **shift** by `>> l`.
 
 ## Two things worth reading right now
 
-**The clock tree.** `targets/itsboard/hal/hal_clock.c` sets `RCC->CR` bits `HSEBYP` and `HSEON`, then spins until `HSERDY` is set - the 8 MHz reference is a square wave from the ST-Link's MCO, not a crystal, which is why *bypass* is on (`docs/HARDWARE.md`). The main PLL is then configured for 8 / 8 × 360 / 2 = 180 MHz, and `RCC->CFGR` is switched to the PLL. The confirmation that the switch happened is the `SWS` field on **bits 3:2** of `RCC_CFGR`: with the PLL running as the system clock it reads binary `10` - the same register check `docs/tutorials/first-gate.md` names for a failing time-base assertion.
+**The clock tree.** `targets/itsboard/hal/hal_clock.c` sets `RCC->CR` bits `HSEBYP` and `HSEON`, then spins until `HSERDY` is set - the 8 MHz reference is a square wave from the ST-Link's MCO, not a crystal, hence *bypass* (`docs/HARDWARE.md`). The main PLL is configured for 8 / 8 × 360 / 2 = 180 MHz and `RCC->CFGR` is switched to the PLL. That the switch happened is confirmed by the `SWS` field on **bits 3:2** of `RCC_CFGR`, in a session under `XPeripherals` → `RCC` → `CFGR`.
 
-**An output port.** `cads_hal_adapter_outputs()` (`targets/itsboard/hal/hal_io.c`, line 62) writes OUT0..7 through `GPIOD->BSRR` in one atomic set-and-clear word, and OUT8..15 through `GPIOE->BSRR` (`targets/itsboard/board.h` fixes which port carries which half). `BSRR` is write-only; the *result* is visible in `GPIOD->ODR`, whose low byte is the current state of PD0..PD7. Reading `ODR` in the debugger is therefore a way to confirm what the last output write actually did.
+**An output port.** `cads_hal_adapter_outputs()` (`targets/itsboard/hal/hal_io.c`, line 62) writes OUT0..7 through `GPIOD->BSRR` in one atomic set-and-clear word, and OUT8..15 through `GPIOE->BSRR` (`targets/itsboard/board.h` fixes the split). `BSRR` is write-only; the *result* is in `GPIOD->ODR`, whose low byte is the state of PD0..PD7. Reading `ODR` therefore confirms what the last output write actually did - it is also how this project found its SPI-mutex boot hang, by reading `BASEPRI` live (`docs/ROADMAP.md`, 2026-08-26).
 
-That is exactly what you are about to do: the explorer's `o <hex>` command calls `cads_hal_adapter_outputs()` with the value you pass and confirms it with a line `# outputs = ....`. Afterwards `ODR` holds something you could have worked out beforehand - so work it out first.
+## The check button sends the command, not you
 
-## Reading, not assuming
+The explorer's `o <hex>` command calls `cads_hal_adapter_outputs()` and confirms it with a line `# outputs = ....`. You do not type `o 0055` yourself: the check button sends it, you only read the answer.
 
-The project's own record has more than one case where a register read settled an argument that reasoning could not: the SPI-mutex boot hang was found by reading `BASEPRI` live, and the "stuck at Reset_Handler" signature is a specific set of register values (`docs/ROADMAP.md`, 2026-08-26 and 2026-08-29 entries). The habit to build is: when the firmware's behaviour and your model of it disagree, read the register.
+Two things have to be true. First, the board must not be halted: end the session with **Stop** on the debug toolbar at the top, after which the status bar reads `Board: verbunden · läuft` again.
+
+![After Stop the board keeps running, and the status bar reads Board: verbunden · läuft again](debug-after-stop.png)
+
+Second, a freshly flashed board starts in the touchscreen app tree and mishears single letters. So open a terminal first (**☰ → `Terminal` → `New Terminal`**; if the area is folded away, `Ctrl`/`Cmd`+`J` opens it) and run once:
+
+```bash
+python3 scripts/board_key.py quit
+```
+
+The working directory is the project root. The board is then at the console prompt, and the check button gets through.
+
+## Three operating mistakes almost everyone makes here once
+
+- **The task ran, but you are looking for its output in the wrong window.** It is not in the step text and not in the editor, but in the terminal area at the bottom, in the terminal named after the task - `Ctrl`/`Cmd`+`J` opens the area, and the list on the right selects the terminal.
+- **You closed the terminal and ended the running process with it.** The cross on a terminal kills the process inside it - use `Ctrl`/`Cmd`+`J` to fold the area away instead, which leaves it running.
+- **The palette does not react to the shortcut.** The browser swallowed `Ctrl`/`Cmd`+`Shift`+`P` - press `F1` instead, or go through **☰ → `Terminal`**.
 
 ## Your task
 
-Bring the board to the console prompt (with `scripts/board_key.py quit` from the terminal if needed). Predict what the low byte of `GPIOD->ODR` will hold after `o 0055`, let the check send the command, and then verify your prediction in a debug session under XPeripherals → `GPIOD` → `ODR`. Then build the mask for the `SWS` field. The next step uses the same registers to read a crash.
+First predict what the low byte of `GPIOD->ODR` will hold after `o 0055`, and write that prediction into the first task. Bring the board to the console prompt with the terminal command above and press **Check**: the button sends `o 0055`, you read the answer line. Then start a session with **`F5`** and compare under `XPeripherals` → `GPIOD` → `ODR`. Finally build the mask for `SWS`. The next step reads a crash with the same registers.

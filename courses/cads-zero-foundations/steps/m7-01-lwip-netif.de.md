@@ -37,7 +37,9 @@ Verstehe, wie CaDS Zero seine Netzwerkschnittstelle hochbringt, warum ein Aufruf
 
 ## Der Hardware-Vorteil in einem Modul
 
-Ethernet ist das, was dieses Board hat und ein Flipper Zero nicht: eine LAN8742A-PHY über RMII mit 100 Mbit. `modules/net` legt lwIP um diesen MAC, hinter eine bewusst kleine portable API in `modules/net/include/cads/net/net.h`. Es gibt zwei Implementierungen, nach demselben Muster wie beim Storage: `cads_net_board.c` besitzt ein echtes lwIP-netif über den RMII-MAC; `cads_net_sim.c` ist ein ehrlicher Stub, der „nie ein Link" meldet — es gibt keine RMII-Hardware zu simulieren, und etwas anderes vorzutäuschen ließe eine App eine Abhängigkeit vom Netzwerkverhalten verstecken, bis sie auf dem Board landet.
+Ethernet ist das, was dieses Board hat und ein Flipper Zero nicht: eine LAN8742A-PHY über RMII mit 100 Mbit. `modules/net` legt lwIP um diesen MAC, hinter eine bewusst kleine portable API. Es gibt zwei Implementierungen: `cads_net_board.c` besitzt ein echtes lwIP-netif über den RMII-MAC; `cads_net_sim.c` ist ein ehrlicher Stub, der nie einen Link meldet. Etwas anderes vorzutäuschen ließe eine App ihre Abhängigkeit vom Netzverhalten verstecken, bis sie auf dem Board landet.
+
+Öffne den Header, um mitzulesen: drücke `Strg`/`Cmd`+`P`, tippe `modules/net/include/cads/net/net.h` und drücke Enter. Ohne Tastatur: ganz links in der schmalen Symbolleiste das oberste Symbol (der Datei-Explorer), dann durch den Baum klicken. Die Datei öffnet sich als Reiter in der Mitte, neben dem Steptext-Reiter `CaDS Tutor: <Titel>`.
 
 ## Drei Aufrufe
 
@@ -47,28 +49,52 @@ void cads_net_poll(void);                            /* RX, TX, lwIP-Timeouts */
 void cads_net_status(cads_net_status_t* status);     /* das Ergebnis des LETZTEN Polls */
 ```
 
-`cads_net_init()` ist absichtlich idempotent: jeder Aufrufer, der Netzwerk „an" haben will — ein Diagnosebefehl, der echte App-Baum — ruft es auf, und nur der erste Aufruf im gesamten Image tut etwas. `cads_net_poll()` treibt Empfang, Senden und die internen lwIP-Timeouts; es ist billig im Leerlauf und muss in jeder Iteration der Schleife laufen, die es besitzt.
+`cads_net_init()` ist absichtlich idempotent: nur der erste Aufruf im gesamten Image tut etwas. `cads_net_poll()` treibt Empfang, Senden und die internen lwIP-Timeouts; es ist billig im Leerlauf und muss in jeder Iteration der Schleife laufen, die es besitzt.
 
-Der Vertrag, über den man stolpert: **nichts erkennt Link-up von allein.** `cads_net_status()` liefert das zwischengespeicherte Ergebnis des letzten Polls und fragt die Hardware nicht. Welche Gestalt ein Aufrufer daraus ableiten muss, ist die dritte Frage dieses Steps; genau diese Gestalt übernimmst du im nächsten Step als Code.
-
-`cads_net_status_t` verrät dir außerdem `ip_addr`, `gw_addr`, `dns_addr` (Host-Byte-Order, 0 wenn ungesetzt), `dhcp_bound`, Geschwindigkeit und Duplex sowie Frame-Zähler. Die Statusleisten-Anzeige im App-Baum liest diese Felder, um „no link", „no lease" oder „100M" auszugeben.
+Der Vertrag, über den man stolpert: **nichts erkennt Link-up von allein.** `cads_net_status()` liefert das zwischengespeicherte Ergebnis des letzten Polls und fragt die Hardware nicht. Welche Gestalt ein Aufrufer daraus ableiten muss, ist die dritte Frage dieses Steps. `cads_net_status_t` verrät außerdem Adresse, Gateway, DNS, `dhcp_bound`, Geschwindigkeit, Duplex und Frame-Zähler.
 
 ## Adressierung ab Werk
 
-Das Board ist standardmäßig **statisch, nicht DHCP**. `cads_net_board.c` trägt die eingebaute Vorgabe `192.168.33.99/24`, Gateway `192.168.33.1`, und `/config.txt` stellt sie als `net.dhcp = 0`, `net.ip`, `net.netmask`, `net.gateway` bereit (`docs/reference/config-file.md`). `net.dhcp = 1` startet den lwIP-DHCP-Client, sobald der Link steht; bei Link-down ruft der Treiber `dhcp_stop()` statt eines Release, weil dann kein Träger mehr da ist, über den ein Release gesendet werden könnte. Diese statische Vorgabe ist der Grund, warum das Labor mit einem einfachen Kabel zwischen Board und Laptop und ohne jeden DHCP-Server funktioniert.
+Das Board ist standardmäßig **statisch, nicht DHCP**. `cads_net_board.c` trägt die eingebaute Vorgabe `192.168.33.99/24`, Gateway `192.168.33.1`, und `/config.txt` stellt sie als `net.dhcp = 0`, `net.ip`, `net.netmask`, `net.gateway` bereit. `net.dhcp = 1` startet den lwIP-DHCP-Client, sobald der Link steht. Diese statische Vorgabe ist der Grund, warum das Labor mit einem einfachen Kabel zwischen Board und Rechner und ohne jeden DHCP-Server funktioniert.
 
 ## Was der Stack an RAM kostet
 
-Ein Netzstack ist kein Gedanke, sondern Speicher. lwIP bekommt hier zwei getrennte Töpfe, und beide stehen in `modules/net/include/lwipopts.h`: einen **eigenen Heap** für die Strukturen des Stacks und einen **Pool von Empfangspuffern**, aus dem jedes ankommende Frame bedient wird. Der Heap ist als Byte-Zahl notiert, der Pool als Anzahl von Slots — Slots werden erst zu Bytes, wenn man weiß, wie groß einer ist, und genau diese Größe hat das Projekt aus der Linker-Map gemessen und in den Kommentar daneben geschrieben.
+Ein Netzstack ist kein Gedanke, sondern Speicher. lwIP bekommt hier zwei getrennte Töpfe, beide in `modules/net/include/lwipopts.h`: einen **eigenen Heap** für die Strukturen des Stacks und einen **Pool von Empfangspuffern**, aus dem jedes ankommende Frame bedient wird. Der Heap ist als Byte-Zahl notiert, der Pool als Anzahl von Slots — Slots werden erst zu Bytes, wenn man weiß, wie groß einer ist, und genau diese Größe hat das Projekt aus der Linker-Map gemessen und daneben notiert. Derselbe RAM trägt den 48-KB-Boden, den `scripts/check_ram_budget.py` bewacht.
 
-Warum das jede Zeile in dieser Datei kommentiert ist: derselbe RAM trägt den 48-KB-Boden, den `scripts/check_ram_budget.py` bewacht (M4-02). Jede Vergrößerung eines lwIP-Puffers ist eine Entscheidung gegen etwas anderes. Die zweite Aufgabe dieses Steps lässt dich diese beiden Posten erst schätzen und dann nachlesen. Sie sind nicht der ganze Preis des Stacks — die `MEMP_NUM_*`-Pools, die ARP-Tabelle, die TCP-PCBs und die Deskriptorringe des MAC stehen daneben —, aber sie sind die beiden größten Einzelposten und die, über die dieses Projekt tatsächlich entschieden hat.
+## Aufgabe 1 — das Netz-Gate laufen lassen
 
-## Deine Aufgabe
+Den Konsolenbefehl `h 10` tippst du **nicht** selbst: der Pruefknopf sendet ihn, du liest nur die Antwort mit. Der Knopf **Prüfen** sitzt an dieser Aufgabe unten im Steptext, dem Reiter in der Mitte; **Run all checks** oben im selben Reiter startet alle Aufgaben dieses Steps.
 
-Öffne die Board-Konsole, damit du mitliest — senden musst du nichts: der Knopf **Prüfen** an dieser Aufgabe schickt `h 10` selbst und wartet auf die Antwort. Steht das Board im App-Baum, führe vorher einmal `python3 scripts/board_key.py quit` in einem Terminal aus. Lies, was das Gate meldet: Link-Zustand, Geschwindigkeit sowie Paket- und Byte-Zähler. Sage dann den RAM-Preis dieser beiden Posten voraus und vergleiche mit den Konstanten in `modules/net/include/lwipopts.h`. Beantworte zuletzt die Frage, wie ein Aufrufer von Link-up erfährt.
+Ein frisch geflashtes Board startet im Touchscreen-App-Baum und überhört einzelne Buchstaben. Öffne darum vorher ein Terminal — klicke auf das Symbol mit den drei Strichen (**☰**) ganz oben links, dann **`Terminal` → `New Terminal`**; ist der Terminal-Bereich zugeklappt, klappt ihn `Strg`/`Cmd`+`J` auf und wieder zu. Das Arbeitsverzeichnis ist die Projektwurzel. Führe dort einmal aus:
 
-**Wo du das machst:**
-- Datei öffnen: `Strg`/`Cmd`+`P`.
-- Terminal öffnen: Menü *Terminal → New Terminal*.
-- Board-Konsole öffnen: `F1`, dann *CaDS Board: Konsole öffnen*.
-- Bauen: Menü *Terminal → Run Build Task…*.
+```
+python3 scripts/board_key.py quit
+```
+
+Im Labor erreichen die Skripte das Board über den Konsolen-PTY des Bridge; findet der Aufruf keinen Port, gib ihn ausdrücklich an (`docs/SPEC.md`):
+
+```
+python3 scripts/board_key.py quit --port /home/coder/board-console
+```
+
+Willst du beim Senden zusehen, öffne zusätzlich die Board-Konsole: drücke **`F1`**, tippe `CaDS Board: Konsole öffnen` und drücke Enter. `Strg`/`Cmd`+`Umschalt`+`P` öffnet die Palette auch, wird im Browser aber oft abgefangen; `F1` ist der zuverlässige Weg. **Reagiert die Palette gar nicht, hat der Browser das Tastenkürzel abgefangen** — nimm `F1` oder den Weg über **☰ → `Terminal`**.
+
+Klicke dann **Prüfen**. Das Gate bringt das netif hoch, pollt zehn Sekunden und meldet zwei Zeilen, die mit `# net: link=` und `# net: mmc delta rx_unicast=` beginnen: Link-Zustand, Geschwindigkeit, Paket- und Byte-Zähler. Rechne mit zehn bis fünfzehn Sekunden; grün wird die Aufgabe, sobald die erste Zeile kommt.
+
+<!-- SHOT: m7-net-gate-output | Board-Konsole nach dem Netz-Gate: die Zeile # net: link=UP netif rx=.. tx=.. rx_dropped=.. und darunter die mmc-delta-Zeile | HARDWARE -->
+
+## Aufgabe 2 — den RAM-Preis vorhersagen
+
+Schreibe deine Schätzung in das Feld an der Aufgabe und schicke sie ab, **bevor** du nachsiehst — die Enthüllung ist der Vergleich. Der Knopf **Prüfen** führt dafür selbst einen Befehl aus, der die beiden Konstanten samt ihrer Kommentare aus `modules/net/include/lwipopts.h` holt:
+
+```
+grep -n -B24 -E '^#define (MEM_SIZE|PBUF_POOL_SIZE)' modules/net/include/lwipopts.h
+```
+
+Seine Ausgabe erscheint unter einer Sekunde später **unten im Terminal-Bereich**. **Suchst du sie im falschen Fenster:** sie steht nicht im Steptext und nicht im Editor, sondern unten in dem Terminal, das den Namen des Befehls trägt — `Strg`/`Cmd`+`J` klappt den Bereich auf, rechts in der Liste wählst du das Terminal. Du kannst die Datei auch selbst lesen: `Strg`/`Cmd`+`P`, dann `modules/net/include/lwipopts.h`, Enter.
+
+## Aufgabe 3 — wie Link-up erfahren wird
+
+Eine Freitextantwort in das Feld an der Aufgabe, dann **Prüfen**. Bleibt eine Aufgabe rot, hilft der Knopf **Hinweis anzeigen** an derselben Aufgabe weiter.
+
+**Wo du in diesem Step arbeitest.** Die Bedienoberfläche ist englisch, der Kurstext deutsch — der Menüpunkt heißt also `New Terminal`, nicht „Neues Terminal“. Es gibt keine sichtbare Menüleiste: die Menüs `File`, `Edit`, `Selection`, `View`, `Go`, `Run`, `Terminal`, `Help` stecken hinter dem Symbol mit den drei Strichen (**☰**) ganz oben links. Der Kursbaum steht links in der Seitenleiste, hinter dem Doktorhut-Symbol der Leiste ganz außen. Datei öffnen: `Strg`/`Cmd`+`P`. Terminal auf- und zuklappen: `Strg`/`Cmd`+`J`. Befehlspalette: `F1`. Task starten: **☰ → `Terminal` → `Run Task...`**.

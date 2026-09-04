@@ -29,13 +29,48 @@ socratic:
   - { trigger: "task:count-subjects:stuck", question: { en: "Every subject is registered by exactly one call. What is that call named, and what would counting it give you?", de: "Jedes Subjekt wird durch genau einen Aufruf registriert. Wie heißt dieser Aufruf, und was ergäbe es, ihn zu zählen?" }, hints: [ { en: "The helper function is defined at the top of tests/unit/CMakeLists.txt and used once per test binary.", de: "Die Hilfsfunktion steht am Kopf von tests/unit/CMakeLists.txt und wird je Test-Binary einmal benutzt." }, { en: "Scroll the file and note the groups: toolbox, storage, firmware layers, ethernet, config, security, marauder.", de: "Blättere durch die Datei und beachte die Gruppen: toolbox, storage, Firmware-Schichten, Ethernet, config, security, marauder." }, { en: "Guess an order of magnitude and write it down - the comparison is what the task is for.", de: "Rate eine Größenordnung und schreib sie hin - für den Vergleich ist die Aufgabe da." } ] }
   - { trigger: "question:register-a-test:weak", question: { en: "A test binary needs a source, a framework and a subject to exercise. Which of the three does the helper function supply for you?", de: "Ein Test-Binary braucht eine Quelle, ein Framework und ein Subjekt, das es prüft. Welches der drei liefert dir die Hilfsfunktion?" }, hints: [ { en: "Read the four-line function above and list what it already links; whatever is missing you have to add yourself.", de: "Lies die vierzeilige Funktion oben und liste auf, was sie schon linkt; was fehlt, musst du selbst ergänzen." }, { en: "Look at any neighbouring registration in the file: each one is a pair of lines, not a single one.", de: "Sieh dir eine benachbarte Registrierung in der Datei an: jede besteht aus einem Zeilenpaar, nicht aus einer Zeile." }, { en: "Your answer needs the C side too - a case that is defined but never run passes vacuously.", de: "Deine Antwort braucht auch die C-Seite - ein Fall, der definiert, aber nie ausgeführt wird, besteht leer." } ] }
 ---
+
 ## Lernziel
 
 Führe die Host-Unit-Testsuite des Projekts aus und verstehe, warum eine Firmware, deren Displaybus nicht zurückgelesen werden kann, sich dennoch größtenteils auf einem Laptop testet.
 
+**Der erste Handgriff:** starte den Task `CaDS: Host tests`. Wie das geht, steht im nächsten Abschnitt, Klick für Klick.
+
+## Den Task starten
+
+Die Bedienoberfläche ist englisch, der Kurstext deutsch — der Menüpunkt heißt also `Run Task...`.
+
+Drücke **`F1`**, tippe `Tasks: Run Task`, Enter, dann **`CaDS: Host tests`** aus der Liste wählen. Ohne Tastatur: das Symbol mit den drei Strichen (**☰**) ganz oben links, dann **`Terminal` → `Run Task...` → `CaDS: Host tests`**. (`Strg`/`Cmd`+`Umschalt`+`P` öffnet die Palette auch, wird im Browser aber oft abgefangen; `F1` ist der zuverlässige Weg.)
+
+Unten im Terminal-Bereich öffnet sich ein eigenes Terminal mit dem Namen `CaDS: Host tests`. Ist der Bereich zugeklappt, klappt ihn `Strg`/`Cmd`+`J` auf und wieder zu; er trägt die Reiter `PROBLEMS`, `OUTPUT`, `DEBUG CONSOLE`, `TERMINAL`, `PORTS`, `MEMORY`, `XRTOS`.
+
+**Was du siehst:** zuerst CMake, das das Preset `host` konfiguriert, dann den Compiler, dann eine Zeile je Testsubjekt. **Wie lange:** etwa eine halbe Minute. **Fertig** ist der Task, wenn keine neuen Zeilen mehr kommen und wieder eine Eingabeaufforderung dasteht. **Erfolg** erkennst du an der Schlusszeile von ctest:
+
+```
+100% tests passed, 0 tests failed out of 35
+```
+
+Der Task führt genau dieses Kommando aus, dasselbe, das CI ausführt:
+
+```
+cmake --preset host && cmake --build build/host && ctest --test-dir build/host --output-on-failure -E '^golden_'
+```
+
+Das `-E '^golden_'` schließt die Golden-Bild-Szenen aus. Die haben ihren eigenen Task `CaDS: Golden images (informativ)` und sind Sache des nächsten Steps.
+
+<!-- SHOT: m8-ctest-run | Terminal-Bereich unten, Terminal mit dem Namen CaDS: Host tests, die letzten Zeilen von ctest mit 100% tests passed -->
+
+## Drei Bedienfehler, die genau hier passieren
+
+- **Der Task lief, aber die Ausgabe wird im falschen Fenster gesucht.** Sie steht nicht im Steptext und nicht im Editor, sondern unten im Terminal-Bereich in dem Terminal, das den Namen des Tasks trägt — `Strg`/`Cmd`+`J` klappt den Bereich auf, rechts in der Liste wählst du das richtige Terminal.
+- **Das Terminal geschlossen und damit den Vorgang beendet.** Das Kreuz am Terminal beendet den Prozess darin — zum Wegklappen `Strg`/`Cmd`+`J` nehmen, das lässt ihn weiterlaufen.
+- **Die Palette reagiert nicht auf das Tastenkürzel.** Der Browser hat `Strg`/`Cmd`+`Umschalt`+`P` abgefangen — nimm `F1`, oder den Weg über **☰ → `Terminal`**.
+
 ## Wo die Tests liegen
 
-`tests/unit/` enthält eine ausführbare Datei je Subjekt. `tests/unit/CMakeLists.txt` kapselt das in eine vierzeilige Funktion:
+Öffne `tests/unit/CMakeLists.txt`: `Strg`/`Cmd`+`P`, dann den Pfad tippen, Enter. Oder ganz links das oberste Symbol der Leiste (Datei-Explorer) und durch den Baum klicken.
+
+`tests/unit/` enthält eine ausführbare Datei je Subjekt. Die Datei kapselt das in eine vierzeilige Funktion:
 
 ```cmake
 function(cads_add_unit_test name)
@@ -48,18 +83,26 @@ endfunction()
 
 Ein Binary je Modul bedeutet: ein Fehlschlag nennt das Modul, bevor du eine Zeile Ausgabe liest, und ein hängender Test kann die Suite nicht mitreißen — sechzig Sekunden sind die Definition von „hängt". Das Framework ist **Unity**, als Submodul `lib/Unity` eingebunden und als `cads_unity` ohne die projekteigenen Warnflags gebaut, weil seine Warnungen nicht unsere sind.
 
-Eine Testdatei ist schlichtes C: `setUp`/`tearDown`, statische Testfunktionen voller `TEST_ASSERT_*` und ein `main()` aus `UNITY_BEGIN()`, einem `RUN_TEST` je Fall, `UNITY_END()`. Lies `tests/unit/test_str.c` — es testet die begrenzten String-Helfer, von denen der Parser der Explorer-Konsole abhängt, einschließlich des Falls, in dem ein abgeschnittenes `b 90` einst als unauffällige Null geparst wurde und die Hintergrundbeleuchtung abschaltete.
+Eine Testdatei ist schlichtes C: `setUp`/`tearDown`, statische Testfunktionen voller `TEST_ASSERT_*` und ein `main()` aus `UNITY_BEGIN()`, einem `RUN_TEST` je Fall, `UNITY_END()`. Öffne `tests/unit/test_str.c` mit `Strg`/`Cmd`+`P` — es testet die begrenzten String-Helfer, von denen der Parser der Explorer-Konsole abhängt, einschließlich des Falls, in dem ein abgeschnittenes `b 90` einst als unauffällige Null geparst wurde und die Hintergrundbeleuchtung abschaltete.
 
 ## Warum der Host fast alles ausführt
 
-Die Architekturregel aus M1 zahlt sich hier aus: alles oberhalb der HAL ist portables C, also kompilieren Toolbox, Storage, Config, Canvas und Widget-Code nativ. Toolbox-Tests linken direkt gegen `cads_toolbox`. Die Canvas- und Menü-Tests kompilieren das Subjekt zusammen mit `tests/unit/fake_hal.c`, einer aufzeichnenden Fake-HAL, in das Binary, weil der Host kein Panel zum Blitten hat. Das Ergebnis ist eine Suite, die in Sekunden läuft, ohne Board, in CI, bei jedem Push. Wie viele Subjekte darin heute registriert sind, sagst du in der zweiten Aufgabe erst voraus und zählst es dann nach.
+Alles oberhalb der HAL ist portables C, also kompilieren Toolbox, Storage, Config, Canvas und Widget-Code nativ. Toolbox-Tests linken direkt gegen `cads_toolbox`. Die Canvas- und Menü-Tests kompilieren das Subjekt zusammen mit `tests/unit/fake_hal.c`, einer aufzeichnenden Fake-HAL, in das Binary, weil der Host kein Panel zum Blitten hat. Das Ergebnis ist eine Suite, die in Sekunden läuft, ohne Board, in CI, bei jedem Push.
 
-Was der Host nicht beweisen kann, bleibt dem Hardware-Gate aus M0 überlassen: dass der Takt stimmt, dass DMA das Panel tatsächlich erreicht, dass die PHY antwortet. Beide Hälften sind nötig; keine ersetzt die andere.
-
-## Ausführen
-
-Der Task **CaDS: Host tests** konfiguriert das Preset `host` und führt `ctest --preset host` aus — genau das, was CI tut. Nutze `--output-on-failure`, wenn etwas scheitert; ein grüner Lauf druckt eine Zeile je Subjekt.
+Was der Host nicht beweisen kann — dass der Takt stimmt, dass DMA das Panel erreicht, dass die PHY antwortet —, bleibt dem Hardware-Gate überlassen. Beide Hälften sind nötig; keine ersetzt die andere.
 
 ## Deine Aufgabe
 
-Führe die Host-Tests aus und bestätige, dass sie bestehen. Sage dann die Zahl der Testsubjekte voraus und zähle nach. Beantworte zuletzt, welche Zeilen ein neues Subjekt braucht, damit ctest es wirklich ausführt — im letzten Step dieses Moduls schreibst du genau das. Der nächste Step behandelt den Teil des Displays, den Unit-Tests nicht sehen können.
+Drei Aufgaben, jede mit ihrem eigenen Knopf **Prüfen** unten im Steptext; der Knopf **Run all checks** oben im Reiter `CaDS Tutor: Unit-Tests auf dem Host` prüft alle auf einmal. Bleibt eine rot, hilft der Knopf **Hinweis anzeigen** an der Aufgabe.
+
+1. **Die Suite läuft.** Starte `CaDS: Host tests` wie oben beschrieben: **`F1`** → `Tasks: Run Task` → Enter → **`CaDS: Host tests`**, oder **☰ → `Terminal` → `Run Task...` → `CaDS: Host tests`**.
+2. **Zähle die Subjekte.** Sage zuerst die Zahl der registrierten Testsubjekte voraus und schreibe sie hin. Der Vergleich führt dann selbst dieses Kommando aus:
+
+```
+grep -c cads_add_unit_test tests/unit/CMakeLists.txt
+```
+
+   Willst du es von Hand nachsehen: öffne ein Terminal mit **☰ → `Terminal` → `New Terminal`** — das Arbeitsverzeichnis ist die Projektwurzel — und tippe dasselbe Kommando. Es antwortet mit einer einzigen Zahl, sofort.
+3. **Ein neues Subjekt.** Beantworte, welche Zeilen ein neues Subjekt braucht, damit ctest es wirklich ausführt. Im letzten Step dieses Moduls schreibst du genau das.
+
+Der nächste Step behandelt den Teil des Displays, den Unit-Tests nicht sehen können.

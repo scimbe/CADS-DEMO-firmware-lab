@@ -32,6 +32,18 @@ socratic:
 
 Verstehe die drei Teile, aus denen jede GUI-App besteht — eine View, der Dispatcher, der einen Stapel von Views besitzt, und die Widgets, die zeichnen — und wie ein einziger Ereignisstrom die App erreicht, egal ob die Eingabe von einer Taste oder einem Finger kam.
 
+**Konkret:** eine Datei lesen und drei Aufgaben im Steptext beantworten. In diesem Step wird nichts gebaut und nichts geflasht.
+
+## Wo du arbeitest
+
+Der Kursbaum steht links in der Seitenleiste; du öffnest ihn über das Doktorhut-Symbol in der schmalen Leiste ganz links. Dieser Steptext ist ein eigener Reiter in der Mitte, benannt `CaDS Tutor: Views, der Dispatcher und die Soft-Key-Leiste`. Oben darin sitzt der Knopf **Run all checks**, unten stehen die drei Aufgaben, jede mit einem Eingabefeld und den Knöpfen **Prüfen** und **Hinweis anzeigen**.
+
+Die Bedienoberfläche ist englisch, der Kurstext deutsch. Menüs erreichst du über das Symbol mit den drei Strichen (**☰**) ganz oben links — eine sichtbare Menüleiste gibt es nicht.
+
+## Die Datei öffnen
+
+Drücke `Strg`/`Cmd`+`P`, tippe `apps/about/cads_about.c` und drücke Enter; die Datei öffnet sich als Reiter in der Mitte, neben diesem Steptext. Ohne Tastatur: ganz links das oberste Symbol der Leiste (der Datei-Explorer), dann `apps` und `about` aufklappen und die Datei anklicken. Sie ist etwa 150 Zeilen lang und die kleinste vollständige App im Baum.
+
 ## Eine View ist ein Draw-Callback, ein Input-Callback und ein Kontext
 
 `gui/view/cads_view.h` definiert `cads_view_t`: es hat `draw`, `input`, optionale `enter`/`exit`-Lebenszyklus-Hooks, einen Titel und eine Soft-Key-Tabelle — sonst nichts. Eine App füllt eine aus:
@@ -44,20 +56,38 @@ cads_view_set_softkeys(&s_about.view, cads_about_keys, count);
 (void)cads_view_dispatcher_add(dispatcher, CADS_VIEW_ID_ABOUT, &s_about.view);
 ```
 
-Dieser letzte Aufruf lässt die App *existieren*. Der **View-Dispatcher** (`gui/view/cads_view_dispatcher.h`) hält eine Tabelle fester Kapazität aus `(id, view)`-Einträgen und einen Navigationsstapel: `push(id)` öffnet eine View obenauf, `pop()` kehrt zurück, `pop_to_root()` geht nach Hause. Ids sind schlichte Zahlen, die jede App in ihrem Header definiert — Desktop `0x0100`, Menü `0x0200`, About `0x0400`, GPIO `0x0500` — und die Item-Tabelle des Menüs (`apps/menu/cads_menu_app.c`) bildet eine beschriftete Zeile auf genau so eine id ab; eine Zeile zu aktivieren ist nichts anderes als „pushe, was sie benennt".
+Dieser letzte Aufruf lässt die App *existieren*. Der **View-Dispatcher** (`gui/view/cads_view_dispatcher.h`) hält eine Tabelle fester Kapazität aus `(id, view)`-Einträgen und einen Navigationsstapel: `push(id)` öffnet eine View obenauf, `pop()` kehrt zurück, `pop_to_root()` geht nach Hause. Ids sind schlichte Zahlen, die jede App in ihrem Header definiert — Desktop `0x0100`, Menü `0x0200`, About `0x0400`, GPIO `0x0500` — und die Item-Tabelle des Menüs (`apps/menu/cads_menu_app.c`) bildet eine beschriftete Zeile auf genau so eine id ab; eine Zeile zu aktivieren ist nichts anderes als „pushe, was sie benennt“.
 
-Die Kapazität ist real und steht als `CADS_APP_DEMO_VIEW_CAPACITY` neben der Tabelle in `explorer_app_demo.c`. Sieh dir den Rückgabetyp von `cads_view_dispatcher_add()` an und dann, was die Aufrufer damit tun — daraus folgt, was jenseits der Kapazität geschieht. Der Host-Test `tests/unit/test_app_tree.c` prüft die reale Registrierungszahl gegen die reale Kapazität; er existiert, weil dieser Fehler zweimal ausgeliefert wurde, bevor er verstanden war.
+Die Kapazität ist real und steht als `CADS_APP_DEMO_VIEW_CAPACITY` neben der Tabelle in `apps/bringup/explorer_app_demo.c`. Sieh dir den Rückgabetyp von `cads_view_dispatcher_add()` an und dann, was die Aufrufer damit tun — daraus folgt, was jenseits der Kapazität geschieht. Der Host-Test `tests/unit/test_app_tree.c` prüft die reale Registrierungszahl gegen die Kapazität; er existiert, weil dieser Fehler zweimal ausgeliefert wurde.
 
 ## Widgets zeichnen; die View sagt nur, wann
 
-`apps/about` zeichnet selbst nichts: es besitzt eine `cads_textbox_t` und ruft in `draw` nur dann `cads_textbox_draw()` auf, wenn das Widget sich als dirty meldet. In `input` reicht es das Ereignis an `cads_textbox_input()` weiter und markiert, falls das Widget dirty wurde, die View über `cads_view_dirty_rect()` genau für das Damage-Rechteck des Widgets. Das ist das Muster: Widgets verfolgen ihr eigenes Damage, Views reichen es weiter, und das Canvas aus dem vorigen Step überträgt nur das.
+`apps/about` zeichnet selbst nichts: es besitzt eine `cads_textbox_t` und ruft in `draw` nur dann `cads_textbox_draw()` auf, wenn das Widget sich als dirty meldet. In `input` reicht es das Ereignis an `cads_textbox_input()` weiter und markiert, falls das Widget dirty wurde, die View über `cads_view_dirty_rect()` genau für das Damage-Rechteck des Widgets. Das ist das Muster: Widgets verfolgen ihr eigenes Damage, Views reichen es weiter, und das Canvas überträgt nur das.
 
 ## Ein Ereignisstrom, zwei Eingaben
 
-Das Board hat eine Reihe von acht Tasten unter dem Display und ein resistives Touch-Panel. `docs/explanation/input-scheme.md` legt fest, wie beide eine App erreichen: die acht Tasten sind eine **Soft-Key-Leiste** — ein Band aus Zellen am unteren Rand, jede beschriftet mit dem, was die Taste darunter *gerade jetzt* tut (`Up`, `Down`, `OK`, `Back`, `F1`, `F2`, je View umbenennbar). Touch ist direkte Manipulation.
+Das Board hat acht Tasten unter dem Display und ein resistives Touch-Panel. `docs/explanation/input-scheme.md` legt fest, wie beide eine App erreichen: die acht Tasten sind eine **Soft-Key-Leiste** — ein Band aus Zellen am unteren Rand, jede beschriftet mit dem, was die Taste darunter *gerade jetzt* tut (`Up`, `Down`, `OK`, `Back`, `F1`, `F2`, je View umbenennbar).
 
-Die Reihenfolge ist der ganze Trick: `cads_gui.c` bietet Touch-Ereignisse zuerst `cads_softkeys_touch()` an, und jede Zelle der Leiste weiß, für welche Taste sie steht. Was daraus für den `input`-Callback einer App folgt, ist die dritte Frage dieses Steps; die Regel, die dahintersteht, steht in `docs/explanation/input-scheme.md`.
+Die Reihenfolge ist der ganze Trick: `cads_gui.c` bietet Touch-Ereignisse zuerst `cads_softkeys_touch()` an, und jede Zelle der Leiste weiß, für welche Taste sie steht. Was daraus für den `input`-Callback einer App folgt, ist die dritte Frage dieses Steps.
+
+## Die erste Aufgabe ist eine Vorhersage
+
+Schreib deine Zahl in das Eingabefeld der Aufgabe **Sage die Kapazität der View-Tabelle voraus** unten in diesem Steptext und drück dort **Prüfen**. Erst dann führt der Tutor den Vergleichsbefehl aus — ein `grep` über `apps/bringup/explorer_app_demo.c` — und zeigt dir dessen Ausgabe. Das dauert unter einer Sekunde.
+
+Diese Ausgabe erscheint als Meldung **an der Aufgabe hier im Steptext**, nicht in einem Terminal unten. Bewertet wird, was du nach dem Vergleich über den Fehlerfall sagst, nicht ob du die Zahl geraten hast.
+
+Willst du dieselbe Stelle selbst nachschlagen, öffne ein Terminal mit **☰ → `Terminal` → `New Terminal`** — ist der Terminal-Bereich unten zugeklappt, klappt ihn `Strg`/`Cmd`+`J` auf und zu — und führ dort aus:
+
+```bash
+grep -n CADS_APP_DEMO_VIEW_CAPACITY apps/bringup/explorer_app_demo.c
+```
+
+## Drei Bedienfehler, die hier fast jeder einmal macht
+
+- **Ein Befehl lief, aber die Ausgabe wird im falschen Fenster gesucht.** Die Ausgabe eines Tasks steht nicht im Steptext und nicht im Editor, sondern unten im Terminal-Bereich in dem Terminal, das den Namen des Tasks trägt — `Strg`/`Cmd`+`J` klappt den Bereich auf, rechts in der Liste wählst du das richtige Terminal. Die Ausgabe eines Prüfknopfs dagegen steht an der Aufgabe im Steptext.
+- **Das Terminal geschlossen und damit den Vorgang beendet.** Das Kreuz am Terminal beendet den Prozess darin — zum Wegklappen `Strg`/`Cmd`+`J` nehmen, das lässt ihn weiterlaufen.
+- **Die Palette reagiert nicht auf das Tastenkürzel.** Der Browser hat `Strg`/`Cmd`+`Umschalt`+`P` abgefangen — nimm `F1`, oder den Weg über **☰ → `Terminal`**.
 
 ## Deine Aufgabe
 
-Lies `apps/about/cads_about.c` von Anfang bis Ende — es ist die kleinste vollständige App im Baum, etwa 150 Zeilen. Sage dann die Kapazität der View-Tabelle voraus und vergleiche; beantworte danach die zwei Fragen zur toten Menüzeile und zum Ereignisstrom. Im nächsten Step baust du selbst eine App.
+Lies `apps/about/cads_about.c` ganz. Sage dann die Kapazität der View-Tabelle voraus und vergleiche; beantworte danach die zwei Fragen zur toten Menüzeile und zum Ereignisstrom, jede im Feld ihrer Aufgabe. Im nächsten Step baust du selbst eine App.

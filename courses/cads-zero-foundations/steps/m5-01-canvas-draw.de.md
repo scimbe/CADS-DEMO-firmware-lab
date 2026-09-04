@@ -34,6 +34,8 @@ socratic:
 
 Zeichne auf dem Canvas so, wie es jede App dieser Firmware tut, und erkenne, warum jeder Zeichenaufruf zugleich *Damage* aufzeichnet, damit nur das Geänderte das Panel erreicht.
 
+**Konkret:** einen Zeichenaufruf in `gui/cads_splash.c` ergänzen, den Task `CaDS: Build` starten, flashen und das Testmuster auf dem Panel öffnen. Jeder dieser vier Schritte steht unten mit vollem Bedienweg.
+
 ## Die Fläche: 480×320 mit 4 Bit pro Pixel
 
 Ein Truecolor-RGB565-Framebuffer für dieses Panel wäre 300 KB groß; der Baustein hat 192 KB DMA-fähiges SRAM. Das Canvas (`gui/canvas.h`) ist deshalb **indiziert mit 4 bpp**: zwei Pixel pro Byte, 75 KB insgesamt, gegen eine **Palette mit sechzehn Farben**. Farben sind nie rohe Zahlen — sie sind `cads_color_t`-Slots mit Namen:
@@ -41,13 +43,10 @@ Ein Truecolor-RGB565-Framebuffer für dieses Panel wäre 300 KB groß; der Baust
 | Slot | Name | Farbe |
 |---|---|---|
 | 2 | `CadsColorBrand` | `#204C86` |
-| 3 | `CadsColorBrandLight` | `#B5C4D8` |
-| 4 | `CadsColorAccent` | `#9CB33B` |
-| 8–10 | `CadsColorRed / Amber / Teal` | |
 | 13 | `CadsColorMagenta` | |
 | 15 | `CadsColorBackground` | `#101418` |
 
-Die vollständige Liste steht im Enum in `gui/canvas.h`; die Tabelle hier ist ein Auszug. `cads_canvas_set_palette()` färbt beim nächsten Flush jedes Pixel eines Slots um; darum ist ein Theme eine Tabelle und kein Neuzeichnen. Die Palette ist vorab byte-vertauscht als Big-Endian-RGB565 abgelegt, sodass die Umrechnung pro Pixel ein Nachschlagen und ein Speichern ist.
+Die Tabelle hier ist ein Auszug aus dem Enum in `gui/canvas.h`.
 
 ## Die Zeichen-API
 
@@ -58,18 +57,58 @@ cads_canvas_draw_text(12, 8, &cads_font16, "CaDS Zero", CadsColorWhite);
 cads_canvas_flush();   /* überträgt nur, was sich geändert hat */
 ```
 
-`cads_canvas_draw_text()` setzt die **Oberkante der Zeilenbox** auf `y`, nicht die Grundlinie, und liefert die Stiftposition zurück, damit Läufe in verschiedenen Farben aneinanderreihen. Clipping verschachtelt sich über `cads_canvas_push_clip()` / `pop_clip()`, acht Ebenen tief.
+`cads_canvas_draw_text()` setzt die **Oberkante der Zeilenbox** auf `y`, nicht die Grundlinie.
 
 ## Damage, und warum es nicht optional ist
 
-Jeder Zeichenaufruf erweitert eine einzige Bounding-Box. `cads_canvas_flush()` wandelt genau diesen Bereich in Bändern von 16 Zeilen nach RGB565, schiebt jedes Band per DMA hinaus und gibt die übertragene Pixelzahl zurück. Ein Vollbild kostet auf diesem Bus etwa 448 ms; ein 40×40-Update 4,7 ms. Dieser Faktor 95 ist der Unterschied zwischen einer benutzbaren Oberfläche und einer, die mit 2 fps neu zeichnet. Widgets, die den Puffer direkt beschreiben, müssen `cads_canvas_damage()` selbst aufrufen.
+Jeder Zeichenaufruf erweitert eine einzige Bounding-Box. `cads_canvas_flush()` wandelt genau diesen Bereich in Bändern von 16 Zeilen nach RGB565, und schiebt jedes Band per DMA hinaus. Ein Vollbild kostet auf diesem Bus etwa 448 ms, ein 40×40-Update 4,7 ms. Widgets, die den Puffer direkt beschreiben, rufen `cads_canvas_damage()` selbst auf.
 
-Wie viele Bänder gleichzeitig unterwegs sein können, ist eine eigene Frage — und eine, die der Kommentarblock am Kopf von `gui/canvas.c` ausdrücklich beantwortet, samt der Zahl, die die Entscheidung gekostet hätte. Dazu gehört eine HAL-Funktion, die es gibt und die niemand aufruft: `cads_hal_display_busy()` in `core/cads_hal.h`. Die dritte Aufgabe dieses Steps schickt dich genau dorthin.
+Wie viele Bänder gleichzeitig unterwegs sein können, beantwortet der Kommentarblock am Kopf von `gui/canvas.c` ausdrücklich, samt der Zahl, die die Entscheidung gekostet hätte. Dazu gehört eine HAL-Funktion, die es gibt und die niemand aufruft: `cads_hal_display_busy()` in `core/cads_hal.h`. Die dritte Aufgabe schickt dich dorthin.
 
-Zwei Grenzen im Kopf behalten: kein Alpha, kein Blending (ein indizierter Puffer kann Teildeckung nicht ausdrücken), und das Canvas ist **nicht threadsicher** — eine Task besitzt das Display, abgesichert durch einen Mutex (`apps/bringup/tasks.c`).
+## Schritt 1 — die Datei öffnen und den Aufruf ergänzen
 
-## Deine Aufgabe
+Drücke `Strg`/`Cmd`+`P`, tippe `gui/cads_splash.c` und drücke Enter; die Datei öffnet sich als Reiter in der Mitte. Ohne Tastatur: ganz links in der schmalen Symbolleiste das oberste Symbol (der Datei-Explorer), dann im Baum `gui` aufklappen und die Datei anklicken.
 
-`cads_test_pattern_draw()` in `gui/cads_splash.c` (auf dem Panel erreichbar über **Settings → Test pattern**) zeichnet einen Markenbalken, sechzehn Palettenfelder, vier Eckmarken und zwei Diagonalen. Es nutzt elf der sechzehn Slots — `CadsColorMagenta` gehört nicht dazu. Zeichne innerhalb dieser Funktion mit `cads_canvas_fill_rect(...)` einen kleinen Block in diesem Slot (die leere untere Hälfte bietet sich an), baue neu, flashe und öffne das Testmuster, um ihn zu sehen.
+`cads_test_pattern_draw()` steht dort ab Zeile 65 und zeichnet einen Markenbalken, sechzehn Palettenfelder, vier Eckmarken und zwei Diagonalen. Es nutzt elf der sechzehn Slots — `CadsColorMagenta` gehört nicht dazu. Ergänze **innerhalb dieser Funktion** einen `cads_canvas_fill_rect(...)`-Aufruf, der einen kleinen Block in diesem Slot zeichnet; die leere untere Hälfte bietet sich an. Fünf Argumente: x, y, Breite, Höhe, Farbslot. Speichern mit `Strg`/`Cmd`+`S`.
 
-Der erste Check schickt `gui/cads_splash.c` erst durch den C-Präprozessor und sucht den Slotnamen dann als Argument eines `fill_rect`-Aufrufs. Der Präprozessor wirft Kommentare weg — weder ein Zeilen- noch ein Blockkommentar besteht ihn also. Danach kommt die Vorhersage zu den Staging-Bänken.
+Der erste Check schickt die Datei erst durch den C-Präprozessor und sucht den Slotnamen dann als Argument eines `fill_rect`-Aufrufs. Der Präprozessor wirft Kommentare weg — weder ein Zeilen- noch ein Blockkommentar besteht ihn also.
+
+## Schritt 2 — bauen
+
+Starte den Task **`CaDS: Build`**: **`F1`**, dann `Tasks: Run Task` tippen, Enter, dann **`CaDS: Build`** aus der Liste wählen. Ohne Tastatur: das Symbol mit den drei Strichen (**☰**) ganz oben links, dann **`Terminal` → `Run Task...` → `CaDS: Build`**. Die Bedienoberfläche ist englisch, der Kurstext deutsch — der Menüpunkt heißt also `Run Task...`.
+
+Unten im Terminal-Bereich öffnet sich ein eigenes Terminal mit dem Namen `CaDS: Build`; darin laufen die Compilerzeilen durch. Beim ersten Mal dauert das etwa eine Minute, danach Sekunden. Fertig ist der Task, wenn keine neuen Zeilen mehr kommen und wieder eine Eingabeaufforderung dasteht. Erfolg erkennst du daran, dass die letzte Zeile die des Build-Werkzeugs ist und keine Compilerfehlermeldung, und dass der Reiter `PROBLEMS` unten leer bleibt.
+
+## Schritt 3 — flashen
+
+Starte den Task **`CaDS: Build + Flash`**: **`F1`**, dann `Tasks: Run Task` tippen, Enter, dann **`CaDS: Build + Flash`** wählen. Ohne Tastatur: **☰ → `Terminal` → `Run Task...` → `CaDS: Build + Flash`**. Er baut zuerst und flasht dann; das Flashen braucht etwa 15 Sekunden. Erfolg erkennst du in der Statusleiste unten.
+
+![Erfolgreich geflasht: die Statusleiste nennt Bytes und Dauer des letzten Flash](flash-ok.png)
+
+## Schritt 4 — das Testmuster auf dem Panel öffnen
+
+Öffne die Board-Konsole: **`F1`**, dann `CaDS Board: Konsole öffnen` tippen, Enter. Tippe dort `d` und Enter — das startet den App-Baum auf dem Panel, und das Board reagiert ab jetzt nicht mehr auf einzeln getippte Buchstaben.
+
+Navigiert wird von einem Terminal aus. Öffne es mit **☰ → `Terminal` → `New Terminal`**; ist der Terminal-Bereich zugeklappt, klappt ihn `Strg`/`Cmd`+`J` auf und zu. Arbeitsverzeichnis ist die Projektwurzel:
+
+```bash
+python3 scripts/board_key.py ok ok down down down ok
+```
+
+Der erste `ok` öffnet vom Desktop aus das Menü, der zweite die oberste Zeile `Settings`, die drei `down` gehen auf die vierte Zeile `Test pattern`, der letzte `ok` öffnet sie. Das Skript druckt je Taste eine Zeile `| sent: <taste>`; das Muster erscheint gleich darauf auf dem Panel. Zurück zum Prompt:
+
+```bash
+python3 scripts/board_key.py quit
+```
+
+<!-- SHOT: m5-testpattern-magenta | Das Testmuster auf dem Panel, mit dem zusaetzlich gezeichneten Magenta-Block in der unteren Haelfte | HARDWARE -->
+
+## Drei Bedienfehler, die hier fast jeder einmal macht
+
+- **Der Task lief, aber die Ausgabe wird im falschen Fenster gesucht.** Sie steht nicht im Steptext und nicht im Editor, sondern unten im Terminal-Bereich in dem Terminal, das den Namen des Tasks trägt — `Strg`/`Cmd`+`J` klappt den Bereich auf, rechts in der Liste wählst du das richtige Terminal.
+- **Das Terminal geschlossen und damit den Vorgang beendet.** Das Kreuz am Terminal beendet den Prozess darin — zum Wegklappen `Strg`/`Cmd`+`J` nehmen, das lässt ihn weiterlaufen. Mitten im Build heißt das sonst: der Build ist abgebrochen.
+- **Die Palette reagiert nicht auf das Tastenkürzel.** Der Browser hat `Strg`/`Cmd`+`Umschalt`+`P` abgefangen — nimm `F1`, oder den Weg über **☰ → `Terminal`**.
+
+## Danach
+
+Prüfe mit dem Knopf **Prüfen** an der Aufgabe unten im Steptext oder mit **Run all checks** oben im Reiter `CaDS Tutor: Auf dem 4-bpp-Canvas zeichnen`.

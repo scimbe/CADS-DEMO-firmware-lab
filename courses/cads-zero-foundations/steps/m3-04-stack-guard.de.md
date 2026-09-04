@@ -32,19 +32,26 @@ socratic:
   - { trigger: "question:guard-vs-hook:weak", question: { en: "At which moments does FreeRTOS look at a stack, and which stack does it never look at?", de: "Zu welchen Zeitpunkten sieht FreeRTOS auf einen Stack, und auf welchen Stack sieht es nie?" }, hints: [ { en: "A check that only runs at certain moments can be outrun - what happens if the deep call returns before the next such moment?", de: "Eine Prüfung, die nur zu bestimmten Zeitpunkten läuft, lässt sich überholen - was passiert, wenn der tiefe Aufruf vor dem nächsten solchen Zeitpunkt zurückkehrt?" }, { en: "Open docs/ROADMAP.md and read the 2026-08-26 entry; it weighs the kernel's own check against the canary proposal in so many words.", de: "Öffne docs/ROADMAP.md und lies den Eintrag vom 2026-08-26; er wiegt die kerneleigene Prüfung dort ausdrücklich gegen den Canary-Vorschlag ab." }, { en: "Compare the four names in the sentinel table with the list of tasks - one of the four entries is not a task at all.", de: "Vergleich die vier Namen in der Wächtertabelle mit der Liste der Tasks - einer der vier Einträge ist gar keine Task." } ] }
   - { trigger: "question:ccm-cost:weak", question: { en: "What is the C type of the arrays these stacks are declared as, and how wide is one element?", de: "Welchen C-Typ haben die Felder, als die diese Stacks deklariert sind, und wie breit ist ein Element?" }, hints: [ { en: "Did you compute the difference between the two sizes, or the new size?", de: "Hast du die Differenz der beiden Größen ausgerechnet oder die neue Größe?" }, { en: "Look at the declarations of cads_ui_stack and friends in apps/bringup/tasks.c and read the element type.", de: "Sieh dir die Deklarationen von cads_ui_stack und den anderen in apps/bringup/tasks.c an und lies den Elementtyp." }, { en: "FreeRTOS counts stacks in words, not bytes, everywhere - that is the whole reason the conversion is needed at all.", de: "FreeRTOS zählt Stacks überall in Wörtern, nicht in Byte - genau deshalb ist die Umrechnung überhaupt nötig." } ] }
 ---
+
 ## Lernziel
 
 Erkenne einen Stack-Überlauf an seiner Registersignatur und verstehe, wie der Stack-Guard-Wächter und der Forensik-Ring dieser Firmware ein stilles Einfrieren in eine benannte, behebbare Ursache verwandeln.
 
-## Warum Überläufe schwer zu sehen sind
+## Der erste Handgriff: die Firmware bauen
 
-Es gibt hier keine MPU-Schutzseite und keinen Kernel-Heap. Ein Task-Stack, der überläuft, schreibt schlicht über sein unteres Ende hinaus in das, was der Linker darunter platziert hat. Das Symptom heißt selten „Stack-Überlauf“; es ist eine korrumpierte Rücksprungadresse, ein Sprung ins Nichts und ein Fault *in* Code, der mit der Ursache nichts zu tun hatte.
+Die Bedienoberfläche ist englisch, der Kurstext deutsch - der Menüpunkt heißt also `Run Task...`. Eine Menüleiste ist nicht sichtbar: die Menüs stecken hinter dem Symbol mit den drei Strichen (**☰**) ganz oben links, das `File`, `Edit`, `Selection`, `View`, `Go`, `Run`, `Terminal` und `Help` öffnet.
+
+Starte den Task: **`F1`**, dann `Tasks: Run Task` tippen, Enter, dann **`CaDS: Build`** aus der Liste wählen. Ohne Tastatur: **☰ → `Terminal` → `Run Task...` → `CaDS: Build`**.
+
+Unten im Terminal-Bereich öffnet sich ein eigenes Terminal `CaDS: Build`; ist der Bereich zugeklappt, klappt ihn `Strg`/`Cmd`+`J` auf und zu. Der Bau dauert beim ersten Mal etwa eine Minute, danach Sekunden. Fertig ist er, wenn keine neuen Zeilen mehr kommen und wieder eine Eingabeaufforderung dasteht; erfolgreich, wenn die letzte Zeile vom Build-Werkzeug stammt und keine Fehlermeldung darübersteht.
+
+<!-- SHOT: m3-build-task-terminal | Das Terminal CaDS: Build unten nach einem erfolgreichen Lauf, letzte Zeile vom Build-Werkzeug, darueber keine Fehlermeldung -->
 
 ## Die Fallstudie, auf die dieser Kurs später zurückgreift
 
-Zwei Überläufe sind an dieser Hardware bestätigt worden (`apps/bringup/tasks.c`, Kopfkommentar; `docs/ROADMAP.md`, 2026-08-28 und 2026-08-30). Sie sind der Referenzfall des Kurses; spätere Steps rufen ihn ab, statt ihn neu zu erzählen.
+Es gibt hier keine MPU-Schutzseite. Ein Task-Stack, der überläuft, schreibt über sein unteres Ende hinaus in das, was der Linker darunter platziert hat, und das Symptom heißt selten „Stack-Überlauf“. Zwei solche Überläufe sind an dieser Hardware bestätigt (`apps/bringup/tasks.c`, Kopfkommentar; `docs/ROADMAP.md`, 2026-08-28 und 2026-08-30) und der Referenzfall des Kurses.
 
-**Fall 1 - die Konsolen-Task mit `net.dhcp = 1`.** Die App-Baum-Schleife ruft `cads_net_poll()` auf dem Stack der Konsolen-Task; die Zustandsmaschine des DHCP-Clients ist deutlich tiefer als der Static-IP-Pfad. Das Board fror einfach ein. Live mit GDB gefangen sah es so aus:
+**Fall 1 - die Konsolen-Task mit `net.dhcp = 1`.** Die App-Baum-Schleife ruft `cads_net_poll()` auf dem Stack der Konsolen-Task, und die Zustandsmaschine des DHCP-Clients ist deutlich tiefer als der Static-IP-Pfad. Das Board fror ein. Live mit GDB gefangen:
 
 | Beobachtung | Was daran auffällt |
 |---|---|
@@ -53,15 +60,15 @@ Zwei Überläufe sind an dieser Hardware bestätigt worden (`apps/bringup/tasks.
 | angehalten in `vApplicationIdleHook()` | Code, der die Ursache unmöglich enthalten kann |
 | `SP` auf einen absurd niedrigen Wert verbogen | der Stackpointer selbst war überschrieben |
 
-Gelesen ergibt das eine Kette: der Stack lief über sein unteres Ende hinaus, überschrieb dabei eine gespeicherte Rücksprungadresse, die nächste Rückkehr sprang nach `0xF7FF0FF0`, und der Fault fiel auf die erstbeste Funktion, die zufällig gerade lief. Korrektur: `CADS_CONSOLE_STACK` von 512 auf 1024 Wörter.
+Zusammen ergibt das eine Kette: der Stack lief über sein Ende hinaus, überschrieb eine gespeicherte Rücksprungadresse, die nächste Rückkehr sprang nach `0xF7FF0FF0`, und der Fault fiel auf die gerade laufende Funktion. Korrektur: `CADS_CONSOLE_STACK` von 512 auf 1024 Wörter.
 
 **Fall 2 - die Input-Task im Marauder-Menü.** `cads_input_tick()` ruft direkt in den Eingabe-Handler der aktiven App auf dem eigenen Stack der Input-Task, sodass ein 256-Wort-Stack beliebige App-Aufruftiefe tragen musste. Korrektur: `CADS_INPUT_STACK` von 256 auf 1024 Wörter.
 
-Diese Signatur - ein `PC`, der keine Flash-Adresse ist, ein unsinniger `SP`, ein Fault in Code, der ihn nicht verursacht haben kann - ist die, die du dir merkst. Sie sagt nie, *welcher* Stack es war. Dafür braucht es den Wächter.
+Diese Signatur merkst du dir. Sie sagt nie, *welcher* Stack es war - dafür braucht es den Wächter.
 
 ## Der Wächter
 
-`apps/bringup/tasks.c` führt eine kleine Tabelle:
+Öffne `apps/bringup/tasks.c` mit `Strg`/`Cmd`+`P` (Pfad tippen, Enter); ohne Tastatur über das oberste Symbol der Leiste ganz links, den Datei-Explorer. Dort steht diese Tabelle:
 
 ```c
 static const cads_stackguard_t cads_stackguards[] = {
@@ -72,24 +79,30 @@ static const cads_stackguard_t cads_stackguards[] = {
 };
 ```
 
-Jeder Eintrag zeigt auf das **unterste Wort** eines Stacks, das ein Überlauf als Letztes überschreibt. Task-Stacks werden von `xTaskCreateStatic` mit `0xA5` gefüllt; der MSP-Wächter wird von `cads_stackguard_arm()` vor dem Scheduler-Start gesetzt. `vApplicationIdleHook()` - der Idle-Callback von FreeRTOS, läuft also immer, wenn sonst nichts läuft - prüft alle vier gegen `CADS_STACKGUARD_CANARY` und ruft beim ersten Unterschied `cads_hal_panic(name)`.
+Jeder Eintrag zeigt auf das **unterste Wort** eines Stacks, das ein Überlauf als Letztes überschreibt. Task-Stacks füllt `xTaskCreateStatic` mit `0xA5`; den MSP-Wächter setzt `cads_stackguard_arm()` vor dem Scheduler-Start. `vApplicationIdleHook()` - der Idle-Callback von FreeRTOS, läuft also immer, wenn sonst nichts läuft - prüft alle vier gegen `CADS_STACKGUARD_CANARY` und ruft beim ersten Unterschied `cads_hal_panic(name)`.
 
-FreeRTOS bringt für dieselbe Frage eine eigene Einrichtung mit: `configCHECK_FOR_STACK_OVERFLOW 2` ist in `modules/kernel/src/FreeRTOSConfig.h` eingeschaltet und ruft bei einem Befund `vApplicationStackOverflowHook()`. Der Eintrag vom 2026-08-26 in `docs/ROADMAP.md` wägt beide gegeneinander ab und begründet, warum die Tabelle trotzdem dazukam - das ist deine zweite Aufgabe, und die Antwort steht dort, nicht hier.
+FreeRTOS hat für dieselbe Frage eine eigene Einrichtung: `configCHECK_FOR_STACK_OVERFLOW 2` in `modules/kernel/src/FreeRTOSConfig.h` ruft bei einem Befund `vApplicationStackOverflowHook()`. Der Eintrag vom 2026-08-26 in `docs/ROADMAP.md` wägt beide ab - das ist deine zweite Aufgabe, und die Antwort steht dort, nicht hier. Öffne die Datei mit `Strg`/`Cmd`+`P` und such mit `Strg`/`Cmd`+`F` nach dem Datum.
 
-Nebenbei erklärt der Wächter eine Beobachtung, die sonst erschreckt: ein Live-GDB-Attach kann `PC` in `cads_stackguard_breached()` zeigen und nichts bedeuten. Das ist das normale Polling des Idle-Hooks, kein gefangener Absturz (`docs/ROADMAP.md`, 2026-09-01).
+Nebenbei: zeigt ein Live-Attach `PC` in `cads_stackguard_breached()`, ist das nur das Polling des Idle-Hooks (`docs/ROADMAP.md`, 2026-09-01).
 
 ## Der Ring schließt den Kreis
 
-`cads_hal_panic()` schreibt den Grund in den Forensik-Ring, bevor es anhält. Im Fall der Input-Task zeigte `E` `reason=input` **22 ms vor** einem `HardFault`-Datensatz mit `HFSR = 0x80000000` (DEBUGEVT) - das eigene `bkpt` der Panik eskalierte, weil kein Debugger hing, selbst ein am selben Tag behobener Fehler. Der Ring benannte also den exakten Stack; nichts musste geraten werden.
+`cads_hal_panic()` schreibt den Grund in den Forensik-Ring, bevor es anhält - denselben Ring, den du im vorigen Step mit `E` ausgelesen hast. Im Fall der Input-Task zeigte er `reason=input` **22 ms vor** einem `HardFault`-Datensatz, benannte den exakten Stack also selbst.
 
-Damit ist die Kette vollständig: **Signatur** sagt „ein Stack ist übergelaufen“, **Wächter** sagt „dieser hier“, **Ring** hebt beides über den Reset hinweg auf.
+Die Kette ist vollständig: **Signatur** sagt „ein Stack lief über“, **Wächter** sagt „dieser hier“, **Ring** hebt beides über den Reset.
 
 ## Wo die Korrektur liegt und was sie kostet
 
-Task-Stacks liegen im **CCM** (`CADS_CCM_SECTION`), nicht im SRAM-Heap, den `scripts/check_ram_budget.py` mit 256 B Marge bewacht. Sie sind als `uint32_t`-Felder deklariert und in **Wörtern** dimensioniert, so wie FreeRTOS überall zählt - die Umrechnung in Byte ist deine dritte Aufgabe.
+Task-Stacks liegen im **CCM** (`CADS_CCM_SECTION`), nicht im SRAM-Heap, den `scripts/check_ram_budget.py` bewacht. Sie sind als `uint32_t`-Felder deklariert und in **Wörtern** dimensioniert, so wie FreeRTOS überall zählt - die Umrechnung in Byte ist deine dritte Aufgabe.
 
-Kostenlos ist CCM aber nicht: `targets/itsboard/linker/cads_itsboard.ld` schneidet den Main-Stack oben aus den 64 KB heraus und hat einen zweiten `ASSERT`, der den Link abbricht, sobald die `.ccm`-Sektion in ihn hineinwächst. Von 64 KB waren nach der Korrektur noch etwa 54,7 KB frei. M4 greift diese Abwägung wieder auf, wenn du selbst einen Stack dimensionierst.
+Kostenlos ist CCM nicht: `targets/itsboard/linker/cads_itsboard.ld` schneidet den Main-Stack oben aus den 64 KB heraus und bricht per `ASSERT` den Link ab, sobald die `.ccm`-Sektion in ihn hineinwächst. Nach der Korrektur waren noch etwa 54,7 KB frei.
+
+## Drei Bedienfehler, die hier fast jeder einmal macht
+
+- **Der Task lief, aber die Ausgabe wird im falschen Fenster gesucht.** Sie steht nicht im Steptext und nicht im Editor, sondern unten im Terminal-Bereich in dem Terminal, das den Namen des Tasks trägt - `Strg`/`Cmd`+`J` klappt den Bereich auf, rechts in der Liste wählst du das richtige Terminal.
+- **Das Terminal geschlossen und damit den Vorgang beendet.** Das Kreuz am Terminal beendet den Prozess darin - zum Wegklappen `Strg`/`Cmd`+`J` nehmen, das lässt ihn weiterlaufen.
+- **Die Palette reagiert nicht auf das Tastenkürzel.** Der Browser hat `Strg`/`Cmd`+`Umschalt`+`P` abgefangen - nimm `F1`, oder den Weg über **☰ → `Terminal`**.
 
 ## Deine Aufgabe
 
-Lies die Wächtertabelle und `vApplicationIdleHook()` in `apps/bringup/tasks.c` und bestätige, dass die Firmware weiterhin baut. Begründe dann, warum die kerneleigene Überlaufprüfung nicht reichte, und rechne aus, was die Korrektur an CCM gekostet hat. Der nächste Step wendet sich dem anderen klassischen Fehler geteilter Ressourcen zu: dem SPI-Bus.
+Führe den Task **`CaDS: Build`** aus (**`F1`** → `Tasks: Run Task` → `CaDS: Build`, oder **☰ → `Terminal` → `Run Task...`**) und lies die Wächtertabelle und `vApplicationIdleHook()` in `apps/bringup/tasks.c`. Begründe dann, warum die kerneleigene Prüfung nicht reichte, und rechne aus, was die Korrektur an CCM kostete. Geprüft wird mit **Prüfen** an der Aufgabe oder **Run all checks** oben im Steptext-Reiter in der Mitte.

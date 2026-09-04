@@ -30,11 +30,23 @@ socratic:
 ---
 ## Learning goal
 
-Understand the three parts every GUI app is made of — a view, the dispatcher that owns a stack of views, and the widgets that draw — and how one event stream reaches an app whether the input came from a button or a finger.
+Understand the three parts every GUI app is made of — a view, the dispatcher that owns a stack of views, and the widgets that draw — and how a single event stream reaches the app whether the input came from a button or a finger.
+
+**Concretely:** read one file and answer three tasks in the step text. Nothing is built and nothing is flashed in this step.
+
+## Where you work
+
+The course tree is in the side bar on the left; you open it with the mortarboard icon in the narrow bar on the far left. This step text is a tab of its own in the middle, called `CaDS Tutor: Views, the dispatcher and the soft-key strip`. The **Run all checks** button sits at its top, and the three tasks are at the bottom, each with an input field and a **Prüfen** and a **Hinweis anzeigen** button.
+
+The user interface is in English while this course is in German. Menus live behind the three-line icon (**☰**) at the very top left — there is no visible menu bar.
+
+## Opening the file
+
+Press `Ctrl`/`Cmd`+`P`, type `apps/about/cads_about.c` and press Enter; the file opens as a tab in the middle, next to this step text. Without the keyboard: the top icon in the narrow bar on the far left (the file explorer), then expand `apps` and `about` and click the file. It is about 150 lines and the smallest complete app in the tree.
 
 ## A view is a draw callback, an input callback and a context
 
-`gui/view/cads_view.h` defines `cads_view_t`: it has `draw`, `input`, optional `enter`/`exit` lifecycle hooks, a title, and a soft-key table — nothing else. An app fills one in:
+`gui/view/cads_view.h` defines `cads_view_t`: it has `draw`, `input`, optional `enter`/`exit` lifecycle hooks, a title and a soft-key table — nothing else. An app fills one in:
 
 ```c
 cads_view_init(&s_about.view, cads_about_draw, cads_about_input, &s_about);
@@ -44,20 +56,38 @@ cads_view_set_softkeys(&s_about.view, cads_about_keys, count);
 (void)cads_view_dispatcher_add(dispatcher, CADS_VIEW_ID_ABOUT, &s_about.view);
 ```
 
-That last call is what makes the app *exist*. The **view dispatcher** (`gui/view/cads_view_dispatcher.h`) keeps a fixed-capacity table of `(id, view)` entries and a navigation stack: `push(id)` opens a view on top, `pop()` returns, `pop_to_root()` goes home. Ids are plain numbers each app defines in its header — desktop `0x0100`, menu `0x0200`, about `0x0400`, gpio `0x0500` — and the menu's item table (`apps/menu/cads_menu_app.c`) maps a labelled row to exactly such an id, so activating a row is nothing more than "push what it names".
+That last call is what makes the app *exist*. The **view dispatcher** (`gui/view/cads_view_dispatcher.h`) holds a fixed-capacity table of `(id, view)` entries and a navigation stack: `push(id)` opens a view on top, `pop()` returns, `pop_to_root()` goes home. Ids are plain numbers each app defines in its header — desktop `0x0100`, menu `0x0200`, about `0x0400`, GPIO `0x0500` — and the menu's item table (`apps/menu/cads_menu_app.c`) maps a labelled row onto exactly such an id; activating a row is nothing but "push what it names".
 
-The capacity is real, and it is written as `CADS_APP_DEMO_VIEW_CAPACITY` next to the table in `explorer_app_demo.c`. Look at the return type of `cads_view_dispatcher_add()` and then at what the callers do with it — that is where the behaviour past capacity follows from. The host test `tests/unit/test_app_tree.c` asserts the real registration count against the real capacity; it exists because that bug shipped twice before it was understood.
+The capacity is real and sits as `CADS_APP_DEMO_VIEW_CAPACITY` beside the table in `apps/bringup/explorer_app_demo.c`. Look at the return type of `cads_view_dispatcher_add()` and then at what the callers do with it — what happens past the capacity follows from that. The host test `tests/unit/test_app_tree.c` checks the real registration count against the capacity; it exists because this fault shipped twice.
 
 ## Widgets draw; the view only says when
 
-`apps/about` draws nothing itself: it owns a `cads_textbox_t` and, in `draw`, calls `cads_textbox_draw()` only if the widget reports dirty. In `input` it forwards the event to `cads_textbox_input()` and, if the widget became dirty, marks the view dirty for exactly the widget's damage rectangle via `cads_view_dirty_rect()`. That is the pattern: widgets track their own damage, views forward it, and the canvas from the previous step pushes only that.
+`apps/about` draws nothing itself: it owns a `cads_textbox_t` and calls `cads_textbox_draw()` in `draw` only when the widget reports itself dirty. In `input` it passes the event to `cads_textbox_input()` and, if the widget went dirty, marks the view through `cads_view_dirty_rect()` for exactly the widget's damage rectangle. That is the pattern: widgets track their own damage, views pass it on, and the canvas transfers only that.
 
 ## One event stream, two inputs
 
-The board has a row of eight buttons under the display and a resistive touch panel. `docs/explanation/input-scheme.md` settles how both reach an app: the eight buttons are a **soft-key strip** — a band of cells along the bottom edge, each labelled with what the button below it does *right now* (`Up`, `Down`, `OK`, `Back`, `F1`, `F2`, relabelled per view). Touch is direct manipulation.
+The board has eight buttons under the display and a resistive touch panel. `docs/explanation/input-scheme.md` fixes how both reach an app: the eight buttons are a **soft-key strip** — a band of cells along the bottom, each labelled with what the button under it does *right now* (`Up`, `Down`, `OK`, `Back`, `F1`, `F2`, renameable per view).
 
-The ordering is the whole trick: `cads_gui.c` offers touch events to `cads_softkeys_touch()` first, and every cell of the strip knows which key it stands for. What follows from that for an app's `input` callback is the third question of this step; the rule behind it is in `docs/explanation/input-scheme.md`.
+The ordering is the whole trick: `cads_gui.c` offers touch events to `cads_softkeys_touch()` first, and every cell of the strip knows which key it stands for. What follows from that for an app's `input` callback is the third question of this step.
+
+## The first task is a prediction
+
+Write your number into the input field of the task **Predict the capacity of the view table** at the bottom of this step text and press **Prüfen** there. Only then does the tutor run the comparison command — a `grep` over `apps/bringup/explorer_app_demo.c` — and show you its output. It takes under a second.
+
+That output appears as a message **on the task here in the step text**, not in a terminal at the bottom. What is graded is what you say about the failure mode after the comparison, not whether you guessed the number.
+
+If you want to look the place up yourself, open a terminal with **☰ → `Terminal` → `New Terminal`** — if the terminal area at the bottom is folded away, `Ctrl`/`Cmd`+`J` opens and closes it — and run:
+
+```bash
+grep -n CADS_APP_DEMO_VIEW_CAPACITY apps/bringup/explorer_app_demo.c
+```
+
+## Three operating mistakes almost everyone makes here
+
+- **A command ran, but you are looking for its output in the wrong window.** A task's output is not in the step text and not in the editor, but in the terminal area at the bottom, in the terminal named after the task — `Ctrl`/`Cmd`+`J` opens the area, and the list on the right selects the terminal. A check button's output, by contrast, appears on the task in the step text.
+- **You closed the terminal and ended the running process with it.** The cross on a terminal kills the process inside it — use `Ctrl`/`Cmd`+`J` to fold the area away instead, which leaves it running.
+- **The palette does not react to the shortcut.** The browser swallowed `Ctrl`/`Cmd`+`Shift`+`P` — press `F1` instead, or go through **☰ → `Terminal`**.
 
 ## Your task
 
-Read `apps/about/cads_about.c` end to end — it is the smallest complete app in the tree, about 150 lines. Then predict the capacity of the view table and compare; afterwards answer the two questions about the dead menu row and the event stream. The next step has you build an app of your own.
+Read `apps/about/cads_about.c` end to end. Then predict the capacity of the view table and compare; afterwards answer the two questions about the dead menu row and the event stream, each in its own task's field. In the next step you build an app yourself.

@@ -6,6 +6,7 @@ objectives: [cz.gui.app]
 requires: [m5-02-view-dispatcher]
 estimatedMinutes: 40
 scaffold: worked
+recallFrom: [m5-02-view-dispatcher]
 creates: [cads_hello_init]
 links:
   - { step: m5-04-dirty-rect-eval }
@@ -35,18 +36,30 @@ socratic:
 
 Create a complete app of your own — a view with a widget, registered with the dispatcher and reachable as a row in the main menu — and wire it into the build so it ships in the firmware.
 
+**Concretely:** create three new files, change two CMake files and one menu file, run the task `CaDS: Build`, flash, and open the new row on the panel. Each step is spelled out below with its full operating path.
+
+## Creating and opening files
+
+To **create** a file: the top icon in the narrow bar on the far left (the file explorer), then right-click the folder in the tree and pick `New File...` or `New Folder...` — the user interface is in English while this course is in German. The terminal does the same. Open one with **☰ → `Terminal` → `New Terminal`** (the three-line icon sits at the very top left; if the area at the bottom is folded away, `Ctrl`/`Cmd`+`J` opens and closes it):
+
+```bash
+mkdir -p apps/hello && touch apps/hello/cads_hello.h apps/hello/cads_hello.c apps/hello/CMakeLists.txt
+```
+
+To **open** a file that already exists: `Ctrl`/`Cmd`+`P`, type the path, Enter. Save with `Ctrl`/`Cmd`+`S`.
+
 ## The shape of an app
 
-An app in this tree is a directory under `apps/` with a header, a source file and a CMake library. `apps/about` is the smallest complete one and your template. Read it side by side with these instructions.
+An app in this tree is a directory under `apps/` with a header, a source file and a CMake library. `apps/about` is the smallest complete one and your template. Open it with `Ctrl`/`Cmd`+`P` and read it alongside these instructions.
 
-**1. Create `apps/hello/cads_hello.h`.** Declare a view id and one init function. Ids in use run from `0x0100` (desktop) to `0x0C00` (Marauder); pick a free one:
+**1. `apps/hello/cads_hello.h`.** Declare a view id and an init function. The ids in use run from `0x0100` (desktop) to `0x0C00` (Marauder); pick a free one:
 
 ```c
 #define CADS_VIEW_ID_HELLO 0x0D00u
 void cads_hello_init(cads_view_dispatcher_t* dispatcher);
 ```
 
-**2. Create `apps/hello/cads_hello.c`.** Model it on `cads_about.c`: a static struct holding a `cads_view_t` and a widget — a `cads_textbox_t` with a text buffer is the least code, or draw with the canvas directly in your `draw` callback (`cads_canvas_fill_rect`, `cads_canvas_draw_text_aligned`). Give it a soft-key table with at least `{CadsKeyBack, "Back"}`. The init function is the part that matters:
+**2. `apps/hello/cads_hello.c`.** Follow `cads_about.c`: a static struct holding a `cads_view_t` and a widget — a `cads_textbox_t` with a text buffer is the least code, or draw straight onto the canvas in the `draw` callback. Give it a soft-key table with at least `{CadsKeyBack, "Back"}`. The init function is the decisive part:
 
 ```c
 void cads_hello_init(cads_view_dispatcher_t* dispatcher) {
@@ -60,18 +73,56 @@ void cads_hello_init(cads_view_dispatcher_t* dispatcher) {
 }
 ```
 
-Two project rules apply. **No `snprintf`** — it pulls in newlib's `_sbrk`, which the linker script deliberately does not provide; use `cads_str_append()` and `cads_fmt_uint()` from `cads/toolbox` as `about` does. And **draw only what changed**: if your widget reports dirty, mark the view dirty for that rectangle with `cads_view_dirty_rect()`.
+Two project rules apply. **No `snprintf`** — it pulls in newlib's `_sbrk`, which the linker script deliberately does not provide; use `cads_str_append()` and `cads_fmt_uint()` from `cads/toolbox`, as `about` does. And **draw only what changed**: when your widget reports dirty, mark the view with `cads_view_dirty_rect()` for that rectangle.
 
-**3. Create `apps/hello/CMakeLists.txt`** by copying `apps/about/CMakeLists.txt`: a `STATIC` library `cads_app_hello`, `target_include_directories(... PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})`, linked `PUBLIC cads_gui_view cads_toolbox PRIVATE cads_flags`.
+**3. `apps/hello/CMakeLists.txt`** comes from copying `apps/about/CMakeLists.txt`: a `STATIC` library `cads_app_hello`, `target_include_directories(... PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})`, linked `PUBLIC cads_gui_view cads_toolbox PRIVATE cads_flags`.
 
-**4. Wire the build.** In the root `CMakeLists.txt`, add `add_subdirectory(apps/hello)` next to the other apps, *before* `add_subdirectory(apps/menu)`. In `apps/menu/CMakeLists.txt`, add `target_link_libraries(cads_app_menu PRIVATE cads_app_hello)`. (The existing apps are behind `CADS_APP_*` options; an unconditional add is fine for this exercise.)
+**4. Wire the build.** Open the root `CMakeLists.txt` with `Ctrl`/`Cmd`+`P` and add `add_subdirectory(apps/hello)` beside the other apps, *before* `add_subdirectory(apps/menu)`. Then open `apps/menu/CMakeLists.txt` and add `target_link_libraries(cads_app_menu PRIVATE cads_app_hello)`.
 
-**5. Wire the menu.** In `apps/menu/cads_menu_app.c`: include `../hello/cads_hello.h`, add a row `{"Hello", NULL, CADS_VIEW_ID_HELLO}` to `cads_menu_app_items[]`, and call `cads_hello_init(dispatcher);` in `cads_menu_app_init()` alongside the other init calls.
+**5. Wire the menu.** Open `apps/menu/cads_menu_app.c`: include `../hello/cads_hello.h`, add a row `{"Hello", NULL, CADS_VIEW_ID_HELLO}` to `cads_menu_app_items[]`, and call `cads_hello_init(dispatcher);` in `cads_menu_app_init()` beside the other init calls.
 
-## One thing to check before you build
+## One thing to check before building
 
-The dispatcher table has 28 slots (`CADS_APP_DEMO_VIEW_CAPACITY` in `apps/bringup/explorer_app_demo.c`) and the full app tree registers 26 views today, so one more fits. If you ever add a second view, remember that past capacity `add()` fails *silently* — the host test `test_app_tree` is what would catch it.
+The dispatcher table has 28 slots and the app tree registers 26 views today, so one more fits; past the capacity `add()` fails *silently*. Where those numbers come from, and what the host test `test_app_tree` does about it, you compared in `m5-02`.
+
+## Build, host tests, flash
+
+Start the task **`CaDS: Build`**: press **`F1`**, type `Tasks: Run Task`, press Enter, then pick **`CaDS: Build`** from the list. Without the keyboard: **☰ → `Terminal` → `Run Task...` → `CaDS: Build`**. A terminal of its own named `CaDS: Build` opens at the bottom; the first run takes about a minute, later ones seconds. It is finished when no new lines appear and a prompt is back; it worked when the last line is the build tool's and the `PROBLEMS` tab at the bottom stays empty.
+
+Everything above the HAL has to compile for both targets, so run the host build too: **`F1`**, `Tasks: Run Task`, Enter, **`CaDS: Host tests`** — or **☰ → `Terminal` → `Run Task...` → `CaDS: Host tests`**. That takes about half a minute and ends with the `ctest` summary.
+
+To flash: **`F1`**, `Tasks: Run Task`, Enter, **`CaDS: Build + Flash`** — or **☰ → `Terminal` → `Run Task...` → `CaDS: Build + Flash`**. The flash takes about 15 seconds.
+
+![The flash progress shown as a notification while the task runs](flash-progress.png)
+
+## Opening your row on the panel
+
+Open the board console: press **`F1`**, type `CaDS Board: Konsole öffnen`, press Enter. Type `d` there and press Enter — that starts the app tree on the panel; from then on the board ignores single typed letters. Navigation happens from a terminal (**☰ → `Terminal` → `New Terminal`**):
+
+```bash
+python3 scripts/board_key.py ok
+```
+
+That opens the menu from the desktop. Then as many `down` presses as it takes for `Hello` to be selected, and `ok`:
+
+```bash
+python3 scripts/board_key.py down ok
+```
+
+The script prints one `| sent: <key>` line per key. Back to the console prompt:
+
+```bash
+python3 scripts/board_key.py quit
+```
+
+<!-- SHOT: m5-hello-app-panel | Die eigene Hello-App offen auf dem Panel, mit ihrem Titel und der Back-Softkey-Zelle | HARDWARE -->
+
+## Three operating mistakes almost everyone makes here
+
+- **The task ran, but you are looking for its output in the wrong window.** It is not in the step text and not in the editor, but in the terminal area at the bottom, in the terminal named after the task — `Ctrl`/`Cmd`+`J` opens the area, and the list on the right selects the terminal.
+- **You closed the terminal and ended the running process with it.** The cross on a terminal kills the process inside it — in the middle of a build that means the build was aborted. Use `Ctrl`/`Cmd`+`J` to fold the area away instead, which leaves it running.
+- **The palette does not react to the shortcut.** The browser swallowed `Ctrl`/`Cmd`+`Shift`+`P` — press `F1` instead, or go through **☰ → `Terminal`**.
 
 ## Your task
 
-Build the app, run **CaDS: Build**, flash, and open **Menu → Hello** on the panel. The checks confirm the menu calls `cads_hello_init`, that the symbol is linked into the ELF, and that the build passes. Also run the host build — everything above the HAL must compile for both targets.
+Build the app following the five points above, let `CaDS: Build` and `CaDS: Host tests` run through, flash, and open the row on the panel. The checks confirm that the menu calls `cads_hello_init`, that the symbol is linked into the ELF, and that the build succeeds — one at a time with **Prüfen** on the task, all of them with **Run all checks** at the top of the step text.

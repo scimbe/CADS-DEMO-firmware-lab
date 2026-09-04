@@ -35,13 +35,17 @@ Evaluate, with the project's own measurements, what the PA7 display/Ethernet tim
 
 ## You already know the constraint
 
-That `SPI1_MOSI` and `ETH_RMII_CRS_DV` are the same pin, PA7, that one alternate function owns a pin at a time, and that the firmware arbitrates it per blit with `cads_hal_spi_claim_bus()` / `release_bus()` is in **M3-05**, and becomes a scheduler question in **M4-03**. The table of numbers — band, full screen, longest blackout at `/16` and `/8` — is in `docs/explanation/pa7-conflict.md`, in the section on the longest uninterrupted blackout; there and nowhere else. `docs/reference/measurements.md` carries the measured full-screen times and throughputs per SPI divider alongside it (448 233 µs at `/16`, 229 526 µs at `/8`), but no band row. All of it is **used** here, not repeated: look the numbers up there when you need them.
+That `SPI1_MOSI` and `ETH_RMII_CRS_DV` are the same pin, PA7, that one alternate function owns a pin at a time, and that the firmware arbitrates it per blit with `cads_hal_spi_claim_bus()` / `release_bus()` is in **M3-05**, and becomes a scheduler question in **M4-03**. The table of numbers — band, full screen, longest blackout at `/16` and `/8` — is in `docs/explanation/pa7-conflict.md`, in the section on the longest uninterrupted blackout; there and nowhere else. `docs/reference/measurements.md` carries the measured full-screen times and throughputs per SPI divider alongside it (448 233 µs at `/16`, 229 526 µs at `/8`), but no band row. All of it is **used** here, not repeated.
+
+Open both documents like this: press `Ctrl`/`Cmd`+`P`, type `docs/explanation/pa7-conflict.md` and press Enter, then do the same again with `docs/reference/measurements.md`. Without the keyboard: the top icon in the narrow icon bar on the far left (the file explorer), then click through the tree. Each file opens as a tab of its own in the middle, next to the step-text tab `CaDS Tutor: <title>`; the tab bar at the top switches between them. `Ctrl`/`Cmd`+`F` searches inside the open file.
 
 What is new is the question: what does this constraint cost the **network**, and what follows from it for everything you build on this board?
 
 ## The quantity worth reasoning about
 
-While the display owns PA7, the MAC's receiver is off. So the interesting number is not the total redraw time but the **longest uninterrupted blackout** — and the two are not the same. Why they come apart lies in the flush path (`gui/canvas.c`) and is the first question of this step.
+While the display owns PA7, the MAC's receiver is off. So the interesting number is not the total redraw time but the **longest uninterrupted blackout** — and the two are not the same. Why they come apart lies in the flush path and is the first question of this step.
+
+Look at that path yourself: press `Ctrl`/`Cmd`+`P`, type `gui/canvas.c` and press Enter. In the open file, search with `Ctrl`/`Cmd`+`F` for `rows_per_band` — the line sits in `cads_canvas_flush()`, and it **computes** the value rather than hard-wiring it. That computation carries the answer.
 
 For scale: 22.5 ms is roughly 280 KB of wire time on a 100 Mbit link. Smaller bands were considered and rejected, because each band costs a bus claim, a MAC stop/start and a window-setting sequence — halving the band doubles that overhead to halve a blackout that not every traffic class even notices. Which class does notice is the second question.
 
@@ -49,12 +53,18 @@ For scale: 22.5 ms is roughly 280 KB of wire time on a 100 Mbit link. Smaller ba
 
 UM1974 §6.9 documents solder bridges SB121/SB122: swapping them moves D11 to PB5, leaves PA7 to the PHY, and `-DCADS_SPI_MOSI_ON_PB5=1` compiles all arbitration away — display and Ethernet would then run at full speed at once. **Decided 2026-08-18: the board stays stock.** The reasons are under the decision heading in `docs/explanation/pa7-conflict.md` and in the resolved decisions of `docs/ROADMAP.md`. The project treats the time-slice as a constraint it designs around, not one it merely tolerates.
 
-## Your task
+This step asks for **no hardware change**: you evaluate the decision, you do not solder. There is nothing to build and nothing to flash either.
 
-Three separate judgements. First the mechanism: why the blackout is bounded to one band rather than to a redraw — open `gui/canvas.c` and look at how `rows_per_band` is arrived at. Then the consequence: which traffic class cannot take it, and what rule you derive from that for protocols of your own. Finally the decision: would you swap the solder bridges? Agreeing is not required — using the facts is, and so is naming a condition under which the other choice wins.
+## Your three tasks
 
-**Where you do this:**
-- Open a file: `Ctrl`/`Cmd`+`P`.
-- Open a terminal: menu *Terminal → New Terminal*.
-- Open the board console: `F1`, then *CaDS Board: Konsole öffnen*.
-- Build: menu *Terminal → Run Build Task…*.
+All three are free-text questions. They are at the bottom of the step text, the tab in the middle; each has an answer field and a **Check** button beside it. **Run all checks** at the top of that same tab grades all three at once. If one stays red, the **Show hint** button on that same task helps; its first tier asks about what most often goes wrong.
+
+<!-- SHOT: m7-eval-three-tasks | Step-text tab in the middle, at the bottom the three free-text tasks with answer field, Check button and Show hint button -->
+
+1. **The mechanism.** Why is the blackout bounded to one band rather than to a redraw? Take the computation from `gui/canvas.c` and say where the bus claim and release sit.
+2. **The consequence.** Which traffic class cannot take the blackout, and what rule do you derive from that for protocols of your own?
+3. **The decision.** Would you swap the solder bridges? Agreeing is not required — using the facts is, and so is naming a condition under which the other choice wins.
+
+To jump to another step in between, press **`F1`**, type `Zu Schritt springen` and press Enter. `Ctrl`/`Cmd`+`Shift`+`P` opens the palette too, but a browser often swallows it; **if it does not react at all, the browser swallowed the shortcut** — press `F1`. The course tree on the left in the side bar, behind the graduation-cap icon of the outermost bar, does the same with the mouse.
+
+The interface is in English while the course text is German; the tutor's own commands, by contrast, are German, so `Zu Schritt springen` really is spelled that way.

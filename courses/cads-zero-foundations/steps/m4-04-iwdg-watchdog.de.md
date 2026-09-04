@@ -25,9 +25,10 @@ tasks:
 misconceptions:
   - { pattern: "reset cause: IWDG watchdog", question: { en: "The board says the watchdog reset it. Does that make this boot clean or suspect?", de: "Das Board meldet einen Watchdog-Reset. Ist dieser Boot damit sauber oder verdächtig?" }, hints: [ { en: "Something stopped the tick from reaching the watchdog for two whole seconds - is that ever normal here?", de: "Etwas hat den Tick zwei ganze Sekunden lang nicht bis zum Watchdog kommen lassen - ist das hier je normal?" }, { en: "Read on past the reset-cause line: the same E output lists the forensic ring underneath it.", de: "Lies über die Reset-Ursachen-Zeile hinaus: dieselbe E-Ausgabe listet darunter den Forensik-Ring." }, { en: "A record written shortly before the reset survives in CCM, so the reason string that preceded the reset is usually still readable.", de: "Ein kurz vor dem Reset geschriebener Datensatz überlebt im CCM, die Grundzeichenkette vor dem Reset ist also meist noch lesbar." } ] }
 socratic:
-  - { trigger: "task:reset-cause:failed", question: { en: "Did E produce any output at all, or is the board still inside the app tree that ignores plain typed bytes?", de: "Hat E überhaupt eine Ausgabe erzeugt, oder steckt das Board noch im App-Baum, der einfach getippte Bytes ignoriert?" }, hints: [ { en: "No echo at all usually means the prompt is not the thing listening right now.", de: "Gar kein Echo heißt meistens, dass gerade nicht der Prompt zuhört." }, { en: "Send scripts/board_key.py quit from the terminal, then let the check run again.", de: "Sende scripts/board_key.py quit aus dem Terminal, dann lass den Check erneut laufen." }, { en: "The reset-cause line is the first thing E prints, before the ring - if you see ring records but no cause line, the output was truncated at the top.", de: "Die Reset-Ursachen-Zeile ist das Erste, was E druckt, noch vor dem Ring - siehst du Ring-Datensätze, aber keine Ursachenzeile, wurde die Ausgabe oben abgeschnitten." } ] }
+  - { trigger: "task:reset-cause:failed", question: { en: "Did E produce any output at all, or is the board still inside the app tree that ignores plain typed bytes?", de: "Hat E überhaupt eine Ausgabe erzeugt, oder steckt das Board noch im App-Baum, der einfach getippte Bytes ignoriert?" }, hints: [ { en: "No echo at all usually means the prompt is not the thing listening right now.", de: "Gar kein Echo heißt meistens, dass gerade nicht der Prompt zuhört." }, { en: "Open a terminal at the bottom (menu icon with three lines at the top left, then Terminal, then New Terminal), run python3 scripts/board_key.py quit there, then let the check run again.", de: "Öffne unten ein Terminal (Symbol mit den drei Strichen oben links, dann Terminal, dann New Terminal), führe dort python3 scripts/board_key.py quit aus, dann lass den Check erneut laufen." }, { en: "The reset-cause line is the first thing E prints, before the ring - if you see ring records but no cause line, the output was truncated at the top.", de: "Die Reset-Ursachen-Zeile ist das Erste, was E druckt, noch vor dem Ring - siehst du Ring-Datensätze, aber keine Ursachenzeile, wurde die Ausgabe oben abgeschnitten." } ] }
   - { trigger: "question:iwdg-period:weak", question: { en: "What does a prescaler of /64 do to the 32 kHz before the counter ever sees it?", de: "Was macht ein Prescaler von /64 mit den 32 kHz, bevor der Zähler sie überhaupt sieht?" }, hints: [ { en: "Are you dividing the clock first and then counting, or counting at the raw clock rate?", de: "Teilst du den Takt zuerst und zählst dann, oder zählst du mit dem rohen Takt?" }, { en: "Read the comment block above the two defines in targets/itsboard/hal/hal_watchdog.c; it walks the same two steps but arrives at a different number - do the arithmetic yourself before you believe it.", de: "Lies den Kommentarblock über den beiden Defines in targets/itsboard/hal/hal_watchdog.c; er geht dieselben zwei Schritte durch, kommt aber auf eine andere Zahl - rechne selbst nach, bevor du sie glaubst." }, { en: "One counting step lasts as long as one cycle of the already-divided clock; the reload number only says how many steps it takes to reach zero.", de: "Ein Zählschritt dauert so lange wie eine Schwingung des bereits geteilten Takts; die Reload-Zahl sagt nur, wie viele Schritte bis null nötig sind." } ] }
 ---
+
 ## Lernziel
 
 Verstehe, wie der unabhängige Watchdog aus „das Board hängt mit roter LED“ ein „das Board erholt sich selbst, und die Ursache ist danach noch lesbar“ macht.
@@ -39,45 +40,53 @@ Verstehe, wie der unabhängige Watchdog aus „das Board hängt mit roter LED“
 1. **`cads_hal_watchdog_init()` / `cads_hal_watchdog_feed()`.** `modules/kernel/src/kernel.c` schärft den IWDG beim Scheduler-Start und füttert ihn aus `vApplicationTickHook()` — einmal je SysTick bei 1 kHz — **nie aus einer Anwendungs-Task**.
 2. **`cads_hal_reset_cause()`.** Dekodiert `RCC->CSR`, bevor etwas es löscht, sodass ein vom Watchdog verursachter Reset von einem Power-on oder einem Debugger-Reset unterscheidbar ist.
 
-Eine Feinheit, die beim Lesen auffällt: `cads_hal_watchdog_init()` nimmt zwar einen Timeout-Parameter (`CADS_WATCHDOG_TIMEOUT_MS` aus `kernel.c`), verwirft ihn aber mit `(void)timeout_ms` und benutzt feste Prescaler- und Reload-Werte. Die tatsächliche Periode steht also nicht im Aufrufer, sondern in der Hardwarekonfiguration weiter unten — und die rechnest du gleich selbst nach.
+Eine Feinheit: `cads_hal_watchdog_init()` nimmt einen Timeout-Parameter (`CADS_WATCHDOG_TIMEOUT_MS`), verwirft ihn mit `(void)timeout_ms` und benutzt feste Werte. Die Periode steht also nicht im Aufrufer, sondern in der Hardwarekonfiguration — und die rechnest du gleich nach.
 
 ## Warum der Tick, nicht eine Task
 
-Das Füttern aus dem Tick ist eine bewusste Scope-Entscheidung. Es beweist, dass das Interrupt-System lebt, und erholt sich zuverlässig von einem echten Lockup — einer HardFault-Rekursion oder global gesperrten Interrupts — mit **null** Risiko eines Fehl-Resets während einer legitimen langen Operation. Ein 448-ms-Vollbild-Flush oder eine minutenlange Explorer-Demo halten den Tick nie an, können ihn also nie auslösen.
-
-Die ehrliche Grenze: er fängt **nicht** eine kooperative Task, die ewig auf etwas wartet, das nie eintritt, während Interrupts weiterlaufen. Das ist ein anderes, schwereres Problem, und der HAL-Kommentar sagt das, statt anderes anzudeuten.
+Das Füttern aus dem Tick beweist, dass das Interrupt-System lebt, und erholt sich von einem echten Lockup — HardFault-Rekursion, global gesperrte Interrupts — mit **null** Risiko eines Fehl-Resets: ein 448-ms-Vollbild-Flush hält den Tick nie an. Die ehrliche Grenze: er fängt **nicht** eine kooperative Task, die ewig auf etwas wartet, das nie eintritt.
 
 ## Was die Hardware tut
 
 `targets/itsboard/hal/hal_watchdog.c` schreibt nur IWDG, DBGMCU und `RCC->CSR` — kein GPIO, also greift keine Pin-Regel aus `docs/SAFETY.md`. Drei Dinge zählen:
 
-- **Einbahnstraße.** Einmal mit Schlüssel `0xCCCC` gestartet, lässt sich der IWDG per Software nicht stoppen, auch nicht per Peripherie-Reset — nur durch ein volles Power-on. Getaktet wird er vom **LSI**, dem chipeigenen RC-Oszillator mit nominell **32 kHz**, völlig unabhängig von PLL und HSE. Konfiguriert ist er mit Prescaler **`/64`** (`CADS_IWDG_PRESCALER_BITS`) und Reload **1000** (`CADS_IWDG_RELOAD_VALUE`). Wie lang die Periode damit ist, ist deine zweite Aufgabe; vergleiche das Ergebnis anschließend mit dem 448-ms-Flush.
-- **Eingefroren beim Debug-Halt.** `DBGMCU->APB1FZ |= DBGMCU_APB1_FZ_DBG_IWDG_STOP`, sodass GDB an einer lebenden Panic nie gegen einen überraschenden Reset antritt. Damit bleibt „hält mit Debugger nützlich an“ aus `docs/SAFETY.md` wahr. (Es erklärt auch einen echten Fehler aus M7: ein *Reset* beim Flashen schärft diesen Watchdog neu, bevor der Kern wieder angehalten ist.)
-- **Haftende Flags.** Die Reset-Ursachen-Bits in `RCC->CSR` bleiben bis zum Löschen. `cads_hal_reset_cause()` liest sie genau einmal je Boot — `RCC_CSR_IWDGRSTF` wird zu `CadsResetWatchdogIndependent`, POR/BOR zu `CadsResetPowerOn`, NRST zu `CadsResetPin` — löscht sie per `RMVF` und liefert bei jedem späteren Aufruf die gecachte Antwort.
-
-Der LSI ist übrigens ein RC-Oszillator ohne enge Toleranzangabe. Anders als beim HSE liest die Firmware nirgends nach, welche Frequenz er tatsächlich erreicht; die berechnete Periode ist deshalb ein Nennwert, kein garantierter. Für einen Watchdog, der um den Faktor vier über der längsten normalen Operation liegt, reicht das — und genau deshalb ist der Abstand so großzügig gewählt.
+- **Einbahnstraße.** Einmal mit Schlüssel `0xCCCC` gestartet, lässt sich der IWDG per Software nicht stoppen — nur durch ein volles Power-on. Getaktet wird er vom **LSI**, dem chipeigenen RC-Oszillator mit nominell **32 kHz**, unabhängig von PLL und HSE. Konfiguriert ist er mit Prescaler **`/64`** (`CADS_IWDG_PRESCALER_BITS`) und Reload **1000** (`CADS_IWDG_RELOAD_VALUE`). Der LSI hat keine enge Toleranzangabe und wird nirgends zurückgelesen: die Periode ist ein Nennwert, kein garantierter. Wie lang sie ist, ist deine zweite Aufgabe.
+- **Eingefroren beim Debug-Halt.** `DBGMCU->APB1FZ |= DBGMCU_APB1_FZ_DBG_IWDG_STOP`, sodass GDB an einer lebenden Panic nie gegen einen überraschenden Reset antritt.
+- **Haftende Flags.** Die Reset-Ursachen-Bits in `RCC->CSR` bleiben bis zum Löschen. `cads_hal_reset_cause()` liest sie genau einmal je Boot — `RCC_CSR_IWDGRSTF` wird zu `CadsResetWatchdogIndependent` —, löscht sie per `RMVF` und liefert später die gecachte Antwort.
 
 ## Ein Kommentar, der nicht zu seinen eigenen Zahlen passt
 
-Rechne nicht ab, sondern nach. Der Kommentar über den beiden Defines in `targets/itsboard/hal/hal_watchdog.c` nennt zwei Werte:
+Rechne nicht ab, sondern nach. **Öffne die Datei zuerst selbst:** drücke `Strg`/`Cmd`+`P`, tippe `hal_watchdog.c`, Enter — sie erscheint als Reiter **in der Mitte** des Fensters. Ohne Tastatur geht es über das oberste Symbol der schmalen Leiste ganz links (den Datei-Explorer) und durch den Baum. Der Kommentar steht direkt über den beiden Defines und nennt zwei Werte:
 
 > `IWDG_PR prescaler /64 (PR=100b) gives a ~2.048 ms tick at nominal 32 kHz;`
 > `IWDG_RLR=1000 (max 0xFFF=4095) gives ~2.048 s.`
 
-Derselbe Kommentar nennt als Nennfrequenz des LSI 32 kHz. Aus 32 kHz und `/64` folgen diese beiden Zahlen aber nicht. Welche Zahl aus den angegebenen Werten folgt, welche nicht, und welche LSI-Frequenz man voraussetzen müsste, damit der Kommentar recht behielte — das ist deine zweite Aufgabe. Öffne die Datei und lies den Kommentar im Original nach, bevor du ihn beurteilst; die zwei Zeilen oben sind ein Zitat, keine Zusammenfassung.
+Derselbe Kommentar nennt als Nennfrequenz des LSI 32 kHz. Aus 32 kHz und `/64` folgen diese beiden Zahlen aber nicht. Welche folgt, welche nicht, und welche LSI-Frequenz man voraussetzen müsste, damit der Kommentar recht behielte — das ist deine zweite Aufgabe. Die zwei Zeilen oben sind ein Zitat: lies sie im Original nach, bevor du sie beurteilst. Eine Zahl in einem Kommentar ist eine Behauptung wie jede andere.
 
-Das ist kein konstruiertes Beispiel: eine Zahl in einem Kommentar ist eine Behauptung wie jede andere, und der Kurs übernimmt sie nicht ungeprüft, nur weil sie im Quelltext steht.
+## Aufgabe 1 — die Reset-Ursache dieses Boots lesen
 
-## Wo du es siehst
+**Schritt 1 — die Board-Konsole öffnen.** Drücke **`F1`**, tippe `CaDS Board: Konsole öffnen`, Enter. **Unten** im Terminal-Bereich erscheint ein Terminal namens `CaDS Board Console`, die serielle Konsole des Boards mit 115200 Baud. Der Bereich trägt die Reiter `PROBLEMS`, `OUTPUT`, `DEBUG CONSOLE`, `TERMINAL`, `PORTS`, `MEMORY`, `XRTOS`; `Strg`/`Cmd`+`J` klappt ihn auf und wieder zu. Es dauert eine Sekunde.
 
-Der Explorer-Befehl `E` druckt `# this boot's reset cause: ...`, gefolgt vom Forensik-Ring aus M3-03. Zusammen beantworten sie „folgte dieser Boot auf einen Absturz?“, bevor du ihn für sauber hältst. Ein Ring, der über einen guten Lauf nicht wächst, beweist, dass alte Einträge inert sind — nicht, dass ein Fehler wiederkehrt.
+<!-- SHOT: m4-palette-board-console | Die geoeffnete Befehlspalette mit eingetipptem CaDS Board und der gefilterten Liste der Board-Befehle -->
 
-## Deine Aufgabe
+**Schritt 2 — das Board an den Prompt bringen.** Ein frisch geflashtes Board startet im Touchscreen-App-Baum und überhört einzelne Buchstaben. Öffne darum vorher ein Terminal (**☰ → `Terminal` → `New Terminal`**; ☰ ist das Symbol mit den drei Strichen ganz oben links, eine sichtbare Menüleiste gibt es nicht) und führe einmal aus:
 
-Öffne die Board-Konsole, damit du mitliest — senden musst du nichts: der Knopf **Prüfen** an dieser Aufgabe schickt `E` selbst und wartet auf die Antwort. Lies die Reset-Ursache dieses Boots. Steht das Board im App-Baum, führe vorher einmal `python3 scripts/board_key.py quit` in einem Terminal aus. Rechne dann aus den drei Hardwarewerten oben aus, wie lang die Watchdog-Periode ist, entscheide den Widerspruch zum Kommentar in `targets/itsboard/hal/hal_watchdog.c`, und vergleiche das Ergebnis mit der längsten normalen Blockierspanne der Firmware.
+```bash
+python3 scripts/board_key.py quit
+```
 
-**Wo du das machst:**
-- Datei öffnen: `Strg`/`Cmd`+`P`.
-- Terminal öffnen: Menü *Terminal → New Terminal*.
-- Board-Konsole öffnen: `F1`, dann *CaDS Board: Konsole öffnen*.
-- Bauen: Menü *Terminal → Run Build Task…*.
+Das Arbeitsverzeichnis ist die Projektwurzel, es dauert unter einer Sekunde.
+
+**Schritt 3 — mitlesen.** Den Befehl `E` tippst du **nicht** selbst: der Knopf **Prüfen** an dieser Aufgabe sendet ihn, du liest nur die Antwort mit. Der Knopf sitzt unten im Steptext, dem Reiter `CaDS Tutor: Der unabhängige Watchdog und die Reset-Ursache` **in der Mitte**; oben in diesem Reiter liegt außerdem **Run all checks**. Die Antwort kommt in unter einer Sekunde; ihre erste Zeile lautet `# this boot's reset cause: ...`, darunter folgt der Forensik-Ring aus M3-03.
+
+<!-- SHOT: m4-console-reset-cause | Das Terminal CaDS Board Console mit der Zeile this boot reset cause und darunter dem Forensik-Ring | HARDWARE -->
+
+## Aufgabe 2 — die Periode nachrechnen
+
+Rechne aus den drei Hardwarewerten oben aus, wie lang die Watchdog-Periode ist, entscheide den Widerspruch zum Kommentar, und vergleiche das Ergebnis mit der längsten normalen Blockierspanne der Firmware.
+
+## Wenn die Bedienung klemmt
+
+- **Der Befehl lief, aber die Ausgabe wird im falschen Fenster gesucht.** Sie steht nicht im Steptext und nicht im Editor, sondern unten im Terminal-Bereich im Terminal `CaDS Board Console` — `Strg`/`Cmd`+`J` klappt den Bereich auf, rechts in der Liste wählst du das richtige Terminal.
+- **Das Terminal geschlossen und damit den Vorgang beendet.** Das Kreuz am Terminal beendet den Prozess darin und trennt die Konsole — zum Wegklappen `Strg`/`Cmd`+`J` nehmen.
+- **Die Palette reagiert nicht auf das Tastenkürzel.** Der Browser hat `Strg`/`Cmd`+`Umschalt`+`P` abgefangen — nimm `F1`, oder den Weg über **☰ → `Terminal`**.

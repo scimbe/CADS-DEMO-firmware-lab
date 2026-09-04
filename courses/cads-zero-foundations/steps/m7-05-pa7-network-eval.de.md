@@ -35,13 +35,17 @@ Bewerte mit den eigenen Messungen des Projekts, was der PA7-Zeitschlitz zwischen
 
 ## Den Zwang kennst du
 
-Dass `SPI1_MOSI` und `ETH_RMII_CRS_DV` derselbe Pin PA7 sind, dass eine Alternativfunktion einen Pin zu einer Zeit besitzt und dass die Firmware das mit `cads_hal_spi_claim_bus()` / `release_bus()` pro Blit arbitriert, steht in **M3-05** und wird in **M4-03** zur Scheduler-Frage. Die Zahlentabelle — Band, Vollbild, längster Ausfall bei `/16` und `/8` — steht in `docs/explanation/pa7-conflict.md`, im Abschnitt über den längsten ununterbrochenen Ausfall; dort und nirgends sonst. `docs/reference/measurements.md` trägt daneben die gemessenen Vollbildzeiten und Durchsätze je SPI-Teiler (448 233 µs bei `/16`, 229 526 µs bei `/8`), aber keine Bandzeile. Hier wird das alles **benutzt**, nicht wiederholt: schlag die Zahlen dort nach, wenn du sie brauchst.
+Dass `SPI1_MOSI` und `ETH_RMII_CRS_DV` derselbe Pin PA7 sind, dass eine Alternativfunktion einen Pin zu einer Zeit besitzt und dass die Firmware das mit `cads_hal_spi_claim_bus()` / `release_bus()` pro Blit arbitriert, steht in **M3-05** und wird in **M4-03** zur Scheduler-Frage. Die Zahlentabelle — Band, Vollbild, längster Ausfall bei `/16` und `/8` — steht in `docs/explanation/pa7-conflict.md`, im Abschnitt über den längsten ununterbrochenen Ausfall; dort und nirgends sonst. `docs/reference/measurements.md` trägt daneben die gemessenen Vollbildzeiten und Durchsätze je SPI-Teiler (448 233 µs bei `/16`, 229 526 µs bei `/8`), aber keine Bandzeile. Hier wird das alles **benutzt**, nicht wiederholt.
+
+Beide Dokumente öffnest du so: drücke `Strg`/`Cmd`+`P`, tippe `docs/explanation/pa7-conflict.md` und drücke Enter, dann dasselbe noch einmal mit `docs/reference/measurements.md`. Ohne Tastatur: ganz links in der schmalen Symbolleiste das oberste Symbol (der Datei-Explorer), dann durch den Baum klicken. Jede Datei öffnet sich als eigener Reiter in der Mitte, neben dem Steptext-Reiter `CaDS Tutor: <Titel>`; oben an der Reiterleiste wechselst du zwischen ihnen. `Strg`/`Cmd`+`F` sucht innerhalb der geöffneten Datei.
 
 Neu ist die Frage: was kostet dieser Zwang das **Netzwerk**, und was folgt daraus für alles, was du auf diesem Board baust?
 
 ## Die Größe, über die man nachdenkt
 
-Solange das Display PA7 besitzt, ist der Empfänger des MAC aus. Die interessante Zahl ist deshalb nicht die gesamte Neuzeichenzeit, sondern der **längste ununterbrochene Ausfall** — und die beiden sind nicht dasselbe. Warum sie auseinanderfallen, liegt im Flush-Pfad (`gui/canvas.c`) und ist die erste Frage dieses Steps.
+Solange das Display PA7 besitzt, ist der Empfänger des MAC aus. Die interessante Zahl ist deshalb nicht die gesamte Neuzeichenzeit, sondern der **längste ununterbrochene Ausfall** — und die beiden sind nicht dasselbe. Warum sie auseinanderfallen, liegt im Flush-Pfad und ist die erste Frage dieses Steps.
+
+Sieh dir den Pfad selbst an: drücke `Strg`/`Cmd`+`P`, tippe `gui/canvas.c` und drücke Enter. Suche in der geöffneten Datei mit `Strg`/`Cmd`+`F` nach `rows_per_band` — die Zeile steht in `cads_canvas_flush()`, und sie **rechnet** den Wert, statt ihn festzuverdrahten. Genau diese Rechnung trägt die Antwort.
 
 Zur Einordnung: 22,5 ms sind auf einem 100-Mbit-Link grob 280 KB Leitungszeit. Kleinere Bänder wurden erwogen und verworfen, weil jedes Band einen Bus-Claim, einen MAC-Stop/Start und eine Fenstersetz-Sequenz kostet — das Halbieren des Bands verdoppelt diesen Aufwand, um einen Ausfall zu halbieren, den nicht jede Verkehrsart überhaupt bemerkt. Welche ihn bemerkt, ist die zweite Frage.
 
@@ -49,12 +53,18 @@ Zur Einordnung: 22,5 ms sind auf einem 100-Mbit-Link grob 280 KB Leitungszeit. K
 
 UM1974 §6.9 dokumentiert die Lötbrücken SB121/SB122: ihr Tausch legt D11 auf PB5, lässt PA7 der PHY, und `-DCADS_SPI_MOSI_ON_PB5=1` kompiliert jede Arbitrierung weg — Display und Ethernet liefen dann gleichzeitig mit voller Geschwindigkeit. **Entschieden am 2026-08-18: das Board bleibt unverändert.** Die Gründe stehen unter der Entscheidungsüberschrift in `docs/explanation/pa7-conflict.md` und in den Resolved decisions von `docs/ROADMAP.md`. Das Projekt behandelt den Zeitschlitz als Zwang, um den es herum entwirft, nicht als einen, den es bloß erträgt.
 
-## Deine Aufgabe
+Dieser Step verlangt **keine Hardware-Änderung**: du sollst die Entscheidung bewerten, nicht löten. Es ist auch nichts zu bauen und nichts zu flashen.
 
-Drei getrennte Urteile. Erst der Mechanismus: warum der Ausfall auf ein Band begrenzt ist und nicht auf den Neuaufbau — öffne dafür `gui/canvas.c` und sieh dir an, wie `rows_per_band` zustande kommt. Dann die Folge: welche Verkehrsart ihn nicht verträgt und welche Regel du daraus für eigene Protokolle ableitest. Zuletzt die Entscheidung: würdest du die Lötbrücken tauschen? Zustimmung ist nicht verlangt — die Nutzung der Fakten schon, und eine Bedingung, unter der die andere Wahl gewinnt.
+## Deine drei Aufgaben
 
-**Wo du das machst:**
-- Datei öffnen: `Strg`/`Cmd`+`P`.
-- Terminal öffnen: Menü *Terminal → New Terminal*.
-- Board-Konsole öffnen: `F1`, dann *CaDS Board: Konsole öffnen*.
-- Bauen: Menü *Terminal → Run Build Task…*.
+Alle drei sind Freitextfragen. Sie stehen unten im Steptext, dem Reiter in der Mitte; jede hat ein Antwortfeld und daneben einen Knopf **Prüfen**. Der Knopf **Run all checks** oben im selben Reiter bewertet alle drei auf einmal. Bleibt eine rot, hilft der Knopf **Hinweis anzeigen** an derselben Aufgabe; die erste Stufe fragt nach dem, was am häufigsten schiefgeht.
+
+<!-- SHOT: m7-eval-three-tasks | Steptext-Reiter in der Mitte, unten die drei Freitextaufgaben mit Antwortfeld, Knopf Pruefen und Knopf Hinweis anzeigen -->
+
+1. **Der Mechanismus.** Warum ist der Ausfall auf ein Band begrenzt und nicht auf den Neuaufbau? Nimm die Rechnung aus `gui/canvas.c` und sag, wo Claim und Release des Busses sitzen.
+2. **Die Folge.** Welche Verkehrsart übersteht den Ausfall nicht, und welche Regel leitest du daraus für eigene Protokolle ab?
+3. **Die Entscheidung.** Würdest du die Lötbrücken tauschen? Zustimmung ist nicht verlangt — die Nutzung der Fakten schon, und eine Bedingung, unter der die andere Wahl gewinnt.
+
+Willst du zwischendurch in einen anderen Step springen, drücke **`F1`**, tippe `Zu Schritt springen` und drücke Enter. `Strg`/`Cmd`+`Umschalt`+`P` öffnet die Palette auch, wird im Browser aber oft abgefangen; **reagiert sie gar nicht, hat der Browser das Tastenkürzel abgefangen** — nimm `F1`. Der Kursbaum links in der Seitenleiste, hinter dem Doktorhut-Symbol der Leiste ganz außen, tut dasselbe mit der Maus.
+
+Die Bedienoberfläche ist englisch, der Kurstext deutsch; die Befehle des Tutors selbst sind dagegen deutsch, `Zu Schritt springen` heißt also wirklich so.
