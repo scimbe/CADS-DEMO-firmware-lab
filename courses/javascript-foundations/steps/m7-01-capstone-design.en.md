@@ -92,7 +92,7 @@ Predict [`examples/m7-pipeline.js`](file:examples/m7-pipeline.js) and run it. Th
 
 ## Running this step
 
-Open a terminal with **Terminal > New Terminal** (or press **F1** and type `Terminal: Create New Terminal`). It opens in the panel at the bottom of the window, and its prompt has to end in `javascript-foundations`. Then run:
+Open a terminal with **Terminal > New Terminal** (or press **F1** and type `>Terminal: Create New Terminal`). It opens in the panel at the bottom of the window, and its prompt has to end in `javascript-foundations`. Then run:
 
 ```bash
 node examples/m7-pipeline.js

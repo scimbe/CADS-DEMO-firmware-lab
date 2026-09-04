@@ -72,7 +72,7 @@ export class ValidationError extends Error {
 Three rules are doing the work:
 
 1. **`extends Error`** is what makes `err instanceof Error` true. Without it, callers that check for an `Error` will not recognise your object.
-2. **`super(message)` comes first.** In a derived constructor, `this` does not exist until `super` has run; touching it earlier is a `ReferenceError: Must call super constructor …`.
+2. **`super(message)` comes first.** In a derived constructor, `this` does not exist until `super` has run; touching it earlier is a `>ReferenceError: Must call super constructor …`.
 3. **`this.field`** is the point of the whole exercise. The message is for a human; `field` is for the program. A caller can highlight the right input box without parsing English.
 
 Callers then choose their reaction by type:
@@ -99,7 +99,7 @@ Remember [M1](step:m1-03-coercion-nan) here: `typeof age === "number"` is true f
 
 ## Running this step
 
-Open a terminal with **Terminal > New Terminal** (or press **F1** and type `Terminal: Create New Terminal`). It opens in the panel at the bottom of the window, and its prompt has to end in `javascript-foundations`. Then run:
+Open a terminal with **Terminal > New Terminal** (or press **F1** and type `>Terminal: Create New Terminal`). It opens in the panel at the bottom of the window, and its prompt has to end in `javascript-foundations`. Then run:
 
 ```bash
 node --test test/m2-04-error-objects.test.js

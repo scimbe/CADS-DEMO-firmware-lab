@@ -101,7 +101,7 @@ Schlägt einer deiner Tests gegen deine eigene Umsetzung fehl, hast du etwas gef
 
 ## So führst du diesen Step aus
 
-Öffne ein Terminal mit **Terminal > New Terminal** (oder drücke **F1** und tippe `Terminal: Create New Terminal`). Es öffnet sich im Panel am unteren Fensterrand, und sein Prompt muss auf `javascript-foundations` enden. Führe dann aus:
+Öffne ein Terminal mit **Terminal > New Terminal** (oder drücke **F1** und tippe `>Terminal: Create New Terminal`). Es öffnet sich im Panel am unteren Fensterrand, und sein Prompt muss auf `javascript-foundations` enden. Führe dann aus:
 
 ```bash
 node --test test/m7-02-capstone-build.test.js

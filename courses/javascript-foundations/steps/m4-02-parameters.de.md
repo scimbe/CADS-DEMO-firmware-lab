@@ -84,7 +84,7 @@ Der alte Weg war das `arguments`-Objekt, und MDNs Kapitel [Functions](https://de
 
 ## So führst du diesen Step aus
 
-Öffne ein Terminal mit **Terminal > New Terminal** (oder drücke **F1** und tippe `Terminal: Create New Terminal`). Es öffnet sich im Panel am unteren Fensterrand, und sein Prompt muss auf `javascript-foundations` enden. Führe dann aus:
+Öffne ein Terminal mit **Terminal > New Terminal** (oder drücke **F1** und tippe `>Terminal: Create New Terminal`). Es öffnet sich im Panel am unteren Fensterrand, und sein Prompt muss auf `javascript-foundations` enden. Führe dann aus:
 
 ```bash
 node --test test/m4-02-parameters.test.js

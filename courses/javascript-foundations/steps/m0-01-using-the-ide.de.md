@@ -54,7 +54,7 @@ Dieser Kurs setzt keine Programmiererfahrung und keinen vorherigen Kurs voraus; 
 
 ## Das tust du zuerst
 
-**1. Terminal öffnen.** Menü **Terminal > New Terminal**, oder **F1** drücken und `Terminal: Create New Terminal` tippen. Es öffnet sich im Panel unten. Prüf, wo es steht:
+**1. Terminal öffnen.** Menü **Terminal > New Terminal**, oder **F1** drücken und `>Terminal: Create New Terminal` tippen. Es öffnet sich im Panel unten. Prüf, wo es steht:
 
 ```bash
 pwd

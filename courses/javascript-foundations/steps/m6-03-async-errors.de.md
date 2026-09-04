@@ -102,7 +102,7 @@ Der Test benutzt `assert.rejects`, das prüft, dass ein async-Aufruf ablehnt, un
 
 ## So führst du diesen Step aus
 
-Öffne ein Terminal mit **Terminal > New Terminal** (oder drücke **F1** und tippe `Terminal: Create New Terminal`). Es öffnet sich im Panel am unteren Fensterrand, und sein Prompt muss auf `javascript-foundations` enden. Führe dann aus:
+Öffne ein Terminal mit **Terminal > New Terminal** (oder drücke **F1** und tippe `>Terminal: Create New Terminal`). Es öffnet sich im Panel am unteren Fensterrand, und sein Prompt muss auf `javascript-foundations` enden. Führe dann aus:
 
 ```bash
 node --test test/m6-03-async-errors.test.js

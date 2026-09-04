@@ -72,7 +72,7 @@ export class ValidationError extends Error {
 Drei Regeln leisten die Arbeit:
 
 1. **`extends Error`** macht `err instanceof Error` wahr. Ohne das erkennen Aufrufer, die auf einen `Error` prüfen, dein Objekt nicht.
-2. **`super(message)` kommt zuerst.** In einem abgeleiteten Konstruktor existiert `this` erst, wenn `super` gelaufen ist; ein früherer Zugriff ergibt `ReferenceError: Must call super constructor …`.
+2. **`super(message)` kommt zuerst.** In einem abgeleiteten Konstruktor existiert `this` erst, wenn `super` gelaufen ist; ein früherer Zugriff ergibt `>ReferenceError: Must call super constructor …`.
 3. **`this.field`** ist der eigentliche Zweck der Übung. Die Meldung ist für Menschen; `field` ist für das Programm. Ein Aufrufer kann damit das richtige Eingabefeld markieren, ohne englischen Text zu zerlegen.
 
 Aufrufer wählen ihre Reaktion dann nach dem Typ:
@@ -99,7 +99,7 @@ Denk hier an [M1](step:m1-03-coercion-nan): `typeof age === "number"` ist auch f
 
 ## So führst du diesen Step aus
 
-Öffne ein Terminal mit **Terminal > New Terminal** (oder drücke **F1** und tippe `Terminal: Create New Terminal`). Es öffnet sich im Panel am unteren Fensterrand, und sein Prompt muss auf `javascript-foundations` enden. Führe dann aus:
+Öffne ein Terminal mit **Terminal > New Terminal** (oder drücke **F1** und tippe `>Terminal: Create New Terminal`). Es öffnet sich im Panel am unteren Fensterrand, und sein Prompt muss auf `javascript-foundations` enden. Führe dann aus:
 
 ```bash
 node --test test/m2-04-error-objects.test.js
