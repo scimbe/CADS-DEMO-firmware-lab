@@ -56,7 +56,10 @@ Vier Bereiche, mehr brauchst du nicht.
 
 Alle drei führen zum selben Ergebnis. Nimm den ersten; die anderen zwei sind dein Ausweg, wenn er nicht funktioniert.
 
-**Weg 1 — die Befehlspalette.** Drücke **`F1`**. Oben in der Mitte öffnet sich ein Eingabefeld: das ist die Befehlspalette. Tippe dort einen Befehlsnamen, und die Liste filtert mit. Enter führt den markierten Eintrag aus.
+**Weg 1 — die Befehlspalette.** Drücke **`F1`**. Oben in der Mitte öffnet sich ein Eingabefeld: das ist die Befehlspalette. Tippe zuerst ein `>` und dann den Befehlsnamen: Das vorangestellte Zeichen schaltet die Palette in
+den Befehlsmodus, und die Liste filtert mit. Enter führt den markierten Eintrag aus. Ohne das `>`
+sucht die Palette nach Dateinamen und antwortet *Keine Übereinstimmung*, was aussieht, als gäbe es
+den Befehl nicht. Die Palette merkt sich außerdem die zuletzt benutzte Eingabeart.
 
 ![Die geöffnete Befehlspalette mit eingetipptem Tasks: Run Task und der gefilterten Trefferliste](palette-open.png)
 

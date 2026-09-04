@@ -56,7 +56,10 @@ Four areas, and you need no more than these.
 
 All three reach the same result. Use the first; the other two are your way out when it does not work.
 
-**Way 1 — the command palette.** Press **`F1`**. An input box opens at the top centre: that is the command palette. Type a command name there and the list filters as you type. Enter runs the highlighted entry.
+**Way 1 — the command palette.** Press **`F1`**. An input box opens at the top centre: that is the command palette. Type `>` first, then the command name: the leading angle bracket puts the palette in command
+mode, and the list filters as you type. Enter runs the highlighted entry. Without the `>` the
+palette searches file names instead and answers *No matching results*, which looks as though the
+command did not exist. The palette also remembers the mode you used last.
 
 ![The command palette open, with Tasks: Run Task typed and the filtered list of matches](palette-open.png)
 
