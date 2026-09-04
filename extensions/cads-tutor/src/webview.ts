@@ -57,6 +57,14 @@ export interface TaskView {
   needsAnswer: boolean;
   /** `manual` tasks (and `question` tasks without LLM) are confirmed by the student. */
   manual: boolean;
+  /**
+   * The rubric, shown as a self-check once an answer has been submitted and no
+   * model is available to grade it. Withheld before submission: it is the
+   * answer, and showing it first would turn the task into copying.
+   */
+  selfCheck?: string;
+  /** Nobody but the student verified this pass; it carries no mastery weight. */
+  selfReported?: boolean;
   /** true when the task's check runs automatically on save (fileMatches & co.). */
   live: boolean;
   /** Buttons that perform what the task asks for, derived from its check type. */
@@ -343,8 +351,17 @@ function renderTask(t: TaskView, lang: Lang): string {
   // A predict task is run from its own "save prediction and run" button, so the
   // plain Check button would let the student skip the prediction.
   if (canCheck && !t.needsAnswer && !t.predict) buttons.push(`<button class="btn primary run-check" data-task="${escapeHtml(t.id)}">${s.check}</button>`);
-  if (t.manual) buttons.push(`<button class="btn confirm" data-task="${escapeHtml(t.id)}">${s.markDone}</button>`);
+  // A `question` without a model is confirmed only AFTER an answer exists, and
+  // the button says what the student is actually attesting to. Offering it
+  // beside "Submit answer" taught weaker students that it was the easier route.
+  if (t.manual && t.type !== "question") buttons.push(`<button class="btn confirm" data-task="${escapeHtml(t.id)}">${s.markDone}</button>`);
+  if (t.manual && t.type === "question" && t.selfCheck) buttons.push(`<button class="btn confirm" data-task="${escapeHtml(t.id)}">${s.selfCheckConfirm}</button>`);
   buttons.push(`<button class="btn hint-btn" data-task="${escapeHtml(t.id)}">${s.showHint}</button>`);
+  const self = t.selfCheck
+    ? `<div class="selfcheck"><div class="selfcheck-title">${escapeHtml(s.selfCheckTitle)}</div>
+       <div class="selfcheck-intro">${escapeHtml(s.selfCheckIntro)}</div>
+       <div class="selfcheck-rubric">${escapeHtml(t.selfCheck)}</div></div>`
+    : "";
   const hint = t.hint
     ? `<div class="hint"><div class="hint-tier">${escapeHtml(s.hintTier(t.hint.tier))}</div><div class="hint-q">${escapeHtml(t.hint.question)}</div><div class="hint-h">${escapeHtml(t.hint.hint)}</div></div>`
     : "";
@@ -352,12 +369,13 @@ function renderTask(t: TaskView, lang: Lang): string {
     <div class="task-head">
       <span class="task-icon" title="${escapeHtml(s.taskStatus[t.status])}">${STATUS_ICON[t.status]}</span>
       <span class="task-title">${escapeHtml(t.title)}</span>
-      <span class="task-type">${t.type}${t.live ? " · live" : ""}</span>
+      <span class="task-type">${t.type}${t.live ? " · live" : ""}${t.selfReported && t.status === "passed" ? ` · ${escapeHtml(s.selfReportedBadge)}` : ""}</span>
     </div>
     ${t.description ? `<div class="task-desc">${escapeHtml(t.description)}</div>` : ""}
     ${renderPredict(t, lang)}
     ${renderActions(t, lang)}
     ${answerBox}
+    ${self}
     <div class="task-msg">${t.message ? escapeHtml(t.message) : escapeHtml(s.taskStatus[t.status])}</div>
     <div class="row task-actions">${buttons.join(" ")}</div>
     <div class="task-hint">${hint}</div>
@@ -433,6 +451,10 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
   .ask-row { display: flex; gap: 0.5em; } .ask-row input { flex: 1; }
   .answer-box { margin-top: 0.6em; padding: 0.6em 0.8em; border-radius: 4px; border: 1px solid var(--vscode-panel-border); white-space: pre-wrap; } .answer-box[hidden] { display: none; }
   /* Addendum v1.1: scaffold badge, predict panel, recall and reflection cards. */
+  .selfcheck { margin-top: 0.6em; padding: 0.5em 0.7em; border-left: 3px solid var(--vscode-inputValidation-warningBorder, var(--vscode-panel-border)); background: var(--vscode-textBlockQuote-background); border-radius: 3px; }
+  .selfcheck-title { font-weight: 600; }
+  .selfcheck-intro { font-size: 0.92em; opacity: 0.85; margin: 0.2em 0 0.3em; }
+  .selfcheck-rubric { font-family: var(--vscode-editor-font-family); }
   .actions { margin-top: 0.5em; }
   .action-manual { font-size: 0.88em; opacity: 0.75; margin-top: 0.25em; }
   .howto { margin: 0.9em 0; border: 1px solid var(--vscode-panel-border); border-radius: 4px; padding: 0.4em 0.7em; }
