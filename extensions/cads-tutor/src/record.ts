@@ -90,7 +90,9 @@ function reachable(r: RecordEntry, s: ReturnType<typeof ui>): string {
   const level: CompetenceLevel = r.ceiling.level;
   const marks: string[] = [];
   if (r.ceiling.limitedByLlm) marks.push(s.ceilingMarkLlm);
-  if (r.ceiling.noLaterRecall) marks.push(s.ceilingMarkRecall);
+  // R11a.7c: terminal is a different marker from a gap, and the portal has to be
+  // able to tell them apart - one is the course's shape, the other its defect.
+  if (r.ceiling.noLaterRecall) marks.push(r.ceiling.terminal ? s.ceilingMarkTerminal : s.ceilingMarkRecall);
   return `${s.competenceLevel[level]}${marks.length ? ` (${marks.join(", ")})` : ""}`;
 }
 
@@ -169,7 +171,8 @@ export function objectiveRowText(course: Course, c: ObjectiveCompetence, lookups
   const ceiling = objectiveCeiling(course, c.objectiveId, lookups.hasLlm);
   const lines = [statement, `${s.recordColLevel}: ${s.competenceLevel[c.level]} — ${s.competenceLevelWhy[c.level]}`];
   if (ceiling.limitedByLlm || ceiling.noLaterRecall) {
-    lines.push(`${s.ceilingColumn}: ${s.competenceLevel[ceiling.level]}${ceiling.limitedByLlm ? ` (${s.ceilingMarkLlm})` : ""}${ceiling.noLaterRecall ? ` (${s.ceilingMarkRecall})` : ""}`);
+    const why = [ceiling.limitedByLlm ? s.ceilingMarkLlm : "", ceiling.noLaterRecall ? (ceiling.terminal ? s.ceilingMarkTerminal : s.ceilingMarkRecall) : ""].filter(Boolean);
+    lines.push(`${s.ceilingColumn}: ${s.competenceLevel[ceiling.level]}${why.length ? ` (${why.join(", ")})` : ""}`);
   }
   if (c.evidence.length === 0) lines.push(s.competenceNoEvidence);
   for (const e of c.evidence) {

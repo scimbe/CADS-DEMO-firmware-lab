@@ -1351,6 +1351,7 @@ export class TutorController implements vscode.Disposable {
       ceiling: ceiling.level,
       limitedByLlm: ceiling.limitedByLlm,
       noLaterRecall: ceiling.noLaterRecall,
+      terminal: ceiling.terminal,
       objectiveId: c.objectiveId,
       // The id is a poor sentence, but a wrong sentence would be worse: packs
       // without a curriculum entry get the id and the teacher sees what is missing.

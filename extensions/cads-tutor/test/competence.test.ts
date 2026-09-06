@@ -248,6 +248,17 @@ describe("A9.2 what an objective can reach at all", () => {
     assert.equal(without.limitedByLlm, true);
   });
 
+  it("calls an objective of the last module terminal, not a gap (R11a.7c)", () => {
+    // firmware-tooling lives only in m2, the example course's last module.
+    const terminal = objectiveCeiling(course, "firmware-tooling", true);
+    assert.equal(terminal.terminal, true);
+    assert.equal(terminal.noLaterRecall, true);
+    // firmware-how-to-build sits in m0 and is simply never recalled - that is a gap.
+    const gap = objectiveCeiling(course, "firmware-how-to-build", true);
+    assert.equal(gap.terminal, false);
+    assert.equal(gap.noLaterRecall, true);
+  });
+
   it("gives a manual-only objective no ceiling at all", () => {
     // A step whose only task is `manual` produces nothing, with or without a model.
     const c = objectiveCeiling(course, "does-not-exist", true);

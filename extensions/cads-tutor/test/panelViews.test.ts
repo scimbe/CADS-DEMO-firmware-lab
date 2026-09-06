@@ -333,6 +333,16 @@ describe("A9.3 competence card", () => {
     assert.match(renderCompetence({ ...card, objectives: [capped] }, "de"), /Kein späteres Modul fragt dieses Lernziel erneut ab/);
   });
 
+  it("calls the last module's objective terminal instead of blaming the course", () => {
+    const terminal: CompetenceObjectiveView = {
+      objectiveId: "capstone", statement: "Ship the capstone", level: "practised",
+      evidenceKind: "checkFirstTry", evidenceStepId: "m8-04", ceiling: "practised", noLaterRecall: true, terminal: true,
+    };
+    const html = renderCompetence({ ...card, objectives: [terminal] }, "de");
+    assert.match(html, /keine Lücke/);
+    assert.doesNotMatch(html, /Kein späteres Modul fragt dieses Lernziel erneut ab/);
+  });
+
   it("stays quiet where the student can still do something about it", () => {
     // Reachable is above reached: this is work left, not a ceiling.
     const open: CompetenceObjectiveView = {

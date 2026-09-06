@@ -549,6 +549,12 @@ export interface ObjectiveCeiling {
   limitedByLlm: boolean;
   /** Even with a model the course has no graded recall for this objective from a later module (K8). */
   noLaterRecall: boolean;
+  /**
+   * R11a.7c: the objective is taught only in the course's last module, so there is
+   * no later module to recall it from. That is a property of where it sits, not a
+   * gap in the course - and a card must not report it as one.
+   */
+  terminal: boolean;
 }
 
 /** Best case for one task: what it contributes when everything goes right. */
@@ -591,10 +597,12 @@ function laterRecallPossible(course: Course, objectiveSteps: Set<string>): boole
 export function objectiveCeiling(course: Course, objectiveId: string, hasLlm: boolean): ObjectiveCeiling {
   const steps = new Set<string>();
   const totals = { withLlm: { strong: 0, medium: 0 }, here: { strong: 0, medium: 0 } };
+  let lastModule = -1;
   for (const step of orderedSteps(course)) {
     const meta = step.variants.en?.meta;
     if (!meta?.objectives.includes(objectiveId)) continue;
     steps.add(step.id);
+    lastModule = Math.max(lastModule, moduleIndex(course, step.moduleId));
     for (const task of meta.tasks) {
       const a = taskCeiling(task, hasLlm);
       const b = taskCeiling(task, true);
@@ -614,5 +622,14 @@ export function objectiveCeiling(course: Course, objectiveId: string, hasLlm: bo
   // Grading a recall needs a model too, so without one the recall is never evidence.
   const level = levelOf(totals.here, recall && hasLlm);
   const withLlm = levelOf(totals.withLlm, recall);
-  return { level, withLlm, limitedByLlm: COMPETENCE_ORDER[level] < COMPETENCE_ORDER[withLlm], noLaterRecall: !recall };
+  // R11a.7c: an objective the last module alone teaches has no later module by
+  // construction. A course pack of projects consists entirely of them.
+  const terminal = steps.size > 0 && lastModule >= 0 && lastModule === course.manifest.modules.length - 1;
+  return {
+    level,
+    withLlm,
+    limitedByLlm: COMPETENCE_ORDER[level] < COMPETENCE_ORDER[withLlm],
+    noLaterRecall: !recall,
+    terminal,
+  };
 }

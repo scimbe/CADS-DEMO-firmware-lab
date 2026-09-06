@@ -941,6 +941,8 @@ export interface CompetenceObjectiveView {
   limitedByLlm?: boolean;
   /** No later module asks about this objective again (K8). */
   noLaterRecall?: boolean;
+  /** R11a.7c: the last module alone teaches it, so there is no later module - not a gap. */
+  terminal?: boolean;
 }
 
 export interface CompetenceCardView {
@@ -972,7 +974,9 @@ function ceilingLine(o: CompetenceObjectiveView, lang: Lang): string {
     return `<div class="competence-ceiling">${escapeHtml(s.ceilingLlm(s.competenceLevel[o.ceiling]))}</div>`;
   }
   if (o.noLaterRecall && reached === "practised") {
-    return `<div class="competence-ceiling">${escapeHtml(s.ceilingNoRecall)}</div>`;
+    // R11a.7c: the last module has no successor. Saying "the course never asks
+    // again" there would report the shape of the course as somebody's failure.
+    return `<div class="competence-ceiling">${escapeHtml(o.terminal ? s.ceilingTerminal : s.ceilingNoRecall)}</div>`;
   }
   return "";
 }
