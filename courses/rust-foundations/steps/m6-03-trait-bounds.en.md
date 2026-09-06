@@ -50,21 +50,9 @@ All three say "any type that implements `Summary`". `impl Trait` is sugar for th
 
 ## What `impl Trait` cannot do
 
-`&impl Summary` introduces a **fresh anonymous parameter each time it appears**. So this:
+`&impl Summary` introduces a **fresh anonymous parameter each time it appears**. Two things follow, and both stand here only as facts: two occurrences in one parameter list are two independent types, and an anonymous parameter carries no name that could be given anywhere.
 
-```rust
-fn compare(a: &impl Summary, b: &impl Summary)
-```
-
-accepts an `Article` and a `Tweet` together. If you need both arguments to be the *same* type, you must name it:
-
-```rust
-fn compare<T: Summary>(a: &T, b: &T)
-```
-
-The same applies to a slice: `&[T]` needs the name, so `summarize_all` and `longest_summary` cannot use the short form at all. And an anonymous parameter has no name to give at the call site, so `summarize_all::<Tweet>(&[])` - which the test needs, because an empty slice gives the compiler nothing to infer from - is only possible with the explicit form.
-
-This step's question asks for a signature that only the named form can express. Two of the three functions above are such a case; work out what they have in common.
+That is all you need in order to work out for yourself which signatures the short form cannot write. This step's question asks for exactly one of them; two of the three functions above are such cases, and what those two have in common is the answer.
 
 ## Combining bounds
 
