@@ -271,6 +271,7 @@
         "m8-01-unit-tests",
         "m8-02-golden-images",
         "m8-03-clean-room-pr",
+        "m8-03-reviewable-pr",
         "m8-04-capstone"
       ],
       "reflection": {

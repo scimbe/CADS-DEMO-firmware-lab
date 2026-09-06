@@ -22,11 +22,8 @@ tasks:
     title: Your app builds a view and registers it
     check: { type: all, bloom: apply, checks: [ { type: command, cwd: ".", command: "grep -rlE 'void[[:space:]]+cads_hello_init' apps --include=*.c | xargs -r grep -l cads_view_dispatcher_add | xargs -r grep -l cads_view_set_softkeys | grep -q .", expectExitCode: 0 }, { type: symbolInElf, elf: "build/itsboard/cads-zero.elf", symbol: "cads_hello_init" } ] }
   - id: wired-into-menu
-    title: The menu really calls your init function
-    check: { type: command, cwd: ".", command: "grep -nE 'cads_hello_init[[:space:]]*\\([a-z]' apps/menu/cads_menu_app.c", expectExitCode: 0, bloom: apply }
-  - id: builds
-    title: The firmware builds with the new app
-    check: { type: task, label: "CaDS: Build", expectExitCode: 0, bloom: apply }
+    title: The menu calls your init function, and the firmware builds with the new app
+    check: { type: all, checks: [ { type: command, cwd: ".", command: "grep -nE 'cads_hello_init[[:space:]]*\\([a-z]' apps/menu/cads_menu_app.c", expectExitCode: 0, bloom: apply }, { type: task, label: "CaDS: Build", expectExitCode: 0, bloom: apply } ] }
   - id: include-is-not-linking
     title: Tell visibility from availability
     check: { type: question, prompt: { en: "Why is the #include of your header in cads_menu_app.c not enough? Say what the firmware lacks without the entry in the CMake file.", de: "Warum genügt der #include deines Headers in cads_menu_app.c nicht? Sage, was der Firmware ohne den Eintrag in der CMake-Datei fehlt." }, rubric: "The #include only makes the declaration visible: afterwards the compiler knows what cads_hello_init is called and which arguments it takes, and translates the call without complaint. What is missing is the definition — the compiled body of your source file. The program only gets that once your library is linked in from apps/menu/CMakeLists.txt; without that entry your file is either never compiled or its object never linked, and the linker stops with an undefined reference. An answer that does not separate declaration from definition, or that expects the error from the compiler rather than the linker, does not pass.", bloom: analyze }

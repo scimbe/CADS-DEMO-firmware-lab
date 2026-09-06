@@ -31,7 +31,7 @@ socratic:
 
 ## Learning goal
 
-Apply the project's four standing rules — clean room, both targets, safety, and the contribution workflow — as a reviewer would, to a change that violates all of them at once.
+Apply three of the project's four standing rules — clean room, both targets and safety — as a reviewer would, to a change that violates all four at once. The fourth, the contribution workflow, is the next step.
 
 **The first move:** open `docs/explanation/clean-room.md` and `docs/SAFETY.md`. The path is right here.
 
@@ -41,14 +41,13 @@ You judge this change with what you have already measured: the layering rule fro
 
 ## Where you work in this step
 
-This step starts no task and builds nothing. You read four documents and write three verdicts.
+This step builds nothing, but it asks for a small tool at the end. You read three documents, write two verdicts and one lint.
 
 **Opening a document:** `Ctrl`/`Cmd`+`P`, type the path, Enter. Or use the topmost symbol in the bar on the far left (the file explorer) and click through the tree. The four paths for this step:
 
 ```
 docs/explanation/clean-room.md
 docs/SAFETY.md
-docs/how-to/agent-workflow.md
 docs/reference/module-layout.md
 ```
 
@@ -65,7 +64,7 @@ A contributor opens a PR:
 > program the timer; it configures **PG0** as a push-pull output with a piezo on it. No host test, "because it
 > needs the board". Nothing else in the PR.
 
-That one proposal violates all four standing rules at once. The three tasks take it apart: licence, pin choice, reviewability.
+That one proposal violates all four standing rules at once. Here you take three of them apart: licence, pin choice, and the trace a machine can follow. The fourth — what the submission as a whole lacks — is the next step.
 
 ## The four rules a reviewer holds
 
@@ -75,18 +74,14 @@ That one proposal violates all four standing rules at once. The three tasks take
 
 **3. Safety.** `docs/SAFETY.md` is binding, including for code you cannot run. PA13/PA14 and PH0/PH1 are never touched; PF0..7 and PG0..5 are pulled-up inputs and are **never** configured as outputs. `docs/SAFETY.md` section 3 gives the electrical reason, and whether it also binds code that never reaches a board is the second task.
 
-**4. The workflow.** The maintainer holds the hardware exclusively: contributors do not flash, reset or attach a debugger. You take `swarm-ready` issues (self-contained, hardware-free); `hardware-gate` items are the maintainer's. What else a reviewable PR has to carry is listed in one paragraph of `docs/how-to/agent-workflow.md`. Walk that list against the submission above; the third task asks what is missing.
-
 ## Evaluating means saying no with reasons
 
-A review is not a checklist tick. The question is whether each rule is met, and if not, what the smallest change is that meets it. "It needs the board" is rarely true of the *logic*: a tone scheduler, a note table, a duty-cycle calculation are portable and testable on the host; only the last few lines that touch a timer belong behind the HAL, and those are the maintainer's gate.
+A review is not a checklist tick. The question is whether each rule is met, and if not, what the smallest change is that meets it. A no without that smallest change is worth nothing to the author.
 
 
 > **What the lint does not show.** Rule 1 checks a marker, not a provenance. A cleanly renamed plagiarism passes it; a driver written from scratch that happens to mention `furi_` in a comment fails it. The touchstone from `docs/explanation/clean-room.md` stays a question to the author — *why is this piece shaped like this?* — and no program answers that. A green lint is therefore a necessary condition, never a sufficient one.
 
 ## Three of the four rules leave a machine behind
-
-`docs/how-to/agent-workflow.md` asks for three enclosures on top, and a lint sees none of them: only the change and nothing unrelated, an updated `docs/ROADMAP.md`, a bench note for every hardware path touched, and the new size report when memory shifts. Forget them and you deliver a PR nobody can judge, however green every check is.
 
 
 A reviewer applies the four standing rules by hand. Three of them leave a trace a program can see, and the last task of this step asks you to write it: `tools/review_lint.py <directory>` walks a tree and exits 0 when it is clean, non-zero otherwise, printing one line per finding that names the rule it broke.
@@ -101,10 +96,10 @@ What this lint **cannot** do is in the section on the licence verdict: rule 1 se
 
 ## Your task
 
-Three separate verdicts on the proposal above, each in its own field at the bottom of the step text, each with its own **Prüfen** button.
+Two verdicts on the proposal above and one tool, each in its own field at the bottom of the step text.
 
 1. **The licence.** What is the smallest change that makes the code acceptable?
 2. **The pin choice.** Does the "it is never flashed" argument hold?
-3. **The form.** What is missing before a reviewer can even start?
+3. **The lint.** Write the three machine-checkable rules as an executable tool.
 
-The final step asks you to make a change that passes this review yourself.
+The next step asks what the submission as a whole is missing.
