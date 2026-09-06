@@ -542,6 +542,24 @@ Manifeste kennen Schritte, die über Modulgrenzen hinweg fordern — ein Modulto
 Kurse nicht haben. Wer das später ändern will, muss zeigen, dass jedes Lernziel des Moduls einen starken Beleg
 überhaupt erreichen kann.
 
+### A9.2a Abruffragen sind eigene Fragen (`recallPrompt`)
+
+Eine Vorhersage wird **mit der Datei vor Augen** beantwortet, ein Abruf **aus dem Gedächtnis**. Derselbe Text
+kann nicht beides: Gemessen im JavaScript-Pack nennen **9 von 9** `predict`-Prompts einen Dateipfad
+(„Read `examples/m4-closure-loop.js`. Write down the two arrays …"); die Abrufkarte zeichnet aber nur
+Überschrift, Titel des Quellschritts und den Prompt als Text — kein Rumpf, kein Codeblock, kein Dateilink.
+Zwei Module später wäre das eine Frage ohne Gegenstand.
+
+Deshalb: Eine Aufgabe, die als Abrufziel dient, führt neben `prompt` ein eigenes Feld **`recallPrompt`**
+(zweisprachig), das ohne den Bildschirminhalt des Ursprungsschritts verständlich ist. Die Abrufkarte benutzt
+`recallPrompt`, sonst nichts; fehlt es, ist die Aufgabe kein zulässiges Abrufziel. Das gilt für `predict`
+ebenso wie für `question` — auch dort stützen sich Formulierungen wie „the old code" oder „the route you used"
+auf einen Zustand, den die Studierende längst überschrieben hat. **[Validator]**
+
+Die Abrufkarte nennt außerdem Schritt und Modul der Herkunft, und ein Abruf zählt als **starker Beleg** nach
+A9.2 nur, wenn der Ursprungsschritt in einem **früheren Modul** liegt; modulinterne Zeiger dürfen erscheinen,
+tragen aber nichts zur Kompetenzstufe bei (R11a.7a).
+
 ### A9.3 Gamifizierung — was wir bauen und was ausdrücklich nicht
 
 Zulässig, weil an Kompetenz gebunden (E9):
