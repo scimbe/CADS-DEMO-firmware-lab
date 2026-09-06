@@ -22,7 +22,7 @@ tasks:
     check: { type: testSuite, runner: node-test, expectPass: ["m1-02 typeName reports primitives via typeof", "m1-02 typeName distinguishes null and arrays from objects"], minPass: 2 }
   - id: typeof-limits
     title: Where typeof stops
-    check: { type: question, prompt: { en: "Two values answer 'object' without being one. Name them and the check for each. Two lines.", de: "Zwei Werte antworten 'object', ohne eines zu sein. Nenne sie und je die Prüfung. Zwei Zeilen." }, rubric: "Names both values and a working check for each. Does not pass: naming only one of them, offering typeof as the check for either, or an order in which the check for the second would answer before the first is tested.", bloom: understand, minChars: 40 }
+    check: { type: question, prompt: { en: "Two values answer 'object' without being one. Name them and the check for each. Two lines.", de: "Zwei Werte antworten 'object', ohne eines zu sein. Nenne sie und je die Prüfung. Zwei Zeilen." }, rubric: "Two lines, each pairing a value with a check that settles it. One is the value whose type query has answered wrongly since 1995, settled by a strict comparison against that value itself; the other is the ordered collection, settled by the built-in predicate for it. Does not pass: only one of the two named, typeof offered as either check, or an order that reaches the collection test before the other value has been ruled out.", bloom: understand, minChars: 40 }
 socratic:
   - trigger: "task:guess-typeof:failed"
     question: { en: "Were all eight written down before the run, or did some appear afterwards?", de: "Standen alle acht vor dem Lauf geschrieben, oder kamen manche danach?" }

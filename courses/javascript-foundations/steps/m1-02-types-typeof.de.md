@@ -22,7 +22,7 @@ tasks:
     check: { type: testSuite, runner: node-test, expectPass: ["m1-02 typeName reports primitives via typeof", "m1-02 typeName distinguishes null and arrays from objects"], minPass: 2 }
   - id: typeof-limits
     title: Wo typeof aufhört
-    check: { type: question, prompt: { en: "Two values answer 'object' without being one. Name them and the check for each. Two lines.", de: "Zwei Werte antworten 'object', ohne eines zu sein. Nenne sie und je die Prüfung. Zwei Zeilen." }, rubric: "Nennt beide Werte und je eine funktionierende Prüfung. Besteht nicht: nur einer der beiden genannt, typeof als Prüfung für einen von beiden angeboten, oder eine Reihenfolge, in der die Prüfung des zweiten anspricht, bevor der erste geprüft ist.", bloom: understand, minChars: 40 }
+    check: { type: question, prompt: { en: "Two values answer 'object' without being one. Name them and the check for each. Two lines.", de: "Zwei Werte antworten 'object', ohne eines zu sein. Nenne sie und je die Prüfung. Zwei Zeilen." }, rubric: "Zwei Zeilen, jede paart einen Wert mit einer Prüfung, die ihn klärt. Der eine ist der Wert, dessen Typabfrage seit 1995 falsch antwortet, geklärt durch einen strikten Vergleich gegen ihn selbst; der andere ist die geordnete Sammlung, geklärt durch das eingebaute Prädikat dafür. Besteht nicht: nur einer der beiden genannt, typeof als eine der Prüfungen angeboten, oder eine Reihenfolge, die die Sammlungsprüfung erreicht, bevor der andere Wert ausgeschlossen ist.", bloom: understand, minChars: 40 }
 socratic:
   - trigger: "task:guess-typeof:failed"
     question: { en: "Were all eight written down before the run, or did some appear afterwards?", de: "Standen alle acht vor dem Lauf geschrieben, oder kamen manche danach?" }

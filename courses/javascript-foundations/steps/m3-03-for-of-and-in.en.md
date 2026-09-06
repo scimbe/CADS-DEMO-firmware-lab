@@ -22,7 +22,7 @@ tasks:
     check: { type: testSuite, runner: node-test, expectPass: ["m3-03 ownValues returns values, not keys", "m3-03 firstMatch yields elements, not index strings", "m3-03 firstMatch does not visit elements after the match"], minPass: 3 }
   - id: which-iteration
     title: Choosing the iteration form
-    check: { type: question, prompt: { en: "Name what each of the four ways to walk a collection hands you. One line each.", de: "Nenne, was jeder der vier Wege durch eine Sammlung dir gibt. Je eine Zeile." }, rubric: "Four lines that differ from one another, each saying what lands in the variable rather than what the form is for. Does not pass: two lines that amount to the same thing, or a line describing a use case instead of the contents.", bloom: understand, minChars: 60 }
+    check: { type: question, prompt: { en: "Name what each of the four ways to walk a collection hands you. One line each.", de: "Nenne, was jeder der vier Wege durch eine Sammlung dir gibt. Je eine Zeile." }, rubric: "Four lines, each naming a different kind of item the loop body receives: a counter that still has to be resolved before use; a label arriving as text, which may also be a label nobody put in the sequence; the entry itself; and the entry paired with its place. Does not pass: two lines delivering the same kind of item, a line stating what a construct is useful for instead of what it yields, or a line that reads those labels as numerals.", bloom: understand, minChars: 60 }
 socratic:
   - trigger: "task:guess-loop-order:failed"
     question: { en: "How many lines did you predict, and did any of them surprise you?", de: "Wie viele Zeilen hast du vorhergesagt, und hat dich eine überrascht?" }

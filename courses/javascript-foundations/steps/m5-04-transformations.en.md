@@ -22,7 +22,7 @@ tasks:
     check: { type: testSuite, runner: node-test, expectPass: ["m5-04 totals aggregates count, sum and max", "m5-04 topLabels orders by amount, largest first", "m5-04 topLabels leaves the caller's array in its original order"], minPass: 3 }
   - id: pipeline-or-loop
     title: A pipeline, or a loop
-    check: { type: question, prompt: { en: "Give one reason to prefer the method chain here, and one case where a loop wins.", de: "Nenne einen Grund für die Methodenkette hier und einen Fall, in dem eine Schleife gewinnt." }, rubric: "One reason that is about the reader or about composition, and one case that is about a real cost or a capability the chain lacks, such as stopping part-way or a single pass over large input. Does not pass: a preference stated without a reason, or a loop case that the chain handles just as well.", bloom: evaluate, minChars: 50 }
+    check: { type: question, prompt: { en: "Give one reason to prefer the method chain here, and one case where a loop wins.", de: "Nenne einen Grund für die Methodenkette hier und einen Fall, in dem eine Schleife gewinnt." }, rubric: "The reason for the chain names something the reader gains - one nameable job per stage, no accumulator to keep track of - rather than brevity. The loop case names a capability the chain lacks: leaving early at the first hit, or a single pass where the chain makes one per stage over a large input. Does not pass: a preference with no reason, or a loop case the chain serves just as well.", bloom: evaluate, minChars: 50 }
 socratic:
   - trigger: "task:guess-sort:failed"
     question: { en: "How many of the five did you get right, and which one surprised you most?", de: "Wie viele der fünf hattest du richtig, und welche überraschte am meisten?" }
