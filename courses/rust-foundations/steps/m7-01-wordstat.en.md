@@ -6,7 +6,7 @@ objectives: [ "rust-project-cli" ]
 requires: [ "m6-04-lifetimes" ]
 estimatedMinutes: 90
 scaffold: independent
-recallFrom: [ "m5-04-custom-error", "m4-04-collections-report", "m4-03-hash-maps" ]
+recallFrom: [ "m5-04-custom-error", "m4-04-collections-report", "m4-03-hash-maps", "m3-01-structs", "m5-01-panic-vs-result", "m6-02-traits" ]
 links:
   - { step: "m7-02-review" }
   - { file: "src/project/wordstat.rs" }

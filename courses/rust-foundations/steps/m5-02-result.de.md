@@ -6,7 +6,7 @@ objectives: [ "rust-ch09-02-recoverable-errors-with-result" ]
 requires: [ "m5-01-panic-vs-result" ]
 estimatedMinutes: 20
 scaffold: worked
-recallFrom: [ "m3-04-if-let", "m3-02-enums" ]
+recallFrom: [ "m3-04-if-let", "m3-02-enums", "m3-03-match" ]
 links:
   - { step: "m5-03-question-mark" }
   - { file: "src/m5/m5_02_result.rs" }

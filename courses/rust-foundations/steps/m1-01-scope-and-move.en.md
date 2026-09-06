@@ -4,6 +4,7 @@ title: "Scope, owner, move"
 bloom: understand
 objectives: [ "rust-ch04-01-what-is-ownership" ]
 requires: [ "m0-05-compiler-errors" ]
+recallFrom: [ "m0-03-first-test" ]
 estimatedMinutes: 20
 scaffold: worked
 links:
@@ -37,7 +38,7 @@ From ch. 4.1, unchanged:
 
 1. Each value in Rust has an *owner*.
 2. There can only be one owner at a time.
-3. When the owner gös out of scope, the value is dropped.
+3. When the owner goes out of scope, the value is dropped.
 
 The third rule is what replaces both garbage collection and manual `free`. At the closing brace of the scope that owns a `String`, Rust calls `drop` and the heap allocation is returned. No runtime is involved and nothing is scanned; the compiler simply knows where the brace is.
 

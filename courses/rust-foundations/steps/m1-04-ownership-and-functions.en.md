@@ -47,7 +47,7 @@ This module uses the first two; the third is M2.
 
 `join_owned(a: String, b: String) -> String` consumes both. That is the right contract here, because the natural implementation *reuses* `a`'s existing allocation: take ownership, make the binding `mut`, push `b`'s bytes onto it, return it. The doc comment forbids cloning for exactly that reason - a clone would allocate a third buffer for no reason. Note that `push_str` takes a `&str`, so `out.push_str(&b)` borrows `b` rather than moving it; the `&` is not decoration.
 
-`longer_owned(a: String, b: String) -> String` also consumes both, and drops the loser when it returns. Each branch of the `if` moves only the value it returns, which is allowed: the compiler tracks moves per path, not per function. The tie gös to `a`, so compare in the direction that makes that fall out naturally rather than adding a special case.
+`longer_owned(a: String, b: String) -> String` also consumes both, and drops the loser when it returns. Each branch of the `if` moves only the value it returns, which is allowed: the compiler tracks moves per path, not per function. The tie goes to `a`, so compare in the direction that makes that fall out naturally rather than adding a special case.
 
 `repeat_words(word: &str, n: usize) -> String` borrows. It only reads the word, so demanding ownership would be rude: every caller with a literal would have to write `String::from("ho")`, and every caller with a string it still needs would have to clone. Taking `&str` costs the caller nothing and accepts literals, `&String` and slices alike.
 

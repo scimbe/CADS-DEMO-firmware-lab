@@ -44,7 +44,7 @@ let y = x;
 println!("{x} and {y}");
 ```
 
-This compiles, although the shape is identical to the `String` case that did not. The difference is the `Copy` trait. A type is `Copy` when duplicating its bits produces a valid, independent second value - trü for everything that lives entirely on the stack with a size known at compile time: all integers, `f32`/`f64`, `bool`, `char`, and tuples whose members are all `Copy`.
+This compiles, although the shape is identical to the `String` case that did not. The difference is the `Copy` trait. A type is `Copy` when duplicating its bits produces a valid, independent second value - true for everything that lives entirely on the stack with a size known at compile time: all integers, `f32`/`f64`, `bool`, `char`, and tuples whose members are all `Copy`.
 
 For such a type there is no move. `x` stays usable because `y` is not sharing anything with it; there is nothing to share.
 

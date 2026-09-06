@@ -6,7 +6,7 @@ objectives: [ "rust-ch08-02-strings" ]
 requires: [ "m4-01-vectors" ]
 estimatedMinutes: 25
 scaffold: faded
-recallFrom: [ "m4-01-vectors", "m2-03-aliasing-rule" ]
+recallFrom: [ "m4-01-vectors", "m2-03-aliasing-rule", "m2-04-slices" ]
 links:
   - { step: "m4-03-hash-maps" }
   - { file: "src/m4/m4_02_strings.rs" }

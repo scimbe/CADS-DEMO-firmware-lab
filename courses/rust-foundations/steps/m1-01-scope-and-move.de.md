@@ -4,6 +4,7 @@ title: "Gültigkeitsbereich, Eigentümer, Move"
 bloom: understand
 objectives: [ "rust-ch04-01-what-is-ownership" ]
 requires: [ "m0-05-compiler-errors" ]
+recallFrom: [ "m0-03-first-test" ]
 estimatedMinutes: 20
 scaffold: worked
 links:
