@@ -524,6 +524,12 @@ Regeln, die der Validator durchsetzt:
    außen vor: sie sind vorhanden, aber nicht an die Studierende gerichtet. Beide Sprachhälften eines Steps
    müssen gleich viele Treffer ergeben; eine Abweichung heißt, dass eine Hälfte ungeprüft durchgegangen ist.
 
+Zusätzlich, aus A1: **Ein `predict`-Step darf seinen eigenen Enthüllungsbefehl nicht ausliefern.** Das Panel
+gibt die beobachtete Ausgabe erst nach einer geschriebenen Vorhersage frei — sie steht vorher nicht im DOM. Nennt
+der Steprumpf den Befehl aus `predict.then` wörtlich (im Block, im Codeblock oder im Fließtext), ist die Sperre
+ausgehebelt. Die *Datei* zu nennen ist erlaubt und nötig; nur der Befehl ist der Befund. Derzeit eine Warnung.
+**[Validator]**
+
 ### A9.1a Erklärtes Bedienvokabular (`operatingRoutes` in `course.json`)
 
 Regel 3 leitet die zulässigen Bedienwege aus den Prüfungen des Pakets ab. Das passt für einen Kurs, dessen Text

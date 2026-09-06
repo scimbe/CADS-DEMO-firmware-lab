@@ -862,6 +862,41 @@ def free_text_fields(fm):
             yield f"tasks[{tid}].rubric", check["rubric"]
 
 
+# --- A1/A9.1: a predict step must not hand out its own reveal ----------------
+# The runtime withholds the observed output until a prediction has been written -
+# it is not merely hidden, it is never put in the DOM, so it cannot be read out.
+# The course text can undo that in one line. The Rust track said "do not run it
+# yet" and named the exact command in the same sentence; the JavaScript track
+# printed it in a code block in all eight predict steps. A student runs it, reads
+# the number and writes it down as a "prediction", and the one exercise that
+# measures what they believed measures nothing.
+#
+# Naming the FILE is fine and unavoidable - the student has to know what they are
+# predicting about. Only the literal command of `predict.then` is a leak, which
+# is what makes this decidable: it fires on five firmware steps and on neither
+# language pack, both of which have been through exactly this correction.
+
+
+def validate_predict_reveal(where, fm, body, report):
+    """A predict step whose own body prints the command that reveals the answer."""
+    prose = re.sub(r"\s+", " ", body)
+    for task in fm.get("tasks") or []:
+        if not isinstance(task, dict):
+            continue
+        check = task.get("check")
+        if not isinstance(check, dict) or check.get("type") != "predict":
+            continue
+        for _, leaf in probe_leaves(check):
+            command = leaf.get("command") or _suite_command(leaf)
+            if command and re.sub(r"\s+", " ", command) in prose:
+                report.warn(
+                    where,
+                    f"task '{task.get('id')}' asks for a prediction and the step body prints the command "
+                    f"that reveals it (`{command}`). The panel withholds the observed output until a "
+                    f"prediction exists; a student who can run it first is predicting nothing.",
+                )
+
+
 def validate_language(where, fm, lang, report, as_error):
     for name, text in free_text_fields(fm):
         other = language_mismatch(text, lang)
@@ -1404,6 +1439,8 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
             # A plain-string field carries the language of its own file, and
             # nothing structural can notice when it does not.
             validate_language(where, fm, lang, report, language_errors)
+            # A1: the predict gate is worthless if the text hands out the reveal.
+            validate_predict_reveal(where, fm, body, report)
 
             if lang == "en" and listed_steps and sid not in listed_steps:
                 report.warn(where, "step file is not listed in any module of course.json")

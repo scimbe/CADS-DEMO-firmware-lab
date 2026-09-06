@@ -275,6 +275,10 @@ einem doppelt gequoteten Muster (`"…\s*…"`, in einfachen Anführungszeichen 
 kein PASS. Voraussetzung: Node 22.18+ und einmal `npm ci` in `extensions/cads-tutor`; fehlt beides, bricht der
 Lauf ab, statt mit einem zweiten Parser zu raten.
 
+**Vorhersage-Steps:** Der Rumpf eines Steps mit `predict`-Check darf den Befehl aus `predict.then` nicht
+wörtlich nennen — sonst führt die Studierende ihn aus, liest die Ausgabe und schreibt sie als „Vorhersage" auf.
+Die Datei zu nennen ist erlaubt und nötig. Der Validator warnt.
+
 **Erklärtes Bedienvokabular:** Nennt der Kurstext einen Befehl, den keine Prüfung des Pakets ausführt, gehört er
 in `operatingRoutes` in der `course.json` (SPEC A9.1a) — mit `why`, einem Satz dazu, was der Kurs damit übt.
 `<step-id>` steht dort für die Schritt-ID. Der Validator prüft die Deklaration: genannte Dateien müssen
