@@ -57,11 +57,11 @@ pub fn first_word(s: &str) -> &str
 
 ```rust
 let word = first_word(&s);
-s.clear();                              // error[E0502]
+s.clear();
 println!("the first word is: {word}");
 ```
 
-Sage das Ergebnis vor dem Übersetzen vorher. `clear` braucht eine veränderliche Leihe; `word` hält noch eine geteilte, weil das `println!` in der nächsten Zeile sie benutzt. Der Compiler lehnt die *Form* ab, und der Fehler, der in einer anderen Sprache ein veralteter Index geworden wäre, entsteht gar nicht erst.
+Sage das Ergebnis vor dem Übersetzen vorher: drei Anweisungen, und die Frage ist, ob sie in dieser Reihenfolge nebeneinander bestehen dürfen. Was hier abgelehnt wird, ist die *Form* und nicht ein Wert - der Fehler, der in einer anderen Sprache ein veralteter Index geworden wäre, entsteht gar nicht erst.
 
 ## `&str` ist ein Slice
 

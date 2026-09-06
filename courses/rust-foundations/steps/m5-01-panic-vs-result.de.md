@@ -56,8 +56,8 @@ v[99]                                                  // die der Standardbiblio
 `unwrap()` auf einem `None` oder `Err` stürzt mit einer allgemeinen Meldung ab. `expect("…")` stürzt mit deiner ab, gefolgt von der `Debug`-Form des Fehlers:
 
 ```text
-thread 'main' panicked at examples/m5_unwrap_panic.rs:12:35:
-not a valid port: ParseIntError { kind: InvalidDigit }
+thread 'main' panicked at <Datei>:<Zeile>:<Spalte>:
+<deine Meldung>: <Debug-Form des Fehlers>
 ```
 
 Bevorzuge stets `expect`. Der Unterschied zwischen "called `Result::unwrap()` on an `Err` value" und "not a valid port" ist der Unterschied zwischen einem Rätsel um drei Uhr nachts und einem Bericht. Der Rat aus Kapitel 9 lautet, dass die Meldung sagen soll, *warum du den Fehlschlag für unmöglich hieltst*, nicht bloß, was fehlschlug.

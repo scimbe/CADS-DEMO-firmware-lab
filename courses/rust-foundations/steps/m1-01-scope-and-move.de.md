@@ -57,17 +57,9 @@ let s2 = s1;
 
 Rust kopiert die drei Stack-Wörter nach `s2` und **nicht** den Heap-Puffer - beide zeigten also auf dieselbe Allokation. Zwei Eigentümer bedeuten ein doppeltes Freigeben am Ende des Bereichs, deshalb verbietet Regel 2 das: `s1` wird nach `s2` *verschoben* und ist nicht mehr gültig. Keine flache Kopie, keine tiefe Kopie - ein Move.
 
-Nutzt du `s1` danach, erhältst du:
+Nutzt du `s1` danach, beanstandet der Compiler es - mit einem eigenen Fehlercode und einer Markierung an einer der beteiligten Zeilen.
 
-```text
-error[E0382]: borrow of moved value: `s1`
-5 |     let s2 = s1;
-  |              -- value moved here
-7 |     println!("{s1}, world!");
-  |                ^^ value borrowed here after move
-```
-
-Das ist `snippets/m1_01_move_error.rs`. Sage sein Ergebnis vorher, bevor du es übersetzt; der Check ruft `rustc` darauf auf und erwartet genau diesen Fehlschlag.
+Genau das steht in `snippets/m1_01_move_error.rs`. Sage vorher, ob er übersetzt, welchen Code er nennt und welche Zeile er markiert; der Check ruft `rustc` darauf auf und zeigt dir die Diagnose danach.
 
 ## In Funktionen hinein und wieder heraus
 

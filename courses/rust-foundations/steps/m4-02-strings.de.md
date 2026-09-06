@@ -54,15 +54,11 @@ s += "toe";             // die Zuweisungsaddition nimmt ein &str
 
 ## Das Zählproblem
 
-```text
-hello:        5 Bytes,  5 Zeichen
-Kyrillisch:  24 Bytes, 12 Zeichen
-Devanagari:  18 Bytes,  6 Zeichen
-```
+Drei Grüße machen es sichtbar: `hello`, ein kyrillisch geschriebener Gruß aus zwölf Buchstaben und ein Devanagari-Gruß, den ein Leser als vier Zeichen sähe.
 
-`len()` zählt **Bytes**. `chars().count()` zählt **Unicode-Skalarwerte**. Für ASCII stimmen sie überein, sonst nicht, und der Devanagari-Fall zeigt eine dritte Zahl: was ein Leser vier Buchstaben nennen würde, sind sechs Skalarwerte, weil zwei davon kombinierende Zeichen sind. Die Position des Buchs verdient Ernst: es gibt keine einzelne richtige Antwort auf "wie lang ist diese Zeichenkette", also verlangt Rust von dir zu sagen, welche du meinst.
+`len()` zählt **Bytes**. `chars().count()` zählt **Unicode-Skalarwerte**. Für ASCII stimmen sie überein, sonst nicht, und der Devanagari-Fall bringt eine dritte Zahl ins Spiel, weil dort kombinierende Zeichen vorkommen: was ein Leser als ein Zeichen sieht, kann aus mehreren Skalarwerten bestehen. Die Position des Buchs verdient Ernst: es gibt keine einzelne richtige Antwort auf "wie lang ist diese Zeichenkette", also verlangt Rust von dir zu sagen, welche du meinst.
 
-`examples/m4_string_bytes.rs` gibt genau das aus. Sage zuerst alles vorher.
+`examples/m4_string_bytes.rs` gibt für alle drei beide Zahlen aus. Sage sie vorher, bevor du es laufen lässt.
 
 ## Warum Indizierung verweigert wird
 

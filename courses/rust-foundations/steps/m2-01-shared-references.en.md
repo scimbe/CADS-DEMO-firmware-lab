@@ -64,13 +64,7 @@ fn change(some_string: &String) {
 }
 ```
 
-Predict the result before you compile it. The answer is:
-
-```text
-error[E0596]: cannot borrow `*some_string` as mutable, as it is behind a `&` reference
-```
-
-Note *which* line is underlined: the `push_str` inside `change`, not the call. The contract was broken where it was violated, not where it was signed.
+Predict the result before you compile it. When the diagnostic appears afterwards, note *which* line it underlines - that question says more about the contract than the error code does, because a contract is objected to where it is violated, not where it was signed.
 
 ## `&str` is the better parameter
 

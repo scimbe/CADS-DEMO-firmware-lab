@@ -57,17 +57,9 @@ let s2 = s1;
 
 Rust copies the three stack words into `s2` and does **not** copy the heap buffer - so both would point at the same allocation. Two owners means a double free at the end of the scope, so rule 2 forbids it: `s1` is *moved* into `s2` and is no longer valid. Not a shallow copy, not a deep copy - a move.
 
-Try using `s1` afterwards and you get:
+Try using `s1` afterwards and the compiler objects - with an error code of its own and a mark on one of the lines involved.
 
-```text
-error[E0382]: borrow of moved value: `s1`
-5 |     let s2 = s1;
-  |              -- value moved here
-7 |     println!("{s1}, world!");
-  |                ^^ value borrowed here after move
-```
-
-That is `snippets/m1_01_move_error.rs`. Predict its outcome before you compile it; the check runs `rustc` on it and expects exactly this failure.
+That is what `snippets/m1_01_move_error.rs` contains. Predict whether it compiles, which code it names and which line it marks; the check runs `rustc` on it and shows you the diagnostic afterwards.
 
 ## Moving into and out of functions
 
