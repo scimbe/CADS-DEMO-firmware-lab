@@ -10,6 +10,7 @@
  * Pure module: it decides WHAT to offer, the controller performs it. Everything
  * runs through existing VS Code or bridge commands; nothing here shells out.
  */
+import type { DoAction } from "./markdown";
 import type { CheckSpec, Course, Lang } from "./types";
 
 export type ActionKind =
@@ -17,6 +18,7 @@ export type ActionKind =
   | "runInTerminal"
   | "copyCommand"
   | "openFile"
+  | "openPalette"
   | "boardConnect"
   | "boardFlash"
   | "boardConsole"
@@ -144,6 +146,45 @@ export function actionsForCheck(spec: CheckSpec, opts: { buildTaskLabel: string 
   return out;
 }
 
+/**
+ * A9.1: the button of a `::: do` card, routed through the same action system as
+ * the task buttons rather than past it. `keys` has no button - a keystroke is
+ * something the student presses, and pressing it for them teaches nothing.
+ *
+ * Nothing here can produce a board action, so an instruction block in a language
+ * course cannot grow one; the capability gate in `allowedActions` still applies.
+ */
+export function actionForDo(action: DoAction): TaskAction | undefined {
+  switch (action.kind) {
+    case "task":
+      return { kind: "runTask", arg: action.label };
+    case "command":
+      return { kind: "runInTerminal", arg: action.command, cwd: action.cwd };
+    case "palette":
+      return { kind: "openPalette", arg: action.entry };
+    case "file":
+      return { kind: "openFile", arg: action.path, line: action.line };
+    case "keys":
+      return undefined;
+  }
+}
+
+/** The literal route a `::: do` block names, printed beside the button. */
+export function doRouteText(action: DoAction): string {
+  switch (action.kind) {
+    case "task":
+      return action.label;
+    case "command":
+      return action.cwd && action.cwd !== "." ? `${action.command}   (${action.cwd})` : action.command;
+    case "palette":
+      return action.entry;
+    case "file":
+      return action.line ? `${action.path}:${action.line}` : action.path;
+    case "keys":
+      return action.keys;
+  }
+}
+
 /** The command a testSuite runs; mirrors defaultSuiteCommand in checks/testParsers.ts. */
 function suiteCommand(spec: Extract<CheckSpec, { type: "testSuite" }>): string | undefined {
   if (spec.command) return spec.command;
@@ -199,6 +240,12 @@ export function actionLabels(action: TaskAction, lang: Lang): ActionLabels {
       return de
         ? { label: "Datei öffnen", manual: `entspricht: Explorer → ${action.arg ?? ""}` }
         : { label: "Open file", manual: `same as: Explorer → ${action.arg ?? ""}` };
+    case "openPalette":
+      // The button opens the palette already filled in, including the ">" that
+      // switches it out of file search - the prefix people leave off.
+      return de
+        ? { label: "Befehlspalette öffnen", manual: `entspricht: F1 drücken, dann ${action.arg ?? ""} eintippen und Enter` }
+        : { label: "Open command palette", manual: `same as: press F1, type ${action.arg ?? ""}, then Enter` };
     case "boardConnect":
       return de
         ? { label: "Board verbinden", manual: "entspricht: Befehlspalette → CaDS: Board verbinden" }

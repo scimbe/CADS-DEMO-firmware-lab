@@ -91,11 +91,13 @@ Startest du einen Task, öffnet sich unten **ein eigenes Terminal, das den Namen
 
 ## Deine Aufgabe
 
-Führe den Task **`CaDS: RAM budget`** aus und lies seine Ausgabe.
+::: do task="CaDS: RAM budget"
+Führe den Task aus und lies seine Ausgabe. Er braucht unter einer Sekunde. Von Hand: **`F1`**, dann `Tasks: Run Task` tippen, Enter, dann den Task aus der Liste wählen; ohne Tastatur **☰ → `Terminal` → `Run Task...`**.
+> expect: Unten öffnet sich ein Terminal mit dem Namen des Tasks. Darin stehen vier Zeilen; die letzte beginnt mit `PASS` und nennt eine Marge in Byte.
+> recover: Öffnet sich gar kein Terminal, hat die Befehlspalette nie aufgemacht — nimm `F1` statt des Tastenkürzels, der Browser fängt `Strg`+`Umschalt`+`P` oft ab. Steht im Terminal `No such file or directory`, fehlt die ELF-Datei: lass zuerst den Task `CaDS: Build` laufen.
+:::
 
-Der bequemste Weg: **`F1`**, dann `Tasks: Run Task` tippen, Enter, dann `CaDS: RAM budget` aus der Liste wählen. Ohne Tastatur: **☰ → `Terminal` → `Run Task...` → `CaDS: RAM budget`**. Es dauert unter einer Sekunde.
-
-Unten öffnet sich ein Terminal mit dem Namen des Tasks. Darin stehen vier Zeilen; die letzte beginnt mit `PASS` und nennt eine Marge in Byte. Das ist der Spielraum, der dem Netzwerkstack und der Grafik im Arbeitsspeicher noch bleibt — in M4 rechnest du selbst damit.
+Die Marge ist der Spielraum, der dem Netzwerkstack und der Grafik im Arbeitsspeicher noch bleibt — in M4 rechnest du selbst damit.
 
 Danach beantwortest du eine Frage dazu, wo die Ausgabe erschienen ist. Wenn eine Aufgabe rot bleibt: der Knopf **Hinweis anzeigen** an der Aufgabe hilft weiter, und die erste Stufe fragt genau nach dem, was am häufigsten schiefgeht.
 

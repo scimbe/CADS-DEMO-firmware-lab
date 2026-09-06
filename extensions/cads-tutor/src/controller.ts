@@ -55,7 +55,7 @@ import { TutorTerminal, type TerminalLike } from "./terminal";
 import { CoursesTreeProvider, type TreeNode } from "./tree";
 import { loc, stepKey, type Course, type Lang, type LoadDiagnostic, type SessionState, type Step, type StepContent, type TaskSpec, type TaskState, type TaskStatus } from "./types";
 import { DebugStopTracker, ensureBridge, runShellTask, runTaskByLabel } from "./vscodeChecks";
-import { renderPredict, renderRecall, renderReflection, type AskView, type FromWebview, type HintView, type LinkView, type NoteView, type PredictView, type RecallView, type ReflectionView, type StepRef, type StepView, type TaskView } from "./webview";
+import { renderDoCard, renderPredict, renderRecall, renderReflection, type AskView, type FromWebview, type HintView, type LinkView, type NoteView, type PredictView, type RecallView, type ReflectionView, type StepRef, type StepView, type TaskView } from "./webview";
 
 const SAVE_DEBOUNCE_MS = 2000;
 const NOTIFY_MIN_INTERVAL_MS = 60_000;
@@ -457,7 +457,10 @@ export class TutorController implements vscode.Disposable {
     const progress = getStepProgress(this.session, course.manifest.id, step.id);
     const status = stepStatus(this.session, course, step, this.courses);
     const platform = this.platformFor(course);
-    const render = createRenderer({ resolveAsset: (rel) => this.panel.assetUri(course.dir, path.dirname(content.file), rel) });
+    const render = createRenderer({
+      resolveAsset: (rel) => this.panel.assetUri(course.dir, path.dirname(content.file), rel),
+      renderDo: (block) => renderDoCard(block, lang),
+    });
     const enMeta = step.variants.en!.meta;
     const tasks: TaskView[] = enMeta.tasks.map((t) => {
       const localizedTask = meta.tasks.find((x) => x.id === t.id) ?? t;
@@ -730,7 +733,7 @@ export class TutorController implements vscode.Disposable {
           await this.saveReflection(m.answers);
           return;
         case "action":
-          await this.runAction(m.taskId, m.kind, m.arg);
+          await this.runAction(m.taskId, m.kind, m.arg, { cwd: m.cwd, line: m.line });
           return;
         case "dismissOrientation":
           this.dismissOrientation();
@@ -1051,10 +1054,12 @@ export class TutorController implements vscode.Disposable {
    * bridge command, or the tutor's terminal; nothing here runs a shell directly,
    * so what happens is visible to the student and reproducible by hand.
    */
-  async runAction(taskId: string, kind: ActionKind, arg?: string): Promise<void> {
+  async runAction(taskId: string | undefined, kind: ActionKind, arg?: string, from: { cwd?: string; line?: number } = {}): Promise<void> {
     const cur = this.current;
     if (!cur) return;
-    const task = this.findTask(cur.step, taskId);
+    // A `::: do` card names its own working directory and line and belongs to no
+    // task, so `taskId` is absent there and `from` carries what the block said.
+    const task = taskId ? this.findTask(cur.step, taskId) : undefined;
     const s = ui(this.lang);
 
     if (isBoardAction(kind)) {
@@ -1080,12 +1085,12 @@ export class TutorController implements vscode.Disposable {
           this.panel.post({ type: "busy", busy: false });
         }
         // Re-check straight away so the student sees the effect of what they ran.
-        if (task) await this.runTask(taskId, { silent: true });
+        if (task && taskId) await this.runTask(taskId, { silent: true });
         return;
       }
       case "runInTerminal": {
         if (!arg) return;
-        const cwd = task && "cwd" in task.check ? (task.check as { cwd?: string }).cwd : undefined;
+        const cwd = from.cwd ?? (task && "cwd" in task.check ? (task.check as { cwd?: string }).cwd : undefined);
         this.log(`action: run in terminal "${arg}"${cwd ? ` (cwd ${cwd})` : ""}`);
         this.terminal.run(arg, cwd);
         return;
@@ -1099,7 +1104,17 @@ export class TutorController implements vscode.Disposable {
         if (!arg) return;
         const root = resolveProjectRoot(cur.course, this.workspaceRoot) ?? this.workspaceRoot;
         if (!root) return;
-        await this.openLink({ kind: "file", path: arg, line: this.lineForFile(task, arg) });
+        await this.openLink({ kind: "file", path: arg, line: from.line ?? this.lineForFile(task, arg) });
+        return;
+      }
+      case "openPalette": {
+        // A9.1: the palette opened with the entry already typed, ">" included.
+        // Leaving that prefix off is the single most common way a student
+        // concludes a command does not exist - the palette answers "no matching
+        // results" because it is still searching file names.
+        if (!arg) return;
+        this.log(`action: open command palette at "${arg}"`);
+        await vscode.commands.executeCommand("workbench.action.quickOpen", arg);
         return;
       }
       default:
