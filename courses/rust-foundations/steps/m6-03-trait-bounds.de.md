@@ -50,21 +50,9 @@ Alle drei sagen "irgendein Typ, der `Summary` implementiert". `impl Trait` ist Z
 
 ## Was `impl Trait` nicht kann
 
-`&impl Summary` führt **bei jedem Auftreten einen neuen anonymen Parameter** ein. Damit akzeptiert dies:
+`&impl Summary` führt **bei jedem Auftreten einen neuen anonymen Parameter** ein. Daraus folgt zweierlei, und beides steht hier nur als Tatsache: zwei Vorkommen in derselben Parameterliste sind zwei voneinander unabhängige Typen, und ein anonymer Parameter trägt keinen Namen, den man irgendwo angeben könnte.
 
-```rust
-fn compare(a: &impl Summary, b: &impl Summary)
-```
-
-ein `Article` und ein `Tweet` gemeinsam. Sollen beide Argumente *denselben* Typ haben, musst du ihn benennen:
-
-```rust
-fn compare<T: Summary>(a: &T, b: &T)
-```
-
-Dasselbe gilt für einen Slice: `&[T]` braucht den Namen, `summarize_all` und `longest_summary` können die Kurzform also gar nicht nutzen. Und ein anonymer Parameter hat keinen Namen, den man an der Aufrufstelle angeben könnte, `summarize_all::<Tweet>(&[])` - was der Test braucht, weil ein leerer Slice dem Compiler nichts zum Herleiten bietet - ist also nur mit der ausdrücklichen Form möglich.
-
-Die Frage dieses Steps verlangt eine Signatur, die nur die benannte Form ausdrücken kann. Zwei der drei Funktionen oben sind so ein Fall; finde heraus, was sie gemeinsam haben.
+Mehr brauchst du nicht, um selbst zu bestimmen, welche Signaturen die Kurzform nicht schreiben kann. Die Frage dieses Steps verlangt genau eine solche; zwei der drei Funktionen oben sind Fälle davon, und was diese beiden gemeinsam haben, ist die Antwort.
 
 ## Schranken kombinieren
 
