@@ -31,7 +31,7 @@ socratic:
 
 ## Lernziel
 
-Wende die vier stehenden Regeln des Projekts — Clean Room, beide Targets, Sicherheit und der Beitragsworkflow — so an, wie ein Reviewer es täte, auf eine Änderung, die alle vier auf einmal verletzt.
+Wende drei der vier stehenden Regeln des Projekts — Clean Room, beide Targets und Sicherheit — so an, wie ein Reviewer es täte, auf eine Änderung, die alle vier auf einmal verletzt. Die vierte, der Beitragsworkflow, ist der nächste Step.
 
 **Der erste Handgriff:** öffne `docs/explanation/clean-room.md` und `docs/SAFETY.md`. Wie das geht, steht gleich hier.
 
@@ -41,14 +41,13 @@ Du beurteilst diese Änderung mit dem, was du schon gemessen hast: der Schichtre
 
 ## Wo du in diesem Step arbeitest
 
-Dieser Step startet keinen Task und baut nichts. Du liest vier Dokumente und schreibst drei Urteile.
+Dieser Step baut nichts, aber er verlangt am Ende ein kleines Werkzeug. Du liest drei Dokumente, schreibst zwei Urteile und ein Lint.
 
 **Ein Dokument öffnen:** `Strg`/`Cmd`+`P`, dann den Pfad tippen, Enter. Oder ganz links das oberste Symbol der Leiste (Datei-Explorer) und durch den Baum klicken. Die vier Pfade dieses Steps:
 
 ```
 docs/explanation/clean-room.md
 docs/SAFETY.md
-docs/how-to/agent-workflow.md
 docs/reference/module-layout.md
 ```
 
@@ -65,7 +64,7 @@ Ein Contributor öffnet einen PR:
 > `stm32f4xx.h` direkt ein, um den Timer zu programmieren; er konfiguriert **PG0** als Push-Pull-Ausgang, an dem
 > ein Piezo hängt. Kein Host-Test, „weil es das Board braucht". Sonst nichts im PR.
 
-Dieser eine Vorschlag verletzt alle vier stehenden Regeln auf einmal. Die drei Aufgaben zerlegen ihn: Lizenz, Pinwahl, Begutachtbarkeit.
+Dieser eine Vorschlag verletzt alle vier stehenden Regeln auf einmal. Hier zerlegst du drei davon: Lizenz, Pinwahl und die maschinell prüfbare Spur. Die vierte — was der Einreichung als Ganzes fehlt — ist der nächste Step.
 
 ## Die vier Regeln, die ein Reviewer hält
 
@@ -75,18 +74,14 @@ Dieser eine Vorschlag verletzt alle vier stehenden Regeln auf einmal. Die drei A
 
 **3. Sicherheit.** `docs/SAFETY.md` ist bindend, auch für Code, den du nicht ausführen kannst. PA13/PA14 und PH0/PH1 werden nie angefasst; PF0..7 und PG0..5 sind hochgezogene Eingänge und werden **nie** als Ausgänge konfiguriert. Den elektrischen Grund nennt `docs/SAFETY.md` Abschnitt 3, und ob er auch für Code gilt, der nie auf ein Board kommt, ist die zweite Aufgabe.
 
-**4. Der Workflow.** Der Maintainer hält die Hardware exklusiv: Contributors flashen nicht, setzen nicht zurück und hängen keinen Debugger an. Du nimmst `swarm-ready`-Issues (in sich geschlossen, hardwarefrei); `hardware-gate`-Punkte gehören dem Maintainer. Was ein begutachtbarer PR außerdem mitbringen muss, listet `docs/how-to/agent-workflow.md` in einem Absatz auf. Geh diese Liste gegen die Einreichung oben durch; die dritte Aufgabe fragt nach dem, was fehlt.
-
 ## Bewerten heißt, begründet Nein zu sagen
 
-Ein Review ist kein Abhaken. Die Frage ist, ob jede Regel erfüllt ist, und falls nicht, welche kleinste Änderung sie erfüllt. „Es braucht das Board" trifft auf die *Logik* selten zu: ein Ton-Scheduler, eine Notentabelle, eine Tastgradberechnung sind portabel und auf dem Host testbar; nur die letzten Zeilen, die einen Timer berühren, gehören hinter die HAL, und die sind das Gate des Maintainers.
+Ein Review ist kein Abhaken. Die Frage ist, ob jede Regel erfüllt ist, und falls nicht, welche kleinste Änderung sie erfüllt. Ein Nein ohne diese kleinste Änderung ist für den Autor wertlos.
 
 
 > **Was das Lint nicht zeigt.** Regel 1 prüft ein Kennzeichen, keine Herkunft. Ein sauber umbenanntes Plagiat besteht sie; ein von Grund auf eigener Treiber, der zufällig `furi_` im Kommentar erwähnt, fällt durch. Der Prüfstein aus `docs/explanation/clean-room.md` bleibt eine Frage an den Autor — *warum ist das Stück so geformt?* — und die beantwortet kein Programm. Ein grünes Lint ist deshalb eine notwendige, keine hinreichende Bedingung.
 
 ## Von drei der vier Regeln bleibt eine Maschine übrig
-
-Drei Beilagen verlangt `docs/how-to/agent-workflow.md` zusätzlich, und keine davon sieht ein Lint: nur die Änderung und nichts Unverwandtes, eine aktualisierte `docs/ROADMAP.md`, ein Bench-Hinweis für jeden geänderten Hardwarepfad und der neue Größenbericht, wenn sich der Speicherbedarf verschiebt. Wer sie vergisst, liefert einen PR, den niemand beurteilen kann, obwohl jede Prüfung grün ist.
 
 
 Ein Reviewer prüft die vier stehenden Regeln von Hand. Drei davon haben eine Spur, die ein Programm sehen kann, und die letzte Aufgabe dieses Steps verlangt, dass du sie schreibst: `tools/review_lint.py <verzeichnis>` durchsucht einen Baum und endet mit 0, wenn er sauber ist, sonst mit einem Wert ungleich 0, und druckt je Fund eine Zeile, die die verletzte Regel benennt.
@@ -101,10 +96,10 @@ Was dieses Lint **nicht** kann, steht im Abschnitt über das Lizenzurteil: Regel
 
 ## Deine Aufgabe
 
-Drei getrennte Urteile zum Vorschlag oben, jedes in seinem Feld unten im Steptext, jedes mit eigenem Knopf **Prüfen**.
+Zwei Urteile zum Vorschlag oben und ein Werkzeug, jedes in seinem Feld unten im Steptext.
 
 1. **Die Lizenz.** Welche kleinste Änderung macht den Code zulässig?
 2. **Die Pinwahl.** Hält das Argument „wird ja nie geflasht"?
-3. **Die Form.** Was fehlt, bevor ein Reviewer überhaupt anfangen kann?
+3. **Das Lint.** Schreib die drei maschinell prüfbaren Regeln als ausführbares Werkzeug.
 
-Der letzte Step verlangt von dir eine Änderung, die dieses Review selbst besteht.
+Der nächste Step fragt, was der Einreichung als Ganzes fehlt.

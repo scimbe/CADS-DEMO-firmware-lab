@@ -22,11 +22,8 @@ tasks:
     title: Deine App baut eine View auf und registriert sie
     check: { type: all, bloom: apply, checks: [ { type: command, cwd: ".", command: "grep -rlE 'void[[:space:]]+cads_hello_init' apps --include=*.c | xargs -r grep -l cads_view_dispatcher_add | xargs -r grep -l cads_view_set_softkeys | grep -q .", expectExitCode: 0 }, { type: symbolInElf, elf: "build/itsboard/cads-zero.elf", symbol: "cads_hello_init" } ] }
   - id: wired-into-menu
-    title: Das Menü ruft deine Init-Funktion wirklich auf
-    check: { type: command, cwd: ".", command: "grep -nE 'cads_hello_init[[:space:]]*\\([a-z]' apps/menu/cads_menu_app.c", expectExitCode: 0, bloom: apply }
-  - id: builds
-    title: Die Firmware baut mit der neuen App
-    check: { type: task, label: "CaDS: Build", expectExitCode: 0, bloom: apply }
+    title: Das Menü ruft deine Init-Funktion auf, und die Firmware baut mit der neuen App
+    check: { type: all, checks: [ { type: command, cwd: ".", command: "grep -nE 'cads_hello_init[[:space:]]*\\([a-z]' apps/menu/cads_menu_app.c", expectExitCode: 0, bloom: apply }, { type: task, label: "CaDS: Build", expectExitCode: 0, bloom: apply } ] }
   - id: include-is-not-linking
     title: Unterscheide Sichtbarkeit von Verfügbarkeit
     check: { type: question, prompt: { en: "Why is the #include of your header in cads_menu_app.c not enough? Say what the firmware lacks without the entry in the CMake file.", de: "Warum genügt der #include deines Headers in cads_menu_app.c nicht? Sage, was der Firmware ohne den Eintrag in der CMake-Datei fehlt." }, rubric: "Der #include macht nur die Deklaration sichtbar: der Compiler weiß danach, wie cads_hello_init heißt und welche Argumente sie nimmt, und übersetzt den Aufruf ohne Beanstandung. Was fehlt, ist die Definition — der übersetzte Rumpf deiner Quelldatei. Den bekommt das Programm erst, wenn deine Bibliothek in apps/menu/CMakeLists.txt dazugebunden wird; ohne diesen Eintrag wird deine Datei entweder gar nicht übersetzt oder ihr Objekt nicht gelinkt, und der Linker bricht mit einem undefinierten Verweis ab. Wer Deklaration und Definition nicht auseinanderhält oder den Fehler beim Compiler statt beim Linker vermutet, besteht nicht.", bloom: analyze }

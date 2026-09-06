@@ -394,6 +394,20 @@
       ]
     },
     {
+      "id": "cz.quality.contribution",
+      "track": "firmware",
+      "bloomLevel": "evaluate",
+      "statement": "Student can judge whether a submission is reviewable at all: which enclosures the contribution workflow demands, and which of its logic could have been tested without the board.",
+      "sourceDocIds": [
+        "cads-zero/docs/how-to/agent-workflow.md",
+        "cads-zero/docs/reference/module-layout.md",
+        "cads-zero/scripts/check_ram_budget.py"
+      ],
+      "prerequisiteObjectiveIds": [
+        "cz.quality.cleanroom-pr"
+      ]
+    },
+    {
       "id": "cz.quality.capstone",
       "track": "firmware",
       "bloomLevel": "create",
@@ -404,7 +418,8 @@
         "cads-zero/scripts/check_ram_budget.py"
       ],
       "prerequisiteObjectiveIds": [
-        "cz.quality.cleanroom-pr"
+        "cz.quality.cleanroom-pr",
+        "cz.quality.contribution"
       ]
     }
   ]
