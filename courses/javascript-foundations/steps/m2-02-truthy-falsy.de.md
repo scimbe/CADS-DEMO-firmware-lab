@@ -19,7 +19,7 @@ tasks:
     check: { type: testSuite, runner: node-test, expectPass: ["m2-02 withDefaults fills in missing properties", "m2-02 withDefaults keeps falsy values the caller passed on purpose"], minPass: 2 }
   - id: which-question
     title: Fehlend oder falsy
-    check: { type: question, prompt: { en: "A caller passes 0. Which question did the old code ask, and which one did it mean? Two sentences.", de: "Ein Aufrufer übergibt 0. Welche Frage stellte der alte Code, und welche meinte er? Zwei Sätze." }, rubric: "Trennt die Prüfung, die die alte Zeile durchführte, von der Prüfung, die gemeint war, und nennt einen Operator, der zur gemeinten passt. Besteht nicht: eine Aufzählung, welche Werte als leer gelten, oder ein genannter Ersatz, ohne beide Prüfungen zu benennen.", bloom: analyze, minChars: 50 }
+    check: { type: question, prompt: { en: "A caller passes 0 and a line written as `value || fallback` replaces it. Which question does that line ask, and which one was meant? Two sentences.", de: "Ein Aufrufer übergibt 0, und eine Zeile der Form `value || fallback` ersetzt sie. Welche Frage stellt diese Zeile, und welche war gemeint? Zwei Sätze." }, rubric: "Trennt die Prüfung, die diese Zeile durchführt, von der Prüfung, die gemeint war, und nennt einen Operator, der zur gemeinten passt. Besteht nicht: eine Aufzählung, welche Werte als leer gelten, oder ein genannter Ersatz, ohne beide Prüfungen zu benennen.", bloom: analyze, minChars: 50 }
 socratic:
   - trigger: "task:defaults:failed"
     question: { en: "Which of the three properties is still replaced although the caller supplied it?", de: "Welche der drei Eigenschaften wird noch ersetzt, obwohl der Aufrufer sie übergab?" }
