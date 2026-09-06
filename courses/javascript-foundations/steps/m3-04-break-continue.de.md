@@ -19,7 +19,7 @@ tasks:
     check: { type: testSuite, runner: node-test, expectPass: ["m3-04 stripComments drops empty and commented lines", "m3-04 findInGrid reports the first hit row by row", "m3-04 findInGrid leaves both loops at the first hit"], minPass: 3 }
   - id: label-or-return
     title: Marke, Flagge oder return
-    check: { type: question, prompt: { en: "Name three ways to leave both loops at the first hit, one line each, and pick one.", de: "Nenne drei Wege, beide Schleifen beim ersten Treffer zu verlassen, je eine Zeile, und wähle einen." }, rubric: "Three distinct mechanisms plus a choice with a reason. Accepts any of the three as the pick, provided the reason refers to this function rather than to taste. Does not pass: fewer than three distinct mechanisms, a pick with no reason, or a mechanism that leaves only the inner loop.", bloom: evaluate, minChars: 60 }
+    check: { type: question, prompt: { en: "Name three ways to leave both loops at the first hit, one line each, and pick one.", de: "Nenne drei Wege, beide Schleifen beim ersten Treffer zu verlassen, je eine Zeile, und wähle einen." }, rubric: "Drei verschiedene Mechanismen plus eine Wahl mit Begründung. Jeder der drei wird als Wahl angenommen, sofern die Begründung sich auf diese Funktion bezieht und nicht auf Geschmack. Besteht nicht: weniger als drei verschiedene Mechanismen, eine Wahl ohne Begründung, oder ein Mechanismus, der nur die innere Schleife verlässt.", bloom: evaluate, minChars: 60 }
 socratic:
   - trigger: "task:search:failed"
     question: { en: "Is the failure about which lines survive, or about how far the scan went before it stopped?", de: "Geht es um die überlebenden Zeilen oder darum, wie weit der Durchlauf lief, bevor er anhielt?" }

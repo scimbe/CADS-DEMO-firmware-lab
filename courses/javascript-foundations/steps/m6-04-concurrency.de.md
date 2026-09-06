@@ -19,7 +19,7 @@ tasks:
     check: { type: testSuite, runner: node-test, expectPass: ["m6-04 inSequence keeps order and adds up the waits", "m6-04 together keeps order but overlaps the waits", "m6-04 settleAll reports every outcome"], minPass: 3 }
   - id: choose-combinator
     title: Wähle einen Kombinator und begründe ihn
-    check: { type: question, prompt: { en: "Give one situation for each combinator and one that must run in order. One sentence each.", de: "Nenne je eine Situation für jeden Kombinator und eine, die nacheinander laufen muss. Je ein Satz." }, rubric: "Three situations that could not be swapped: one where a partial result is worthless, one where every outcome must be reported, and one where overlapping is impossible or forbidden. Does not pass: a sequential case that is only about preference, or two situations either combinator would serve equally.", bloom: evaluate, minChars: 60 }
+    check: { type: question, prompt: { en: "Give one situation for each combinator and one that must run in order. One sentence each.", de: "Nenne je eine Situation für jeden Kombinator und eine, die nacheinander laufen muss. Je ein Satz." }, rubric: "Drei Situationen, die sich nicht vertauschen lassen: eine, in der ein Teilergebnis wertlos ist, eine, in der jeder Ausgang berichtet werden muss, und eine, in der Überlappung unmöglich oder verboten ist. Besteht nicht: ein Nacheinander-Fall, bei dem es nur um Vorlieben geht, oder zwei Situationen, die jeder der Kombinatoren gleich gut bedienen würde.", bloom: evaluate, minChars: 60 }
 socratic:
   - trigger: "task:parallel:failed"
     question: { en: "Did the timing assertion fail, or the one about reporting failures?", de: "Ist die Zeitmessung fehlgeschlagen oder die über das Melden von Fehlschlägen?" }

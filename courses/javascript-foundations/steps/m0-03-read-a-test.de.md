@@ -18,7 +18,7 @@ tasks:
     check: { type: testSuite, runner: node-test, expectPass: ["m0-03 summarize returns count, total and average", "m0-03 summarize of an empty array has average 0"], minPass: 2 }
   - id: read-the-diff
     title: Erkläre den Diff, den der Test ausgegeben hat
-    check: { type: question, prompt: { en: "In the diff you saw, which side was your code, and what exactly differed? Two sentences.", de: "Welche Seite des Diffs war dein Code, und was genau unterschied sich? Zwei Sätze." }, rubric: "Names the marked side as the code's own output and the other as the test's demand, and identifies the difference as a property name rather than a number, since the value was identical on both sides. Does not pass: an answer that calls the number wrong, or one that names a side without saying which belongs to whom.", bloom: understand, minChars: 50 }
+    check: { type: question, prompt: { en: "In the diff you saw, which side was your code, and what exactly differed? Two sentences.", de: "Welche Seite des Diffs war dein Code, und was genau unterschied sich? Zwei Sätze." }, rubric: "Benennt die markierte Seite als die eigene Ausgabe des Codes und die andere als die Forderung des Tests, und erkennt den Unterschied als einen Eigenschaftsnamen statt als eine Zahl, da der Wert auf beiden Seiten gleich war. Besteht nicht: eine Antwort, die die Zahl für falsch erklärt, oder eine, die eine Seite nennt, ohne zu sagen, wem sie gehört.", bloom: understand, minChars: 50 }
 socratic:
   - trigger: "task:summarize:failed"
     question: { en: "Which properties appear on both sides of the diff, and which one appears on only one?", de: "Welche Eigenschaften stehen auf beiden Seiten des Diffs, und welche nur auf einer?" }

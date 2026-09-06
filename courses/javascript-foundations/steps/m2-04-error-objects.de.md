@@ -19,7 +19,7 @@ tasks:
     check: { type: testSuite, runner: node-test, expectPass: ["m2-04 ValidationError is an Error with name, message and field", "m2-04 validateUser throws ValidationError naming the bad field"], minPass: 2 }
   - id: worth-a-class
     title: Begründe die Klasse
-    check: { type: question, prompt: { en: "What can a caller do with your error that a thrown string would not allow? Two sentences.", de: "Was kann ein Aufrufer mit deinem Fehler tun, was eine geworfene Zeichenkette nicht erlaubt? Zwei Sätze." }, rubric: "Names a reaction that depends on the type being recognisable, and a use of the extra field that reading the message could not replace. Does not pass: an answer that only says it is cleaner or more professional, or one that names only the message text as the gain.", bloom: evaluate, minChars: 50 }
+    check: { type: question, prompt: { en: "What can a caller do with your error that a thrown string would not allow? Two sentences.", de: "Was kann ein Aufrufer mit deinem Fehler tun, was eine geworfene Zeichenkette nicht erlaubt? Zwei Sätze." }, rubric: "Nennt eine Reaktion, die davon abhängt, dass der Typ erkennbar ist, und eine Verwendung des zusätzlichen Feldes, die das Lesen der Meldung nicht ersetzen könnte. Besteht nicht: eine Antwort, die nur sagt, es sei sauberer oder professioneller, oder eine, die allein den Meldungstext als Gewinn nennt.", bloom: evaluate, minChars: 50 }
 socratic:
   - trigger: "task:validation:failed"
     question: { en: "Does the thrown value survive a type check, and does it carry the extra detail the test reads?", de: "Übersteht der geworfene Wert eine Typprüfung, und trägt er das zusätzliche Detail, das der Test liest?" }

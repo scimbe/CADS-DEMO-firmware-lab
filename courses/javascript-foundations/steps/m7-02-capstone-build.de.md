@@ -6,7 +6,7 @@ objectives: [js.tooling.node-test, js.errors.custom-class, js.async.errors, java
 requires: [m7-01-capstone-design]
 estimatedMinutes: 60
 scaffold: independent
-recallFrom: [m7-01-capstone-design, m5-04-transformations, m6-03-async-errors]
+recallFrom: [m7-01-capstone-design, m5-04-transformations, m6-03-async-errors, m6-02-async-await]
 links:
   - { step: m7-01-capstone-design }
   - { step: m2-04-error-objects }
@@ -22,7 +22,7 @@ tasks:
     check: { type: command, command: "node --test --test-reporter=tap test/m7-02-capstone-build.mine.test.js", expectExitCode: 0, expectStdout: "# pass ([2-9]|[1-9][0-9]+)", timeoutMs: 60000 }
   - id: what-your-tests-found
     title: Wozu deine eigenen Tests da waren
-    check: { type: question, prompt: { en: "Which cases did you add, and why does the given suite miss them? One sentence each.", de: "Welche Fälle hast du ergänzt, und warum fehlen sie der vorgegebenen Suite? Je ein Satz." }, rubric: "At least two concrete cases, each with a reason the given suite does not reach it, and an honest outcome, whether a bug appeared or the implementation already held. Does not pass: a case the given suite already covers, or a claim that a test found something without saying what changed.", bloom: evaluate, minChars: 80 }
+    check: { type: question, prompt: { en: "Which cases did you add, and why does the given suite miss them? One sentence each.", de: "Welche Fälle hast du ergänzt, und warum fehlen sie der vorgegebenen Suite? Je ein Satz." }, rubric: "Zwei oder mehr Fälle, die die vorgegebenen Testdaten nicht erzeugen können - eine Grenze der Eingabe, eine Form, die die Beispieldaten nie annehmen, oder ein Fehlerpfad, den nichts in der Suite auslöst -, je mit dem Grund, warum er außerhalb ihrer Reichweite liegt. Danach je ein ehrliches Ergebnis: ein Mangel, der auftauchte, oder eine Implementierung, die bereits hielt. Besteht nicht: ein Fall, den die vorgegebene Suite schon abdeckt, oder die Behauptung, ein Test habe etwas gefunden, ohne zu sagen, was sich daraufhin änderte.", bloom: evaluate, minChars: 80 }
 socratic:
   - trigger: "task:contract:failed"
     question: { en: "Which of the seven fails, and is it about reading, aggregating, formatting or waiting?", de: "Welcher der sieben scheitert, und geht es um Lesen, Aggregieren, Formatieren oder Warten?" }
@@ -40,6 +40,9 @@ misconceptions:
   - pattern: "NaN|Reduce of empty array"
     question: { en: "An amount that is not a number reached the arithmetic, or an empty report had nothing to start from. Where is the boundary check?", de: "Ein Betrag, der keine Zahl ist, hat die Rechnung erreicht, oder ein leerer Bericht hatte keinen Startwert. Wo steht die Grenzprüfung?" }
     hints: [ { en: "parseLine must reject a non-finite amount with a ReportError rather than passing NaN on.", de: "parseLine muss einen nicht endlichen Betrag mit einem ReportError ablehnen, statt NaN weiterzureichen." }, { en: "Number.isFinite is the check; Number('') is 0, so an empty amount needs its own rejection.", de: "Number.isFinite ist die Prüfung; Number('') ist 0, ein leerer Betrag braucht also seine eigene Ablehnung." }, { en: "Give every reduce an initial value so an empty report answers 0.", de: "Gib jedem reduce einen Startwert, damit ein leerer Bericht 0 liefert." } ]
+  - pattern: "Missing expected rejection"
+    question: { en: "The reader failed and loadReport handed back a report anyway. Where did the rejection stop?", de: "Der Leser scheiterte, und loadReport lieferte trotzdem einen Bericht. Wo blieb die Ablehnung hängen?" }
+    hints: [ { en: "A catch that supplies a substitute value turns a failed read into an empty report, and the caller never learns of it.", de: "Ein catch, das einen Ersatzwert liefert, macht aus einem gescheiterten Lesen einen leeren Bericht, und der Aufrufer erfährt nie davon." }, { en: "The contract asks for the failure to reappear as this module's own error type, not to disappear.", de: "Der Auftrag verlangt, dass der Fehlschlag als der eigene Fehlertyp dieses Moduls wieder auftaucht, nicht dass er verschwindet." }, { en: "Throw from the catch and pass the caught error on through the standard cause option, the way m6-03 did.", de: "Wirf aus dem catch heraus und reiche den gefangenen Fehler über die Standard-Option cause weiter, so wie in m6-03." } ]
   - pattern: "'tea: 2.00|localeCompare|deep-equal"
     question: { en: "The output lines came out in the wrong order. What is the second criterion when two totals are equal?", de: "Die Ausgabezeilen kamen in der falschen Reihenfolge. Was ist das zweite Kriterium, wenn zwei Summen gleich sind?" }
     hints: [ { en: "Sort by total descending first: b[1] - a[1].", de: "Sortiere zuerst absteigend nach Summe: b[1] - a[1]." }, { en: "When that returns 0, fall through to the labels: || a[0].localeCompare(b[0]) - the m5-04 pattern.", de: "Liefert das 0, geh zu den Labels über: || a[0].localeCompare(b[0]) - das Muster aus m5-04." }, { en: "The TOTAL line is appended after sorting, never sorted with the others.", de: "Die TOTAL-Zeile wird nach dem Sortieren angehängt und nie mit einsortiert." } ]
@@ -65,7 +68,7 @@ Alles in [`src/m7/report-tool.js`](file:src/m7/report-tool.js). Sechs Exporte, u
 | `parseReport` | Text zu Datensätzen, in Dateireihenfolge | [m3-03](step:m3-03-for-of-and-in) |
 | `summarize` | Datensätze zu `{count, sum, byLabel}` | [m5-04](step:m5-04-transformations) |
 | `formatReport` | Zusammenfassung zu sortierten Zeilen plus `TOTAL` | [m5-04](step:m5-04-transformations) |
-| `loadReport` | einen Reader abwarten, dann die drei darüber | [m6-03](step:m6-03-async-errors) |
+| `loadReport` | einen Reader abwarten, dann die drei darüber | [m6-02](step:m6-02-async-await), [m6-03](step:m6-03-async-errors) |
 
 Arbeite von den Tests her. `node --test test/m7-02-capstone-build.test.js` gibt dir sieben Fehlschläge; nimm sie einzeln von oben nach unten, und die Form jeder Funktion folgt aus den Assertions.
 

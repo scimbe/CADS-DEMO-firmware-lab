@@ -6,7 +6,7 @@ objectives: [js.tooling.node-test, javascript-web-javascript-guide-indexed-colle
 requires: [m6-04-concurrency]
 estimatedMinutes: 25
 scaffold: faded
-recallFrom: [m5-04-transformations, m2-04-error-objects, m1-03-coercion-nan]
+recallFrom: [m5-04-transformations, m2-04-error-objects, m1-03-coercion-nan, m6-04-concurrency]
 links:
   - { step: m6-04-concurrency }
   - { step: m7-02-capstone-build }
@@ -16,10 +16,10 @@ sources: [src/m7/report-tool.js, examples/m7-pipeline.js, test/m7-02-capstone-bu
 tasks:
   - id: guess-pipeline
     title: Sag vorher, was die naive Verarbeitungskette liefert
-    check: { type: predict, prompt: { en: "Read examples/m7-pipeline.js. Write down all four values it prints before you run it.", de: "Lies examples/m7-pipeline.js. Schreib alle vier ausgegebenen Werte auf, bevor du es ausführst." }, then: { type: command, command: "node examples/m7-pipeline.js", expectExitCode: 0, expectStdout: "guarded" }, rubric: "Sets the four predicted values against the printed ones and names the earliest point at which the pipeline went wrong. Does not pass: reporting the four values without identifying where the damage began.", bloom: evaluate }
+    check: { type: predict, prompt: { en: "Read examples/m7-pipeline.js. Write down all four values it prints before you run it.", de: "Lies examples/m7-pipeline.js. Schreib alle vier ausgegebenen Werte auf, bevor du es ausführst." }, then: { type: command, command: "node examples/m7-pipeline.js", expectExitCode: 0, expectStdout: "guarded" }, rubric: "Stellt die vier vorhergesagten Werte den ausgegebenen gegenüber und nennt die früheste Stelle, an der die Verarbeitungskette entgleiste. Besteht nicht: die vier Werte wiedergeben, ohne zu benennen, wo der Schaden begann.", bloom: evaluate }
   - id: design-decisions
     title: Entscheide, wie fehlerhafte Eingaben behandelt werden
-    check: { type: question, prompt: { en: "Three ways to treat a bad line. Which do the tests demand, and what do the other two cost?", de: "Drei Umgänge mit einer fehlerhaften Zeile. Welchen verlangen die Tests, und was kosten die anderen?" }, rubric: "Derives from the assertions which of the three the suite requires, and keeps an unreadable record apart from one meant to be passed over. Prices the two rejected options against what the operator would and would not learn. Does not pass: naming the requirement with no price attached to the alternatives, or treating a passed-over record as a fault.", bloom: evaluate, minChars: 80 }
+    check: { type: question, prompt: { en: "Three ways to treat a bad line. Which do the tests demand, and what do the other two cost?", de: "Drei Umgänge mit einer fehlerhaften Zeile. Welchen verlangen die Tests, und was kosten die anderen?" }, rubric: "Leitet aus den Prüfungen ab, welchen der drei die Testsuite verlangt, und hält einen unlesbaren Datensatz von einem auseinander, der übergangen werden soll. Beziffert die beiden verworfenen Möglichkeiten daran, was der Betreiber erführe und was nicht. Besteht nicht: die Anforderung benennen, ohne den Alternativen einen Preis zuzuordnen, oder einen übergangenen Datensatz als Fehler behandeln.", bloom: evaluate, minChars: 80 }
 socratic:
   - trigger: "task:guess-pipeline:failed"
     question: { en: "Which of the four values did you expect, and which one first went wrong?", de: "Welche der vier Werte hast du erwartet, und welcher ging zuerst schief?" }
@@ -73,7 +73,7 @@ Jedes Modul dieses Kurses hinterlässt seinen Fingerabdruck auf diesem Problem. 
 - **Gleichstand.** Zwei Labels mit derselben Summe brauchen eine dokumentierte Reihenfolge, sonst ist die Ausgabe instabil.
 - **Eigentümerschaft.** `summarize` bekommt ein Array vom Aufrufer und darf es nicht umsortieren ([m5-03](step:m5-03-arrays)).
 - **Fehler.** Eine fehlerhafte Zeile muss von einem Kommentar unterscheidbar sein ([m2-04](step:m2-04-error-objects)).
-- **Asynchronität.** `loadReport` wartet auf einen Reader, der ablehnen kann, und die Ablehnung darf nicht als unbehandelte entkommen ([m6-03](step:m6-03-async-errors)).
+- **Asynchronität.** `loadReport` wartet auf einen Reader, der ablehnen kann, und die Ablehnung darf nicht als unbehandelte entkommen ([m6-03](step:m6-03-async-errors)). Es gibt eine einzige Quelle, hier muss also nichts gleichzeitig mit etwas anderem laufen - die Wahl zwischen den Kombinatoren ([m6-04](step:m6-04-concurrency)) darf dieser Entwurf ausschlagen, und zu sagen warum gehört zum Entwurf.
 
 ## Die Entscheidung, um die es hier geht
 

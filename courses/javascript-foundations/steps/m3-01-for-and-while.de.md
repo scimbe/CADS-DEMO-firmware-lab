@@ -19,7 +19,7 @@ tasks:
     check: { type: testSuite, runner: node-test, expectPass: ["m3-01 countUp builds 1..n and an empty array for 0", "m3-01 sumUntil stops at the first element that reaches stop"], minPass: 2 }
   - id: which-loop
     title: Warum jede Schleife ihre Form bekam
-    check: { type: question, prompt: { en: "Why does one function suit a counting head and the other a condition? One sentence each.", de: "Warum passt zu einer Funktion ein Zählkopf und zur anderen eine Bedingung? Je ein Satz." }, rubric: "Ties the first to a trip count that is known before the loop starts, and the second to a stop that only the data can decide. Does not pass: an answer based on which form is shorter or more familiar, or one that says both would work without naming what differs.", bloom: understand, minChars: 40 }
+    check: { type: question, prompt: { en: "Why does one function suit a counting head and the other a condition? One sentence each.", de: "Warum passt zu einer Funktion ein Zählkopf und zur anderen eine Bedingung? Je ein Satz." }, rubric: "Bindet die erste an eine Durchlaufzahl, die vor dem Start feststeht, und die zweite an ein Ende, das erst die Daten entscheiden. Besteht nicht: eine Antwort danach, welche Form kürzer oder vertrauter ist, oder eine, die sagt, beide gingen, ohne den Unterschied zu benennen.", bloom: understand, minChars: 40 }
 socratic:
   - trigger: "task:tally:failed"
     question: { en: "Which function fails, and does it stop too early, too late, or never?", de: "Welche Funktion scheitert, und hört sie zu früh, zu spät oder nie auf?" }
