@@ -818,3 +818,9 @@ Zwei Befunde ohne Bezug zu Copilot, die bei der Prüfung aufgefallen sind:
 
 Gebaut ist **nichts**. Gemessen ist alles, was ohne Copilot-Konto und ohne Ihre Entscheidungen messbar
 war. Der Strang wartet auf Punkt 1 und 2 dieser Seite.
+
+**Und er soll warten.** Wer den Umschalter baut, bevor Punkt 3 beantwortet ist, hat nicht nur Code auf
+Verdacht geschrieben — beim ersten Ausprobieren geht der Code einer studierenden Person an GitHub,
+bevor jemand geklärt hat, ob er das darf. Das lässt sich nicht zurücknehmen: der Prompt ist dann
+gesendet. Ein halber Tag Vorsprung ist das nicht wert, zumal Punkt 3 den Bau nicht aufhält — Punkt 1
+und 2 tun das ohnehin.
