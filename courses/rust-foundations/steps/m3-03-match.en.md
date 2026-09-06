@@ -74,7 +74,7 @@ Leave a variant out and the compiler refuses:
 error[E0004]: non-exhaustive patterns: `&Command::ChangeColor(_, _, _)` not covered
 ```
 
-That is not pedantry, it is the feature. Add a fifth variant to `Command` a year from now and every `match` that has to change tells you where it is. A `_ => ()` catch-all switches this off permanently, so `describe` deliberately has none.
+That is not pedantry, it is the feature - and it is a feature you can switch off, because a `_ => ()` arm matches everything left over. `describe` deliberately has none, `dice_action` deliberately does. The question below asks what separates the two cases and what the choice costs a year from now.
 
 `dice_action` shows the other side: matching a `u8` means 254 uncovered values, and listing them is absurd. There the catch-all is correct - and it should *bind*, `other => format!("move {other}")`, not discard with `_`, because you need the number.
 

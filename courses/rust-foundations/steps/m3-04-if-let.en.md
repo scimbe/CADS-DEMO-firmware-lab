@@ -81,7 +81,7 @@ The binding stays in scope for the rest of the block, so there is no rightward d
 
 ## What you give up
 
-`match` checks that you covered every variant. `if let` does not: everything that is not the pattern falls into the `else`, silently and forever. Add a second text-carrying variant to `Command` next year and `longest_write` keeps compiling while quietly ignoring it.
+`match` checks that you covered every variant. `if let` does not: everything that is not the pattern falls into the `else`, silently and forever. That is the whole of the trade, and the question below asks you to make it concrete on `longest_write` - which is the one function in this step that decides on a single variant.
 
 Whether that trade is acceptable depends on whether the code's correctness rests on the whole set of variants or on one of them. The question task asks you to make that argument concretely, on this file.
 

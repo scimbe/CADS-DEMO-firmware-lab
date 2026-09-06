@@ -55,7 +55,7 @@ pub fn swap<T>(p: Pair<T>) -> Pair<T> {
 }
 ```
 
-It only moves values from one field to another, and moving works for any type.
+It only moves values from one field to another. Whether that is enough to need no bound at all is the first half of the question below.
 
 `largest` compares, and comparison is not universal, so it must ask:
 

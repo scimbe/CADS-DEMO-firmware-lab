@@ -55,7 +55,7 @@ pub fn swap<T>(p: Pair<T>) -> Pair<T> {
 }
 ```
 
-Es verschiebt lediglich Werte von einem Feld ins andere, und Verschieben funktioniert für jeden Typ.
+Es verschiebt lediglich Werte von einem Feld ins andere. Ob das genügt, um ohne jede Schranke auszukommen, ist die erste Hälfte der Frage unten.
 
 `largest` vergleicht, und Vergleichen ist nicht allgemein, es muss also fragen:
 
