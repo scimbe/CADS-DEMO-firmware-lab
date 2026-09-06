@@ -92,7 +92,13 @@ Die Regel lässt sich leicht merken: **gestapelte Marken ohne etwas dazwischen s
 
 ## So führst du diesen Step aus
 
-Öffne ein Terminal mit **Terminal > New Terminal** (oder drücke **F1** und tippe `>Terminal: Create New Terminal`). Es öffnet sich im Panel am unteren Fensterrand, und sein Prompt muss auf `javascript-foundations` enden. Führe dann aus:
+::: do palette="> Terminal: Create New Terminal"
+Öffne ein Terminal. Von Hand: Menü **Terminal > New Terminal**, oder **F1** und der oben genannte Befehl.
+> expect: Am unteren Fensterrand öffnet sich ein Panel mit einem Prompt darin, und der Prompt endet auf `javascript-foundations`.
+> recover: Antwortet die Palette *No matching results*, fehlt das führende `>`; ohne dieses Zeichen sucht die Palette nach Dateinamen statt nach Befehlen. Öffnet sich gar nichts, nimm **F1** statt Strg+Umschalt+P, das der Browser für sich behalten kann. Endet der Prompt auf einem anderen Ordner, tippe `cd javascript-foundations` ins Terminal.
+:::
+
+Führe dann aus:
 
 ```bash
 node --test test/m2-01-if-switch.test.js

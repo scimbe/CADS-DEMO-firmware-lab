@@ -61,7 +61,7 @@ Vergleich das mit [m2-02](step:m2-02-truthy-falsy). Drei Mechanismen, drei versc
 | `x ?? default` | `undefined` und `null` |
 | `x \|\| default` | jeden falsy-Wert, auch `0`, `""`, `false` |
 
-`joinWords(null, "a")` benutzt also **nicht** `", "`. `null` ist nicht `undefined` und wird deshalb als Trennzeichen genommen. Das aussprechen zu können ist die zweite Aufgabe.
+`joinWords(null, "a")` benutzt also **nicht** `", "`. `null` ist nicht `undefined` und wird deshalb als Trennzeichen genommen. Was das mit dem Ergebnis macht, ist eine zweite Frage, und sie hängt an einer Eigenschaft von `join`, nicht an der von Standardwerten: `join` setzt das Trennzeichen **zwischen** Elemente und sonst nirgendwohin, die Zahl der Trennzeichen im Ergebnis ist also immer um eins kleiner als die Zahl der Wörter. Beides aussprechen zu können ist die zweite Aufgabe.
 
 Standardwerte werden zur Aufrufzeit von links nach rechts ausgewertet und dürfen sich auf frühere Parameter beziehen: `function f(a, b = a * 2)` ist gültig und berechnet bei jedem Aufruf ein frisches `b`.
 
@@ -84,7 +84,13 @@ Der alte Weg war das `arguments`-Objekt, und MDNs Kapitel [Functions](https://de
 
 ## So führst du diesen Step aus
 
-Öffne ein Terminal mit **Terminal > New Terminal** (oder drücke **F1** und tippe `>Terminal: Create New Terminal`). Es öffnet sich im Panel am unteren Fensterrand, und sein Prompt muss auf `javascript-foundations` enden. Führe dann aus:
+::: do palette="> Terminal: Create New Terminal"
+Öffne ein Terminal. Von Hand: Menü **Terminal > New Terminal**, oder **F1** und der oben genannte Befehl.
+> expect: Am unteren Fensterrand öffnet sich ein Panel mit einem Prompt darin, und der Prompt endet auf `javascript-foundations`.
+> recover: Antwortet die Palette *No matching results*, fehlt das führende `>`; ohne dieses Zeichen sucht die Palette nach Dateinamen statt nach Befehlen. Öffnet sich gar nichts, nimm **F1** statt Strg+Umschalt+P, das der Browser für sich behalten kann. Endet der Prompt auf einem anderen Ordner, tippe `cd javascript-foundations` ins Terminal.
+:::
+
+Führe dann aus:
 
 ```bash
 node --test test/m4-02-parameters.test.js

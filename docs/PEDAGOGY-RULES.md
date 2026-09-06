@@ -133,6 +133,23 @@ weniger als 50 % mit dem Fließtext desselben Steps, bei `analyze` und `evaluate
 *Herkunft: gemessene Überlappung von 72 % im Median, 86 % im Maximum; S−: „Ich scrolle hoch und schreibe ab. Ich
 habe nichts verstanden und der Step ist grün." (Runde 1, A3).* **[Validator]**
 
+**R4.2a — Ausnahme an den unteren Bloom-Stufen: benannte Artefakte.** Bei einem Check der Stufe `remember`
+oder `understand` — maßgeblich ist `check.bloom`, ersatzweise die Stufe des Steps —, dessen Rubrik das **Benennen
+von Artefakten** bewertet, die der Step selbst gezeigt hat (eine Fehlermeldung, die Datei aus dem Stacktrace, eine
+ausgegebene Zahl, die beiden Seiten eines Diffs), gilt die Grenze gegen den Fließtext nicht. Diese Artefakte
+stehen im Steptext, weil der Step sie gezeigt hat. Eine Rubrik, die sie umschreibt statt sie zu benennen, wird
+vage — und im Rückfallweg ohne Sprachmodell liest die Studierende die Rubrik als Selbstkontrolle, wo eine vage
+Rubrik schlechter ist als eine überlappende. Die Ausnahme gilt **nicht** für eine Rubrik, die einen Sachverhalt
+erklärt, den der Fließtext ebenfalls erklärt; das bleibt ein Befund, auch auf `understand`.
+Jede Ausnahme steht mit ihrem Grund in `scripts/pedagogy-metrics.py` (`EXCEPT_R42`) und wird von dort gezählt und
+ausgewiesen. Ohne hingeschriebenen Grund keine Ausnahme: eine Ausnahme ohne Grund ist ein stillgelegter Befund.
+Betroffen in `javascript-foundations`: `m0-02-first-run/what-i-see` (63,0 %), `m0-03-read-a-test/read-the-diff`
+(51,7 %).
+*Herkunft: acht Rubriken des JavaScript-Kurses lagen über der Grenze. Zwei prüfen Artefakte und sind ausgenommen;
+die übrigen sechs erklären einen Sachverhalt, den ihr Fließtext ebenfalls erklärt, und bleiben Befunde. Eine
+Regel, die man aus gutem Grund achtmal bricht, ist falsch formuliert — aber der Grund trägt nur dort, wo die
+Rubrik nichts erklärt, sondern etwas wiedererkennt.* **[Validator]**
+
 **R4.3 — Der Prompt kündigt den Umfang an, den die Rubrik verlangt.** Nicht als Fragenkette, sondern als
 Umfangsangabe: „drei Fälle, je ein Satz, plus ein Satz zur Einordnung". Die Studierende sieht die Rubrik nicht;
 eine Anforderung, die nur dort steht, ist keine.
@@ -409,6 +426,7 @@ den Validator-Strang.
 | R2.2 | Front-Matter-`bloom` ≠ Check-`bloom` ohne Reflexionsbegründung ⇒ Warnung |
 | R2.1 | Step mit `bloom: apply` oder höher ohne ausführbaren Check ⇒ Warnung |
 | R4.2 | Rubrik/Fließtext-Tokenüberlappung > 50 % ⇒ Warnung, > 70 % ⇒ Fehler |
+| R4.2a | Eintrag in `EXCEPT_R42` ohne Grund, oder Ausnahme oberhalb `understand` ⇒ Fehler |
 | R4.1 | Prompt mit ≥ 2 Fragezeichen oder > 40 Wörtern ⇒ Warnung |
 | R5.1 | Überlappung `hints[2]` mit der Rubrik > 30 % ⇒ Warnung |
 | R5.3 | Task ohne `socratic`-Eintrag ⇒ Warnung |

@@ -203,6 +203,18 @@ Das Hinweis-Tier (1..3) folgt wie bisher der Zahl der Fehlschläge. Ein Trigger,
 kann – `test:` ohne `testSuite`-Aufgabe, `output:` ohne `command`/`testSuite` –, ist eine Warnung des
 Validators, kein Fehler.
 
+**Innerhalb von `misconceptions` gewinnt das erste passende Muster, nicht das beste.** `selectOutputInsight`
+geht die Liste von oben nach unten durch und nimmt den ersten Treffer. Ein breites Muster verschluckt deshalb
+jede spezifischere Diagnose, die darunter steht – und breit ist ein Muster schneller, als es aussieht: `cleanup`
+trifft auch den Testnamen „always runs the cleanup", `deep-equal` trifft jede fehlgeschlagene Tiefengleichheit
+des Steps. **Spezifische Muster stehen vor breiten.** Wer ein Muster ergänzt, prüft an einer echten Fehlausgabe,
+welches zuerst greift: Fehllösung schreiben, Test des Steps laufen lassen, Ausgabe gegen die Musterliste halten.
+Ohne diese Probe ist ein neues Muster am Ende der Liste wirkungslos und sieht in den Daten trotzdem aus wie
+Abdeckung.
+
+Aus demselben Grund ist ein Muster nur dann Abdeckung, wenn es eine **reale** Ausgabe trifft (R6.2). Beim Zählen
+einer Abdeckungstabelle zählt nur, was an einer erzeugten Fehlausgabe belegt wurde.
+
 ### Modul-Reflexion
 
 ```jsonc

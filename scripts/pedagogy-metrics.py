@@ -9,7 +9,9 @@ does not pass, and whether the task has its own hint ladder. Also counts tasks
 of any kind with no ladder.
 
 Run from the repository root:
-    python3 scripts/pedagogy-metrics.py [--over] [--raw] [--lang de|en]
+    python3 scripts/pedagogy-metrics.py [<pack>] [--over] [--raw] [--lang de|en]
+
+<pack> is a directory name under courses/ and defaults to rust-foundations.
 
 --over prints only the rows that break a rule.
 --lang picks the language half to measure (default en). Rubrics are plain
@@ -36,6 +38,24 @@ measuring past each other because of it. Both are printed on every row:
          grade nothing. The course sits under 30 percent throughout; a
          mirrored rubric climbs.
 
+`q/r` is one of four defensible readings of "rubric against question", and the
+other three are the reason two streams once disagreed about the same rubrics.
+Named, so nobody re-derives them:
+
+  A  share of the QUESTION's content words that appear anywhere in the rubric
+  B  share of the RUBRIC's content words that already stand in the question   `q/r`
+  C  Jaccard of the two content-word sets                                     `jac`
+  D  A, computed with no stop list, so function words count                   `--raw`
+
+B and C are the mirroring measures and both are printed. A and D measure topic
+sameness, not mirroring, and they move the WRONG way when a rubric improves: a
+rubric that says more about the subject necessarily repeats more of the
+question's nouns. Worked example, javascript-foundations: rewriting eight
+mirrored rubrics moved B from 23.5 to 17.6 percent at the maximum while A rose
+from 44.4 to 50.0. Never gate on A or D. Short prompts make A useless in any
+case - these packs carry eight to twelve content words per prompt, so four
+shared words already read as 40 percent.
+
 One caveat on `ovl`, learned by using it: a rubric has to name the same types,
 traits and error codes the body names, so a residual overlap around 50 percent
 is domain vocabulary rather than a leaked answer. Treat a number above roughly
@@ -45,12 +65,42 @@ to the line. The stop list below removes function words only, in both languages.
 import importlib.util, os, re, glob, sys
 spec=importlib.util.spec_from_file_location("v","scripts/validate-courses.py")
 V=importlib.util.module_from_spec(spec); spec.loader.exec_module(V)
-D="courses/rust-foundations/steps"
+
+# R4.2 exceptions, keyed (pack, step, task). PEDAGOGY-RULES.md R4.2a states when
+# one is allowed: a `remember` or `understand` check whose rubric grades the
+# naming of artefacts the step itself put on screen. Such a rubric cannot avoid
+# the body's words without becoming vague, and a vague rubric is worse in the
+# fallback path, where the student reads it as a self-check.
+#
+# Writing the reason is the price of the entry. An exception without one is a
+# silenced finding, and the line below is what makes it reviewable.
+EXCEPT_R42 = {
+    ("javascript-foundations", "m0-02-first-run", "what-i-see"):
+        "bloom remember. Grades whether the student names the artefacts of the run they just "
+        "watched - the thrown TODO error, the file and function the stack trace pointed at, and "
+        "`fail 0` as the finish condition. Naming them less exactly would accept an answer that "
+        "names nothing.",
+    ("javascript-foundations", "m0-03-read-a-test", "read-the-diff"):
+        "bloom understand. Grades a reading of the diff the step printed. The two sides and the "
+        "property name are the artefacts on screen, and the rubric has to name them to be able to "
+        "reject 'the number was wrong'.",
+}
+
 STOP=set("""a an the of to in on for and or is are be been was were it its this that these those with as at by from not no if then than so such can could may might must will would should do does did have has had you your yours we our they their them i me my one two three
 der die das den dem des ein eine einen einem eines und oder ist sind sein war waren es dies diese dieser dieses mit als bei von aus nicht kein keine wenn dann so auch noch nur schon man du dein deine dir dich wir uns sie ihr ihre ich mich mein meine kann können könnte muss müssen soll sollen wird werden wurde worden hat haben hatte zu im am um vom zum zur auf für dass ob wie was wer wo welche welcher welches""".split())
 def toks(s):
     ws = re.findall(r"[a-zäöüß0-9_]+", (s or "").lower())
     return set(ws) if raw else {w for w in ws if len(w)>2 and w not in STOP}
+# argv: an optional pack name, plus flags. --lang consumes the word after it.
+_positional, _skip = [], False
+for _i, _a in enumerate(sys.argv[1:]):
+    if _skip: _skip = False; continue
+    if _a == "--lang": _skip = True; continue
+    if _a.startswith("--"): continue
+    _positional.append(_a)
+pack = _positional[0] if _positional else "rust-foundations"
+D = f"courses/{pack}/steps"
+if not os.path.isdir(D): sys.exit(f"no such pack: {D}")
 onlyover = "--over" in sys.argv
 raw = "--raw" in sys.argv
 lang = sys.argv[sys.argv.index("--lang")+1] if "--lang" in sys.argv else "en"
@@ -72,8 +122,9 @@ for f in sorted(glob.glob(f"{D}/*.{lang}.md")):
         c=t.get("check") or {}
         if c.get("type")!="question": continue
         pr=(c.get("prompt") or {}).get(lang,""); ru=c.get("rubric") or ""
-        rt=toks(ru); ov=len(rt&btok)/len(rt)*100 if rt else 0
-        qr=len(rt&toks(pr))/len(rt)*100 if rt else 0
+        rt=toks(ru); pt=toks(pr); ov=len(rt&btok)/len(rt)*100 if rt else 0
+        qr=len(rt&pt)/len(rt)*100 if rt else 0                    # reading B
+        jac=len(rt&pt)/len(rt|pt)*100 if (rt|pt) else 0           # reading C
         h3=""
         for s0 in soc:
             if str(s0.get("trigger","")).startswith(f"task:{t['id']}:"):
@@ -83,16 +134,22 @@ for f in sorted(glob.glob(f"{D}/*.{lang}.md")):
         lim=35 if fm["bloom"] in ("analyze","evaluate") else 50
         rows.append((sid,t["id"],fm["bloom"],len(re.findall(r"\S+",pr)),pr.count("?"),round(ov,1),lim,
                      round(h3ov,1), bool(REJECTS.search(ru)), t["id"] in trig,
-                     round(qr,1)))
-print(f"lang={lang}" + ("  (--raw: stop list off)" if raw else ""))
-print(f"{'step':26} {'task':16} {'bloom':10} pw q? ovl/lim   q/r  h3ovl notpass ladder")
+                     round(qr,1), round(jac,1), (pack,sid,t["id"]) in EXCEPT_R42))
+print(f"pack={pack} lang={lang}" + ("  (--raw: stop list off)" if raw else ""))
+print(f"{'step':26} {'task':18} {'bloom':10} pw q? ovl/lim   q/r   jac  h3ovl notpass ladder")
 for r in rows:
-    over = r[5]>r[6]
+    over = r[5]>r[6] and not r[12]
     if onlyover and not (over or not r[8] or not r[9]): continue
-    print(f"{r[0]:26} {r[1]:16} {r[2]:10} {r[3]:3} {r[4]}  {r[5]:5}/{r[6]:2} {'OVER' if over else '  ok'} {r[10]:5}% {r[7]:5}% {str(r[8]):5} {str(r[9]):5}")
+    verdict = "EXC " if r[12] and r[5]>r[6] else ("OVER" if over else "  ok")
+    print(f"{r[0]:26} {r[1]:18} {r[2]:10} {r[3]:3} {r[4]}  {r[5]:5}/{r[6]:2} {verdict} {r[10]:5}% {r[11]:5}% {r[7]:5}% {str(r[8]):5} {str(r[9]):5}")
 n=len(rows)
 print()
-print(f"questions {n} | overlap over limit {sum(1 for r in rows if r[5]>r[6])} | hint3 over 30% {sum(1 for r in rows if r[7]>30)}"
+excepted=[r for r in rows if r[12] and r[5]>r[6]]
+print(f"questions {n} | overlap over limit {sum(1 for r in rows if r[5]>r[6] and not r[12])} (+{len(excepted)} excepted)"
+      f" | hint3 over 30% {sum(1 for r in rows if r[7]>30)}"
       f" | no 'does not pass' {sum(1 for r in rows if not r[8])} | no ladder {sum(1 for r in rows if not r[9])}")
-print(f"rubric/body over 60% {sum(1 for r in rows if r[5]>60)} | rubric/prompt over 60% {sum(1 for r in rows if r[10]>60)}")
+print(f"rubric/body over 60% {sum(1 for r in rows if r[5]>60 and not r[12])} | rubric-from-prompt (B) max {max([r[10] for r in rows], default=0)}"
+      f" | jaccard (C) max {max([r[11] for r in rows], default=0)}")
 print(f"tasks {tasks_total} | tasks without their own ladder {ladders_missing}")
+for r in excepted:
+    print(f"  R4.2a exception {r[0]}/{r[1]} at {r[5]}/{r[6]}: {EXCEPT_R42[(pack,r[0],r[1])]}")

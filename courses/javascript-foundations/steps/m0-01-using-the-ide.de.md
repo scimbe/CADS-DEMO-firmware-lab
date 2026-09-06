@@ -54,7 +54,15 @@ Dieser Kurs setzt keine Programmiererfahrung und keinen vorherigen Kurs voraus; 
 
 ## Das tust du zuerst
 
-**1. Terminal öffnen.** Menü **Terminal > New Terminal**, oder **F1** drücken und `>Terminal: Create New Terminal` tippen. Es öffnet sich im Panel unten. Prüf, wo es steht:
+**1. Terminal öffnen.**
+
+::: do palette="> Terminal: Create New Terminal"
+Öffne ein Terminal. Von Hand: Menü **Terminal > New Terminal**, oder **F1** und der oben genannte Befehl.
+> expect: Am unteren Fensterrand öffnet sich ein Panel mit einem Prompt darin.
+> recover: Antwortet die Palette *No matching results*, fehlt das führende `>`; ohne dieses Zeichen sucht die Palette nach Dateinamen statt nach Befehlen. Öffnet sich gar nichts, nimm **F1** statt Strg+Umschalt+P, das der Browser für sich behalten kann.
+:::
+
+Prüf, wo das Terminal steht:
 
 ```bash
 pwd
