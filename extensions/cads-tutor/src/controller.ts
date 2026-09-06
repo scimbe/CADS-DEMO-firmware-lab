@@ -32,11 +32,16 @@ import {
 } from "./telemetry";
 import {
   adjacentStep,
+  atLeast,
+  courseCompetence,
   defaultStart,
   ensureStepProgress,
   getStepProgress,
   getTaskState,
+  isModuleCompetenceComplete,
   isStepDone,
+  moduleCompetence,
+  moduleCompletedAt,
   moduleReflectionDue,
   newSession,
   nextOpenStep,
@@ -53,9 +58,9 @@ import {
 import { eventTrigger, hintTierForFailures, selectCause, selectInsight, selectTaskHint, type MatchedInsight } from "./socratic";
 import { TutorTerminal, type TerminalLike } from "./terminal";
 import { CoursesTreeProvider, type TreeNode } from "./tree";
-import { loc, stepKey, type Course, type Lang, type LoadDiagnostic, type SessionState, type Step, type StepContent, type TaskSpec, type TaskState, type TaskStatus } from "./types";
+import { loc, stepKey, type Course, type Lang, type LoadDiagnostic, type ObjectiveCompetence, type SessionState, type Step, type StepContent, type TaskSpec, type TaskState, type TaskStatus } from "./types";
 import { DebugStopTracker, ensureBridge, runShellTask, runTaskByLabel } from "./vscodeChecks";
-import { renderDoCard, renderPredict, renderRecall, renderReflection, type AskView, type FromWebview, type HintView, type NextActionView, type LinkView, type NoteView, type PredictView, type RecallView, type ReflectionView, type StepRef, type StepView, type TaskView } from "./webview";
+import { renderCanDo, renderCompetence, renderDoCard, renderPredict, renderRecall, renderReflection, type AskView, type CanDoCardView, type CompetenceCardView, type CompetenceObjectiveView, type FromWebview, type HintView, type NextActionView, type LinkView, type NoteView, type PredictView, type RecallView, type ReflectionView, type StepRef, type StepView, type TaskView } from "./webview";
 
 const SAVE_DEBOUNCE_MS = 2000;
 const NOTIFY_MIN_INTERVAL_MS = 60_000;
@@ -735,8 +740,15 @@ export class TutorController implements vscode.Disposable {
   private async handleWebviewMessage(m: FromWebview): Promise<void> {
     try {
       switch (m.type) {
-        case "ready":
+        case "ready": {
+          // A9.4: a re-render rebuilds the page from the StepView, which does not
+          // carry the module cards. Returning to a finished module's last step must
+          // still show what it was worth - and "ready" is the first moment the page
+          // is listening, so pushing it from renderCurrent would race the load.
+          const cur = this.current;
+          if (cur) this.postModuleCards(cur);
           return;
+        }
         case "runCheck":
           await this.runTask(m.taskId);
           return;
@@ -1002,6 +1014,10 @@ export class TutorController implements vscode.Disposable {
     // otherwise it is never seen: the student is invited to the next step right away.
     const reflection = this.reflectionView(cur.course, cur.step, this.lang);
     if (reflection && !reflection.saved) this.panel.post({ type: "reflection", html: renderReflection(reflection, this.lang) });
+    // A9.4: … and the can-do card directly behind it. It appears even when the
+    // module authored no reflection prompts, which is the case for every module
+    // of the firmware course.
+    this.postModuleCards(cur);
     const next = unlocked[0] ?? adjacentStep(cur.course, cur.step.id, 1);
     const msg = `${s.done} ${cur.content.meta.title}` + (refs.length ? ` – ${s.unlocked(refs.map((r) => r.title).join(", "))}` : "")
       + (reflection && !reflection.saved ? ` – ${s.reflectionDue}` : "");
@@ -1249,6 +1265,69 @@ export class TutorController implements vscode.Disposable {
     });
     const view = this.recallView(cur.course, cur.step, this.lang);
     if (view) this.panel.post({ type: "recall", html: renderRecall(view, this.lang) });
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // A9.3: competence card and can-do card
+  // ------------------------------------------------------------------------------------------
+
+  /** One objective, as the cards show it: statement, level, and the evidence behind the level. */
+  private competenceObjectiveView(course: Course, c: ObjectiveCompetence): CompetenceObjectiveView {
+    const statement = this.platforms.get(course.manifest.id)?.curriculum?.get(c.objectiveId)?.statement;
+    const step = c.leading ? course.steps.get(c.leading.stepId) : undefined;
+    return {
+      objectiveId: c.objectiveId,
+      // The id is a poor sentence, but a wrong sentence would be worse: packs
+      // without a curriculum entry get the id and the teacher sees what is missing.
+      statement: statement ?? c.objectiveId,
+      level: c.level,
+      evidenceKind: c.leading?.kind,
+      evidenceStepId: c.leading?.stepId,
+      evidenceStepTitle: step ? this.contentFor(step).meta.title : undefined,
+      evidenceAt: c.leading?.at,
+    };
+  }
+
+  private competenceCardView(course: Course, moduleId: string, lang: Lang): CompetenceCardView {
+    const mod = course.manifest.modules.find((m) => m.id === moduleId);
+    return {
+      moduleId,
+      moduleTitle: mod ? loc(mod.title, lang) : moduleId,
+      objectives: moduleCompetence(course, this.session, moduleId).map((c) => this.competenceObjectiveView(course, c)),
+      complete: isModuleCompetenceComplete(course, this.session, moduleId),
+    };
+  }
+
+  /**
+   * A9.3: "Du kannst jetzt …" - three sentences, the objectives that reached at
+   * least "geübt", strongest first. What did not reach it is listed too: a card
+   * that only praises is the sticker E10 rules out.
+   */
+  private canDoCardView(course: Course, moduleId: string, lang: Lang): CanDoCardView {
+    const card = this.competenceCardView(course, moduleId, lang);
+    const rank = { demonstrated: 0, practised: 1, touched: 2, none: 3 } as const;
+    const can = card.objectives.filter((o) => atLeast(o.level, "practised")).sort((a, b) => rank[a.level] - rank[b.level]);
+    return {
+      moduleId,
+      moduleTitle: card.moduleTitle,
+      can: can.slice(0, 3),
+      open: card.objectives.filter((o) => !atLeast(o.level, "practised")),
+    };
+  }
+
+  /**
+   * A9.4 step 5: the can-do card sits directly behind the module reflection, and
+   * it is pushed for the same reason the reflection card is - the module becomes
+   * complete at the moment the last check passes, long after the page was drawn.
+   * The competence card follows it as the detail behind the three sentences.
+   */
+  private postModuleCards(cur: { course: Course; step: Step }): void {
+    const mod = moduleCompletedAt(this.session, cur.course, cur.step);
+    if (!mod) return;
+    const html =
+      renderCanDo(this.canDoCardView(cur.course, mod.id, this.lang), this.lang) +
+      renderCompetence(this.competenceCardView(cur.course, mod.id, this.lang), this.lang);
+    this.panel.post({ type: "competence", html });
   }
 
   /**

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { renderPredict, renderRecall, renderReflection, renderStepHtml, type RecallView, type ReflectionView, type StepView, type TaskView } from "../src/webview";
+import { renderCanDo, renderCompetence, renderPredict, renderRecall, renderReflection, renderStepHtml, type CanDoCardView, type CompetenceCardView, type CompetenceObjectiveView, type RecallView, type ReflectionView, type StepView, type TaskView } from "../src/webview";
 
 function baseView(extra: Partial<StepView> = {}): StepView {
   return {
@@ -265,5 +265,66 @@ describe("A9.4.4: a failed check explains itself before it quotes the tool", () 
       "N",
     );
     assert.match(html, /<div class="task-cause"><\/div>/);
+  });
+});
+
+describe("A9.3 competence card", () => {
+  const objectives: CompetenceObjectiveView[] = [
+    { objectiveId: "own", statement: "Explain who owns a value", level: "demonstrated", evidenceKind: "recall", evidenceStepId: "m2-01", evidenceStepTitle: "Shared references", evidenceAt: "2026-09-06T09:00:00.000Z" },
+    { objectiveId: "borrow", statement: "Borrow instead of moving", level: "practised", evidenceKind: "checkFirstTry", evidenceStepId: "m1-02", evidenceStepTitle: "Move vs clone" },
+    { objectiveId: "slices", statement: "Take a slice", level: "touched", evidenceKind: "question", evidenceStepId: "m1-03", evidenceStepTitle: "Slices" },
+    { objectiveId: "life", statement: "Name a lifetime", level: "none" },
+  ];
+  const card: CompetenceCardView = { moduleId: "m1", moduleTitle: "Ownership", objectives, complete: false };
+
+  it("names the level and the evidence that produced it", () => {
+    const html = renderCompetence(card, "de");
+    assert.match(html, /nachgewiesen/);
+    assert.match(html, /Abruf aus einem späteren Modul bestanden/);
+    assert.match(html, /in Shared references/);
+    assert.match(html, /2026-09-06/, "K10: an entry carries its date");
+    assert.match(html, /noch kein geprüfter Beleg/, "an objective without evidence says so");
+  });
+
+  it("reports module completion by the competence rule, not by steps", () => {
+    assert.match(renderCompetence(card, "en"), /2 objective\(s\) of this module are not practised yet/);
+    assert.match(renderCompetence({ ...card, complete: true }, "en"), /at least practised/);
+  });
+
+  it("carries no points currency", () => {
+    const html = renderCompetence(card, "de") + renderCanDo({ moduleId: "m1", moduleTitle: "Ownership", can: objectives.slice(0, 2), open: objectives.slice(2) }, "de");
+    for (const forbidden of [/\bXP\b/, /Level \d/, /Serie\b/, /Streak/i, /Liga/, /Rangliste/, /Punkte:/]) {
+      assert.doesNotMatch(html, forbidden, `R11a.9 forbids ${forbidden}`);
+    }
+  });
+
+  it("escapes an objective statement from the pack", () => {
+    const html = renderCompetence({ ...card, objectives: [{ objectiveId: "x", statement: "<img onerror=x>", level: "touched" }] }, "en");
+    assert.doesNotMatch(html, /<img/);
+  });
+});
+
+describe("A9.3 can-do card", () => {
+  const can: CompetenceObjectiveView[] = [
+    { objectiveId: "a", statement: "Explain ownership", level: "demonstrated", evidenceKind: "recall", evidenceStepId: "m2-01", evidenceStepTitle: "Shared references" },
+    { objectiveId: "b", statement: "Borrow a value", level: "practised", evidenceKind: "checkFirstTry", evidenceStepId: "m1-02", evidenceStepTitle: "Move vs clone" },
+  ];
+  const open: CompetenceObjectiveView[] = [{ objectiveId: "c", statement: "Name a lifetime", level: "touched", evidenceKind: "question" }];
+
+  const card: CanDoCardView = { moduleId: "m1", moduleTitle: "Ownership", can, open };
+
+  it("says what the student can do and what it rests on", () => {
+    const html = renderCanDo(card, "de");
+    assert.match(html, /Du kannst jetzt/);
+    assert.match(html, /Explain ownership/);
+    assert.match(html, /Prüfung im ersten Versuch ohne Hinweis bestanden/);
+    assert.match(html, /Noch offen:/);
+    assert.match(html, /Name a lifetime/, "what is missing is named, not hidden");
+  });
+
+  it("says so plainly when nothing is verified yet", () => {
+    const html = renderCanDo({ ...card, can: [] }, "en");
+    assert.match(html, /Nothing verified in this module yet/);
+    assert.doesNotMatch(html, /<ul class="can-list">/);
   });
 });

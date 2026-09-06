@@ -7,7 +7,7 @@ import { ui } from "./i18n";
 import { escapeHtml, tutorLinkAttrs, type DoBlockView, type TutorLink } from "./markdown";
 import type { Citation } from "./platform";
 import { actionForDo, actionLabels, doRouteText, type ActionKind } from "./actions";
-import type { BloomLevel, CheckType, Lang, Scaffold, StepStatus, TaskStatus } from "./types";
+import type { BloomLevel, CheckType, CompetenceLevel, EvidenceKind, Lang, Scaffold, StepStatus, TaskStatus } from "./types";
 
 export interface HintView {
   tier: number;
@@ -185,6 +185,8 @@ export type ToWebview =
   /** `html` is produced by renderRecall / renderReflection on the extension side. */
   | { type: "recall"; html: string }
   | { type: "reflection"; html: string }
+  /** A9.3/A9.4: can-do card and competence card, appended after the reflection card. */
+  | { type: "competence"; html: string }
   /**
    * The header's own state: the one line saying what to do next, and how far the
    * module has come. Both are recomputed after every check, so the bar moves at
@@ -626,6 +628,18 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
   .card textarea, .predict textarea { width: 100%; box-sizing: border-box; font-family: var(--vscode-editor-font-family); background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, var(--vscode-panel-border)); border-radius: 3px; padding: 0.4em; }
   .card.recall.settled { opacity: 0.8; }
   #reflection-state { align-self: center; opacity: 0.85; }
+  /* A9.3 competence and can-do cards. The level is a word, never a number or a bar. */
+  .competence-list, .can-list, .can-open-list { list-style: none; margin: 0.3em 0; padding: 0; }
+  .can-open-list { list-style: disc; margin-left: 1.2em; opacity: 0.85; font-size: 0.92em; }
+  .competence-item, .can-item { margin: 0.45em 0; padding-left: 0.6em; border-left: 3px solid var(--vscode-panel-border); }
+  .competence-row { display: flex; gap: 0.6em; align-items: baseline; justify-content: space-between; }
+  .competence-statement, .can-statement { flex: 1; }
+  .competence-level { font-size: 0.85em; text-transform: lowercase; opacity: 0.9; white-space: nowrap; border: 1px solid var(--vscode-panel-border); border-radius: 3px; padding: 0 0.4em; }
+  .competence-evidence { font-size: 0.86em; opacity: 0.75; margin-top: 0.15em; }
+  .competence-note { font-size: 0.85em; opacity: 0.7; margin-top: 0.5em; }
+  .level-practised { border-left-color: var(--vscode-charts-blue, var(--vscode-focusBorder)); }
+  .level-demonstrated { border-left-color: var(--vscode-testing-iconPassed, var(--vscode-charts-green)); }
+  .level-touched { border-left-color: var(--vscode-charts-yellow, var(--vscode-panel-border)); }
   .answer-box.refused { border-color: var(--vscode-inputValidation-infoBorder); } .answer-box.llm-error, .answer-box.unconfigured { border-color: var(--vscode-inputValidation-warningBorder); }
   .citations { margin-top: 0.5em; font-size: 0.88em; } .citations ol { padding-left: 1.3em; margin: 0.2em 0; } .cite-excerpt { opacity: 0.7; } .citations-title { opacity: 0.7; }
   .note { border: 1px solid var(--vscode-focusBorder); background: var(--vscode-editorWidget-background); border-radius: 4px; padding: 0.6em 0.8em; margin: 0.8em 0; }
@@ -855,6 +869,16 @@ function clientScript(view: StepView): string {
       const area = document.getElementById("reflection-area");
       area.innerHTML = m.html;
       area.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } else if (m.type === "competence") {
+      // A9.4 order: the reflection card first, the can-do card behind it. Appending
+      // rather than replacing keeps whatever the reflection put there.
+      const area = document.getElementById("reflection-area");
+      const box = document.createElement("div");
+      box.id = "competence-area";
+      box.innerHTML = m.html;
+      const old = document.getElementById("competence-area");
+      if (old) old.replaceWith(box); else area.appendChild(box);
+      box.scrollIntoView({ behavior: "smooth", block: "nearest" });
     } else if (m.type === "ask") {
       const box = document.getElementById("answer");
       box.hidden = false; box.className = "answer-box " + m.outcome.kind;
@@ -877,4 +901,111 @@ function clientScript(view: StepView): string {
   });
   post({ type: "ready" });
 })();`;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Addendum A9.3: competence card and can-do card.
+//
+// Deliberately at the end of the file and independent of renderStepHtml: the panel's
+// assembly is being reworked in parallel, and these two cards are pushed into the panel
+// as HTML, so they never have to share a line with it.
+//
+// What is NOT here, and will not be: a points total, a level number, a streak, a league,
+// a rank. A9.3 / R11a.9 forbid them, because reward-and-status mechanics are the part of
+// gamification with the weakest effect on competence (E9). The recognition is the level,
+// the sentence, and the evidence underneath it.
+// ---------------------------------------------------------------------------------------------
+
+export interface CompetenceObjectiveView {
+  objectiveId: string;
+  /** The curriculum's statement of the objective; the id when the pack has none. */
+  statement: string;
+  level: CompetenceLevel;
+  /** The evidence that carried the objective to its level (A9.3 asks for the kind, not a count). */
+  evidenceKind?: EvidenceKind;
+  /** Step the evidence was produced in, for the reference the card has to carry (E10). */
+  evidenceStepId?: string;
+  evidenceStepTitle?: string;
+  /** ISO date or timestamp of that evidence. */
+  evidenceAt?: string;
+}
+
+export interface CompetenceCardView {
+  moduleId: string;
+  moduleTitle: string;
+  objectives: CompetenceObjectiveView[];
+  /** A9.2: every objective at least "practised". */
+  complete: boolean;
+}
+
+export interface CanDoCardView {
+  moduleId: string;
+  moduleTitle: string;
+  /** The objectives that reached at least "practised", strongest first, at most three (A9.3: three sentences). */
+  can: CompetenceObjectiveView[];
+  /** What is not there yet - named, not hidden: a card that only praises is a sticker (E10). */
+  open: CompetenceObjectiveView[];
+}
+
+/** One line of provenance: which kind of evidence, in which step, when. */
+function evidenceLine(o: CompetenceObjectiveView, lang: Lang): string {
+  const s = ui(lang);
+  if (!o.evidenceKind) return escapeHtml(s.competenceNoEvidence);
+  const where = o.evidenceStepTitle ?? o.evidenceStepId;
+  const when = o.evidenceAt ? o.evidenceAt.slice(0, 10) : "";
+  return [escapeHtml(s.evidenceLabel[o.evidenceKind]), where ? escapeHtml(s.evidenceIn(where)) : "", when ? `· ${escapeHtml(when)}` : ""]
+    .filter(Boolean)
+    .join(" ");
+}
+
+/**
+ * A9.3: one card per module listing every objective with its level and the kind of
+ * evidence that produced it. The evidence is the point - a level without the check it
+ * came from is exactly the badge-without-proof that E10 rules out.
+ */
+export function renderCompetence(view: CompetenceCardView, lang: Lang): string {
+  const s = ui(lang);
+  const rows = view.objectives
+    .map(
+      (o) => `<li class="competence-item level-${o.level}">
+      <div class="competence-row"><span class="competence-statement">${escapeHtml(o.statement)}</span>
+        <span class="competence-level" title="${escapeHtml(s.competenceLevelWhy[o.level])}">${escapeHtml(s.competenceLevel[o.level])}</span></div>
+      <div class="competence-evidence"${o.evidenceStepId ? ` data-step="${escapeHtml(o.evidenceStepId)}"` : ""}>${evidenceLine(o, lang)}</div>
+    </li>`,
+    )
+    .join("");
+  const notPractised = view.objectives.filter((o) => o.level === "none" || o.level === "touched").length;
+  return `<div class="card competence"><div class="card-head">${escapeHtml(s.competenceTitle)}</div>
+    <div class="card-sub">${escapeHtml(s.competenceIntro(view.moduleTitle))}</div>
+    <ul class="competence-list">${rows}</ul>
+    <div class="card-sub">${escapeHtml(view.complete ? s.competenceComplete : s.competenceIncomplete(notPractised))}</div>
+    <div class="competence-note">${escapeHtml(s.competenceNoPoints)}</div>
+  </div>`;
+}
+
+/**
+ * A9.3: the card at the end of a module. "You can now …" in the student's own
+ * objectives, each with the evidence behind it. This is what replaces a score:
+ * three sentences that are true because something was checked.
+ */
+export function renderCanDo(view: CanDoCardView, lang: Lang): string {
+  const s = ui(lang);
+  const can = view.can
+    .map(
+      (o) => `<li class="can-item level-${o.level}"><span class="can-statement">${escapeHtml(o.statement)}</span>
+      <span class="competence-level">${escapeHtml(s.competenceLevel[o.level])}</span>
+      <div class="competence-evidence"${o.evidenceStepId ? ` data-step="${escapeHtml(o.evidenceStepId)}"` : ""}>${evidenceLine(o, lang)}</div></li>`,
+    )
+    .join("");
+  const open = view.open.length
+    ? `<div class="can-open"><div class="card-sub">${escapeHtml(s.canDoOpen)}</div><ul class="can-open-list">${view.open
+        .map((o) => `<li>${escapeHtml(o.statement)} – ${escapeHtml(s.competenceLevel[o.level])}</li>`)
+        .join("")}</ul></div>`
+    : "";
+  return `<div class="card can-do"><div class="card-head">${escapeHtml(s.canDoTitle)}</div>
+    <div class="card-sub">${escapeHtml(s.canDoIntro(view.moduleTitle))}</div>
+    ${can ? `<ul class="can-list">${can}</ul>` : `<div class="card-sub">${escapeHtml(s.canDoNone)}</div>`}
+    ${open}
+    <div class="competence-note">${escapeHtml(s.canDoRecordHint)}</div>
+  </div>`;
 }

@@ -68,19 +68,24 @@ export function isStepDone(session: SessionState, step: Step): boolean {
 }
 
 /**
- * A3: the module whose reflection card is due at this step - the step is the module's last one and
- * every step in the module is done. Kept here (not in the controller) so it is testable: the card
- * became due only at the moment the last check passed, which is exactly what went unnoticed.
+ * The module this step just finished - the step is the module's last one and every step in the
+ * module is done. Kept here (not in the controller) so it is testable: the moment it becomes true
+ * is the moment the last check passes, which is exactly what went unnoticed for the reflection card.
  */
-export function moduleReflectionDue(session: SessionState, course: Course, step: Step): CourseModule | undefined {
+export function moduleCompletedAt(session: SessionState, course: Course, step: Step): CourseModule | undefined {
   const mod = course.manifest.modules.find((m) => m.id === step.moduleId);
-  if (!mod?.reflection || mod.reflection.prompts.length === 0) return undefined;
-  if (mod.steps[mod.steps.length - 1] !== step.id) return undefined;
+  if (!mod || mod.steps[mod.steps.length - 1] !== step.id) return undefined;
   const done = mod.steps.every((sid) => {
     const st = course.steps.get(sid);
     return st ? isStepDone(session, st) : true;
   });
   return done ? mod : undefined;
+}
+
+/** A3: the module whose reflection card is due at this step. Only modules that authored prompts have one. */
+export function moduleReflectionDue(session: SessionState, course: Course, step: Step): CourseModule | undefined {
+  const mod = moduleCompletedAt(session, course, step);
+  return mod?.reflection && mod.reflection.prompts.length > 0 ? mod : undefined;
 }
 
 export function isCourseDone(session: SessionState, course: Course): boolean {
