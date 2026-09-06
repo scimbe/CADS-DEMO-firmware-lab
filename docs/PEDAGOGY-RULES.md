@@ -423,6 +423,21 @@ selbst, dass „nachgewiesen" erst später eintreten kann. Gemessen: `rust-proje
 späteres Modul. Die Ausnahme gilt nur für diese Klasse; jede andere unbelegte Abdeckung bleibt eine Lücke.
 *Herkunft: Abrufmessung über alle vier Packs, 2026-09-06.* **[Validator]**
 
+**R11a.7d — Ein Vorhersage-Step druckt seine eigene Antwort nicht.** Der Rumpf eines Steps mit einer
+`predict`-Aufgabe darf **das Literal nicht enthalten, das dessen `then`-Prüfung erwartet** (`expectStdout`,
+`expectStderr`, erwarteter Fehlercode). Die Laufzeit hält die Enthüllung eigens zurück, bis eine Vorhersage
+geschrieben ist — ein Kurstext, der sie darüber abdruckt, hebelt genau diese Sperre aus.
+*Herkunft: Prüfung aller `predict`-Steps am 2026-09-06 — sechs von neun im Rust-Pack druckten die gesuchte
+Antwort, zwei davon wörtlich („Die Antwort lautet:"), und **zwei Fälle hatte ein sorgfältiger Lesedurchgang
+freigegeben**; der Literalvergleich fand sie. Herausgenommen wird nur das Ergebnis, nie der Mechanismus, aus
+dem die Studierende es ableitet.* **[Validator]**
+
+**R11a.7e — Eine Vorhersage braucht eine bestimmte Enthüllung.** Die `then`-Prüfung einer `predict`-Aufgabe
+muss etwas Bestimmtes erwarten (`expectStdout`/`expectStderr` oder einen benannten Fehler). Ohne das kann
+niemand prüfen, ob die Enthüllung zeigt, wonach gefragt wurde — und R11a.7d ist dort nicht anwendbar.
+*Herkunft: alle zwölf `predict`-Aufgaben in `cads-zero-foundations` erwarten nichts Bestimmtes; die Null in der
+Leckmessung bedeutet dort „nicht prüfbar", nicht „sauber".* **[Validator]**
+
 **R11a.8 — Selbstauskunft ist kein Nachweis.** Ohne Sprachmodell bestätigte Antworten zählen als `selfReported`
 und tragen nichts zur Kompetenzstufe bei; sie schalten nichts frei. *E8; K7.*
 
