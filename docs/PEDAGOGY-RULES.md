@@ -371,6 +371,12 @@ auf die Nummer statt auf „oben rechts". *E6 räumliche Kontiguität.*
 **R11a.7 — Jedes Lernziel kehrt zeitversetzt wieder.** Zu jedem Lernziel gibt es mindestens einen Abruf in einem
 späteren Modul. *E7: Praxis-Test und verteilte Wiederholung sind die zwei wirksamsten Verfahren; K8.* **[Validator]**
 
+**R11a.7a — Kein stummer Zeiger.** Ein `recallFrom` darf nur auf einen Step zeigen, der eine `question`-Aufgabe
+hat, und der Rumpf des zurückverweisenden Steps muss den Verweis auch erwähnen. Grund: die Abrufkarte wird aus
+den `question`-Aufgaben des abgeschlossenen Zielschritts gebaut — ein Zeiger auf einen Step ohne solche Aufgabe
+erzeugt gar nichts, sieht in den Daten aber wie erfüllte Abdeckung aus. Ein Abruf innerhalb desselben Moduls
+zählt nicht als zeitversetzt. *Herkunft: Prüfung der Abrufabdeckung im JavaScript-Pack, 2026-09-06.* **[Validator]**
+
 **R11a.8 — Selbstauskunft ist kein Nachweis.** Ohne Sprachmodell bestätigte Antworten zählen als `selfReported`
 und tragen nichts zur Kompetenzstufe bei; sie schalten nichts frei. *E8; K7.*
 
