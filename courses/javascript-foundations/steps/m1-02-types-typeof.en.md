@@ -15,7 +15,7 @@ links:
 sources: [src/m1/describe.js, test/m1-02-types-typeof.test.js, examples/m1-typeof.js]
 tasks:
   - id: guess-typeof
-    title: Predict all eight typeof results, then run the example
+    title: Predict all eight typeof results
     check: { type: predict, prompt: { en: "examples/m1-typeof.js prints typeof for eight values, among them null, an array, a function and a BigInt. Write down all eight answers before running it.", de: "examples/m1-typeof.js gibt typeof für acht Werte aus, darunter null, ein Array, eine Funktion und ein BigInt. Schreib alle acht Antworten auf, bevor du es ausführst." }, then: { type: command, command: "node examples/m1-typeof.js", expectExitCode: 0, expectStdout: "bigint" }, rubric: "Sets the eight predictions against the eight printed words and names which ones were wrong. Does not pass: a bare count of hits, or an answer that reports the output without saying which expectation it overturned.", bloom: evaluate }
   - id: type-name
     title: Both typeName tests are green
@@ -69,11 +69,7 @@ A third detail worth knowing early: **JavaScript has one number type**. `1` and 
 
 ## Predict first
 
-Open [`examples/m1-typeof.js`](file:examples/m1-typeof.js), write down all eight answers, then run it:
-
-```bash
-node examples/m1-typeof.js
-```
+Open [`examples/m1-typeof.js`](file:examples/m1-typeof.js) and write down all eight answers. Put them into the prediction task in the panel; it runs the example once your answers are recorded, and not before.
 
 Count how many of the eight you got right. The two you probably did not are exactly the ones the exercise is about.
 
@@ -100,8 +96,9 @@ Then run:
 
 ```bash
 node --test test/m1-02-types-typeof.test.js
-node examples/m1-typeof.js
 ```
+
+The example is the prediction task's own command: the tutor runs it once your prediction is recorded, so there is nothing to type for it here.
 
 The command has finished when the prompt comes back; the counts at the end of the output are the verdict, and `fail 0` is success. `Cannot find module` means the terminal is in the wrong folder - run `cd javascript-foundations` and try again. Change only files under `src/`; the files under `test/` are the marking scheme. The whole tour of the interface is in [operating the interface](step:m0-01-using-the-ide).
 

@@ -123,8 +123,9 @@ Führe dann aus:
 
 ```bash
 node --test test/m5-04-transformations.test.js
-node examples/m5-sort-default.js
 ```
+
+Das Beispiel ist der Befehl der Vorhersage-Aufgabe: der Tutor führt es aus, sobald deine Vorhersage erfasst ist, hier tippst du dafür also nichts.
 
 Der Befehl ist fertig, wenn der Prompt zurückkommt; die Zähler am Ende der Ausgabe sind das Urteil, und `fail 0` heißt Erfolg. `Cannot find module` heißt, dass das Terminal im falschen Ordner steht - führe `cd javascript-foundations` aus und versuch es erneut. Ändere nur Dateien unter `src/`; die Dateien unter `test/` sind das Prüfschema. Die vollständige Tour durch die Oberfläche steht in [Die Oberfläche bedienen](step:m0-01-using-the-ide).
 

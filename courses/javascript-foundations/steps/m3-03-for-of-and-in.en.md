@@ -65,11 +65,7 @@ Two consequences catch everyone at least once:
 - Over an array, `for...in` gives you `"0"`, `"1"`, `"2"` - index **strings**, not numbers and not the elements. `"0" + 1` is `"01"`, which is [M1](step:m1-03-coercion-nan) waiting to happen.
 - `for...in` also yields any other enumerable property attached to the array. Arrays are objects, so someone can put a name on one, and `for...in` will hand it to you between the indices.
 
-Predict [`examples/m3-loop-order.js`](file:examples/m3-loop-order.js), then run it:
-
-```bash
-node examples/m3-loop-order.js
-```
+Predict [`examples/m3-loop-order.js`](file:examples/m3-loop-order.js) in the panel's prediction task; it runs the file once your prediction is recorded, and not before.
 
 The extra property shows up in one loop and not the other, and `length` stays 3 - because a named property is not an element.
 
@@ -105,8 +101,9 @@ Then run:
 
 ```bash
 node --test test/m3-03-for-of-and-in.test.js
-node examples/m3-loop-order.js
 ```
+
+The example is the prediction task's own command: the tutor runs it once your prediction is recorded, so there is nothing to type for it here.
 
 The command has finished when the prompt comes back; the counts at the end of the output are the verdict, and `fail 0` is success. `Cannot find module` means the terminal is in the wrong folder - run `cd javascript-foundations` and try again. Change only files under `src/`; the files under `test/` are the marking scheme. The whole tour of the interface is in [operating the interface](step:m0-01-using-the-ide).
 

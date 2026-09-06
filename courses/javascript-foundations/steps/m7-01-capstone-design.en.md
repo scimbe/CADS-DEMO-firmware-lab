@@ -92,19 +92,7 @@ Predict [`examples/m7-pipeline.js`](file:examples/m7-pipeline.js) and run it. Th
 
 ## Running this step
 
-::: do palette="> Terminal: Create New Terminal"
-Open a terminal. By hand: menu **Terminal > New Terminal**, or **F1** and the command named above.
-> expect: A panel opens at the bottom of the window with a prompt in it, and the prompt ends in `javascript-foundations`.
-> recover: If the palette answers *No matching results*, the leading `>` is missing; without that character the palette searches file names instead of commands. If nothing opens at all, use **F1** rather than Ctrl+Shift+P, which a browser may keep for itself. If the prompt ends in a different folder, type `cd javascript-foundations` in the terminal.
-:::
-
-Then run:
-
-```bash
-node examples/m7-pipeline.js
-```
-
-The command has finished when the prompt comes back; the counts at the end of the output are the verdict, and `fail 0` is success. `Cannot find module` means the terminal is in the wrong folder - run `cd javascript-foundations` and try again. Change only files under `src/`; the files under `test/` are the marking scheme. The whole tour of the interface is in [operating the interface](step:m0-01-using-the-ide).
+There is nothing to type for this step. Write your prediction into the prediction task in the panel and press its check button: the tutor runs the example for you and shows the output beside what you wrote. Holding the two side by side is the exercise, and it only works in that order. The whole tour of the interface is in [operating the interface](step:m0-01-using-the-ide).
 
 ## How you know it worked
 

@@ -65,11 +65,7 @@ Zwei Folgen erwischen jeden mindestens einmal:
 - Über ein Array liefert `for...in` `"0"`, `"1"`, `"2"` - Index-**Zeichenketten**, keine Zahlen und nicht die Elemente. `"0" + 1` ist `"01"`, und damit wartet [M1](step:m1-03-coercion-nan) schon.
 - `for...in` liefert außerdem jede weitere aufzählbare Eigenschaft, die am Array hängt. Arrays sind Objekte, jemand kann also einen Namen daranhängen, und `for...in` reicht ihn dir zwischen den Indizes durch.
 
-Sag [`examples/m3-loop-order.js`](file:examples/m3-loop-order.js) vorher, dann führe es aus:
-
-```bash
-node examples/m3-loop-order.js
-```
+Sag [`examples/m3-loop-order.js`](file:examples/m3-loop-order.js) in der Vorhersage-Aufgabe im Panel vorher; sie führt die Datei aus, sobald deine Vorhersage erfasst ist, und nicht vorher.
 
 Die Zusatz-Eigenschaft taucht in einer Schleife auf und in der anderen nicht, und `length` bleibt 3 - weil eine benannte Eigenschaft kein Element ist.
 
@@ -105,8 +101,9 @@ Führe dann aus:
 
 ```bash
 node --test test/m3-03-for-of-and-in.test.js
-node examples/m3-loop-order.js
 ```
+
+Das Beispiel ist der Befehl der Vorhersage-Aufgabe: der Tutor führt es aus, sobald deine Vorhersage erfasst ist, hier tippst du dafür also nichts.
 
 Der Befehl ist fertig, wenn der Prompt zurückkommt; die Zähler am Ende der Ausgabe sind das Urteil, und `fail 0` heißt Erfolg. `Cannot find module` heißt, dass das Terminal im falschen Ordner steht - führe `cd javascript-foundations` aus und versuch es erneut. Ändere nur Dateien unter `src/`; die Dateien unter `test/` sind das Prüfschema. Die vollständige Tour durch die Oberfläche steht in [Die Oberfläche bedienen](step:m0-01-using-the-ide).
 

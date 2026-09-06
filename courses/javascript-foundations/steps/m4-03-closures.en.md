@@ -80,11 +80,7 @@ for (let b = 0; b < 3; b++) fns.push(() => b);   // [0, 1, 2]
 
 The same trap appears without `var` at all: declaring `let i` **above** the loop and only assigning it in the head gives one shared binding again, which is exactly the bug in this exercise.
 
-Predict [`examples/m4-closure-loop.js`](file:examples/m4-closure-loop.js), then run it:
-
-```bash
-node examples/m4-closure-loop.js
-```
+Predict [`examples/m4-closure-loop.js`](file:examples/m4-closure-loop.js) in the panel's prediction task; it runs the file once your prediction is recorded, and not before.
 
 ## The exercise
 
@@ -105,8 +101,9 @@ Then run:
 
 ```bash
 node --test test/m4-03-closures.test.js
-node examples/m4-closure-loop.js
 ```
+
+The example is the prediction task's own command: the tutor runs it once your prediction is recorded, so there is nothing to type for it here.
 
 The command has finished when the prompt comes back; the counts at the end of the output are the verdict, and `fail 0` is success. `Cannot find module` means the terminal is in the wrong folder - run `cd javascript-foundations` and try again. Change only files under `src/`; the files under `test/` are the marking scheme. The whole tour of the interface is in [operating the interface](step:m0-01-using-the-ide).
 

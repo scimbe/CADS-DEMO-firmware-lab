@@ -14,7 +14,7 @@ links:
 sources: [examples/m0-console.js, README.md]
 tasks:
   - id: guess-console
-    title: Sag die Ausgabe des Beispiels vorher, dann führe es aus
+    title: Sag die Ausgabe des Beispiels vorher
     check: { type: predict, prompt: { en: "examples/m0-console.js prints six lines. Write down, line by line, what you expect - including the exact shape of the last one, which prints an object.", de: "examples/m0-console.js gibt sechs Zeilen aus. Schreib Zeile für Zeile auf, was du erwartest - einschließlich der genauen Form der letzten Zeile, die ein Objekt ausgibt." }, then: { type: command, command: "node examples/m0-console.js", expectExitCode: 0, expectStdout: "Hello, JavaScript" }, rubric: "Hält die aufgeschriebene Vermutung neben das Erschienene und nennt eine Stelle, an der beide auseinandergingen, samt der Annahme, die sich als falsch erwies. Besteht nicht: ein Urteil über sich selbst ohne benannte Stelle, oder eine Abschrift des Erschienenen ohne revidierte Annahme.", bloom: evaluate }
   - id: two-arguments
     title: Warum in der ersten Zeile ein Leerzeichen steht
@@ -69,11 +69,7 @@ Sechs Zeilen werden ausgegeben. Schreib alle sechs auf, genau wie du sie erwarte
 - `typeof year` liefert eine **Zeichenkette**, keinen Typ.
 - `{ name, year }` nutzt Kurzschreibweise für Eigenschaften, das ausgegebene Objekt hat also zwei Eigenschaften. Wie gibt Node ein Objekt aus - mit Anführungszeichen um die Schlüssel, um die Werte, oder um keines von beiden?
 
-Dann führe es aus:
-
-```bash
-node examples/m0-console.js
-```
+Schreib deine zeilenweise Vorhersage in die Vorhersage-Aufgabe im Panel; sie führt das Beispiel aus, sobald deine Vorhersage erfasst ist, und stellt die Ausgabe daneben.
 
 ![Die predict-Aufgabe zeigt die geschriebene Vorhersage neben der tatsächlichen Ausgabe, darunter eine Reflexionsfrage](tutor-predict-card.png)
 *Was das Panel mit einer Vorhersage macht: links dein Text, rechts die echte Ausgabe, darunter eine Frage danach, wo die beiden auseinandergingen.*
@@ -84,19 +80,7 @@ Halte nicht nur fest, dass du falsch lagst, sondern benenne **welche Regel** du 
 
 ## So führst du diesen Step aus
 
-::: do palette="> Terminal: Create New Terminal"
-Öffne ein Terminal. Von Hand: Menü **Terminal > New Terminal**, oder **F1** und der oben genannte Befehl.
-> expect: Am unteren Fensterrand öffnet sich ein Panel mit einem Prompt darin, und der Prompt endet auf `javascript-foundations`.
-> recover: Antwortet die Palette *No matching results*, fehlt das führende `>`; ohne dieses Zeichen sucht die Palette nach Dateinamen statt nach Befehlen. Öffnet sich gar nichts, nimm **F1** statt Strg+Umschalt+P, das der Browser für sich behalten kann. Endet der Prompt auf einem anderen Ordner, tippe `cd javascript-foundations` ins Terminal.
-:::
-
-Führe dann aus:
-
-```bash
-node examples/m0-console.js
-```
-
-Der Befehl ist fertig, wenn der Prompt zurückkommt; die Zähler am Ende der Ausgabe sind das Urteil, und `fail 0` heißt Erfolg. `Cannot find module` heißt, dass das Terminal im falschen Ordner steht - führe `cd javascript-foundations` aus und versuch es erneut. Ändere nur Dateien unter `src/`; die Dateien unter `test/` sind das Prüfschema. Die vollständige Tour durch die Oberfläche steht in [Die Oberfläche bedienen](step:m0-01-using-the-ide).
+Für diesen Step tippst du nichts. Schreib deine Vorhersage in die Vorhersage-Aufgabe im Panel und drücke deren Prüfknopf: der Tutor führt das Beispiel für dich aus und zeigt die Ausgabe neben dem, was du aufgeschrieben hast. Beides nebeneinander zu halten ist die Übung, und das geht nur in dieser Reihenfolge. Die vollständige Tour durch die Oberfläche steht in [Die Oberfläche bedienen](step:m0-01-using-the-ide).
 
 ## Woran du erkennst, dass es geklappt hat
 
