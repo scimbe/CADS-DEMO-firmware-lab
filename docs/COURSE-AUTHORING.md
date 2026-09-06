@@ -268,16 +268,32 @@ python3 scripts/validate-courses.py <PROJECT_ROOT> [--courses-dir DIR] [--only C
 ```
 
 Prüft Schema, Querverweise, Repo-Pfade, ELF-Symbole, Zweisprachigkeit, Bloom-Stufen und alle v1.1-Felder.
-PyYAML wird genutzt, wenn vorhanden; sonst greift ein eingebauter Parser, der dieselben Ergebnisse liefert.
+Das Front Matter liest der Validator mit **demselben Parser wie der Tutor** (`scripts/read-front-matter.mjs`
+ruft `extensions/cads-tutor/src/frontmatter.ts` auf). Er lehnt damit genau das ab, was auch die Laufzeit
+ablehnt — ein unquotierter Titel mit Doppelpunkt (`title: CaDS: RAM budget`) oder ein unzulässiges Escape in
+einem doppelt gequoteten Muster (`"…\s*…"`, in einfachen Anführungszeichen dagegen erlaubt) ist ein Fehler,
+kein PASS. Voraussetzung: Node 22.18+ und einmal `npm ci` in `extensions/cads-tutor`; fehlt beides, bricht der
+Lauf ab, statt mit einem zweiten Parser zu raten.
 
-`--solutions DIR` ist die **Negativprobe** für sprachunabhängige Tracks: jeder `command`/`testSuite`-Check auf
-oberster Ebene läuft zweimal in einer Kopie des Projekt-Roots – ohne Lösung **muss er fehlschlagen**, mit der
-darübergelegten Referenzlösung **muss er bestehen**. Ein Check, der schon auf dem Seed-Workspace besteht, ist
-ein Fehler; ist das ausnahmsweise beabsichtigt, trägt der Check `seedMustFail: false`. Fehlt das Werkzeug
+**Sprache der Freitextfelder:** `rubric` sowie `title`/`description` sind einfache Strings, keine
+`{de, en}`-Paare — sie tragen die Sprache ihrer eigenen Datei. Der Validator prüft das mit einer
+Funktionswortprobe: ein Feld, das komplett in der falschen Sprache steht, wird gemeldet; bei kurzem oder
+fachwortlastigem Text schweigt sie. Das ist kein Schönheitsfehler — ohne Sprachmodell zeigt der Tutor die
+Rubrik als Selbstkontrolle an, deutschsprachige Studierende lasen also eine englische Bewertungsanleitung.
+Derzeit eine Warnung; `--language-errors` macht daraus einen Fehler.
+
+`--solutions DIR` ist die **Negativprobe** für sprachunabhängige Tracks: jeder `command`/`testSuite`-Check läuft
+zweimal in einer Kopie des Projekt-Roots — auch dann, wenn er in `predict.then`, `all` oder `any` steckt. Bei
+zusammengesetzten Checks zählt die Semantik des Verbunds: `all` besteht nur, wenn alle Kinder bestehen, `any`
+schon bei einem, und auf dem Seed gilt die Umkehrung. Im Protokoll steht der Pfad der tatsächlich gelaufenen
+Prüfung (`two-mut/then`, `substance/all[1]`). Ein `predict` beobachtet ein Programm, das es schon gibt; seine
+`then`-Prüfung besteht deshalb regulär auf dem Seed und trägt `seedMustFail: false`.
+
+Sonst gilt: ohne Lösung **muss der Check fehlschlagen**, mit der darübergelegten Referenzlösung **muss er
+bestehen**. Ein Check, der schon auf dem Seed-Workspace besteht, ist ein Fehler; ist das ausnahmsweise
+beabsichtigt, trägt er `seedMustFail: false`. Fehlt das Werkzeug
 (kein `cargo`, kein `node`), wird die Probe mit Warnung übersprungen statt fehlzuschlagen.
 
-Nur Checks auf oberster Ebene werden ausgeführt; ein `command` innerhalb von `all`/`any` oder in `predict.then`
-wird zwar schema-geprüft, aber nicht ausgeführt.
 
 ## Grounding und Objectives
 

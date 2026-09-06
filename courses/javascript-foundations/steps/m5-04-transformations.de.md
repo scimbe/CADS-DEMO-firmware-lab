@@ -16,7 +16,7 @@ sources: [src/m5/report.js, test/m5-04-transformations.test.js, examples/m5-sort
 tasks:
   - id: guess-sort
     title: Sag die vier sort- und Sparse-Ergebnisse vorher
-    check: { type: predict, prompt: { en: "Read examples/m5-sort-default.js. Write down all five lines it prints before you run it.", de: "Lies examples/m5-sort-default.js. Schreib alle fünf ausgegebenen Zeilen auf, bevor du es ausführst." }, then: { type: command, command: "node examples/m5-sort-default.js", expectExitCode: 0, expectStdout: "empty item" }, rubric: "Stellt die fünf vorhergesagten Zeilen den ausgegebenen gegenüber und nennt mindestens zwei falsche, samt der Regel, die jede berichtigt. Besteht nicht: die Ausgabe Zeile für Zeile wiedergeben, ohne die umgestoßenen Erwartungen zu nennen.", bloom: evaluate }
+    check: { type: predict, prompt: { en: "Read examples/m5-sort-default.js. Write down all five lines it prints before you run it.", de: "Lies examples/m5-sort-default.js. Schreib alle fünf ausgegebenen Zeilen auf, bevor du es ausführst." }, then: { type: command, command: "node examples/m5-sort-default.js", seedMustFail: false, expectExitCode: 0, expectStdout: "empty item" }, rubric: "Stellt die fünf vorhergesagten Zeilen den ausgegebenen gegenüber und nennt mindestens zwei falsche, samt der Regel, die jede berichtigt. Besteht nicht: die Ausgabe Zeile für Zeile wiedergeben, ohne die umgestoßenen Erwartungen zu nennen.", bloom: evaluate }
   - id: report
     title: Alle drei Report-Tests sind grün
     check: { type: testSuite, runner: node-test, expectPass: ["m5-04 totals aggregates count, sum and max", "m5-04 topLabels orders by amount, largest first", "m5-04 topLabels leaves the caller's array in its original order"], minPass: 3 }
