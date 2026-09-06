@@ -26,16 +26,29 @@ An objective is covered when at least one of the steps that teach it is
 recalled this way. Teaching an objective in several steps does not raise the
 bar: one later retrieval of any of them is a retrieval of the objective.
 
+4. An objective taught only in the LAST module is `terminal`, not a gap
+   (R11a.7c). Nothing follows the last module, so there is nowhere to recall it
+   from; a report that calls that a gap accuses a pack for being what it is -
+   cads-zero-projects is six of six.
+
+R11a.7a's second half - does the recalling body actually mention the step it
+points at? - is checked when bodies are supplied. Left unchecked it is the kind
+of gap that keeps a number green while nothing happens for the student: the
+pointer exists in the data and the reference never appears on screen. The three
+ways a body may name its target are the step id, the recalled step's title and
+its module label, because all three are used in practice.
+
 WHAT THIS DELIBERATELY DOES NOT DO
 ----------------------------------
-It does not read the step body, so it cannot tell whether the recalling step
-mentions the pointer in prose (R11a.7a's second half). That stays a reading
-job. It also does not judge whether a question is a good recall question.
+It does not judge whether a question is a good recall question. Whether a prompt
+survives without the file in front of the reader is SPEC A9.2a's `recallPrompt`,
+and that is a reading job.
 
 USE
 ---
     from recall_coverage import coverage
     result = coverage(manifest, front_matter_by_step_id)
+    result = coverage(manifest, fronts, body_by_step_id)   # also checks R11a.7a
 
 `manifest` is the parsed course.json. `front_matter_by_step_id` maps a step id
 to its parsed English front matter; only `objectives`, `recallFrom` and `tasks`
@@ -47,6 +60,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 
 
@@ -54,25 +68,31 @@ class Result:
     """Outcome of one pack's measurement.
 
     covered / gaps  objective id -> list of (recalling step, recalled step)
+    terminal        objective id -> the steps that teach it, all in the last
+                    module, so R11a.7 cannot be met and this is not a gap
     silent          (step, named target) pointers that can never render a card
     unknown         (step, named target) pointers at a step that does not exist
+    unnamed         (step, named target) pointers the recalling body never names
     """
 
     def __init__(self):
         self.covered: dict[str, list[tuple[str, str]]] = {}
         self.gaps: dict[str, list[str]] = {}
+        self.terminal: dict[str, list[str]] = {}
         self.silent: list[tuple[str, str]] = []
         self.unknown: list[tuple[str, str]] = []
+        self.unnamed: list[tuple[str, str]] = []
 
     @property
     def ok(self) -> bool:
-        return not self.gaps and not self.silent and not self.unknown
+        return not self.gaps and not self.silent and not self.unknown and not self.unnamed
 
     def summary(self) -> str:
-        total = len(self.covered) + len(self.gaps)
+        total = len(self.covered) + len(self.gaps) + len(self.terminal)
         return (f"objectives {total} | with a later recall {len(self.covered)} | "
-                f"gaps {len(self.gaps)} | silent pointers {len(self.silent)} | "
-                f"unknown pointers {len(self.unknown)}")
+                f"gaps {len(self.gaps)} | terminal {len(self.terminal)} | "
+                f"silent pointers {len(self.silent)} | unknown pointers {len(self.unknown)} | "
+                f"unnamed pointers {len(self.unnamed)}")
 
 
 def _has_question(fm) -> bool:
@@ -82,8 +102,33 @@ def _has_question(fm) -> bool:
     return False
 
 
-def coverage(manifest, fronts) -> Result:
-    """Measure R11a.7 over one course pack. Pure: no file access, no printing."""
+def _names(body: str, target: str, fm) -> bool:
+    """R11a.7a, second half: does this body name the step it recalls?
+
+    Three ways count, because three ways are used in practice: the step id
+    itself, the recalled step's title, or its module label - `m3-01-structs`
+    gives `M3`. Anything looser would pass on a coincidence, and anything
+    stricter would fail a course that writes "the rule from M1" and means it.
+    """
+    if not body:
+        return True                          # nothing to judge, do not accuse
+    if target in body:
+        return True
+    title = str((fm or {}).get("title") or "")
+    if title and title in body:
+        return True
+    label = target.split("-", 1)[0].upper()  # m3-01-structs -> M3
+    return bool(re.search(rf"\b{re.escape(label)}\b", body))
+
+
+def coverage(manifest, fronts, bodies=None) -> Result:
+    """Measure R11a.7 over one course pack. Pure: no file access, no printing.
+
+    `bodies` is optional and maps a step id to its rendered body text. Given it,
+    the second half of R11a.7a is checked as well: a pointer the recalling body
+    never names is reported in `unnamed`. Without it that list stays empty and
+    every other number is unchanged, so existing callers keep their behaviour.
+    """
     module_of, module_rank = {}, {}
     for rank, mod in enumerate(manifest.get("modules") or []):
         module_rank[mod["id"]] = rank
@@ -108,48 +153,59 @@ def coverage(manifest, fronts) -> Result:
                 continue
             if sid not in module_of:
                 continue
+            if bodies is not None and not _names(bodies.get(sid, ""), target, fronts[target]):
+                res.unnamed.append((sid, target))
             if module_rank[module_of[sid]] > module_rank[module_of[target]]:
                 recalls.setdefault(sid, []).append(target)
 
+    last_rank = len(module_rank) - 1
     for obj, sources in sorted(teaches.items()):
         hits = [(sid, target) for sid, targets in sorted(recalls.items())
                 for target in targets if target in sources]
         if hits:
             res.covered[obj] = hits
+        elif all(module_rank.get(module_of.get(s), -1) == last_rank for s in sources):
+            # R11a.7c: nothing follows the last module, so this is not a gap.
+            res.terminal[obj] = sorted(sources)
         else:
             res.gaps[obj] = sorted(sources)
     return res
 
 
 def _load_pack(pack_dir):
-    """CLI helper: read course.json and the English front matter of every step."""
+    """CLI helper: course.json plus the English front matter and body of every step."""
     here = os.path.dirname(os.path.abspath(__file__))
     import importlib.util
     spec = importlib.util.spec_from_file_location("v", os.path.join(here, "validate-courses.py"))
     V = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(V)
     manifest = json.load(open(os.path.join(pack_dir, "course.json"), encoding="utf-8"))
-    fronts = {}
+    fronts, bodies = {}, {}
     for mod in manifest.get("modules") or []:
         for sid in mod.get("steps") or []:
             path = os.path.join(pack_dir, "steps", f"{sid}.en.md")
             if os.path.exists(path):
-                fronts[sid] = V.load_step(path)[0]
-    return manifest, fronts
+                fronts[sid], bodies[sid] = V.load_step(path)
+    return manifest, fronts, bodies
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         sys.exit(f"usage: {os.path.basename(sys.argv[0])} <course-pack-dir>")
-    res = coverage(*_load_pack(sys.argv[1]))
+    manifest, fronts, bodies = _load_pack(sys.argv[1])
+    res = coverage(manifest, fronts, bodies)
     for obj, hits in sorted(res.covered.items()):
         print(f"OK  {obj:58} {', '.join(f'{s}<-{t}' for s, t in hits)}")
     for obj, sources in sorted(res.gaps.items()):
         print(f"GAP {obj:58} taught in {', '.join(sources)}, recalled nowhere later")
+    for obj, sources in sorted(res.terminal.items()):
+        print(f"END {obj:58} taught only in the last module ({', '.join(sources)}) - R11a.7c, not a gap")
     for step, target in res.silent:
         print(f"SILENT  {step} -> {target}: target has no question task, the card never renders")
     for step, target in res.unknown:
         print(f"UNKNOWN {step} -> {target}: no such step")
+    for step, target in res.unnamed:
+        print(f"UNNAMED {step} -> {target}: the body never names the step it recalls (R11a.7a)")
     print()
     print(res.summary())
     sys.exit(0 if res.ok else 1)
