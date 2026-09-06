@@ -57,6 +57,8 @@ misconceptions:
 
 Drück eine Aggregation als Kette von Array-Methoden aus und kenne die zwei Standardverhalten, die `sort` und `reduce` genau in den Fällen falsch machen, die du nicht getestet hast.
 
+Aus [m4-02](step:m4-02-parameters) mitgenommen: jeder Rückruf hier ist eine Funktion mit Parametern, und das zweite Argument von `reduce` ist ein Standardwert, nur ohne den Namen.
+
 ## Drei Methoden, eine Form
 
 ```js

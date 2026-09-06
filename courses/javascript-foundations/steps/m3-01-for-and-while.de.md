@@ -42,6 +42,8 @@ misconceptions:
 
 Wähle die Schleife, die zum Problem passt: eine zählende `for`, wenn die Anzahl der Durchläufe feststeht, eine `while`, wenn eine Bedingung unterwegs entscheidet.
 
+Aus [m2-01](step:m2-01-if-switch) mitgenommen: ein Schleifenkopf ist eine Bedingung wie jede andere - von links nach rechts ausgewertet und beendet, sobald die Antwort feststeht.
+
 ## Die drei Formen
 
 MDNs Kapitel [Loops and iteration](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Loops_and_iteration) zählt sie auf; der praktisch entscheidende Unterschied ist, **wann die Bedingung geprüft wird**.

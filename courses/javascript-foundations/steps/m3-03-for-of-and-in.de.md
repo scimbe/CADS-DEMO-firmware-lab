@@ -51,6 +51,8 @@ misconceptions:
 
 Wähle die Iterationsform danach, was du herausbekommen willst - Schlüssel oder Werte - und wisse, warum `for...in` für ein Array das falsche Werkzeug ist.
 
+Aus [m3-02](step:m3-02-off-by-one) mitgenommen: die Indexrechnerei, die dir diese Formen abnehmen - und die eine Form, die sie dir als Text zurückgibt.
+
 ## Zwei Schleifen, die sich ähneln und es nicht sind
 
 ```js

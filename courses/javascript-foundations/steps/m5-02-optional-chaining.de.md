@@ -45,6 +45,8 @@ misconceptions:
 
 Lies einen Wert aus einer verschachtelten Struktur, ohne vorauszusetzen, dass die Struktur da ist, und behalte eine berechtigte `0`, während ein fehlender Wert trotzdem einen Standardwert bekommt.
 
+Zwei Fäden treffen sich: die Referenzen aus [m5-01](step:m5-01-objects), die bestimmen, was eine fehlende Ebene überhaupt heißt, und die falsy-Werte aus [m2-02](step:m2-02-truthy-falsy), die bestimmen, ob eine berechtigte `0` überlebt.
+
 ## Der Fehler, um den es hier geht
 
 ```

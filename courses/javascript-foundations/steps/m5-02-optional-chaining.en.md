@@ -45,6 +45,8 @@ misconceptions:
 
 Read a value out of a nested structure without assuming the structure is there, and keep a legitimate `0` while still defaulting a missing value.
 
+Two threads meet: the references of [m5-01](step:m5-01-objects), which decide what a missing level even means, and the falsy values of [m2-02](step:m2-02-truthy-falsy), which decide whether a legitimate `0` survives.
+
 ## The error this step is about
 
 ```

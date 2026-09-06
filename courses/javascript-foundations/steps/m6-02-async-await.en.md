@@ -51,6 +51,8 @@ misconceptions:
 
 Write asynchronous code that reads top to bottom, and recognise the silent failure a missing `await` produces.
 
+Carried over from [m5-04](step:m5-04-transformations): `map` over an asynchronous function gives you an array of promises rather than an array of values - the pipeline is the same, its contents are not.
+
 ## Two keywords over one mechanism
 
 ```js

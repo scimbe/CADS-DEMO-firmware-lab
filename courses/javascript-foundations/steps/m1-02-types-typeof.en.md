@@ -48,6 +48,8 @@ misconceptions:
 
 Name the value types JavaScript actually has, use `typeof` for what it is good at, and reach for a different check where `typeof` cannot help.
 
+Carried over from [m1-01](step:m1-01-let-const): a binding is not its value. That distinction is what lets you say a type belongs to the value and never to the name.
+
 ## The types, once
 
 MDN's [Grammar and types](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Grammar_and_types) chapter lists seven primitive types plus objects:

@@ -45,6 +45,8 @@ misconceptions:
 
 Predict what `+` does to mixed types, recognise `NaN` when a program does not crash but quietly produces nonsense, and test for it correctly.
 
+Two things carry over: the type names from [m1-02](step:m1-02-types-typeof), and reading a diff from [m0-03](step:m0-03-read-a-test) - here the quotation marks in that diff are what give the bug away.
+
 ## `+` is two operators
 
 Every other arithmetic operator converts its operands to numbers. `+` does not: if **either** side is a string, `+` joins strings instead.

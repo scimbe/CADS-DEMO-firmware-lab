@@ -45,6 +45,8 @@ misconceptions:
 
 Lies ein Promise als einen Wert, der noch nicht angekommen ist, erzeuge eines und häng Arbeit daran an, ohne so zu tun, als wäre das Ergebnis sofort verfügbar.
 
+Aus [m5-04](step:m5-04-transformations) mitgenommen: die Kette, die du dort gebaut hast, baust du bald über Werte, die noch nicht angekommen sind.
+
 ## Warum das Ergebnis nicht einfach zurückgegeben wird
 
 JavaScript führt deinen Code auf einem Thread aus. Eine Funktion, die auf einen Timer, eine Datei oder eine Netzwerkantwort blockierend wartet, würde alles andere anhalten. Funktionen, die Zeit brauchen, kehren deshalb **sofort** zurück, mit einem Objekt, das das spätere Ergebnis vertritt.

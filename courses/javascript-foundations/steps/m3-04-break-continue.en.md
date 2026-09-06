@@ -42,6 +42,8 @@ misconceptions:
 
 Leave a loop at the right moment: skip one pass with `continue`, stop one loop with `break`, and stop two with a label or a `return`.
 
+Carried over from [m2-01](step:m2-01-if-switch): leaving early is the same decision as taking a branch, and `break` here means what it meant inside a `switch`.
+
 ## continue and break
 
 ```js

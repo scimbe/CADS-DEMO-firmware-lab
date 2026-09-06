@@ -52,6 +52,8 @@ misconceptions:
 
 Schreib verzweigenden Code, dessen Grenzen stimmen, und verstehe, warum ein `switch` nach einem passenden Fall weiterläuft, wenn du ihn nicht anhältst.
 
+Aus [m1-04](step:m1-04-equality) mitgenommen: ein `switch` vergleicht seine Fälle strikt - der Operator, den du dort gewählt hast, entscheidet hier, welcher Fall passt.
+
 ## if / else if / else
 
 Eine `if`-Kette wird von oben nach unten gelesen und hält beim ersten Zweig, dessen Bedingung wahr ist. Damit gehört die Reihenfolge zur Logik: eine Kette, die `score >= 70` vor `score >= 90` prüft, kann nie ein A vergeben.

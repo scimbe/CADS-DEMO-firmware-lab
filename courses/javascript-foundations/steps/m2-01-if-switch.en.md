@@ -52,6 +52,8 @@ misconceptions:
 
 Write branching code whose boundaries are right, and understand why a `switch` keeps running after a matching case unless you stop it.
 
+Carried over from [m1-04](step:m1-04-equality): a `switch` compares its cases strictly, so the operator you chose there is the one deciding which case matches here.
+
 ## if / else if / else
 
 An `if` chain is read top to bottom and stops at the first branch whose condition is true. That makes order part of the logic: a chain that tests `score >= 70` before `score >= 90` can never award an A.

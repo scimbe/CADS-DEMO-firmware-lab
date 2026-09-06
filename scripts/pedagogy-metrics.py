@@ -195,6 +195,47 @@ rows=[]; ladders_missing=0; tasks_total=0
 # R4.2 figure by four rubrics the day the pack was converted, which would have
 # read as a regression that never happened.
 DO_BLOCK_RE = re.compile(r"^:::[ \t]+do\b.*?^:::[ \t]*$", re.M | re.S)
+# A markdown link TARGET is machinery, not prose: `](step:m3-01-for-and-while)`
+# tokenises to "while", and a step that merely points at that step then shares a
+# word with any rubric using it. Found the day R11a.7a's cross-references were
+# added - one recall sentence pushed m3-02 from 33.3 to 35.7 against a limit of
+# 35, on the token "while", contributed by a link target and by nothing anyone
+# wrote. Removing targets changes exactly ONE figure in the whole repository,
+# that one; all four packs are otherwise unmoved, which is the profile a fix for
+# an artefact should have.
+LINK_TARGET_RE = re.compile(r"\]\((?:step|file|https?):[^)]*\)")
+
+# The body's IDENTIFIERS - anything it puts in backticks or a code block, plus
+# the test names a check waits for - are removed from both sides of `ovl` before
+# the ratio is taken, so the figure measures shared PROSE.
+#
+# Why: a rubric about `Copy`, `drop`, `E0507` or `Number.isNaN` cannot avoid
+# those words, they ARE its subject. Measured across the rubrics that were over
+# the limit, 86 percent (en) and 85 percent (de) of everything they shared with
+# their body was an identifier, and six shared nothing else at all. At a limit
+# of 35 the vocabulary floor of such a rubric sits above the limit, and the
+# number then answers a question nobody asked.
+#
+# What `ovl` therefore does NOT measure any more, deliberately: shared technical
+# vocabulary. A course is expected to name its subject the same way twice. What
+# it still measures is R4.2's actual question - whether the sentences that carry
+# the answer are already in the text the student just read.
+IDENT_RE = re.compile(r"`([^`\n]+)`|```[a-z]*\n(.*?)```", re.S)
+
+def identifiers(body, tasks):
+    """Every token the body marks as code, plus the test names checks expect."""
+    out = set()
+    for m in IDENT_RE.finditer(body):
+        out |= toks(m.group(1) or m.group(2) or "")
+    def walk(check):
+        if not isinstance(check, dict): return
+        for name in (check.get("expectPass") or []) + (check.get("expectFail") or []):
+            out.update(toks(name))
+        for sub in check.get("checks") or []: walk(sub)
+        if isinstance(check.get("then"), dict): walk(check["then"])
+    for task in tasks:
+        walk(task.get("check"))
+    return out
 
 # The body's IDENTIFIERS - anything it puts in backticks or a code block, plus
 # the test names a check waits for - are removed from both sides of `ovl` before
@@ -253,7 +294,7 @@ def identifiers(body, tasks):
 
 for f in sorted(glob.glob(f"{D}/*.{lang}.md")):
     sid=os.path.basename(f)[:-6]; fm,body=V.load_step(f)[:2]   # load_step also returns a parse error
-    prose=DO_BLOCK_RE.sub("", body)
+    prose=LINK_TARGET_RE.sub("](-)", DO_BLOCK_RE.sub("", body))
     idents=identifiers(prose, fm.get("tasks") or []) if prose_only else set()
     btok=toks(prose) - idents; soc=fm.get("socratic") or []
     trig=set()

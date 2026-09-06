@@ -51,6 +51,8 @@ misconceptions:
 
 Erkläre, worauf eine zurückgegebene Funktion weiterhin zugreifen kann, und sag vorher, welche Bindung eine Closure eingefangen hat, wenn die umgebende Schleife längst beendet ist.
 
+Aus [m4-02](step:m4-02-parameters) mitgenommen: auch ein Parameter ist eine Bindung, und eine Closure hält Bindungen fest - deshalb kann das Argument eines Aufrufs den Aufruf überleben.
+
 ## Eine Closure ist eine Funktion plus der Gültigkeitsbereich, in dem sie entstand
 
 MDNs Kapitel [Functions](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Functions) definiert es direkt: eine verschachtelte Funktion behält Zugriff auf die Variablen der Funktion, die sie erzeugt hat, auch nachdem diese äußere Funktion zurückgekehrt ist.
