@@ -40,9 +40,10 @@ What it checks, per the task brief:
      A check that legitimately passes on the seed opts out with
      `seedMustFail: false`.
 
-PyYAML is used when present; otherwise a self-contained parser for the
-front-matter subset these packs use takes over, so the validator runs on a
-bare Python 3 (stdlib only).
+Front matter is parsed by the extension's own parser (via Node and
+scripts/read-front-matter.mjs), never by a second implementation: the validator
+must refuse exactly what the runtime refuses. That needs Node 22.18+ and one
+`npm ci` in extensions/cads-tutor; without it the run stops rather than guess.
 
 Usage:
     scripts/validate-courses.py PROJECT_ROOT [--courses-dir DIR] [--elf PATH] [--nm PATH]
@@ -68,224 +69,80 @@ import sys
 import tempfile
 
 # --- front-matter parsing ---------------------------------------------------
+# There is no parser here. Two parsers meant two truths, and both cracks cost us
+# real time: a step titled `CaDS: RAM budget` without quotes was invalid YAML to
+# the runtime - which dropped the file and with it the whole course - while this
+# script reported PASS; and a misconception pattern like "a\s*b" is not a legal
+# double-quoted YAML scalar at all, which a hand-rolled parser happily accepts as
+# a literal backslash-s. So the front matter is read by the extension's own
+# parseFrontMatter, through scripts/read-front-matter.mjs, and whatever the
+# runtime would refuse to load is refused here too, with the runtime's wording.
 
-try:
-    import yaml  # type: ignore
+FRONT_MATTER_HELPER = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "read-front-matter.mjs"
+)
+PARSER = "extensions/cads-tutor/src/frontmatter.ts (via node)"
 
-    def parse_front_matter(text: str) -> dict:
-        return yaml.safe_load(text) or {}
+# Per absolute path: ("ok", front matter, body) or ("error", message, None).
+_FM_CACHE = {}
+_FM_LOADED_DIRS = set()
 
-    PARSER = "PyYAML"
-except ImportError:
-    PARSER = "builtin"
 
-    def _parse_flow(s: str, i: int):
-        """Parse a JSON-ish YAML flow scalar/collection starting at s[i].
+class FrontMatterUnavailable(RuntimeError):
+    """The helper could not run at all - a validator that cannot parse the way
+    the runtime parses would only be guessing, so the run stops instead."""
 
-        Returns (value, next_index). Handles {maps}, [lists], "quoted"
-        strings and bare scalars. Bare scalars run until a , ] } or end.
-        """
-        n = len(s)
-        while i < n and s[i] in " \t":
-            i += 1
-        if i >= n:
-            return "", i
-        c = s[i]
-        if c == "{":
-            i += 1
-            obj = {}
-            while True:
-                while i < n and s[i] in " \t,":
-                    i += 1
-                if i < n and s[i] == "}":
-                    return obj, i + 1
-                if i >= n:
-                    # Unterminated flow map (usually an unbalanced quote in the
-                    # front matter). Return what we have instead of spinning.
-                    return obj, i
-                key, i = _parse_flow_scalar(s, i, stop=":")
-                while i < n and s[i] in " \t":
-                    i += 1
-                if i < n and s[i] == ":":
-                    i += 1
-                val, i = _parse_flow(s, i)
-                obj[str(key).strip()] = val
-            # unreachable
-        if c == "[":
-            i += 1
-            arr = []
-            while True:
-                while i < n and s[i] in " \t,":
-                    i += 1
-                if i < n and s[i] == "]":
-                    return arr, i + 1
-                if i >= n:
-                    return arr, i
-                before = i
-                val, i = _parse_flow(s, i)
-                arr.append(val)
-                if i == before:
-                    return arr, i
-        return _parse_flow_scalar(s, i, stop=",]}")
 
-    def _parse_flow_scalar(s: str, i: int, stop: str):
-        n = len(s)
-        while i < n and s[i] in " \t":
-            i += 1
-        if i < n and s[i] in "\"'":
-            quote = s[i]
-            i += 1
-            buf = []
-            while i < n and s[i] != quote:
-                if s[i] == "\\" and i + 1 < n:
-                    buf.append(s[i + 1])
-                    i += 2
-                    continue
-                buf.append(s[i])
-                i += 1
-            return "".join(buf), i + 1
-        buf = []
-        while i < n and s[i] not in stop:
-            buf.append(s[i])
-            i += 1
-        # Bare flow scalars get the same typing as bare block scalars, so that
-        # `{ expectExitCode: 0 }` and a block `expectExitCode: 0` both yield the
-        # int PyYAML would yield. Without this the two parsers disagree and
-        # type-checking rules (expectExitCode, minPass, timeoutMs) fire spuriously.
-        return _strip_scalar("".join(buf)), i
+def _run_front_matter_helper(paths):
+    try:
+        proc = subprocess.run(
+            ["node", FRONT_MATTER_HELPER],
+            input=json.dumps(paths),
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+    except FileNotFoundError as err:
+        raise FrontMatterUnavailable(
+            "node is not on PATH. The validator reads front matter with the "
+            "extension's own parser; install Node 22.18 or newer."
+        ) from err
+    except subprocess.TimeoutExpired as err:
+        raise FrontMatterUnavailable("reading front matter timed out") from err
+    if proc.returncode != 0:
+        raise FrontMatterUnavailable((proc.stderr or "").strip() or f"node exited with {proc.returncode}")
+    try:
+        return json.loads(proc.stdout)
+    except ValueError as err:
+        raise FrontMatterUnavailable(f"unreadable helper output: {err}") from err
 
-    def _strip_scalar(v: str):
-        v = v.strip()
-        if len(v) >= 2 and v[0] in "\"'" and v[-1] == v[0]:
-            return v[1:-1]
-        if re.fullmatch(r"-?\d+", v):
-            return int(v)
-        if re.fullmatch(r"-?\d+\.\d+", v):
-            return float(v)
-        if v in ("true", "false"):
-            return v == "true"
-        if v in ("null", "~", ""):
-            return None if v != "" else ""
-        return v
 
-    def _indent(line: str) -> int:
-        return len(line) - len(line.lstrip(" "))
+def preload_front_matter(paths):
+    """Parses a whole directory of step files in one node call."""
+    todo = [p for p in paths if os.path.abspath(p) not in _FM_CACHE]
+    if not todo:
+        return
+    for entry in _run_front_matter_helper([os.path.abspath(p) for p in todo]):
+        key = os.path.abspath(entry["file"])
+        if entry.get("ok"):
+            _FM_CACHE[key] = ("ok", entry.get("data"), entry.get("body", ""))
+        else:
+            _FM_CACHE[key] = ("error", entry.get("error", "unknown parse failure"), None)
 
-    def _parse_block(lines, idx, indent):
-        """Parse a block mapping or sequence at the given indent.
 
-        Returns (value, next_idx).
-        """
-        # Skip blank / comment lines handled by caller.
-        # Decide sequence vs mapping by first significant line.
-        while idx < len(lines) and (not lines[idx].strip() or lines[idx].lstrip().startswith("#")):
-            idx += 1
-        if idx >= len(lines):
-            return None, idx
-        if lines[idx].lstrip().startswith("- "):
-            return _parse_seq(lines, idx, indent)
-        return _parse_map(lines, idx, indent)
+def load_step(path):
+    """(front matter, body, error). `error` is set exactly when the runtime
+    would refuse the file; front matter is None when there is none at all."""
+    key = os.path.abspath(path)
+    if key not in _FM_CACHE:
+        preload_front_matter([path])
+    kind, a, b = _FM_CACHE[key]
+    if kind == "error":
+        return None, None, a
+    if a is None:
+        return None, b, None
+    return a, b, None
 
-    def _parse_map(lines, idx, indent):
-        obj = {}
-        while idx < len(lines):
-            line = lines[idx]
-            if not line.strip() or line.lstrip().startswith("#"):
-                idx += 1
-                continue
-            cur = _indent(line)
-            if cur < indent:
-                break
-            if cur > indent:
-                # unexpected deeper line; stop
-                break
-            stripped = line.strip()
-            if stripped.startswith("- "):
-                break
-            m = re.match(r"^([^:]+):(.*)$", stripped)
-            if not m:
-                idx += 1
-                continue
-            key = m.group(1).strip()
-            rest = m.group(2).strip()
-            if rest == "":
-                # Nested block. The child's indent is DISCOVERED from its first
-                # significant line, not assumed to be indent + 1: a block map
-                # under `check:` is normally indented by two, and assuming one
-                # made _parse_map bail out immediately and yield {} - so every
-                # block-style check parsed as type None. A sequence may also sit
-                # at the key's own indent, which is legal YAML.
-                j = idx + 1
-                while j < len(lines) and (not lines[j].strip() or lines[j].lstrip().startswith("#")):
-                    j += 1
-                if j < len(lines):
-                    child = _indent(lines[j])
-                    is_seq = lines[j].lstrip().startswith("- ")
-                    if child > indent or (is_seq and child == indent):
-                        val, idx = _parse_block(lines, idx + 1, child)
-                        obj[key] = val
-                        continue
-                # A key with nothing under it is an explicit null, as in PyYAML.
-                obj[key] = None
-                idx += 1
-                continue
-            elif rest[0] in "[{":
-                val, _ = _parse_flow(rest, 0)
-                obj[key] = val
-                idx += 1
-            else:
-                obj[key] = _strip_scalar(rest)
-                idx += 1
-        return obj, idx
-
-    def _parse_seq(lines, idx, indent):
-        arr = []
-        while idx < len(lines):
-            line = lines[idx]
-            if not line.strip() or line.lstrip().startswith("#"):
-                idx += 1
-                continue
-            cur = _indent(line)
-            if cur < indent:
-                break
-            stripped = line.strip()
-            if not stripped.startswith("- "):
-                break
-            item = stripped[2:].strip()
-            if item and item[0] in "[{":
-                val, _ = _parse_flow(item, 0)
-                arr.append(val)
-                idx += 1
-            elif ":" in item:
-                # inline mapping start: treat the "- key: val" line as the
-                # first entry of a mapping whose remaining keys are indented
-                # under the dash (indent + 2).
-                child_indent = cur + 2
-                synthetic = [" " * child_indent + item]
-                j = idx + 1
-                while j < len(lines):
-                    l2 = lines[j]
-                    if not l2.strip() or l2.lstrip().startswith("#"):
-                        j += 1
-                        continue
-                    if _indent(l2) < child_indent:
-                        break
-                    if _indent(l2) == cur and l2.strip().startswith("- "):
-                        break
-                    synthetic.append(l2)
-                    j += 1
-                val, _ = _parse_map(synthetic, 0, child_indent)
-                arr.append(val)
-                idx = j
-            else:
-                arr.append(_strip_scalar(item))
-                idx += 1
-        return arr, idx
-
-    def parse_front_matter(text: str) -> dict:
-        lines = text.split("\n")
-        val, _ = _parse_block(lines, 0, 0)
-        return val or {}
 
 
 # --- validation -------------------------------------------------------------
@@ -301,8 +158,6 @@ SCAFFOLD_LEVELS = {"worked", "faded", "independent"}
 TEST_RUNNERS = {"cargo", "node-test", "tap", "custom"}
 TRIGGER_RE = re.compile(r"^(\*|task:[^:\s]+:(failed|stuck)|question:[^:\s]+:weak|event:[a-z-]+|test:.+:failed|output:.+)$", re.S)
 DEFAULT_PROBE_TIMEOUT_MS = 120000
-
-FM_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 
 # --- runtime cross-check ----------------------------------------------------
 # A pack may legally use a check type from SPEC addendum v1.1 that the shipped
@@ -626,17 +481,6 @@ class Report:
         self.warnings.append(f"{where}: {msg}")
 
 
-def load_step(path):
-    with open(path, encoding="utf-8") as fh:
-        text = fh.read()
-    m = FM_RE.match(text)
-    if not m:
-        return None, None
-    fm = parse_front_matter(m.group(1))
-    body = text[m.end():]
-    return fm, body
-
-
 def repo_path_exists(root, rel):
     rel = str(rel).split("#")[0].strip()
     if not rel:
@@ -944,12 +788,19 @@ def validate_course(course_dir, root, symbols, report, probes=None):
     # checks declare, and that route is just as real.
     recall_sources = set()
     known_tasks, known_commands = set(), set()
+    # One node call for the whole directory rather than one per file.
+    preload_front_matter([
+        os.path.join(steps_dir, f"{sid}.{lang}.md")
+        for sid in sorted(all_ids)
+        for lang in ("en", "de")
+        if os.path.exists(os.path.join(steps_dir, f"{sid}.{lang}.md"))
+    ])
     for sid in sorted(all_ids):
         for lang in ("en", "de"):
             fpath = os.path.join(steps_dir, f"{sid}.{lang}.md")
             if not os.path.exists(fpath):
                 continue
-            fm, _ = load_step(fpath)
+            fm, _, _ = load_step(fpath)
             for task in (fm or {}).get("tasks") or []:
                 if not isinstance(task, dict) or not isinstance(task.get("check"), dict):
                     continue
@@ -971,7 +822,13 @@ def validate_course(course_dir, root, symbols, report, probes=None):
             if not os.path.exists(fpath):
                 continue
             where = f"{name}/{sid}.{lang}"
-            fm, body = load_step(fpath)
+            fm, body, parse_error = load_step(fpath)
+            if parse_error:
+                # The runtime would drop this file, and with it every step that
+                # depends on it - so it is an error here, in the runtime's own
+                # words, rather than a PASS that lasts until someone opens VS Code.
+                report.error(where, parse_error)
+                continue
             if fm is None:
                 report.error(where, "no YAML front matter")
                 continue
@@ -1460,4 +1317,10 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except FrontMatterUnavailable as err:
+        # Falling back to a parser of our own is exactly the bug this replaced:
+        # it would answer differently from the tutor and call it PASS.
+        print(f"error: cannot read front matter the way the tutor does: {err}", file=sys.stderr)
+        sys.exit(2)

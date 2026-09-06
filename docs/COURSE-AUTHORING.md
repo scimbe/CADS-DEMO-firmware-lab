@@ -268,7 +268,12 @@ python3 scripts/validate-courses.py <PROJECT_ROOT> [--courses-dir DIR] [--only C
 ```
 
 Prüft Schema, Querverweise, Repo-Pfade, ELF-Symbole, Zweisprachigkeit, Bloom-Stufen und alle v1.1-Felder.
-PyYAML wird genutzt, wenn vorhanden; sonst greift ein eingebauter Parser, der dieselben Ergebnisse liefert.
+Das Front Matter liest der Validator mit **demselben Parser wie der Tutor** (`scripts/read-front-matter.mjs`
+ruft `extensions/cads-tutor/src/frontmatter.ts` auf). Er lehnt damit genau das ab, was auch die Laufzeit
+ablehnt — ein unquotierter Titel mit Doppelpunkt (`title: CaDS: RAM budget`) oder ein unzulässiges Escape in
+einem doppelt gequoteten Muster (`"…\s*…"`, in einfachen Anführungszeichen dagegen erlaubt) ist ein Fehler,
+kein PASS. Voraussetzung: Node 22.18+ und einmal `npm ci` in `extensions/cads-tutor`; fehlt beides, bricht der
+Lauf ab, statt mit einem zweiten Parser zu raten.
 
 `--solutions DIR` ist die **Negativprobe** für sprachunabhängige Tracks: jeder `command`/`testSuite`-Check auf
 oberster Ebene läuft zweimal in einer Kopie des Projekt-Roots – ohne Lösung **muss er fehlschlagen**, mit der
