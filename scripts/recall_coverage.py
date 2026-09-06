@@ -185,7 +185,7 @@ def _load_pack(pack_dir):
         for sid in mod.get("steps") or []:
             path = os.path.join(pack_dir, "steps", f"{sid}.en.md")
             if os.path.exists(path):
-                fronts[sid], bodies[sid] = V.load_step(path)
+                fronts[sid], bodies[sid], _ = V.load_step(path)
     return manifest, fronts, bodies
 
 
