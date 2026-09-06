@@ -10,8 +10,11 @@ import {
   isModuleCompetenceComplete,
   leadingEvidence,
   moduleCompetence,
+  moduleCompletedAt,
   moduleObjectiveIds,
+  moduleReflectionDue,
   newSession,
+  objectiveCeiling,
   objectiveCompetence,
   objectiveEvidence,
 } from "../src/session";
@@ -218,5 +221,59 @@ describe("A9.2 what recordTaskResult stores", () => {
       predictionGraded: false,
     });
     assert.deepEqual(objectiveEvidence(course, s, "firmware-tooling").map((e) => e.kind), ["checkFirstTry"]);
+  });
+});
+
+describe("A9.2 what an objective can reach at all", () => {
+  it("keeps demonstrated out of reach where no later module asks again", () => {
+    // m0-02-build is never named in any recallFrom, so the course itself caps it.
+    const c = objectiveCeiling(course, "firmware-how-to-build", true);
+    assert.equal(c.level, "practised");
+    assert.equal(c.noLaterRecall, true);
+    assert.equal(c.limitedByLlm, false);
+  });
+
+  it("reaches demonstrated where a later module recalls a task that carries a recall prompt", () => {
+    const c = objectiveCeiling(course, "firmware-safety", true);
+    assert.equal(c.level, "demonstrated");
+    assert.equal(c.noLaterRecall, false);
+  });
+
+  it("separates 'not reached' from 'not reachable without a model'", () => {
+    const withModel = objectiveCeiling(course, "firmware-safety", true);
+    const without = objectiveCeiling(course, "firmware-safety", false);
+    // The step has an automatic check too, so the level survives; the recall does not.
+    assert.equal(without.level, "practised");
+    assert.equal(without.withLlm, withModel.level);
+    assert.equal(without.limitedByLlm, true);
+  });
+
+  it("gives a manual-only objective no ceiling at all", () => {
+    // A step whose only task is `manual` produces nothing, with or without a model.
+    const c = objectiveCeiling(course, "does-not-exist", true);
+    assert.equal(c.level, "none");
+    assert.equal(c.limitedByLlm, false);
+  });
+});
+
+describe("A9.3 the can-do card does not hang on the reflection", () => {
+  it("marks the module finished even when nobody authored reflection prompts", () => {
+    const s = newSession();
+    const m0 = orderedSteps(course).filter((x) => x.moduleId === "m0");
+    for (const step of m0) for (const t of step.variants.en!.meta.tasks) pass(s, step.id, t.id);
+    const last = m0[m0.length - 1];
+    // m0 has no `reflection` in the manifest - the reflection card stays away, the
+    // module is still complete, and that is what the can-do card hangs on.
+    assert.equal(moduleReflectionDue(s, course, last), undefined);
+    assert.equal(moduleCompletedAt(s, course, last)?.id, "m0");
+  });
+
+  it("offers both when the module does author prompts", () => {
+    const s = newSession();
+    const m2 = orderedSteps(course).filter((x) => x.moduleId === "m2");
+    for (const step of m2) for (const t of step.variants.en!.meta.tasks) pass(s, step.id, t.id);
+    const last = m2[m2.length - 1];
+    assert.equal(moduleReflectionDue(s, course, last)?.id, "m2");
+    assert.equal(moduleCompletedAt(s, course, last)?.id, "m2");
   });
 });

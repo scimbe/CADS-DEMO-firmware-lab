@@ -42,6 +42,7 @@ import {
   isStepDone,
   moduleCompetence,
   moduleCompletedAt,
+  objectiveCeiling,
   moduleReflectionDue,
   newSession,
   nextOpenStep,
@@ -107,6 +108,7 @@ export class TutorController implements vscode.Disposable {
       lang: () => this.lang,
       events: () => this.eventStore?.store,
       objectiveStatement: (courseId, objectiveId) => this.platforms.get(courseId)?.curriculum?.get(objectiveId)?.statement,
+      hasLlm: (courseId) => this.platforms.get(courseId)?.hasLlm ?? false,
     });
     this.statusBar = vscode.window.createStatusBarItem("cadsTutor.status", vscode.StatusBarAlignment.Left, 50);
     this.statusBar.command = "cads.tutor.open";
@@ -768,6 +770,7 @@ export class TutorController implements vscode.Disposable {
     }
     const lookups: RecordLookups = {
       lang: this.lang,
+      hasLlm: this.platformFor(cur.course).hasLlm,
       statementFor: (id) => this.platforms.get(cur.course.manifest.id)?.curriculum?.get(id)?.statement,
       stepTitleFor: (id) => {
         const step = cur.course.steps.get(id);
@@ -1341,7 +1344,13 @@ export class TutorController implements vscode.Disposable {
   private competenceObjectiveView(course: Course, c: ObjectiveCompetence): CompetenceObjectiveView {
     const statement = this.platforms.get(course.manifest.id)?.curriculum?.get(c.objectiveId)?.statement;
     const step = c.leading ? course.steps.get(c.leading.stepId) : undefined;
+    // A9.2: what this course can produce here at all. A mark that can never fill
+    // has to say why, or the student reads the installation as their own failure.
+    const ceiling = objectiveCeiling(course, c.objectiveId, this.platformFor(course).hasLlm);
     return {
+      ceiling: ceiling.level,
+      limitedByLlm: ceiling.limitedByLlm,
+      noLaterRecall: ceiling.noLaterRecall,
       objectiveId: c.objectiveId,
       // The id is a poor sentence, but a wrong sentence would be worse: packs
       // without a curriculum entry get the id and the teacher sees what is missing.

@@ -12,7 +12,7 @@
  * count of its own.
  */
 import { ui } from "./i18n";
-import { atLeast, moduleCompetence, moduleProgress } from "./session";
+import { atLeast, moduleCompetence, moduleProgress, objectiveCeiling, type ObjectiveCeiling } from "./session";
 import { courseCompetence } from "./session";
 import { loc, type CompetenceLevel, type Course, type Evidence, type Lang, type ObjectiveCompetence, type SessionState } from "./types";
 
@@ -28,10 +28,18 @@ export interface RecordEntry {
   leading?: Evidence;
   /** Everything the session holds for this objective, oldest first. */
   evidence: Evidence[];
+  /**
+   * A9.2: the highest level this course can produce for the objective on this
+   * deployment. The teacher's portal has to be able to tell "not reached" from
+   * "not reachable" - the second is a defect of the course or the installation.
+   */
+  ceiling: ObjectiveCeiling;
 }
 
 export interface RecordLookups {
   lang: Lang;
+  /** Whether a language model is configured here; without one, rubric-graded evidence cannot happen. */
+  hasLlm: boolean;
   /** The curriculum's sentence for an objective, when the pack ships one. */
   statementFor(objectiveId: string): string | undefined;
   /** The title of a step, for the human-readable evidence reference. */
@@ -43,13 +51,14 @@ export function competenceRecordEntries(course: Course, session: SessionState, l
   const out: RecordEntry[] = [];
   for (const mod of courseCompetence(course, session)) {
     const manifest = course.manifest.modules.find((m) => m.id === mod.moduleId);
-    for (const c of mod.objectives) out.push(entry(c, mod.moduleId, manifest ? loc(manifest.title, lookups.lang) : mod.moduleId, s, lookups));
+    for (const c of mod.objectives) out.push(entry(course, c, mod.moduleId, manifest ? loc(manifest.title, lookups.lang) : mod.moduleId, s, lookups));
   }
   return out;
 }
 
-function entry(c: ObjectiveCompetence, moduleId: string, moduleTitle: string, s: ReturnType<typeof ui>, lookups: RecordLookups): RecordEntry {
+function entry(course: Course, c: ObjectiveCompetence, moduleId: string, moduleTitle: string, s: ReturnType<typeof ui>, lookups: RecordLookups): RecordEntry {
   return {
+    ceiling: objectiveCeiling(course, c.objectiveId, lookups.hasLlm),
     moduleId,
     moduleTitle,
     objectiveId: c.objectiveId,
@@ -70,6 +79,19 @@ function evidenceCell(e: Evidence | undefined, lookups: RecordLookups, s: Return
   if (!e) return { kind: s.competenceNoEvidence, step: "–" };
   const title = lookups.stepTitleFor(e.stepId);
   return { kind: s.evidenceLabel[e.kind], step: title ? `${e.stepId} (${title})` : e.stepId };
+}
+
+/**
+ * The "reachable" cell: the ceiling, and - when it is below "demonstrated" - the
+ * reason in a fixed marker the portal can match on. Naming the reason is the whole
+ * point: an empty mark that is impossible to fill is not the student's failure.
+ */
+function reachable(r: RecordEntry, s: ReturnType<typeof ui>): string {
+  const level: CompetenceLevel = r.ceiling.level;
+  const marks: string[] = [];
+  if (r.ceiling.limitedByLlm) marks.push(s.ceilingMarkLlm);
+  if (r.ceiling.noLaterRecall) marks.push(s.ceilingMarkRecall);
+  return `${s.competenceLevel[level]}${marks.length ? ` (${marks.join(", ")})` : ""}`;
 }
 
 /** Escapes the pipe so a statement containing one cannot break the table. */
@@ -100,11 +122,13 @@ export function renderCompetenceRecordMarkdown(course: Course, session: SessionS
     const rows = entries.filter((e) => e.moduleId === mod.id);
     if (rows.length === 0) continue;
     lines.push(`## ${cell(loc(mod.title, lookups.lang))}`, "");
-    lines.push(`| ${s.recordColObjective} | ${s.recordColLevel} | ${s.recordColDate} | ${s.recordColEvidence} | ${s.recordColStep} |`);
-    lines.push("|---|---|---|---|---|");
+    lines.push(`| ${s.recordColObjective} | ${s.recordColLevel} | ${s.ceilingColumn} | ${s.recordColDate} | ${s.recordColEvidence} | ${s.recordColStep} |`);
+    lines.push("|---|---|---|---|---|---|");
     for (const r of rows) {
       const cellsOf = evidenceCell(r.leading, lookups, s);
-      lines.push(`| ${cell(r.statement)} | ${s.competenceLevel[r.level]} | ${day(r.leading?.at)} | ${cell(cellsOf.kind)} | \`${cell(cellsOf.step)}\` |`);
+      lines.push(
+        `| ${cell(r.statement)} | ${s.competenceLevel[r.level]} | ${cell(reachable(r, s))} | ${day(r.leading?.at)} | ${cell(cellsOf.kind)} | \`${cell(cellsOf.step)}\` |`,
+      );
     }
     lines.push("");
     for (const r of rows) {
@@ -117,6 +141,7 @@ export function renderCompetenceRecordMarkdown(course: Course, session: SessionS
       lines.push("");
     }
     lines.push(`${s.recordCriterion}: ${s.competenceLevel.practised} — ${s.competenceLevelWhy.practised} · ${s.competenceLevel.demonstrated} — ${s.competenceLevelWhy.demonstrated}`, "");
+    lines.push(s.ceilingFootnote, "");
   }
   return lines.join("\n") + "\n";
 }
@@ -137,11 +162,15 @@ export interface RowText {
 }
 
 /** One objective row: its level, and the evidence that produced it. */
-export function objectiveRowText(c: ObjectiveCompetence, lookups: RecordLookups): RowText {
+export function objectiveRowText(course: Course, c: ObjectiveCompetence, lookups: RecordLookups): RowText {
   const s = ui(lookups.lang);
   const statement = lookups.statementFor(c.objectiveId) ?? c.objectiveId;
   const cellsOf = evidenceCell(c.leading, lookups, s);
+  const ceiling = objectiveCeiling(course, c.objectiveId, lookups.hasLlm);
   const lines = [statement, `${s.recordColLevel}: ${s.competenceLevel[c.level]} — ${s.competenceLevelWhy[c.level]}`];
+  if (ceiling.limitedByLlm || ceiling.noLaterRecall) {
+    lines.push(`${s.ceilingColumn}: ${s.competenceLevel[ceiling.level]}${ceiling.limitedByLlm ? ` (${s.ceilingMarkLlm})` : ""}${ceiling.noLaterRecall ? ` (${s.ceilingMarkRecall})` : ""}`);
+  }
   if (c.evidence.length === 0) lines.push(s.competenceNoEvidence);
   for (const e of c.evidence) {
     const cell = evidenceCell(e, lookups, s);

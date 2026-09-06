@@ -315,6 +315,34 @@ describe("A9.3 competence card", () => {
     assert.match(html, /Keine Punkte, keine Serien/);
   });
 
+  it("tells 'not reached' from 'not reachable without a model'", () => {
+    const stuck: CompetenceObjectiveView = {
+      objectiveId: "clean", statement: "Explain a clean-room PR", level: "touched",
+      evidenceKind: "question", evidenceStepId: "m8-03", ceiling: "touched", limitedByLlm: true,
+    };
+    const html = renderCompetence({ ...card, objectives: [stuck] }, "de");
+    assert.match(html, /Ohne Sprachmodell/);
+    assert.match(html, /liegt an der Installation, nicht an deiner Arbeit/);
+  });
+
+  it("says when the course itself never asks again, so demonstrated cannot come", () => {
+    const capped: CompetenceObjectiveView = {
+      objectiveId: "build", statement: "Build the firmware", level: "practised",
+      evidenceKind: "checkFirstTry", evidenceStepId: "m0-02", ceiling: "practised", noLaterRecall: true,
+    };
+    assert.match(renderCompetence({ ...card, objectives: [capped] }, "de"), /Kein späteres Modul fragt dieses Lernziel erneut ab/);
+  });
+
+  it("stays quiet where the student can still do something about it", () => {
+    // Reachable is above reached: this is work left, not a ceiling.
+    const open: CompetenceObjectiveView = {
+      objectiveId: "own", statement: "Own a value", level: "touched", ceiling: "demonstrated", limitedByLlm: false,
+    };
+    const html = renderCompetence({ ...card, objectives: [open] }, "de");
+    assert.doesNotMatch(html, /Ohne Sprachmodell/);
+    assert.doesNotMatch(html, /Kein späteres Modul/);
+  });
+
   it("escapes an objective statement from the pack", () => {
     const html = renderCompetence({ ...card, objectives: [{ objectiveId: "x", statement: "<img onerror=x>", level: "touched" }] }, "en");
     assert.doesNotMatch(html, /<img/);

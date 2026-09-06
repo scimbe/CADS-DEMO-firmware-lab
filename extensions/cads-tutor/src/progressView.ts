@@ -19,6 +19,8 @@ export interface ProgressState {
   lang(): Lang;
   events(): EventStoreLike | undefined;
   objectiveStatement(courseId: string, objectiveId: string): string | undefined;
+  /** A9.2: whether this deployment can grade rubric answers at all - it decides what a level can reach. */
+  hasLlm(courseId: string): boolean;
 }
 
 export type ProgressNode =
@@ -50,7 +52,7 @@ export class ProgressTreeProvider implements vscode.TreeDataProvider<ProgressNod
     const store = this.state.events();
     const session = this.state.session();
     const competence = objectiveCompetence(node.course, session, node.objectiveId);
-    const row = objectiveRowText(competence, this.lookups(node.course, lang));
+    const row = objectiveRowText(node.course, competence, this.lookups(node.course, lang));
     const item = new vscode.TreeItem(row.label, vscode.TreeItemCollapsibleState.None);
     item.id = `progress:${node.course.manifest.id}/${node.objectiveId}`;
     item.description = row.description;
@@ -65,6 +67,7 @@ export class ProgressTreeProvider implements vscode.TreeDataProvider<ProgressNod
   private lookups(course: Course, lang: Lang): RecordLookups {
     return {
       lang,
+      hasLlm: this.state.hasLlm(course.manifest.id),
       statementFor: (id) => this.state.objectiveStatement(course.manifest.id, id),
       stepTitleFor: (id) => {
         const step = course.steps.get(id);

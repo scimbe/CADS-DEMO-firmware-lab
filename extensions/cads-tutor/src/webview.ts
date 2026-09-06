@@ -639,6 +639,7 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
   .competence-level { font-size: 0.85em; text-transform: lowercase; opacity: 0.9; white-space: nowrap; border: 1px solid var(--vscode-panel-border); border-radius: 3px; padding: 0 0.4em; }
   .competence-evidence { font-size: 0.86em; opacity: 0.75; margin-top: 0.15em; }
   .competence-note { font-size: 0.85em; opacity: 0.7; margin-top: 0.5em; }
+  .competence-ceiling { font-size: 0.86em; margin-top: 0.2em; padding-left: 0.5em; border-left: 2px solid var(--vscode-inputValidation-infoBorder, var(--vscode-focusBorder)); opacity: 0.9; }
   .level-practised { border-left-color: var(--vscode-charts-blue, var(--vscode-focusBorder)); }
   .level-demonstrated { border-left-color: var(--vscode-testing-iconPassed, var(--vscode-charts-green)); }
   .level-touched { border-left-color: var(--vscode-charts-yellow, var(--vscode-panel-border)); }
@@ -930,6 +931,16 @@ export interface CompetenceObjectiveView {
   evidenceStepTitle?: string;
   /** ISO date or timestamp of that evidence. */
   evidenceAt?: string;
+  /**
+   * A9.2: the highest level this course can produce for the objective on this
+   * deployment. Below `demonstrated` it means the gap is in the course or the
+   * installation, and the card must say so rather than leave a mark that never fills.
+   */
+  ceiling?: CompetenceLevel;
+  /** The ceiling is lower only because no language model is configured. */
+  limitedByLlm?: boolean;
+  /** No later module asks about this objective again (K8). */
+  noLaterRecall?: boolean;
 }
 
 export interface CompetenceCardView {
@@ -947,6 +958,23 @@ export interface CanDoCardView {
   can: CompetenceObjectiveView[];
   /** What is not there yet - named, not hidden: a card that only praises is a sticker (E10). */
   open: CompetenceObjectiveView[];
+}
+
+/**
+ * The sentence that tells "not reached" from "not reachable". Shown only where it
+ * changes what the student should conclude - never on an objective that is already
+ * at its ceiling for a reason the student can act on.
+ */
+function ceilingLine(o: CompetenceObjectiveView, lang: Lang): string {
+  const s = ui(lang);
+  const reached = o.level;
+  if (o.limitedByLlm && o.ceiling && reached === o.ceiling) {
+    return `<div class="competence-ceiling">${escapeHtml(s.ceilingLlm(s.competenceLevel[o.ceiling]))}</div>`;
+  }
+  if (o.noLaterRecall && reached === "practised") {
+    return `<div class="competence-ceiling">${escapeHtml(s.ceilingNoRecall)}</div>`;
+  }
+  return "";
 }
 
 /** One line of provenance: which kind of evidence, in which step, when. */
@@ -973,6 +1001,7 @@ export function renderCompetence(view: CompetenceCardView, lang: Lang): string {
       <div class="competence-row"><span class="competence-statement">${escapeHtml(o.statement)}</span>
         <span class="competence-level" title="${escapeHtml(s.competenceLevelWhy[o.level])}">${escapeHtml(s.competenceLevel[o.level])}</span></div>
       <div class="competence-evidence"${o.evidenceStepId ? ` data-step="${escapeHtml(o.evidenceStepId)}"` : ""}>${evidenceLine(o, lang)}</div>
+      ${ceilingLine(o, lang)}
     </li>`,
     )
     .join("");
@@ -1001,7 +1030,7 @@ export function renderCanDo(view: CanDoCardView, lang: Lang): string {
     .join("");
   const open = view.open.length
     ? `<div class="can-open"><div class="card-sub">${escapeHtml(s.canDoOpen)}</div><ul class="can-open-list">${view.open
-        .map((o) => `<li>${escapeHtml(o.statement)} – ${escapeHtml(s.competenceLevel[o.level])}</li>`)
+        .map((o) => `<li>${escapeHtml(o.statement)} – ${escapeHtml(s.competenceLevel[o.level])}${ceilingLine(o, lang)}</li>`)
         .join("")}</ul></div>`
     : "";
   return `<div class="card can-do"><div class="card-head">${escapeHtml(s.canDoTitle)}</div>

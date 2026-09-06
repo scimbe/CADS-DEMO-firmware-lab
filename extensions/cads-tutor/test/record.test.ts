@@ -11,6 +11,7 @@ const course = loadCoursePack(EXAMPLE, "test").course!;
 
 const lookups: RecordLookups = {
   lang: "de",
+  hasLlm: true,
   statementFor: (id) => (id === "firmware-how-to-build" ? "Die Firmware bauen" : undefined),
   stepTitleFor: (id) => (id === "m0-02-build" ? "Bauen" : undefined),
 };
@@ -50,7 +51,7 @@ describe("A9.3 record of competence", () => {
     assert.match(md, /^# Kompetenznachweis/m);
     assert.match(md, /Stand: 2026-09-07/);
     assert.match(md, new RegExp(s.studentId));
-    assert.match(md, /\| Die Firmware bauen \| geübt \| 2026-09-06 \| Prüfung im ersten Versuch ohne Hinweis bestanden \| `m0-02-build \(Bauen\)` \|/);
+    assert.match(md, /\| Die Firmware bauen \| geübt \| geübt \(kein späterer Abruf\) \| 2026-09-06 \| Prüfung im ersten Versuch ohne Hinweis bestanden \| `m0-02-build \(Bauen\)` \|/);
     assert.match(md, /alle Belege/, "an objective with several pieces lists them all");
     assert.match(md, /Kriterium: geübt/);
     assert.match(md, /Erreichte Stufen: 0 nachgewiesen, 1 geübt/);
@@ -76,7 +77,7 @@ describe("A9.2 progress rows show levels, not raw counters", () => {
     const s = newSession();
     pass(s, "m0-02-build", "build");
     pass(s, "m0-02-build", "preset", { attempts: 4, hintTier: 3, checkedAt: "2026-09-06T11:00:00.000Z" });
-    const row = objectiveRowText(objectiveCompetence(course, s, "firmware-how-to-build"), lookups);
+    const row = objectiveRowText(course, objectiveCompetence(course, s, "firmware-how-to-build"), lookups);
     assert.equal(row.label, "firmware-how-to-build");
     assert.equal(row.description, "geübt · Prüfung im ersten Versuch ohne Hinweis bestanden");
     assert.match(row.tooltip, /Stufe: geübt — Ein starker Beleg oder zwei mittlere\./);
@@ -85,7 +86,7 @@ describe("A9.2 progress rows show levels, not raw counters", () => {
   });
 
   it("says so plainly when an objective has no verified evidence", () => {
-    const row = objectiveRowText(objectiveCompetence(course, newSession(), "firmware-safety"), lookups);
+    const row = objectiveRowText(course, objectiveCompetence(course, newSession(), "firmware-safety"), lookups);
     assert.equal(row.description, "nicht begonnen");
     assert.match(row.tooltip, /noch kein geprüfter Beleg/);
   });

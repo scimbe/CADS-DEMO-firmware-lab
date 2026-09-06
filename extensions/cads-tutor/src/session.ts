@@ -10,7 +10,7 @@ import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { orderedSteps } from "./loader";
-import { EVIDENCE_WEIGHT, stepKey, type CompetenceLevel, type Course, type CourseModule, type Evidence, type EvidenceKind, type Lang, type ObjectiveCompetence, type PredictionOutcome, type RecallEvidenceRecord, type SessionState, type Step, type StepProgress, type StepStatus, type TaskSpec, type TaskState, type TaskStatus, type TestCaseResult } from "./types";
+import { EVIDENCE_WEIGHT, recallPromptOf, stepKey, type CompetenceLevel, type Course, type CourseModule, type Evidence, type EvidenceKind, type Lang, type ObjectiveCompetence, type PredictionOutcome, type RecallEvidenceRecord, type SessionState, type Step, type StepProgress, type StepStatus, type TaskSpec, type TaskState, type TaskStatus, type TestCaseResult } from "./types";
 
 export function newSession(now = new Date()): SessionState {
   const iso = now.toISOString();
@@ -527,4 +527,92 @@ export function isModuleCompetenceComplete(course: Course, session: SessionState
 /** Every objective of the course with its level, in module order: the source for the record sheet and the progress view. */
 export function courseCompetence(course: Course, session: SessionState): { moduleId: string; objectives: ObjectiveCompetence[] }[] {
   return course.manifest.modules.map((m) => ({ moduleId: m.id, objectives: moduleCompetence(course, session, m.id) }));
+}
+
+// ---------------------------------------------------------------------------
+// A9.2: what a learning objective can reach at all.
+//
+// "Not reached" and "not reachable" look the same on a card and mean opposite
+// things. An objective whose steps carry only rubric-graded questions cannot get
+// past "berührt" on a deployment without a language model, however well the
+// student works - four objectives of cads-zero-foundations are exactly that. The
+// card has to say so, or the student reads a permanently empty mark as their own
+// failure.
+// ---------------------------------------------------------------------------
+
+export interface ObjectiveCeiling {
+  /** Highest level the course's own tasks and recall pointers can produce here. */
+  level: CompetenceLevel;
+  /** What it would be with a language model configured. */
+  withLlm: CompetenceLevel;
+  /** The ceiling is lower than it would be with a model: the gap is the deployment's, not the student's. */
+  limitedByLlm: boolean;
+  /** Even with a model the course has no graded recall for this objective from a later module (K8). */
+  noLaterRecall: boolean;
+}
+
+/** Best case for one task: what it contributes when everything goes right. */
+function taskCeiling(task: TaskSpec, hasLlm: boolean): { strong: number; medium: number } {
+  // A pass nobody verifies is never evidence, whatever the student does.
+  if (task.check.type === "manual") return { strong: 0, medium: 0 };
+  if (task.check.type === "question") return { strong: 0, medium: hasLlm ? 1 : 0 };
+  // A prediction's observed check is never a question or a manual (the schema
+  // forbids it), so its pass is machine-verified; the comparison needs a model.
+  if (task.check.type === "predict") return { strong: 1, medium: hasLlm ? 1 : 0 };
+  return { strong: 1, medium: 0 };
+}
+
+/**
+ * A graded recall for this objective is possible only if some step in a LATER
+ * module points back at one of its steps, and that step carries a task the card
+ * may ask (`recallPrompt`) and a rubric to judge the answer by (A9.2a).
+ */
+function laterRecallPossible(course: Course, objectiveSteps: Set<string>): boolean {
+  const askable = (stepId: string): boolean => {
+    const step = course.steps.get(stepId);
+    return (step?.variants.en?.meta.tasks ?? []).some((t) => {
+      const prompt = recallPromptOf(t.check);
+      const rubric = t.check.type === "question" || t.check.type === "predict" ? t.check.rubric : undefined;
+      return prompt !== undefined && !!rubric;
+    });
+  };
+  for (const step of orderedSteps(course)) {
+    const here = moduleIndex(course, step.moduleId);
+    for (const source of step.variants.en?.meta.recallFrom ?? []) {
+      if (!objectiveSteps.has(source)) continue;
+      const from = course.steps.get(source);
+      if (!from) continue;
+      if (here > moduleIndex(course, from.moduleId) && askable(source)) return true;
+    }
+  }
+  return false;
+}
+
+export function objectiveCeiling(course: Course, objectiveId: string, hasLlm: boolean): ObjectiveCeiling {
+  const steps = new Set<string>();
+  const totals = { withLlm: { strong: 0, medium: 0 }, here: { strong: 0, medium: 0 } };
+  for (const step of orderedSteps(course)) {
+    const meta = step.variants.en?.meta;
+    if (!meta?.objectives.includes(objectiveId)) continue;
+    steps.add(step.id);
+    for (const task of meta.tasks) {
+      const a = taskCeiling(task, hasLlm);
+      const b = taskCeiling(task, true);
+      totals.here.strong += a.strong;
+      totals.here.medium += a.medium;
+      totals.withLlm.strong += b.strong;
+      totals.withLlm.medium += b.medium;
+    }
+  }
+  const recall = laterRecallPossible(course, steps);
+  const levelOf = (t: { strong: number; medium: number }, recallGraded: boolean): CompetenceLevel => {
+    if (t.strong >= 1 && recallGraded) return "demonstrated";
+    if (t.strong >= 1 || t.medium >= 2) return "practised";
+    if (t.strong + t.medium >= 1) return "touched";
+    return "none";
+  };
+  // Grading a recall needs a model too, so without one the recall is never evidence.
+  const level = levelOf(totals.here, recall && hasLlm);
+  const withLlm = levelOf(totals.withLlm, recall);
+  return { level, withLlm, limitedByLlm: COMPETENCE_ORDER[level] < COMPETENCE_ORDER[withLlm], noLaterRecall: !recall };
 }
