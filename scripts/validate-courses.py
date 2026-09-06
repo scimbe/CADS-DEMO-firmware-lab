@@ -29,7 +29,13 @@ What it checks, per the task brief:
      `.vscode/tasks.json`, or in the palette list of the shipped extensions).
      Rule 4 - a call to action outside such a block - is a warning until the
      course packs have been converted.
-  9. `--solutions DIR`: every `testSuite`/`command` check is executed twice in a
+ 10. Language: a front-matter field kept as a plain string (`rubric`, `title`,
+     a task's `title`/`description`) carries the language of its own file, and
+     nothing structural can notice when it does not. A function-word probe finds
+     a field written entirely in the wrong language and stays silent on short or
+     jargon-heavy text. A warning until the two language packs are converted;
+     `--language-errors` (or LANGUAGE_MISMATCH_IS_ERROR) makes it an error.
+ 11. `--solutions DIR`: every `testSuite`/`command` check is executed twice in a
      scratch copy of PROJECT_ROOT - without the solution it must FAIL, with DIR
      overlaid it must PASS. Checks nested in `predict.then`, `all` or `any` are
      probed too, and the composite's own semantics decide the verdict (`all`
@@ -468,6 +474,93 @@ def validate_do_blocks(where, body, root, known, report):
             report.warn(f"{where}:{line_no}", f'operating instruction outside a `::: do` block names "{hit}" (A9.1 rule 4)')
 
 
+# --- language probe ---------------------------------------------------------
+# `rubric` is a plain string, not a Localized map, so no structural check could
+# ever notice that all 30 Rust and all 40 JavaScript rubrics in the .de.md files
+# were English. That is not cosmetic: without a language model - our normal mode
+# today - the tutor shows the rubric as the student's self-check, so German
+# students were handed an English marking guide.
+#
+# A function-word probe is enough. It only has to catch "written entirely in the
+# wrong language", and it must stay quiet on short or jargon-heavy text rather
+# than guess: a false accusation here costs more than a missed one, because it
+# trains authors to ignore the validator. Both word lists therefore hold only
+# words that belong to one language alone - "in", "an", "man", "war", "hat",
+# "die", "so", "also" and "am" are all common in both and are left out.
+
+# Flip to True once courses/rust-foundations and courses/javascript-foundations
+# carry German rubrics in their .de.md files; until then this would break every
+# other stream's run. `--language-errors` enforces it per run in the meantime.
+LANGUAGE_MISMATCH_IS_ERROR = False
+
+DE_MARKERS = set("""
+der das den dem des ein eine einen einem einer und oder nicht ist sind wird werden wurde wurden
+hast haben du dich dir sich mit für fuer auf aus bei nach von vom zum zur dass wenn dann noch schon
+auch nur wie wo welche welcher welches diese dieser dieses im um als aber sondern kein keine keinen
+sie wir ihn ihnen seine ihre über ueber unter zwischen ohne durch gegen jede jeder jedes alle allen
+etwas nichts mehr weniger zuerst danach deshalb damit weil steht stehen sagt nennt zeigt liest
+schreibt gibt macht muss soll kann können koennen darf sein ihrer eines
+""".split())
+
+EN_MARKERS = set("""
+the and or not is are were you your yours its with for from that if then this these those what
+which where how does done have had will would should could must there their they them she our but
+because than more less first after before each every some any nothing something into about when
+while both other another same such only also just still very much many few most least
+""".split())
+
+LANG_WORD_RE = re.compile(r"[A-Za-zÄÖÜäöüß]+")
+LANG_MIN_WORDS = 12       # below this a text carries no reliable signal
+LANG_MIN_MARKERS = 4      # jargon-heavy text with few function words stays unjudged
+LANG_WRONG_RATIO = 3      # the wrong language has to dominate, not merely appear
+
+
+def language_mismatch(text, expected):
+    """The language actually written, when it is plainly not `expected`; else None."""
+    words = [w.lower() for w in LANG_WORD_RE.findall(text)]
+    if len(words) < LANG_MIN_WORDS:
+        return None
+    de = sum(1 for w in words if w in DE_MARKERS)
+    en = sum(1 for w in words if w in EN_MARKERS)
+    if de + en < LANG_MIN_MARKERS:
+        return None
+    right, wrong = (de, en) if expected == "de" else (en, de)
+    if wrong >= LANG_MIN_MARKERS and wrong >= LANG_WRONG_RATIO * max(right, 1):
+        return "en" if expected == "de" else "de"
+    return None
+
+
+def free_text_fields(fm):
+    """Front-matter fields kept as a plain string, so they carry the file's own
+    language rather than a de/en pair. Localized maps are checked structurally
+    elsewhere and are not the problem here."""
+    if isinstance(fm.get("title"), str):
+        yield "title", fm["title"]
+    for task in fm.get("tasks") or []:
+        if not isinstance(task, dict):
+            continue
+        tid = task.get("id")
+        for key in ("title", "description"):
+            if isinstance(task.get(key), str):
+                yield f"tasks[{tid}].{key}", task[key]
+        check = task.get("check")
+        if isinstance(check, dict) and isinstance(check.get("rubric"), str):
+            yield f"tasks[{tid}].rubric", check["rubric"]
+
+
+def validate_language(where, fm, lang, report, as_error):
+    for name, text in free_text_fields(fm):
+        other = language_mismatch(text, lang)
+        if other is None:
+            continue
+        msg = (
+            f"{name} is written in {other}, but this is the .{lang} step file. "
+            "Without a language model the tutor shows the rubric to the student as a self-check, "
+            "so it has to be in the language of the course."
+        )
+        (report.error if as_error else report.warn)(where, msg)
+
+
 class Report:
     def __init__(self):
         self.errors = []
@@ -751,7 +844,7 @@ def resolve_project_root(course_dir, default_root, repo):
     return default_root, f"project.root '{declared}' not found; falling back to the given root"
 
 
-def validate_course(course_dir, root, symbols, report, probes=None):
+def validate_course(course_dir, root, symbols, report, probes=None, language_errors=False):
     steps_dir = os.path.join(course_dir, "steps")
     course_json = os.path.join(course_dir, "course.json")
     name = os.path.basename(course_dir)
@@ -972,6 +1065,9 @@ def validate_course(course_dir, root, symbols, report, probes=None):
                 report.warn(where, "misconceptions declared but no command/testSuite task produces output to match")
             # A9.1: instruction blocks, and the call to action that escaped one.
             validate_do_blocks(where, body, root, known, report)
+            # A plain-string field carries the language of its own file, and
+            # nothing structural can notice when it does not.
+            validate_language(where, fm, lang, report, language_errors)
 
             if lang == "en" and listed_steps and sid not in listed_steps:
                 report.warn(where, "step file is not listed in any module of course.json")
@@ -1354,6 +1450,7 @@ def main():
     ap.add_argument("--solutions", default=None, help="Reference-solution directory (mirrors PROJECT_ROOT); runs command/testSuite checks with and without it")
     ap.add_argument("--only", default=None, help="Validate only the course pack directory with this name")
     ap.add_argument("--no-runtime-check", action="store_true", help="Skip the cross-check of check types against extensions/cads-tutor/src/types.ts")
+    ap.add_argument("--language-errors", action="store_true", help="Report a free-text field written in the wrong language as an error rather than a warning")
     args = ap.parse_args()
 
     root = os.path.abspath(args.project_root)
@@ -1393,6 +1490,7 @@ def main():
     if args.only and not course_dirs:
         print(f"error: no course pack named '{args.only}' under {courses_dir}", file=sys.stderr)
         return 2
+    language_errors = args.language_errors or LANGUAGE_MISMATCH_IS_ERROR
     probes = [] if args.solutions else None
     # Symbols are per project: only the pack whose project root actually holds the
     # ELF gets them, so a `symbolInElf` check is never judged against another
@@ -1404,7 +1502,7 @@ def main():
         if croot not in symbol_cache:
             candidate_elf = os.path.join(croot, "build", "itsboard", "cads-zero.elf")
             symbol_cache[croot] = collect_symbols(nm, candidate_elf) if os.path.exists(candidate_elf) else None
-        validate_course(cdir, croot, symbol_cache[croot], report, probes)
+        validate_course(cdir, croot, symbol_cache[croot], report, probes, language_errors)
     print()
     if args.solutions:
         # --solutions applies to a single track, so it uses the root given on the
