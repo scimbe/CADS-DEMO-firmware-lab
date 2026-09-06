@@ -6,7 +6,7 @@ objectives: [ "rust-ch04-02-references-and-borrowing" ]
 requires: [ "m2-02-mutable-references" ]
 estimatedMinutes: 25
 scaffold: faded
-recallFrom: [ "m2-02-mutable-references" ]
+recallFrom: [ "m2-02-mutable-references", "m0-05-compiler-errors" ]
 links:
   - { step: "m2-04-slices" }
   - { file: "src/m2/m2_03_aliasing.rs" }

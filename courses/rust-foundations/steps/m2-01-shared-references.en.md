@@ -50,7 +50,7 @@ pub fn calculate_length(s: &String) -> usize {
 }
 ```
 
-Creating a reference is called *borrowing*. When the reference gös out of scope, nothing is dropped - the reference never owned anything.
+Creating a reference is called *borrowing*. When the reference goes out of scope, nothing is dropped - the reference never owned anything.
 
 ## A borrow is read-only
 

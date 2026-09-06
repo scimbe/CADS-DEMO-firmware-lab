@@ -42,7 +42,7 @@ v.push(1);
 let v = vec![1, 2, 3];       // the macro, when you know the contents
 ```
 
-`Vec::new()` needs a type annotation because there is nothing to infer from; after the first `push` there would be. Elements live next to each other on the heap, all of one type, and the vector is dropped - along with everything in it - when it gös out of scope.
+`Vec::new()` needs a type annotation because there is nothing to infer from; after the first `push` there would be. Elements live next to each other on the heap, all of one type, and the vector is dropped - along with everything in it - when it goes out of scope.
 
 ## Two ways to read one element
 
@@ -73,7 +73,7 @@ The `*` in the second form is not optional: `x` is a `&mut i32`, and `x *= 2` wo
 
 ## Your task
 
-Implement the five functions, then argü where `v[i]` would be the better call. The next step is the collection that looks simplest and is not: `String`.
+Implement the five functions, then argue where `v[i]` would be the better call. The next step is the collection that looks simplest and is not: `String`.
 
 ## Running it
 
