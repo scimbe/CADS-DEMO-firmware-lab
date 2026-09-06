@@ -473,9 +473,8 @@ def palette_entries(repo):
     return entries
 
 
-def tasks_json_labels(root):
-    """Task labels from a project's .vscode/tasks.json (JSONC: comments stripped)."""
-    path = os.path.join(root, ".vscode", "tasks.json")
+def _labels_of(path):
+    """Task labels from one tasks.json (JSONC: line comments stripped)."""
     if not os.path.exists(path):
         return None
     try:
@@ -489,6 +488,33 @@ def tasks_json_labels(root):
     except ValueError:
         return None
     return {t.get("label") for t in (data.get("tasks") or []) if isinstance(t, dict) and t.get("label")}
+
+
+def tasks_json_labels(root, repo, uses_tasks):
+    """The tasks a student can actually run.
+
+    Returns (project_labels, seed_labels). They are kept apart on purpose.
+
+    `project_labels` come from the project repository's own
+    `.vscode/tasks.json`, and whether that file exists is what decides the
+    "no tasks.json" warning and the `needsNoTasks` declaration.
+
+    `seed_labels` come from the vscode-templates the image copies into the
+    student's workspace. For the firmware packs the two files share not one
+    label - the repo has "Build: ITSboard firmware" while the student sees
+    "CaDS: Build" - so checking a course against the repo's file alone measured
+    it against a list nobody ever sees. They are only added for a pack that runs
+    VS Code tasks at all; a course whose checks never name one is not opening
+    that workspace, and inheriting its tasks would be a licence, not a fact.
+    """
+    project = _labels_of(os.path.join(root, ".vscode", "tasks.json"))
+    seed = set()
+    if uses_tasks:
+        for d in ("image", os.path.join("images", "tutor-lab")):
+            found = _labels_of(os.path.join(repo, d, "vscode-templates", "tasks.json"))
+            if found:
+                seed |= found
+    return project, seed
 
 
 # --- A9.1: the operating vocabulary a pack declares --------------------------
@@ -510,6 +536,56 @@ OPERATING_ROUTE_KEYS = {"tasks", "palette", "commands", "files", "needsNoTasks"}
 STEP_ID_PLACEHOLDER = "<step-id>"
 # An argument that names a file: it has a directory separator or a known suffix.
 PATHY_RE = re.compile(r"^[\w./@-]+(?:/[\w./@-]+|\.(?:js|mjs|cjs|ts|rs|py|c|h|json|md|toml|sh))$")
+
+
+# A9.1 rule 3 outside a block. `m2-02` and `m2-03` sent the English reader to
+# `CaDS Board: Open console`; no extension carries that entry - it is called
+# `CaDS Board: Konsole öffnen` in both languages - and no rule could see it,
+# because rule 3 only ever looked inside `::: do` and rule 4 only fires when a
+# KNOWN route name appears. An invented one matched nothing and passed.
+#
+# The pattern is deliberately narrow: a backticked name of the shape
+# `CaDS …: …` or `Tasks: …`, which is how this project's palette entries and
+# tasks are written and quoted throughout the courses. A menu path (`Run
+# Task...`) or a plain UI word (`Terminal`) is not route-shaped and is left
+# alone.
+BACKTICKED_RE = re.compile(r"`([^`\n]{2,120})`")
+ROUTE_SHAPED_RE = re.compile(r"^(?:CaDS\b[^:]*|Tasks):\s*\S.*$")
+
+
+PLACEHOLDER_RE = re.compile(r"[<>{}]|…|\.\.\.")
+
+
+def route_shaped_names(text):
+    """Backticked names in prose that read like a palette entry or a task.
+
+    A name carrying a placeholder is skipped: `CaDS Tutor: <Titel>` names the
+    shape of the panel's editor tab, not an entry anyone types.
+    """
+    out = []
+    for m in BACKTICKED_RE.finditer(text):
+        name = m.group(1).strip()
+        if ROUTE_SHAPED_RE.match(name) and not PLACEHOLDER_RE.search(name):
+            out.append(name)
+    return out
+
+
+PANEL_TAB_PREFIX = "CaDS Tutor: "
+
+
+def route_known(name, legal, step_titles=()):
+    """A route is known when it is one, or when typing it finds one: the palette
+    filters as you type, so `CaDS Board: Verbinden` reaches
+    `CaDS Board: Verbinden (USB/Serial freigeben)` and is not an invention.
+
+    `CaDS Tutor: <step title>` is not a route at all - the panel names its editor
+    tab that way (panel.ts: `CaDS Tutor: ${view.title}`). Rather than exempt the
+    shape, the title behind it is held against the course's own step titles, so a
+    tab name the course made up is still caught.
+    """
+    if name.startswith(PANEL_TAB_PREFIX) and name[len(PANEL_TAB_PREFIX):] in step_titles:
+        return True
+    return any(entry == name or entry.startswith(name) for entry in legal)
 
 
 def _route_paths(command):
@@ -663,6 +739,32 @@ def validate_do_blocks(where, step_id, body, root, known, report):
             report.error(at, f'::: do - palette entry "{attrs["palette"]}" is contributed by no extension of this repository and is in no operatingRoutes of course.json')
         if "file" in attrs and attrs["file"] and not repo_path_exists(root, attrs["file"]):
             report.error(at, f'::: do - file "{attrs["file"]}" does not exist under the project root')
+
+    # Rule 3, outside a block too: a name that READS like an operating route and
+    # matches nothing is an invented route wherever it stands. Inside a block the
+    # attribute is checked; in prose nothing looked, which is how an English
+    # reader was sent to a palette entry that exists in neither language.
+    legal = (
+        known["tasks"]
+        | {e[2:] for e in known["palette"]}
+        | {expand_route(r, step_id) for r in known["declared"]["tasks"]}
+        | {expand_route(r, step_id)[2:] for r in known["declared"]["palette"]}
+    )
+    prose = list(outside) + [
+        (b["line"], " ".join(filter(None, (b["instruction"], b["expect"], b["recover"]))))
+        for b in blocks
+    ]
+    seen = set()
+    for line_no, line in prose:
+        for name in route_shaped_names(line):
+            if route_known(name, legal, known["stepTitles"]) or (name, line_no) in seen:
+                continue
+            seen.add((name, line_no))
+            report.error(
+                f"{where}:{line_no}",
+                f'"{name}" reads like a task or palette entry, but no check of this course, no tasks.json, '
+                f"no extension of this repository and no operatingRoutes entry carries that name (A9.1 rule 3)",
+            )
 
     # Rule 4: outside a block, no call to action that names a route. Warning for
     # now: it fires on every course written before A9.1, and turning it into an
@@ -1094,7 +1196,7 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
     # read: a `::: do` block may name a route that only the German variant's
     # checks declare, and that route is just as real.
     recall_sources = set()
-    known_tasks, known_commands = set(), set()
+    known_tasks, known_commands, step_titles = set(), set(), set()
     # One node call for the whole directory rather than one per file.
     preload_front_matter([
         os.path.join(steps_dir, f"{sid}.{lang}.md")
@@ -1108,6 +1210,8 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
             if not os.path.exists(fpath):
                 continue
             fm, _, _ = load_step(fpath)
+            if isinstance((fm or {}).get("title"), str):
+                step_titles.add(fm["title"])
             for task in (fm or {}).get("tasks") or []:
                 if not isinstance(task, dict) or not isinstance(task.get("check"), dict):
                     continue
@@ -1115,7 +1219,9 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
                     recall_sources.add(sid)
                 collect_routes(task["check"], known_tasks, known_commands)
     declared_routes = load_operating_routes(manifest, name, root, report)
-    from_tasks_json = tasks_json_labels(root)
+    repo_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    from_tasks_json, seed_tasks = tasks_json_labels(root, repo_dir, uses_tasks=bool(known_tasks))
+    known_tasks |= seed_tasks
     if from_tasks_json is None:
         # A course may legitimately have no VS Code tasks - the language tracks
         # run everything from a terminal. Saying so in course.json turns a
@@ -1126,12 +1232,12 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
         known_tasks |= from_tasks_json
         if declared_routes["needsNoTasks"]:
             report.error(name, "course.json declares operatingRoutes.needsNoTasks, but the project root has a .vscode/tasks.json")
-    repo_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     known = {
         "tasks": known_tasks,
         "commands": known_commands,
         "palette": palette_entries(repo_dir),
         "declared": declared_routes,
+        "stepTitles": step_titles,
     }
 
     # Rule-4 findings per file. The two halves of a step say the same thing in

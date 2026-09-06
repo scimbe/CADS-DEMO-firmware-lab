@@ -510,7 +510,12 @@ Regeln, die der Validator durchsetzt:
 2. `expect:` und `recover:` sind Pflicht und dürfen einander nicht wiederholen.
 3. Ein `task=`, `command=` oder `palette=` muss wörtlich in einer Prüfung des Kurses, in `tasks.json`, in der
    Befehlsliste der Extension oder im **erklärten Bedienvokabular des Kurspakets** (A9.1a) vorkommen. Ein
-   erfundener Bedienweg ist ein Fehler, kein Stilproblem (A8.3).
+   erfundener Bedienweg ist ein Fehler, kein Stilproblem (A8.3). Das gilt **auch außerhalb eines Blocks**: ein
+   zurückgequoteter Name der Form `CaDS …: …` oder `Tasks: …`, den keine dieser Listen trägt, ist erfunden,
+   egal wo er steht — genau dort blieb `CaDS Board: Open console` unentdeckt. Ein Name, der ein Präfix eines
+   echten Eintrags ist, gilt als gefunden (die Palette filtert beim Tippen); `CaDS Tutor: <Steptitel>` benennt
+   den Editor-Reiter des Panels und wird gegen die Steptitel des Kurses geprüft. Maßgeblich ist die
+   `tasks.json`, die die Studierende bekommt — die Vorlage aus dem Image, nicht die des Projekt-Repositoriums.
 4. Text außerhalb eines `::: do`-Blocks darf keine Handlungsaufforderung mehr enthalten, die ein Kommando, einen
    Task oder einen Palettennamen nennt. Erkennung über Kommando- und Tasknamen des Kurses, in **beiden
    Kurssprachen**: Deutsch schreibt Bedienanweisungen im Infinitiv („Terminal öffnen"), Englisch im Imperativ

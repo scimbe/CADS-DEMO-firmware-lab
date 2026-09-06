@@ -40,4 +40,15 @@ has "a route nobody declared is still an error" "$bad" 'command "node --test tes
 has "and the message names where to declare it" "$bad" "is in no operatingRoutes of course.json"
 has "the missing tasks.json says how to settle it" "$bad" 'Declare "needsNoTasks": true'
 
+# Rule 3 outside a block. `m2-02` and `m2-03` sent the English reader to
+# `CaDS Board: Open console`; no extension carries that entry - it is called
+# `CaDS Board: Konsole öffnen` in both languages - and no rule could see it,
+# because rule 3 only looked inside `::: do` and rule 4 only fires on a name it
+# already knows. An invented one matched nothing and passed.
+has   "an invented palette entry in prose is caught" "$bad" '"CaDS Board: Open console" reads like a task or palette entry'
+has   "an invented panel tab is caught"              "$bad" '"CaDS Tutor: Something nobody wrote" reads like'
+hasnt "the real panel tab is accepted"               "$bad" '"CaDS Tutor: A declaration is not a blank cheque"'
+hasnt "a prefix that the palette filters to is fine" "$bad" '"CaDS Board: Verbinden" reads like'
+check "both language halves report it"               "$(echo "$bad" | grep -c 'CaDS Board: Open console')" "2"
+
 exit $fail

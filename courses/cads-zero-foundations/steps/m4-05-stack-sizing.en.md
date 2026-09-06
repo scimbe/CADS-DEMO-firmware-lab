@@ -72,7 +72,7 @@ Afterwards click into the terminal `CaDS Board Console`, type `k` there yourself
 
 ## Task 1 — predict which stack did not have to grow
 
-Write your prediction into this task's input field first. It sits at the bottom of the step text, the tab `CaDS Tutor: Sizing a task stack from evidence` **in the middle** of the window. Only the **Check** button next to it then uncovers the three numbers; before that you do not see them. The top of the same tab carries **Run all checks**.
+Write your prediction into this task's input field first. It sits at the bottom of the step text, the tab `CaDS Tutor: Size a task stack from evidence` **in the middle** of the window. Only the **Check** button next to it then uncovers the three numbers; before that you do not see them. The top of the same tab carries **Run all checks**.
 
 <!-- SHOT: m4-predict-field-and-check | Eine predict-Aufgabe im Steptext: das Eingabefeld fuer die Vorhersage, der Knopf Pruefen daneben, die Enthuellung noch verdeckt -->
 
