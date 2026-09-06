@@ -275,6 +275,12 @@ einem doppelt gequoteten Muster (`"…\s*…"`, in einfachen Anführungszeichen 
 kein PASS. Voraussetzung: Node 22.18+ und einmal `npm ci` in `extensions/cads-tutor`; fehlt beides, bricht der
 Lauf ab, statt mit einem zweiten Parser zu raten.
 
+**Erklärtes Bedienvokabular:** Nennt der Kurstext einen Befehl, den keine Prüfung des Pakets ausführt, gehört er
+in `operatingRoutes` in der `course.json` (SPEC A9.1a) — mit `why`, einem Satz dazu, was der Kurs damit übt.
+`<step-id>` steht dort für die Schritt-ID. Der Validator prüft die Deklaration: genannte Dateien müssen
+existieren, das führende Programm muss auffindbar sein, Pfade müssen im Arbeitsbereich liegen. `needsNoTasks:
+true` erklärt einen Kurs ohne VS-Code-Tasks.
+
 **Sprache der Freitextfelder:** `rubric` sowie `title`/`description` sind einfache Strings, keine
 `{de, en}`-Paare — sie tragen die Sprache ihrer eigenen Datei. Der Validator prüft das mit einer
 Funktionswortprobe: ein Feld, das komplett in der falschen Sprache steht, wird gemeldet; bei kurzem oder

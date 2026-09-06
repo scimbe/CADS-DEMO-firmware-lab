@@ -491,6 +491,114 @@ def tasks_json_labels(root):
     return {t.get("label") for t in (data.get("tasks") or []) if isinstance(t, dict) and t.get("label")}
 
 
+# --- A9.1: the operating vocabulary a pack declares --------------------------
+# Rule 3 derives the legal routes from the pack's own checks, which is right for
+# a course whose text and checks run the same thing. It is wrong for a course
+# whose text deliberately runs something narrower: the JavaScript track tells a
+# student to run `node --test test/<step-id>.test.js`, while its check runs the
+# whole suite with a TAP reporter. The three obvious ways out all break
+# something - put the reporter flag into the sentence the student types, build a
+# button that does something other than what the text says, or invent tasks the
+# course does not need.
+#
+# So a pack may declare its student-facing routes, and rule 3 accepts those too.
+# To keep the declaration from being a blank cheque it has to hold up: every file
+# it names must exist, every command's binary must be resolvable, every path in a
+# command must exist, and each command must say in one line why the course uses
+# it rather than its own check.
+OPERATING_ROUTE_KEYS = {"tasks", "palette", "commands", "files", "needsNoTasks"}
+STEP_ID_PLACEHOLDER = "<step-id>"
+# An argument that names a file: it has a directory separator or a known suffix.
+PATHY_RE = re.compile(r"^[\w./@-]+(?:/[\w./@-]+|\.(?:js|mjs|cjs|ts|rs|py|c|h|json|md|toml|sh))$")
+
+
+def _route_paths(command):
+    """The arguments of a command that name a file in the project."""
+    try:
+        parts = shlex.split(command)
+    except ValueError:
+        return []
+    return [p for p in parts[1:] if not p.startswith("-") and PATHY_RE.match(p)]
+
+
+def load_operating_routes(manifest, name, root, report):
+    """Reads and checks `operatingRoutes` from course.json.
+
+    Returns {"tasks": set, "palette": set, "commands": set, "needsNoTasks": bool};
+    entries may carry the <step-id> placeholder, which is expanded per use site.
+    """
+    empty = {"tasks": set(), "palette": set(), "commands": set(), "needsNoTasks": False}
+    declared = manifest.get("operatingRoutes")
+    if declared is None:
+        return empty
+    where = f"{name}/course.json operatingRoutes"
+    if not isinstance(declared, dict):
+        report.error(where, "must be an object")
+        return empty
+    for key in declared:
+        if key not in OPERATING_ROUTE_KEYS:
+            report.error(where, f"unknown key '{key}'; allowed: {', '.join(sorted(OPERATING_ROUTE_KEYS))}")
+
+    out = dict(empty)
+    out["needsNoTasks"] = bool(declared.get("needsNoTasks"))
+
+    for key in ("tasks", "palette"):
+        values = declared.get(key) or []
+        if not isinstance(values, list):
+            report.error(where, f"{key} must be a list of strings")
+            continue
+        for value in values:
+            if not isinstance(value, str) or not value.strip():
+                report.error(where, f"{key} holds a non-string entry")
+                continue
+            if key == "palette" and not value.startswith(">"):
+                report.error(where, f'palette entry "{value}" must carry the leading ">"')
+            out[key].add(value)
+
+    for rel in declared.get("files") or []:
+        if not isinstance(rel, str) or not repo_path_exists(root, rel):
+            report.error(where, f"files -> missing path '{rel}'")
+
+    commands = declared.get("commands") or []
+    if not isinstance(commands, list):
+        report.error(where, "commands must be a list of objects")
+        commands = []
+    for i, entry in enumerate(commands):
+        at = f"{where}.commands[{i}]"
+        if not isinstance(entry, dict):
+            report.error(at, "is not an object")
+            continue
+        command = entry.get("command")
+        if not isinstance(command, str) or not command.strip():
+            report.error(at, "needs a 'command' string")
+            continue
+        # A declared route costs one sentence, so nobody adds one by reflex.
+        why = entry.get("why")
+        if not isinstance(why, str) or not why.strip():
+            report.error(at, f'"{command}" needs a "why": one line on what the course teaches with it')
+        elif len(why.split()) < 4:
+            report.error(at, f'"{command}" has a "why" of {len(why.split())} word(s); say what the course teaches with it')
+        binary = _leading_binary(command)
+        if binary and "/" not in binary and shutil.which(binary) is None:
+            report.warn(at, f"toolchain binary '{binary}' is not installed here, so '{command}' could not be checked")
+        for rel in _route_paths(command):
+            if STEP_ID_PLACEHOLDER in rel:
+                continue  # checked per use site, where the step id is known
+            if not repo_path_exists(root, rel):
+                report.error(at, f"'{command}' names a path that does not exist in the workspace: '{rel}'")
+        out["commands"].add(command)
+    return out
+
+
+def expand_route(route, step_id):
+    return route.replace(STEP_ID_PLACEHOLDER, step_id)
+
+
+def route_declared(value, declared, step_id):
+    """True when a declared route matches, the <step-id> placeholder expanded."""
+    return any(expand_route(r, step_id) == value for r in declared)
+
+
 def collect_routes(check, tasks, commands):
     """Task labels and shell commands a check actually performs."""
     ctype = check.get("type")
@@ -510,7 +618,7 @@ def collect_routes(check, tasks, commands):
         collect_routes(check["then"], tasks, commands)
 
 
-def validate_do_blocks(where, body, root, known, report):
+def validate_do_blocks(where, step_id, body, root, known, report):
     """The four A9.1 rules. Returns the number of rule-4 findings, so the two
     language halves of a step can be held against each other."""
     blocks, outside = parse_do_blocks(body)
@@ -530,20 +638,42 @@ def validate_do_blocks(where, body, root, known, report):
             report.error(at, "::: do - `recover:` only repeats `expect:` instead of naming a way back")
 
         # Rule 3: a route nothing defines is an error, not a matter of style (A8.3).
+        # A route the pack DECLARES in course.json counts as defined - that is
+        # the form A8.3 meant, an explained and checkable route rather than one
+        # invented or copied out of a check command.
         attrs = block["attrs"]
-        if "task" in attrs and attrs["task"] and attrs["task"] not in known["tasks"]:
-            report.error(at, f'::: do - task "{attrs["task"]}" is in no check of this course and in no .vscode/tasks.json')
-        if "command" in attrs and attrs["command"] and attrs["command"] not in known["commands"]:
-            report.error(at, f'::: do - command "{attrs["command"]}" is run by no check of this course')
-        if "palette" in attrs and attrs["palette"] and attrs["palette"] not in known["palette"]:
-            report.error(at, f'::: do - palette entry "{attrs["palette"]}" is contributed by no extension of this repository')
+        declared = known["declared"]
+        if "task" in attrs and attrs["task"] and attrs["task"] not in known["tasks"] \
+                and not route_declared(attrs["task"], declared["tasks"], step_id):
+            report.error(at, f'::: do - task "{attrs["task"]}" is in no check of this course, in no .vscode/tasks.json and in no operatingRoutes of course.json')
+        if "command" in attrs and attrs["command"]:
+            command = attrs["command"]
+            if command in known["commands"]:
+                pass
+            elif route_declared(command, declared["commands"], step_id):
+                # The declaration was checked once; here the expansion is checked,
+                # so a step naming a test file that does not exist still fails.
+                for rel in _route_paths(command):
+                    if not repo_path_exists(root, rel):
+                        report.error(at, f'::: do - command "{command}" names a path that does not exist: \'{rel}\'')
+            else:
+                report.error(at, f'::: do - command "{command}" is run by no check of this course and is in no operatingRoutes of course.json')
+        if "palette" in attrs and attrs["palette"] and attrs["palette"] not in known["palette"] \
+                and not route_declared(attrs["palette"], declared["palette"], step_id):
+            report.error(at, f'::: do - palette entry "{attrs["palette"]}" is contributed by no extension of this repository and is in no operatingRoutes of course.json')
         if "file" in attrs and attrs["file"] and not repo_path_exists(root, attrs["file"]):
             report.error(at, f'::: do - file "{attrs["file"]}" does not exist under the project root')
 
     # Rule 4: outside a block, no call to action that names a route. Warning for
     # now: it fires on every course written before A9.1, and turning it into an
     # error would block the very commits that fix it.
-    named = sorted(known["tasks"] | known["commands"] | {e[2:] for e in known["palette"]}, key=len, reverse=True)
+    named = sorted(
+        known["tasks"] | known["commands"] | {e[2:] for e in known["palette"]}
+        | {expand_route(r, step_id) for r in known["declared"]["tasks"] | known["declared"]["commands"]}
+        | {expand_route(r, step_id)[2:] for r in known["declared"]["palette"]},
+        key=len,
+        reverse=True,
+    )
     found = 0
     for line_no, line in outside:
         if not CALL_TO_ACTION_RE.search(line):
@@ -984,13 +1114,25 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
                 if lang == "en" and task["check"].get("type") == "question":
                     recall_sources.add(sid)
                 collect_routes(task["check"], known_tasks, known_commands)
+    declared_routes = load_operating_routes(manifest, name, root, report)
     from_tasks_json = tasks_json_labels(root)
     if from_tasks_json is None:
-        report.warn(name, "no .vscode/tasks.json under the project root; `::: do task=` is checked against the course's own checks only")
+        # A course may legitimately have no VS Code tasks - the language tracks
+        # run everything from a terminal. Saying so in course.json turns a
+        # standing warning into a statement somebody made on purpose.
+        if not declared_routes["needsNoTasks"]:
+            report.warn(name, "no .vscode/tasks.json under the project root; `::: do task=` is checked against the course's own checks and operatingRoutes only. Declare \"needsNoTasks\": true in course.json's operatingRoutes if this course needs none")
     else:
         known_tasks |= from_tasks_json
+        if declared_routes["needsNoTasks"]:
+            report.error(name, "course.json declares operatingRoutes.needsNoTasks, but the project root has a .vscode/tasks.json")
     repo_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    known = {"tasks": known_tasks, "commands": known_commands, "palette": palette_entries(repo_dir)}
+    known = {
+        "tasks": known_tasks,
+        "commands": known_commands,
+        "palette": palette_entries(repo_dir),
+        "declared": declared_routes,
+    }
 
     # Rule-4 findings per file. The two halves of a step say the same thing in
     # two languages, so they must produce the same number of findings; a
@@ -1152,7 +1294,7 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
             if misconceptions and not (step_check_types & {"command", "testSuite"}):
                 report.warn(where, "misconceptions declared but no command/testSuite task produces output to match")
             # A9.1: instruction blocks, and the call to action that escaped one.
-            rule4_hits[(sid, lang)] = validate_do_blocks(where, body, root, known, report)
+            rule4_hits[(sid, lang)] = validate_do_blocks(where, sid, body, root, known, report)
             # A plain-string field carries the language of its own file, and
             # nothing structural can notice when it does not.
             validate_language(where, fm, lang, report, language_errors)

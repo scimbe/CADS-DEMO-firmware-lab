@@ -508,10 +508,48 @@ Beides wird zweisprachig geführt wie der übrige Step. **[Validator]**
 Regeln, die der Validator durchsetzt:
 1. Genau ein Handlungsattribut je Block; mehrere Handlungen sind mehrere Blöcke (eine Handlung je Schritt).
 2. `expect:` und `recover:` sind Pflicht und dürfen einander nicht wiederholen.
-3. Ein `task=`, `command=` oder `palette=` muss wörtlich in einer Prüfung des Kurses, in `tasks.json` oder in der
-   Befehlsliste der Extension vorkommen. Ein erfundener Bedienweg ist ein Fehler, kein Stilproblem (A8.3).
+3. Ein `task=`, `command=` oder `palette=` muss wörtlich in einer Prüfung des Kurses, in `tasks.json`, in der
+   Befehlsliste der Extension oder im **erklärten Bedienvokabular des Kurspakets** (A9.1a) vorkommen. Ein
+   erfundener Bedienweg ist ein Fehler, kein Stilproblem (A8.3).
 4. Text außerhalb eines `::: do`-Blocks darf keine Handlungsaufforderung mehr enthalten, die ein Kommando, einen
-   Task oder einen Palettennamen nennt. Erkennung über Kommando- und Tasknamen des Kurses.
+   Task oder einen Palettennamen nennt. Erkennung über Kommando- und Tasknamen des Kurses, in **beiden
+   Kurssprachen**: Deutsch schreibt Bedienanweisungen im Infinitiv („Terminal öffnen"), Englisch im Imperativ
+   („open the terminal"). Nicht erkannt werden die 3. Person und das Partizip — sie beschreiben, was geschieht,
+   statt aufzufordern. Bild-Alt-Text, die Bildunterschrift darunter, HTML-Kommentare und Codeblöcke bleiben
+   außen vor: sie sind vorhanden, aber nicht an die Studierende gerichtet. Beide Sprachhälften eines Steps
+   müssen gleich viele Treffer ergeben; eine Abweichung heißt, dass eine Hälfte ungeprüft durchgegangen ist.
+
+### A9.1a Erklärtes Bedienvokabular (`operatingRoutes` in `course.json`)
+
+Regel 3 leitet die zulässigen Bedienwege aus den Prüfungen des Pakets ab. Das passt für einen Kurs, dessen Text
+und Prüfung dasselbe ausführen, und nicht für einen, dessen Text absichtlich etwas Engeres ausführt: der
+JavaScript-Kurs lässt `node --test test/<step-id>.test.js` tippen, während seine Prüfung die ganze Suite mit
+TAP-Reporter fährt. Die drei naheliegenden Auswege beschädigen jeweils etwas — das Berichtsformat in den
+abzutippenden Befehl legen, eine Schaltfläche bauen, die etwas anderes tut als der Text sagt, oder Tasks
+erfinden, die der Kurs nicht braucht.
+
+Ein Paket darf seine studierendenseitigen Bedienwege daher deklarieren; Regel 3 akzeptiert sie zusätzlich:
+
+```json
+"operatingRoutes": {
+  "needsNoTasks": true,
+  "tasks": ["CaDS: Build"],
+  "palette": ["> View: Toggle Terminal"],
+  "files": ["test/README.md"],
+  "commands": [
+    { "command": "node --test test/<step-id>.test.js",
+      "why": "der Kurs übt, eine einzelne Testdatei zu fahren, nicht die ganze Suite" }
+  ]
+}
+```
+
+Damit die Deklaration kein Freibrief wird, prüft der Validator sie: jede genannte Datei muss existieren, das
+führende Programm eines Befehls muss auffindbar sein, jeder Pfad in einem Befehl muss im Übungsarbeitsbereich
+liegen, und jeder Befehl trägt ein `why` — einen Satz dazu, was der Kurs damit übt. `<step-id>` wird an der
+Verwendungsstelle durch die Schritt-ID ersetzt, und der so entstandene Pfad wird dort erneut geprüft; ein
+Schritt, der eine nicht vorhandene Testdatei nennt, fällt also weiterhin durch. `needsNoTasks: true` sagt, dass
+der Kurs ohne VS-Code-Tasks auskommt — die Sprachtracks fahren alles im Terminal —, und wird zum Fehler, wenn
+doch eine `tasks.json` daliegt. **[Validator]**
 
 ### A9.2 Kompetenzmodell — was als Nachweis zählt
 
