@@ -601,7 +601,17 @@ Zwei Module später wäre das eine Frage ohne Gegenstand.
 
 Deshalb: Eine Aufgabe, die als Abrufziel dient, führt neben `prompt` ein eigenes Feld **`recallPrompt`**
 (zweisprachig), das ohne den Bildschirminhalt des Ursprungsschritts verständlich ist. Die Abrufkarte benutzt
-`recallPrompt`, sonst nichts; fehlt es, ist die Aufgabe kein zulässiges Abrufziel. Das gilt für `predict`
+`recallPrompt`, sonst nichts; fehlt es, ist die Aufgabe kein zulässiges Abrufziel.
+
+**Die Pflicht gilt je Zielschritt, nicht je Aufgabe** (Klarstellung 2026-09-06, nach drei abweichenden
+Auslegungen im Schwarm — 13, 18 und 36 Texte für dasselbe Pack). Verbindlich ist: **Jeder Schritt, der aus
+einem späteren Modul abgerufen wird, braucht mindestens eine Aufgabe mit `recallPrompt`** — sonst verliert das
+Lernziel seine einzige wirksame Abrufkante, und in den Daten steht eine Kante, die nichts bewirkt. Weitere
+Aufgaben desselben Schritts *dürfen* einen tragen, müssen aber nicht: Gemessen kauft ein zweiter Text an
+demselben Zielschritt keine Kompetenzabdeckung (25/15 gegenüber 24/14 nachgewiesenen Lernzielen), er verdünnt
+nur die Ziehung. Lohnend ist er dort, wo **mehrere spätere Schritte** denselben Zielschritt abrufen — dann
+sorgt er für Abwechslung beim Wiedersehen. Rein modulinterne Ziele sind freiwillig: Ihre Karte erscheint und
+ist echte Übung, sie trägt nur nichts zur Kompetenzstufe bei. Das gilt für `predict`
 ebenso wie für `question` — auch dort stützen sich Formulierungen wie „the old code" oder „the route you used"
 auf einen Zustand, den die Studierende längst überschrieben hat. **[Validator]**
 
