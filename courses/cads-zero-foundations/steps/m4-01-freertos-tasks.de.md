@@ -31,6 +31,8 @@ socratic:
 
 Verstehe, wie CaDS Zero FreeRTOS ohne Kernel-Heap und mit Task-Stacks im CCM betreibt, und lies den Live-Stack-Bericht vom Board.
 
+Die Stacks, deren Lage dieser Step erklärt, sind genau die, die der Wächter aus `m3-04-stack-guard` bewacht.
+
 ## Nur statische Allokation
 
 `modules/kernel/src/FreeRTOSConfig.h` setzt `configSUPPORT_STATIC_ALLOCATION 1` und `configSUPPORT_DYNAMIC_ALLOCATION 0`. Es gibt kein `pvPortMalloc` und nirgends einen Kernel-Heap: jede Task, Queue, Mutex und jeder Timer wird **vom Aufrufer allokiert**. Selbst Idle- und Timer-Service-Task bekommen ihren Speicher aus `vApplicationGetIdleTaskMemory()` / `vApplicationGetTimerTaskMemory()` in `modules/kernel/src/kernel.c`.

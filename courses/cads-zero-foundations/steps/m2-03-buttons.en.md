@@ -34,6 +34,8 @@ misconceptions:
 
 Read the adapter's buttons and input lines correctly, tell them apart from the lines that merely look like buttons, and understand why the firmware inverts the board's wiring in exactly one place.
 
+That a read of a register reaches the chip at all hangs on what `m2-00-mmio-primer` showed about `volatile` and the clock.
+
 ## What the lines are
 
 The ITS adapter brings fourteen input lines to the MCU (`docs/HARDWARE.md`):

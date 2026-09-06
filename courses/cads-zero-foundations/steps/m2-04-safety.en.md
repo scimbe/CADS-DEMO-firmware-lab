@@ -34,6 +34,8 @@ misconceptions:
 
 Know the board's non-negotiable safety rules — protected pins, input-only ports, the flash window, and the two forbidden flash operations — before you write code that drives real silicon.
 
+Two things from M2 carry this step: the register writes from `m2-00-mmio-primer` that a `MODER` is written with, and the flash regions from `m2-01-memory-map` that bound the window.
+
 ## Binding, not advisory
 
 `docs/SAFETY.md` is binding for every change and every person or agent working on this repository. Most of the board is robust; a handful of things are not, and those are enumerated. The rule of thumb at the top: **when in doubt, do not drive the pin.**

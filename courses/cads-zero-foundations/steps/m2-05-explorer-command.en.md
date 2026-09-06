@@ -41,6 +41,8 @@ misconceptions:
 
 Extend the bring-up explorer with a command of your own, so that a real firmware change of yours is dispatched, linked, and drivable from the console.
 
+Your command falls under the same rules as any other code: the protected pins and input-only ports from `m2-04-safety` hold for a handler only you ever call, too.
+
 ## Two words first
 
 A **handler** is an ordinary function that does exactly one thing when a particular event happens — here: when a particular character arrives over the console. A **dispatcher** is the place that looks at the incoming event and decides which handler's turn it is.

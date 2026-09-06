@@ -31,6 +31,8 @@ socratic:
 
 Lies die Speicherkarte des STM32F429ZI so, wie der Linker sie sieht, und leite daraus ab, wo ein Puffer liegen muss — die eine Randbedingung, die den größten Teil des Layouts dieser Firmware bestimmt.
 
+Die Namen, mit denen die Bereiche gleich benannt werden, liest du nach dem Muster aus `m2-00-register-names`.
+
 ## Vier Bereiche, ein Skript
 
 `targets/itsboard/linker/cads_itsboard.ld` deklariert den Speicher, den diese Firmware nutzen darf:

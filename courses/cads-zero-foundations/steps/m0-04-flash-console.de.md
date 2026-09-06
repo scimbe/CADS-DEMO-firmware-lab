@@ -31,6 +31,8 @@ socratic:
 
 Bringe deinen Build auf das echte Board und bestehe das Hardware-Gate — der Moment, in dem ein kompiliertes Image zu Firmware wird, die nachweislich auf Silizium läuft.
 
+Beides läuft über die eine Verbindung aus `m0-02-connect`: das Schreiben über SWD, die Konsole über den virtuellen COM-Port.
+
 ## Handgriff 1: flashen
 
 Das Flashen löst du selbst aus; der Check dieses Steps sieht nur nach, ob es seit dem Öffnen des Steps geschehen ist.

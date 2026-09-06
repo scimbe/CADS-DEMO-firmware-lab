@@ -41,6 +41,8 @@ misconceptions:
 
 Erweitere den Bring-up-Explorer um ein eigenes Kommando, sodass eine echte Firmware-Änderung von dir dispatcht, gelinkt und von der Konsole aus ansteuerbar ist.
 
+Dein Kommando fällt unter dieselben Regeln wie jeder andere Code: die geschützten Pins und Nur-Eingangs-Ports aus `m2-04-safety` gelten auch für einen Handler, den nur du aufrufst.
+
 ## Zwei Wörter vorweg
 
 Ein **Handler** ist eine gewöhnliche Funktion, die genau eine Sache erledigt, wenn ein bestimmtes Ereignis eintritt — hier: wenn ein bestimmtes Zeichen über die Konsole hereinkommt. Ein **Dispatcher** ist die Stelle, die das eingegangene Ereignis anschaut und entscheidet, welcher Handler dran ist.

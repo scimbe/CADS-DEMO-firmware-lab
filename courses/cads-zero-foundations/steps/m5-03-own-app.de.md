@@ -42,6 +42,8 @@ Erschaffe eine vollständige eigene App — eine View mit einem Widget, beim Dis
 
 **Konkret:** drei neue Dateien anlegen, zwei CMake-Dateien und eine Menüdatei ändern, den Task `CaDS: Build` starten, flashen und die neue Zeile auf dem Panel öffnen. Jeder Schritt steht unten mit vollem Bedienweg.
 
+Deine App füllt genau die drei Teile aus, die `m5-02-view-dispatcher` beschrieben hat: eine View, ihre Registrierung beim Dispatcher und ein Widget, das zeichnet.
+
 ## Dateien anlegen und öffnen
 
 Zum **Anlegen** einer Datei: ganz links in der schmalen Symbolleiste das oberste Symbol (der Datei-Explorer), dann im Baum mit der rechten Maustaste auf den Ordner klicken und `New File...` bzw. `New Folder...` wählen — die Bedienoberfläche ist englisch, der Kurstext deutsch. Genauso geht es im Terminal. Öffne eines mit **☰ → `Terminal` → `New Terminal`** (das Symbol mit den drei Strichen sitzt ganz oben links; ist der Bereich unten zugeklappt, klappt ihn `Strg`/`Cmd`+`J` auf und zu):

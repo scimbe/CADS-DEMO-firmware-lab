@@ -34,6 +34,8 @@ misconceptions:
 
 Lies die Taster und Eingangsleitungen des Adapters korrekt, unterscheide sie von den Leitungen, die nur so aussehen, und verstehe, warum die Firmware die Verdrahtung des Boards an genau einer Stelle invertiert.
 
+Dass ein Lesezugriff auf ein Register überhaupt am Chip ankommt, hängt an dem, was `m2-00-mmio-primer` über `volatile` und den Takt gezeigt hat.
+
 ## Was die Leitungen sind
 
 Der ITS-Adapter führt vierzehn Eingangsleitungen zum MCU (`docs/HARDWARE.md`):
