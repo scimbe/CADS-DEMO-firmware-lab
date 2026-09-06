@@ -36,7 +36,7 @@ describe("real course packs", { skip: REAL.length === 0 ? "courses/ not present"
           const meta = content!.meta;
           const view: StepView = {
             lang, courseId: course!.manifest.id, courseTitle: "c", moduleTitle: "m", stepId: step.id, title: meta.title, index: 0, total: 1,
-            bloom: meta.bloom, estimatedMinutes: meta.estimatedMinutes, objectives: meta.objectives, creates: meta.creates, status: "open", lockedBy: [], bodyHtml: html,
+            bloom: meta.bloom, estimatedMinutes: meta.estimatedMinutes, objectives: meta.objectives, creates: meta.creates, status: "open", lockedBy: [], moduleProgress: { done: 0, total: 1 }, bodyHtml: html,
             links: [], tasks: meta.tasks.map((t) => ({ id: t.id, title: typeof t.title === "string" ? t.title : t.title.en ?? "", type: t.check.type, status: "pending" as const, needsAnswer: t.check.type === "question", manual: t.check.type === "manual", live: false })),
             llmConfigured: false, bridgeAvailable: false, scaffold: meta.scaffold, hasBoard: false,
           };

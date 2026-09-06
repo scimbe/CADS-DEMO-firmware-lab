@@ -49,12 +49,12 @@ import {
   stepStatus,
   writeSession,
 } from "./session";
-import { eventTrigger, hintTierForFailures, selectInsight, selectTaskHint, type MatchedInsight } from "./socratic";
+import { eventTrigger, hintTierForFailures, selectCause, selectInsight, selectTaskHint, type MatchedInsight } from "./socratic";
 import { TutorTerminal, type TerminalLike } from "./terminal";
 import { CoursesTreeProvider, type TreeNode } from "./tree";
 import { loc, stepKey, type Course, type Lang, type LoadDiagnostic, type SessionState, type Step, type StepContent, type TaskSpec, type TaskState, type TaskStatus } from "./types";
 import { DebugStopTracker, ensureBridge, runShellTask, runTaskByLabel } from "./vscodeChecks";
-import { renderDoCard, renderPredict, renderRecall, renderReflection, type AskView, type FromWebview, type HintView, type LinkView, type NoteView, type PredictView, type RecallView, type ReflectionView, type StepRef, type StepView, type TaskView } from "./webview";
+import { renderDoCard, renderPredict, renderRecall, renderReflection, type AskView, type FromWebview, type HintView, type NextActionView, type LinkView, type NoteView, type PredictView, type RecallView, type ReflectionView, type StepRef, type StepView, type TaskView } from "./webview";
 
 const SAVE_DEBOUNCE_MS = 2000;
 const NOTIFY_MIN_INTERVAL_MS = 60_000;
@@ -520,7 +520,8 @@ export class TutorController implements vscode.Disposable {
       reflection: this.reflectionView(course, step, lang),
       orientation: this.orientationDue(course) ? { board: this.capabilitiesFor(course).has("board") } : undefined,
       hasBoard: this.capabilitiesFor(course).has("board"),
-      nextAction: this.nextActionText(course, step, tasks, lang),
+      nextAction: this.nextActionView(course, step, tasks, lang),
+      moduleProgress: this.moduleProgress(course, step),
     };
   }
 
@@ -549,16 +550,41 @@ export class TutorController implements vscode.Disposable {
   }
 
   /**
-   * The single next thing to do, shown in the header and refreshed after every
-   * check. A student who is lost needs one instruction, not a status report.
+   * A9.4.2: the single next thing to do, shown in the header and refreshed after
+   * every check. A student who is lost needs one instruction, not a status
+   * report - and this line carries the page's only primary button (R11a.5).
    */
-  private nextActionText(course: Course, step: Step, tasks: TaskView[], lang: Lang): string | undefined {
+  private nextActionView(course: Course, step: Step, tasks: TaskView[], lang: Lang): NextActionView {
     const s = ui(lang);
     const open = tasks.find((t) => t.status !== "passed");
-    if (open) return s.nextTaskIs(open.title);
+    if (open) {
+      // A question or a prediction has to be typed before anything can be
+      // checked, so the button takes the student there rather than running a
+      // check against an empty box.
+      const needsInput = open.needsAnswer || !!open.predict;
+      return {
+        text: s.nextTaskIs(open.title),
+        label: needsInput ? s.goToTask(open.title) : s.runThisTask(open.title),
+        kind: "task",
+        taskId: open.id,
+        needsInput,
+      };
+    }
     const next = adjacentStep(course, step.id, 1);
-    if (next) return s.nextStepIs(this.contentFor(next).meta.title);
-    return s.allTasksDone;
+    if (next) return { text: s.nextStepIs(this.contentFor(next).meta.title), label: s.goToNextStep, kind: "step", stepId: next.id };
+    return { text: s.allTasksDone, kind: "none" };
+  }
+
+  /** A9.4.1: steps of this module already done, for the bar in the header. */
+  private moduleProgress(course: Course, step: Step): { done: number; total: number } {
+    const mod = course.manifest.modules.find((m) => m.id === step.moduleId);
+    const ids = mod ? mod.steps : [step.id];
+    let done = 0;
+    for (const id of ids) {
+      const s = course.steps.get(id);
+      if (s && isStepDone(this.session, s)) done += 1;
+    }
+    return { done, total: ids.length };
   }
 
   /** Orientation is shown once, before the first step of a session that has no progress. */
@@ -863,11 +889,13 @@ export class TutorController implements vscode.Disposable {
       this.log(`check ${cur.step.id}/${taskId} [${task.check.type}] → ${result.status}: ${result.message}`);
 
       let hint: HintView | undefined;
+      let cause: string | undefined;
       if (result.status === "failed") {
         const reason = task.check.type === "question" && ctx.answerFor(taskId) ? "weak" : "failed";
         hint = await this.escalate(cur, task, rec.state.failures, result.message, opts.silent ?? false, reason, result);
+        cause = this.causeFor(cur, result);
       }
-      this.postTask(cur, task, result.status, result.message, hint);
+      this.postTask(cur, task, result.status, result.message, hint, cause);
       this.postNextAction(cur);
       if (rec.stepCompleted || (!wasDone && stepStatus(this.session, cur.course, cur.step, this.courses) === "done")) {
         this.onStepCompleted(cur, rec.unlocked);
@@ -891,13 +919,29 @@ export class TutorController implements vscode.Disposable {
     const progress = getStepProgress(this.session, cur.course.manifest.id, cur.step.id);
     const tasks: TaskView[] = cur.step.variants.en!.meta.tasks.map((t) => {
       const localized = cur.content.meta.tasks.find((x) => x.id === t.id) ?? t;
-      return { id: t.id, title: loc(localized.title, this.lang), type: t.check.type, status: getTaskState(progress, t.id).status } as TaskView;
+      return {
+        id: t.id,
+        title: loc(localized.title, this.lang),
+        type: t.check.type,
+        status: getTaskState(progress, t.id).status,
+        needsAnswer: t.check.type === "question",
+        predict: t.check.type === "predict" ? ({} as PredictView) : undefined,
+      } as TaskView;
     });
-    const text = this.nextActionText(cur.course, cur.step, tasks, this.lang);
-    this.panel.post({ type: "next", text: text ?? "" });
+    this.panel.post({ type: "next", next: this.nextActionView(cur.course, cur.step, tasks, this.lang) });
   }
 
-  private postTask(cur: { course: Course; step: Step; content: StepContent }, task: TaskSpec, status: TaskStatus, message: string | undefined, hint?: HintView): void {
+  /**
+   * R11a.4: one sentence in the course's language naming the probable cause,
+   * put in front of the tool's output. The authored misconception wins; when
+   * nothing matches, a generic line at least tells the student where to look,
+   * because a bare compiler message reliably sends beginners the wrong way.
+   */
+  private causeFor(cur: { content: StepContent }, result: CheckResult): string {
+    return selectCause(cur.content.meta, result.output, this.lang) ?? ui(this.lang).checkFailedCause;
+  }
+
+  private postTask(cur: { course: Course; step: Step; content: StepContent }, task: TaskSpec, status: TaskStatus, message: string | undefined, hint?: HintView, cause?: string): void {
     const view = this.panel.currentView;
     if (!view || view.stepId !== cur.step.id || view.courseId !== cur.course.manifest.id) return;
     const localized = cur.content.meta.tasks.find((t) => t.id === task.id) ?? task;
@@ -910,6 +954,7 @@ export class TutorController implements vscode.Disposable {
       type: task.check.type,
       status,
       message,
+      cause,
       hint,
       needsAnswer: task.check.type === "question",
       manual: task.check.type === "manual" || (task.check.type === "question" && !platform.hasLlm),

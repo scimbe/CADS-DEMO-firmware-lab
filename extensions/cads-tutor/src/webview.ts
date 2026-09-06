@@ -42,6 +42,13 @@ export interface TaskView {
   type: CheckType;
   status: TaskStatus;
   message?: string;
+  /**
+   * R11a.4: one sentence in the course's language naming the probable cause,
+   * shown BEFORE the tool's own output. A compiler or test runner explains the
+   * symptom in its own vocabulary, and a beginner reading it first goes looking
+   * in the wrong place; the course's wording gets the first line.
+   */
+  cause?: string;
   answer?: string;
   hint?: HintView;
   /** A2/A1: set for `predict` tasks; drives the predict-then-observe panel. */
@@ -116,8 +123,26 @@ export interface StepView {
   orientation?: OrientationView;
   /** Whether this course may show hardware actions at all. */
   hasBoard: boolean;
-  /** The single next thing to do, always visible in the header. */
-  nextAction?: string;
+  /** The single next thing to do, always visible in the header (A9.4.2). */
+  nextAction?: NextActionView;
+  /** A9.4.1: how far this module has come, for the bar in the header. */
+  moduleProgress: { done: number; total: number };
+}
+
+/**
+ * A9.4.2 / R11a.5: the one next thing to do, and the page's only primary
+ * button. A student who is lost needs one instruction, not a status report, and
+ * two equally weighted buttons are a decision they cannot make.
+ */
+export interface NextActionView {
+  text: string;
+  /** Caption of the primary button; absent when there is nothing left to do. */
+  label?: string;
+  kind: "task" | "step" | "none";
+  taskId?: string;
+  stepId?: string;
+  /** True when the task needs typing first, so the button focuses it instead of running it. */
+  needsInput?: boolean;
 }
 
 export interface OrientationView {
@@ -157,7 +182,7 @@ export type ToWebview =
   | { type: "recall"; html: string }
   | { type: "reflection"; html: string }
   /** The one line in the header saying what to do next; recomputed after each check. */
-  | { type: "next"; text: string }
+  | { type: "next"; next?: NextActionView }
   | { type: "ask"; outcome: AskView }
   | { type: "note"; note: NoteView }
   | { type: "stepDone"; unlocked: StepRef[] }
@@ -227,7 +252,7 @@ export function renderPredict(t: TaskView, lang: Lang): string {
   const id = escapeHtml(t.id);
   const input = `<div class="predict-input">
       <textarea class="prediction" data-task="${id}" rows="3" placeholder="${escapeHtml(s.predictPlaceholder)}">${escapeHtml(p.prediction ?? "")}</textarea>
-      <div class="row"><button class="btn primary submit-predict" data-task="${id}">${escapeHtml(s.predictSubmit)}</button></div>
+      <div class="row"><button class="btn submit-predict" data-task="${id}">${escapeHtml(s.predictSubmit)}</button></div>
     </div>`;
   if (!p.ran || p.actual === undefined) {
     return `<div class="predict"><div class="predict-head">${escapeHtml(s.predictTitle)}</div>
@@ -384,14 +409,17 @@ export function renderOrientation(view: OrientationView, lang: Lang): string {
 function renderTask(t: TaskView, lang: Lang): string {
   const s = ui(lang);
   const canCheck = !t.manual || t.type === "question";
+  // R11a.5: no button inside a task is primary. The page has exactly one, in
+  // the header, and it points here - two equally weighted buttons are a choice
+  // the student cannot make.
   const answerBox = t.needsAnswer
     ? `<textarea class="answer" data-task="${escapeHtml(t.id)}" placeholder="${escapeHtml(s.answerPlaceholder)}" rows="3">${escapeHtml(t.answer ?? "")}</textarea>
-       <div class="row"><button class="btn primary submit-answer" data-task="${escapeHtml(t.id)}">${s.submitAnswer}</button></div>`
+       <div class="row"><button class="btn submit-answer" data-task="${escapeHtml(t.id)}">${s.submitAnswer}</button></div>`
     : "";
   const buttons: string[] = [];
   // A predict task is run from its own "save prediction and run" button, so the
   // plain Check button would let the student skip the prediction.
-  if (canCheck && !t.needsAnswer && !t.predict) buttons.push(`<button class="btn primary run-check" data-task="${escapeHtml(t.id)}">${s.check}</button>`);
+  if (canCheck && !t.needsAnswer && !t.predict) buttons.push(`<button class="btn run-check" data-task="${escapeHtml(t.id)}">${s.check}</button>`);
   // A `question` without a model is confirmed only AFTER an answer exists, and
   // the button says what the student is actually attesting to. Offering it
   // beside "Submit answer" taught weaker students that it was the easier route.
@@ -417,6 +445,7 @@ function renderTask(t: TaskView, lang: Lang): string {
     ${renderActions(t, lang)}
     ${answerBox}
     ${self}
+    <div class="task-cause">${t.cause ? `<span class="cause-label">${escapeHtml(s.causeLabel)}:</span> ${escapeHtml(t.cause)}` : ""}</div>
     <div class="task-msg">${t.message ? escapeHtml(t.message) : escapeHtml(s.taskStatus[t.status])}</div>
     <div class="row task-actions">${buttons.join(" ")}</div>
     <div class="task-hint">${hint}</div>
@@ -433,6 +462,40 @@ function renderCitations(citations: Citation[], lang: Lang): string {
 
 export function renderNote(note: NoteView, lang: Lang): string {
   return `<div class="note${note.tier ? " note-hint" : ""}"><div class="note-title">${escapeHtml(note.title)}${note.tier ? ` · ${escapeHtml(ui(lang).hintTier(note.tier))}` : ""}</div><div class="note-text">${escapeHtml(note.text)}</div>${renderCitations(note.citations ?? [], lang)}</div>`;
+}
+
+/**
+ * A9.4.1: how far the module has come. "Schritt m von n" answers where the
+ * student is; without the bar nothing answers how much is left, and visibility
+ * of system status is the first usability heuristic there is.
+ */
+export function renderModuleProgress(view: StepView): string {
+  const s = ui(view.lang);
+  const { done, total } = view.moduleProgress;
+  const pct = total > 0 ? Math.round((Math.min(done, total) / total) * 100) : 0;
+  const label = s.moduleProgress(done, total);
+  return `<span class="modbar" role="img" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"><span class="modbar-fill" style="width:${pct}%"></span></span>`;
+}
+
+/**
+ * A9.4.2 / R11a.5: the one next action, in the sticky header so it survives
+ * scrolling, with the page's only primary button. While the orientation card is
+ * up, that card owns the primary button instead - there is still exactly one.
+ */
+export function renderNextAction(view: StepView): string {
+  const s = ui(view.lang);
+  const next = view.nextAction;
+  const button =
+    next && next.label && next.kind !== "none"
+      ? `<button class="btn${view.orientation ? "" : " primary"}" id="next-action" data-next-kind="${next.kind}"${
+          next.taskId ? ` data-task="${escapeHtml(next.taskId)}"` : ""
+        }${next.stepId ? ` data-step="${escapeHtml(next.stepId)}"` : ""}${next.needsInput ? ` data-needs-input="1"` : ""}>${escapeHtml(next.label)}</button>`
+      : "";
+  return `<div class="nextbar">
+    <span class="next-label">${escapeHtml(s.nextActionLabel)}:</span>
+    <span class="next-line" id="next-line">${next ? escapeHtml(next.text) : ""}</span>
+    <span id="next-button">${button}</span>
+  </div>`;
 }
 
 export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: string = nonce()): string {
@@ -465,8 +528,15 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
   blockquote { border-left: 3px solid var(--vscode-textBlockQuote-border); background: var(--vscode-textBlockQuote-background); margin: 0.8em 0; padding: 0.4em 0.8em; }
   img { max-width: 100%; }
   table { border-collapse: collapse; } td, th { border: 1px solid var(--vscode-panel-border); padding: 0.2em 0.6em; }
-  .topbar { position: sticky; top: 0; background: var(--vscode-editor-background); display: flex; align-items: center; gap: 0.6em; padding: 0.6em 0; border-bottom: 1px solid var(--vscode-panel-border); z-index: 2; flex-wrap: wrap; }
+  .topbar { position: sticky; top: 0; background: var(--vscode-editor-background); padding: 0.6em 0 0.5em; border-bottom: 1px solid var(--vscode-panel-border); z-index: 2; }
+  .topbar-row { display: flex; align-items: center; gap: 0.6em; flex-wrap: wrap; }
   .crumbs { opacity: 0.75; font-size: 0.9em; flex: 1; }
+  /* A9.4.1: the module bar - "Schritt m von n" says where, the bar says how much is left. */
+  .modbar { display: inline-block; width: 7em; height: 0.5em; border-radius: 0.25em; background: var(--vscode-panel-border); overflow: hidden; flex: none; }
+  .modbar-fill { display: block; height: 100%; background: var(--vscode-progressBar-background, var(--vscode-textLink-foreground)); }
+  /* A9.4.2: the one next action, and the page's one primary button, in the sticky header. */
+  .nextbar { display: flex; align-items: center; gap: 0.5em; flex-wrap: wrap; margin-top: 0.45em; }
+  .next-label { font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.65; }
   .btn { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); border: none; padding: 0.35em 0.8em; border-radius: 3px; cursor: pointer; font-family: inherit; font-size: 0.95em; }
   .btn:hover { background: var(--vscode-button-secondaryHoverBackground); } .btn.primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); } .btn.primary:hover { background: var(--vscode-button-hoverBackground); }
   .btn:disabled { opacity: 0.5; cursor: default; }
@@ -513,8 +583,12 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
   .howto-body li { margin: 0.3em 0; }
   .card.orientation ul { margin: 0.3em 0 0.5em 1.2em; padding: 0; }
   .card.orientation li { margin: 0.25em 0; }
-  .next-line { margin: 0.3em 0 0.6em; font-weight: 600; color: var(--vscode-textLink-foreground); }
-  .next-line:empty { display: none; }
+  .next-line { font-weight: 600; flex: 1; min-width: 12em; }
+  /* R11a.4: the cause sentence sits above the tool output and reads like prose, not like a log line. */
+  .task-cause { font-size: 0.94em; margin: 0.35em 0 0.1em; }
+  .task-cause:empty { display: none; }
+  .cause-label { font-weight: 600; opacity: 0.8; }
+  .status-failed .task-cause { border-left: 3px solid var(--vscode-testing-iconFailed, #e55); padding-left: 0.5em; }
   .lang-group { display: inline-flex; gap: 0; border: 1px solid var(--vscode-panel-border); border-radius: 4px; overflow: hidden; }
   .lang-group .btn.lang-choice { border: none; border-radius: 0; margin: 0; opacity: 0.75; }
   .lang-group .btn.lang-choice + .btn.lang-choice { border-left: 1px solid var(--vscode-panel-border); }
@@ -550,9 +624,13 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
 </head>
 <body class="status-${view.status}">
   <div class="topbar">
-    <span class="crumbs">${escapeHtml(view.courseTitle)} › ${escapeHtml(view.moduleTitle)} › ${escapeHtml(s.stepOf(view.index + 1, view.total))}</span>
-    <button class="btn" id="run-all" ${locked ? "disabled" : ""}>${s.checkAll}</button>
-    ${renderLanguageChoice(view.lang)}
+    <div class="topbar-row">
+      <span class="crumbs">${escapeHtml(view.courseTitle)} › ${escapeHtml(view.moduleTitle)} › ${escapeHtml(s.stepOf(view.index + 1, view.total))}</span>
+      ${renderModuleProgress(view)}
+      <button class="btn" id="run-all" ${locked ? "disabled" : ""}>${s.checkAll}</button>
+      ${renderLanguageChoice(view.lang)}
+    </div>
+    ${renderNextAction(view)}
   </div>
   <h1 id="step-title">${escapeHtml(view.title)}</h1>
   <div class="meta">
@@ -565,26 +643,28 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
   </div>
   ${lockedBanner}
   ${doneBanner}
-  <div class="next-line" id="next-line">${view.nextAction ? escapeHtml(view.nextAction) : ""}</div>
   <div id="orientation-area">${view.orientation ? renderOrientation(view.orientation, view.lang) : ""}</div>
   <div id="note-area">${view.note ? renderNote(view.note, view.lang) : ""}</div>
-  <div id="recall-area">${view.recall ? renderRecall(view.recall, view.lang) : ""}</div>
   <div class="scaffold-note">${escapeHtml(s.scaffoldHint[view.scaffold])}</div>
   <div class="body">${view.bodyHtml}</div>
   ${links}
   <h2>${s.tasks}</h2>
   <ul class="tasks" id="tasks">${view.tasks.map((t) => renderTask(t, view.lang)).join("")}</ul>
   ${renderHowTo(view.lang)}
+  <!-- A9.4.5: recall, then reflection, after the tasks - not before them. A
+       recall card above the step's own work asked the student to look backwards
+       before they had done anything. -->
+  <div id="recall-area">${view.recall ? renderRecall(view.recall, view.lang) : ""}</div>
   <div id="reflection-area">${view.reflection ? renderReflection(view.reflection, view.lang) : ""}</div>
   <div class="ask">
     <h2 style="border:none;margin-top:0">${s.ask}</h2>
-    <div class="ask-row"><input id="question" type="text" maxlength="800" placeholder="${escapeHtml(s.askPlaceholder)}" /><button class="btn primary" id="ask-btn">${s.askButton}</button></div>
+    <div class="ask-row"><input id="question" type="text" maxlength="800" placeholder="${escapeHtml(s.askPlaceholder)}" /><button class="btn" id="ask-btn">${s.askButton}</button></div>
     <div class="meta" style="margin-top:0.3em"><span class="meta-item bloom">${escapeHtml(s.bloom)}: ${escapeHtml(s.bloomLabel[view.bloom])}</span>${view.llmConfigured ? "" : `<span class="meta-item" id="llm-state">${escapeHtml(s.llmUnconfigured)}</span>`}</div>
     <div id="answer" class="answer-box" hidden></div>
   </div>
   <div class="nav">
     <button class="btn" id="prev" ${view.prev ? `data-step="${escapeHtml(view.prev.stepId)}"` : "disabled"}>${s.prev}${view.prev ? `: ${escapeHtml(view.prev.title)}` : ""}</button>
-    <button class="btn primary" id="next" ${view.next ? `data-step="${escapeHtml(view.next.stepId)}"` : "disabled"}>${s.next}${view.next ? `: ${escapeHtml(view.next.title)}` : ""}</button>
+    <button class="btn" id="next" ${view.next ? `data-step="${escapeHtml(view.next.stepId)}"` : "disabled"}>${s.next}${view.next ? `: ${escapeHtml(view.next.title)}` : ""}</button>
   </div>
   <script nonce="${scriptNonce}">${clientScript(view)}</script>
 </body>
@@ -602,6 +682,7 @@ function clientScript(view: StepView): string {
     copyLabel: view.lang === "de" ? "Kopieren" : "Copy",
     running: ui(view.lang).running,
     sources: ui(view.lang).sources,
+    causeLabel: ui(view.lang).causeLabel,
     hintTier: ui(view.lang).hintTier(0).replace("0", "{n}"),
     unlocked: ui(view.lang).unlocked("{t}"),
     done: ui(view.lang).done,
@@ -660,6 +741,7 @@ function clientScript(view: StepView): string {
       const answers = Array.from(document.querySelectorAll("textarea.reflect-answer")).map((ta) => ta.value);
       post({ type: "reflection", answers });
     }
+    else if (b.id === "next-action") nextAction(b);
     else if (b.id === "run-all") { document.querySelectorAll("li.task").forEach((li) => setRunning(li.getAttribute("data-task"))); post({ type: "runAll" }); }
     else if (b.classList.contains("lang-choice")) {
       const chosen = b.getAttribute("data-lang");
@@ -677,6 +759,22 @@ function clientScript(view: StepView): string {
     const box = document.getElementById("answer");
     box.hidden = false; box.className = "answer-box"; box.textContent = S.thinking;
     post({ type: "ask", question: q });
+  }
+
+  // A9.4.2: the header button performs the next action. A task that still needs
+  // typing is scrolled to and focused rather than run - checking an empty answer
+  // would only produce a failure the student did not cause.
+  function nextAction(b) {
+    const kind = b.getAttribute("data-next-kind");
+    if (kind === "step") { post({ type: "nav", stepId: b.getAttribute("data-step") }); return; }
+    if (kind !== "task") return;
+    const id = b.getAttribute("data-task");
+    const li = document.querySelector('li.task[data-task="' + CSS.escape(id) + '"]');
+    if (li) li.scrollIntoView({ behavior: "smooth", block: "center" });
+    const field = li && li.querySelector("textarea.prediction, textarea.answer");
+    if (b.getAttribute("data-needs-input") && field) { field.focus(); return; }
+    setRunning(id);
+    post({ type: "runCheck", taskId: id });
   }
 
   function setRunning(taskId) {
@@ -703,6 +801,9 @@ function clientScript(view: StepView): string {
       li.querySelector(".task-icon").textContent = S.icons[t.status];
       li.querySelector(".task-icon").title = S.statusText[t.status];
       li.querySelector(".task-msg").textContent = t.message || S.statusText[t.status];
+      // R11a.4: the course's sentence about the probable cause, above the output.
+      const cause = li.querySelector(".task-cause");
+      if (cause) cause.innerHTML = t.cause ? '<span class="cause-label">' + esc(S.causeLabel) + ':</span> ' + esc(t.cause) : "";
       const actions = li.querySelector(".task-actions");
       if (t.status === "passed") li.querySelector(".task-hint").innerHTML = "";
       if (t.hint) li.querySelector(".task-hint").innerHTML = '<div class="hint"><div class="hint-tier">' + esc(S.hintTier.replace("{n}", t.hint.tier)) + '</div><div class="hint-q">' + esc(t.hint.question) + '</div><div class="hint-h">' + esc(t.hint.hint) + '</div></div>';
@@ -715,7 +816,17 @@ function clientScript(view: StepView): string {
       }
     } else if (m.type === "next") {
       const line = document.getElementById("next-line");
-      if (line) line.textContent = m.text || "";
+      if (line) line.textContent = m.next ? m.next.text : "";
+      const slot = document.getElementById("next-button");
+      if (slot) {
+        const n = m.next;
+        slot.innerHTML = n && n.label && n.kind !== "none"
+          ? '<button class="btn primary" id="next-action" data-next-kind="' + esc(n.kind) + '"' +
+            (n.taskId ? ' data-task="' + esc(n.taskId) + '"' : "") +
+            (n.stepId ? ' data-step="' + esc(n.stepId) + '"' : "") +
+            (n.needsInput ? ' data-needs-input="1"' : "") + '>' + esc(n.label) + '</button>'
+          : "";
+      }
     } else if (m.type === "recall") {
       document.getElementById("recall-area").innerHTML = m.html;
     } else if (m.type === "reflection") {

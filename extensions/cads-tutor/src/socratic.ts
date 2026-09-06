@@ -157,3 +157,28 @@ function excerpt(s: string): string {
   const one = s.replace(/\s+/g, " ").trim();
   return one.length > EXCERPT_MAX ? `${one.slice(0, EXCERPT_MAX)}…` : one;
 }
+
+/**
+ * R11a.4: the sentence that names the probable cause, shown before the tool's
+ * own output.
+ *
+ * A compiler or a test runner describes the symptom in its own vocabulary, and
+ * a beginner who reads that first goes looking in the wrong place - which is
+ * exactly what `misconceptions` were authored for. Unlike `selectInsight` this
+ * never escalates: it always takes the FIRST hint, the one that states the cause
+ * plainly, because the student has not asked for help yet and the line has to be
+ * readable at a glance.
+ */
+export function selectCause(meta: StepFrontMatter, output: string | undefined, lang: Lang): string | undefined {
+  if (!output) return undefined;
+  for (const mc of meta.misconceptions) {
+    if (!tryMatch(mc.pattern, mc.flags, output)) continue;
+    if (mc.hints.length > 0) return loc(mc.hints[0], lang);
+  }
+  for (const s of meta.socratic) {
+    if (!s.trigger.startsWith("output:")) continue;
+    if (!tryMatch(s.trigger.slice("output:".length), undefined, output)) continue;
+    if (s.hints.length > 0) return loc(s.hints[0], lang);
+  }
+  return undefined;
+}

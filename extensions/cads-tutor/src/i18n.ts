@@ -145,6 +145,7 @@ export const UI = {
     outputLabel: "What the tool reported",
     nextActionLabel: "Next",
     runThisTask: (title: string) => `Check: ${title}`,
+    goToTask: (title: string) => `Go to: ${title}`,
     goToNextStep: "Next step",
   },
   de: {
@@ -288,6 +289,7 @@ export const UI = {
     outputLabel: "Was das Werkzeug gemeldet hat",
     nextActionLabel: "Als Nächstes",
     runThisTask: (title: string) => `Prüfen: ${title}`,
+    goToTask: (title: string) => `Zur Aufgabe: ${title}`,
     goToNextStep: "Nächster Schritt",
   },
 } as const;

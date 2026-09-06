@@ -17,6 +17,7 @@ function baseView(extra: Partial<StepView> = {}): StepView {
     creates: [],
     status: "active",
     lockedBy: [],
+    moduleProgress: { done: 1, total: 3 },
     bodyHtml: "<p>body</p>",
     links: [],
     tasks: [],
@@ -134,5 +135,121 @@ describe("reflection card", () => {
   });
   it("uses the German wording when the panel is German", () => {
     assert.match(renderReflection(card, "de"), /Modul-Reflexion/);
+  });
+});
+
+/**
+ * SPEC A9.4: the panel's order is binding. These tests hold the two parts a
+ * student notices when they are missing - how far it still is, and what to do
+ * next - and the rule that there is never a second primary button to choose.
+ */
+describe("A9.4: header, progress and the one next action", () => {
+  // The client script carries button templates of its own, so the assertions
+  // look at the rendered document only.
+  const markup = (html: string) => html.replace(/<script[\s\S]*?<\/script>/g, "");
+  const countPrimary = (html: string) => (markup(html).match(/class="btn[^"]*\bprimary\b/g) ?? []).length;
+
+  it("names the place and the progress in the header", () => {
+    const html = renderStepHtml(
+      baseView({ courseTitle: "CaDS Zero", moduleTitle: "M0", index: 2, total: 9, moduleProgress: { done: 1, total: 4 } }),
+      "cs",
+      "N",
+    );
+    assert.match(html, /CaDS Zero › M0 › Step 3 of 9/);
+    assert.match(html, /class="modbar-fill" style="width:25%"/);
+    assert.match(html, /Module: 1 of 4 steps done/);
+  });
+
+  it("draws an empty bar for a module nobody has started, and a full one when it is done", () => {
+    assert.match(renderStepHtml(baseView({ moduleProgress: { done: 0, total: 4 } }), "cs", "N"), /width:0%/);
+    assert.match(renderStepHtml(baseView({ moduleProgress: { done: 4, total: 4 } }), "cs", "N"), /width:100%/);
+  });
+
+  it("keeps the next action in the sticky header, with the page's only primary button", () => {
+    const html = renderStepHtml(
+      baseView({ nextAction: { text: "Next task: Build it", label: "Check: Build it", kind: "task", taskId: "t1" } }),
+      "cs",
+      "N",
+    );
+    assert.match(html, /id="next-line"[^>]*>Next task: Build it</);
+    assert.match(html, /id="next-action"[^>]*data-next-kind="task"/);
+    assert.match(html, /data-task="t1"/);
+    assert.equal(countPrimary(html), 1);
+  });
+
+  it("sends the student to a task that has to be typed instead of checking an empty box", () => {
+    const html = renderStepHtml(
+      baseView({ nextAction: { text: "Next task: Answer", label: "Go to: Answer", kind: "task", taskId: "q", needsInput: true } }),
+      "cs",
+      "N",
+    );
+    assert.match(html, /data-needs-input="1"/);
+  });
+
+  it("offers the next step once every task is done", () => {
+    const html = renderStepHtml(baseView({ nextAction: { text: "Continue to: Two", label: "Next step", kind: "step", stepId: "s2" } }), "cs", "N");
+    assert.match(html, /id="next-action"[^>]*data-next-kind="step"[^>]*data-step="s2"/);
+    assert.equal(countPrimary(html), 1);
+  });
+
+  it("offers no button at all when there is nothing left to do", () => {
+    const html = renderStepHtml(baseView({ nextAction: { text: "Every task in this step is done.", kind: "none" } }), "cs", "N");
+    assert.doesNotMatch(markup(html), /id="next-action"/);
+    assert.equal(countPrimary(html), 0);
+  });
+
+  it("hands the one primary button to the orientation card while it is up", () => {
+    const html = renderStepHtml(
+      baseView({ orientation: { board: false }, nextAction: { text: "Next task: Build it", label: "Check: Build it", kind: "task", taskId: "t1" } }),
+      "cs",
+      "N",
+    );
+    assert.equal(countPrimary(html), 1);
+    assert.match(html, /id="orientation-dismiss"/);
+  });
+
+  it("puts the recall and reflection cards after the tasks, not before them", () => {
+    const html = renderStepHtml(
+      baseView({
+        tasks: [{ id: "t1", title: "T", type: "manual", status: "pending", needsAnswer: false, manual: true, live: false }],
+        recall: { fromStepId: "s0", fromTitle: "Earlier", taskId: "q", prompt: "Why?", settled: false },
+      }),
+      "cs",
+      "N",
+    );
+    assert.ok(html.indexOf('id="tasks"') < html.indexOf('id="recall-area"'), "tasks come first");
+    assert.ok(html.indexOf('id="recall-area"') < html.indexOf('id="reflection-area"'), "recall before reflection");
+  });
+});
+
+/** R11a.4: the course's sentence about the cause stands above the tool's output. */
+describe("A9.4.4: a failed check explains itself before it quotes the tool", () => {
+  it("puts the cause line ahead of the tool output", () => {
+    const html = renderStepHtml(
+      baseView({
+        tasks: [{
+          id: "t1", title: "Build", type: "command", status: "failed",
+          message: "error[E0382]: borrow of moved value: `s`",
+          cause: "The value was moved out of `s`.",
+          needsAnswer: false, manual: false, live: false,
+        }],
+      }),
+      "cs",
+      "N",
+    );
+    const cause = html.indexOf("The value was moved out of");
+    const output = html.indexOf("borrow of moved value");
+    assert.ok(cause > 0 && output > 0, "both are rendered");
+    assert.ok(cause < output, "the course's sentence comes first");
+    assert.match(html, /class="cause-label"/);
+  });
+
+  it("leaves the cause line out of the way when a task has not failed", () => {
+    const html = renderStepHtml(
+      baseView({ tasks: [{ id: "t1", title: "Build", type: "command", status: "pending", needsAnswer: false, manual: false, live: false }] }),
+      "cs",
+      "N",
+    );
+    assert.match(html, /<div class="task-cause"><\/div>/);
   });
 });
