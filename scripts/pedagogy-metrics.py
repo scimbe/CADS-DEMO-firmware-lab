@@ -25,7 +25,8 @@ which words the stop list happens to contain.
 THE TWO OVERLAP FIGURES ARE NOT THE SAME MEASUREMENT, and one round was spent
 measuring past each other because of it. Both are printed on every row:
 
-  `ovl`  rubric against the STEP BODY, the R4.2 figure. It answers: is the
+  `ovl`  rubric against the STEP BODY minus its `::: do` blocks, the R4.2
+         figure. It answers: is the
          answer already written in the text the student just read? Limit 50
          percent, 35 for analyze and evaluate. This is the one that flags a
          question which only tests recognition. Its unfiltered form (--raw)
@@ -109,9 +110,15 @@ assert lang in ("de", "en"), "--lang takes de or en"
 REJECTS = re.compile(r"does not pass|not accepted|besteht nicht|nicht akzeptiert", re.I)
 if raw: STOP = set()
 rows=[]; ladders_missing=0; tasks_total=0
+# A9.1 instruction blocks are not exposition: they say how to run something, and
+# they never carry the answer to a question. Counting them as body inflated the
+# R4.2 figure by four rubrics the day the pack was converted, which would have
+# read as a regression that never happened.
+DO_BLOCK_RE = re.compile(r"^:::[ \t]+do\b.*?^:::[ \t]*$", re.M | re.S)
+
 for f in sorted(glob.glob(f"{D}/*.{lang}.md")):
     sid=os.path.basename(f)[:-6]; fm,body=V.load_step(f)
-    btok=toks(body); soc=fm.get("socratic") or []
+    btok=toks(DO_BLOCK_RE.sub("", body)); soc=fm.get("socratic") or []
     trig=set()
     for s0 in soc:
         m=re.match(r"task:([^:]+):", str(s0.get("trigger",""))); 

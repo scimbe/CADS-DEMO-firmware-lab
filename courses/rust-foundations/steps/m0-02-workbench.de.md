@@ -59,9 +59,9 @@ Klicke jetzt einmal auf **Terminal**, **Problems** und **Output**, während nich
 cd ~/workspace/rust-foundations
 ```
 
-Ohne das antwortet cargo mit `could not find Cargo.toml in /home/coder/workspace or any parent directory` - der häufigste Weg, schon bei Schritt eins hängenzubleiben. Danach tippst du den Befehl und drückst die Eingabetaste. Diesen Weg nutzt der Kurs durchgehend, weil du dabei genau das siehst, was die Prüfungen sehen.
+Ohne das antwortet cargo mit `could not find Cargo.toml` - der häufigste Weg, schon bei Schritt eins hängenzubleiben. Diesen Weg nutzt der Kurs durchgehend, weil du dabei genau das siehst, was die Prüfungen sehen.
 
-2. **Befehlspalette.** Drücke **F1**. Im Browser ist das zuverlässiger als Strg+Umschalt+P, das der Browser für sich behalten kann. Die Palette öffnet in einem von zwei Modi und **merkt sich den zuletzt benutzten**: ohne vorangestelltes `>` sucht sie Dateien, mit `>` sucht sie Befehle. Tippe also `>Terminal: Create New Terminal`. Vergisst du das `>`, erhältst du *No matching results* und es passiert nichts - so sagt dir die Palette, dass sie nach einer Datei dieses Namens sucht.
+2. **Befehlspalette.** Drücke **F1**. Im Browser ist das zuverlässiger als Strg+Umschalt+P, das der Browser für sich behalten kann. Die Palette öffnet in einem von zwei Modi und **merkt sich den zuletzt benutzten**: ohne vorangestelltes `>` sucht sie Dateien, mit `>` sucht sie Befehle. Ein Paletteneintrag wird also mit vorangestelltem `>` getippt, so wie der Block am Ende dieses Steps es zeigt. Vergisst du das `>`, erhältst du *No matching results* und es passiert nichts - so sagt dir die Palette, dass sie nach einer Datei dieses Namens sucht.
 
 ![Die Aufgabenliste des Tutor-Panels. Die erste Aufgabe ist grün abgehakt und
 zeigt unter ihrer Schaltfläche Prüfen "exited with 0"; die zweite ist eine
@@ -70,7 +70,7 @@ für Hinweise.](task-check-result.png)
 
 3. **Die Schaltfläche Prüfen** im Tutor-Panel neben einer Aufgabe. Sie führt den Befehl dieser Aufgabe aus und zeigt die Ausgabe im Panel. Sie nutzt immer den richtigen Ordner und braucht das `cd` daher nie.
 
-Zum Schließen eines Terminals drückst du das Papierkorbsymbol an seinem rechten Rand oder tippst `exit`. Es geht nichts verloren - ein Terminal hält keinen Zustand, den du brauchst. Öffne auf demselben Weg ein neues, und du bist wieder da, wo du warst.
+Zum Schließen eines Terminals drückst du das Papierkorbsymbol an seinem rechten Rand oder tippst `exit`. Es geht nichts verloren, ein Terminal hält keinen Zustand, den du brauchst.
 
 ## Die Palette im Befehlsmodus
 
@@ -85,7 +85,7 @@ Ergebnis der gesuchte Befehl ist. Ohne das `>` steht in derselben Liste
 
 ## Woran du erkennst, dass ein Befehl fertig ist
 
-Die Eingabeaufforderung erscheint wieder unter der Ausgabe. Solange sie fehlt, läuft der Befehl noch: ein blinkender Cursor ohne Eingabeaufforderung ist laufende Arbeit, kein Hänger. Das erste `cargo build` dauert ein paar Sekunden, weil die Crate einmal übersetzt wird; danach antwortet es sofort.
+Die Eingabeaufforderung erscheint wieder unter der Ausgabe. Solange sie fehlt, läuft der Befehl noch: ein blinkender Cursor ohne Eingabeaufforderung ist laufende Arbeit, kein Hänger.
 
 ## Deine Aufgabe
 
@@ -93,31 +93,30 @@ Die Eingabeaufforderung erscheint wieder unter der Ausgabe. Solange sie fehlt, l
 
 ## So führst du das aus
 
-Öffne ein Terminal über das Menü **Terminal → Neues Terminal**, oder drücke **F1**, tippe `>Terminal: Create New Terminal` und drücke die Eingabetaste. Das vorangestellte `>` schaltet die Palette von der Dateisuche auf die Befehlssuche um, und F1 merkt sich den zuletzt benutzten Modus - ohne das Zeichen erhältst du *No matching results*. Im Browser ist F1 zuverlässiger als Strg+Umschalt+P, das der Browser für sich behalten kann.
+::: do palette="> Terminal: Create New Terminal"
+Öffne ein Terminal: **F1** drücken, den Eintrag samt dem vorangestellten `>` tippen, Eingabetaste. Im Browser ist F1 zuverlässiger als Strg+Umschalt+P, das der Browser für sich behalten kann.
+> expect: Unten öffnet sich der Bereich mit dem Reiter **Terminal**, und die Eingabeaufforderung endet auf `~/workspace`.
+> recover: Steht in der Palette *No matching results*, fehlt das `>` und sie sucht nach einer Datei dieses Namens - tippe es voran und wiederhole die Eingabe. Über das Menü geht es ebenso: **Terminal → Neues Terminal**.
+:::
 
-Das Terminal öffnet sich im Bereich unten, in `~/workspace` - dem Ordner **über** dieser Crate, denn das Laborfenster hält den Rust- und den JavaScript-Workspace nebeneinander. Wechsle zuerst in die Crate, sonst antwortet cargo mit `could not find Cargo.toml`:
+Das Terminal startet in `~/workspace`, dem Ordner **über** dieser Crate, denn das Laborfenster hält den Rust- und den JavaScript-Workspace nebeneinander. Wechsle einmal je Terminal in die Crate:
 
 ```bash
 cd ~/workspace/rust-foundations
 ```
 
-Das brauchst du nur einmal je Terminal. Führe dann aus:
+::: do command="cargo --version && cargo fmt --version && cargo clippy --version" cwd="."
+Führe den Befehl der Aufgabe *Alle drei Werkzeuge antworten* aus.
+> expect: Der Befehl endet ohne Fehler, und seine Ausgabe enthält `clippy`.
+> recover: Bleibt der Cursor stehen, ohne dass die Eingabeaufforderung zurückkommt, läuft er noch - das ist kein Hänger. Antwortet cargo mit `could not find Cargo.toml`, fehlt das `cd` von oben.
+:::
 
-```bash
-cargo --version && cargo fmt --version && cargo clippy --version
-cargo build
-```
-
-Die Schaltfläche **Prüfen** neben der Aufgabe oben führt genau diese Befehle für dich aus und zeigt dieselbe Ausgabe im Tutor-Panel; das Terminal ist dafür da, dass du es selbst siehst und wiederholen kannst.
-
-**Was du siehst:** die Ausgabe des Programms, darin `clippy`.
-
-**Wie lange:** beim ersten Mal ein paar Sekunden, weil die Crate einmal übersetzt wird; bei jedem weiteren Lauf deutlich unter einer Sekunde.
-
-**Fertig ist es, wenn:** die Eingabeaufforderung unter der Ausgabe wieder erscheint. Solange sie fehlt, läuft der Befehl noch - ein blinkender Cursor ohne Eingabeaufforderung ist kein Hänger.
+::: do command="cargo build" cwd="."
+Führe den Befehl der Aufgabe *Der Workspace übersetzt aus dem Terminal* aus.
+> expect: Der Befehl endet ohne Fehler und ohne Meldung; darunter erscheint die Eingabeaufforderung wieder.
+> recover: Bleibt der Cursor stehen, ohne dass die Eingabeaufforderung zurückkommt, läuft er noch - das ist kein Hänger. Antwortet cargo mit `could not find Cargo.toml`, fehlt das `cd` von oben.
+:::
 
 ![Ein Terminal im Bereich unten: die Eingabeaufforderung zeigt coder@…:~/workspace/rust-foundations, darunter der cargo-Befehl und seine Ausgabe.](terminal-run-a-step.png)
 
-*Die drei Handgriffe sind in jedem Step dieses Kurses dieselben - Terminal öffnen, mit `cd` in die Crate wechseln, den Befehl ausführen. Nur die letzte Zeile unterscheidet sich, und die Fassung dieses Steps steht im Block darüber.*
-
-**Wenn etwas nicht stimmt:** die Ausgabe steht im Reiter **Terminal** unten, nicht in **Problems** und nicht in **Output** - diese beiden zeigen anderes und sind der übliche Grund für „es passiert nichts". Hast du das Terminal versehentlich geschlossen, öffne auf demselben Weg ein neues; es geht nichts verloren. Antwortet cargo mit `could not find Cargo.toml`, hat dieses Terminal das `cd` von oben nicht bekommen - führe es aus und versuche es erneut.
+Der Knopf **Prüfen** an der Aufgabe führt denselben Befehl aus und zeigt dieselbe Ausgabe im Tutor-Panel; er benutzt immer den richtigen Ordner und braucht das `cd` daher nie. Das Terminal ist dafür da, dass du es selbst siehst und wiederholen kannst. Die Ausgabe steht im Reiter **Terminal**, nicht in **Problems** und nicht in **Output** - diese beiden zeigen anderes und sind der übliche Grund für „es passiert nichts".
