@@ -268,6 +268,14 @@ describe("A9.4.4: a failed check explains itself before it quotes the tool", () 
   });
 });
 
+describe("R11a.8 self-assessed passes are marked", () => {
+  it("marks a pass nobody verified and leaves a graded one alone", () => {
+    const base: TaskView = { id: "q", title: "Why?", type: "question", status: "passed", needsAnswer: true, manual: true, live: false };
+    assert.match(renderStepHtml(baseView({ tasks: [{ ...base, selfReported: true }] }), "cs", "N"), /selbst eingeschätzt|self-assessed/);
+    assert.doesNotMatch(renderStepHtml(baseView({ tasks: [base] }), "cs", "N"), /selbst eingeschätzt|self-assessed/);
+  });
+});
+
 describe("A9.3 competence card", () => {
   const objectives: CompetenceObjectiveView[] = [
     { objectiveId: "own", statement: "Explain who owns a value", level: "demonstrated", evidenceKind: "recall", evidenceStepId: "m2-01", evidenceStepTitle: "Shared references", evidenceAt: "2026-09-06T09:00:00.000Z" },

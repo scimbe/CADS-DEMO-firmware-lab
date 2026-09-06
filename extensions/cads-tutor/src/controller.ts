@@ -488,6 +488,9 @@ export class TutorController implements vscode.Disposable {
         hint,
         needsAnswer: t.check.type === "question",
         manual,
+        // R11a.8: the badge is the student's warning that this pass carries no
+        // competence weight. It reads the stored flag, not today's settings.
+        selfReported: state.selfReported,
         live: isLocalCheck(t.check),
         predict: t.check.type === "predict" ? this.predictView(t, state, lang) : undefined,
         actions: this.actionViews(course, t, lang),
@@ -1014,6 +1017,7 @@ export class TutorController implements vscode.Disposable {
       hint,
       needsAnswer: task.check.type === "question",
       manual: task.check.type === "manual" || (task.check.type === "question" && !platform.hasLlm),
+      selfReported: getTaskState(getStepProgress(this.session, cur.course.manifest.id, cur.step.id), task.id).selfReported,
       live: isLocalCheck(task.check),
       predict,
     };
