@@ -80,7 +80,13 @@ The first test already passes: with an empty object, truthiness and nullishness 
 
 ## Running this step
 
-Open a terminal with **Terminal > New Terminal** (or press **F1** and type `>Terminal: Create New Terminal`). It opens in the panel at the bottom of the window, and its prompt has to end in `javascript-foundations`. Then run:
+::: do palette="> Terminal: Create New Terminal"
+Open a terminal. By hand: menu **Terminal > New Terminal**, or **F1** and the command named above.
+> expect: A panel opens at the bottom of the window with a prompt in it, and the prompt ends in `javascript-foundations`.
+> recover: If the palette answers *No matching results*, the leading `>` is missing; without that character the palette searches file names instead of commands. If nothing opens at all, use **F1** rather than Ctrl+Shift+P, which a browser may keep for itself. If the prompt ends in a different folder, type `cd javascript-foundations` in the terminal.
+:::
+
+Then run:
 
 ```bash
 node --test test/m2-02-truthy-falsy.test.js

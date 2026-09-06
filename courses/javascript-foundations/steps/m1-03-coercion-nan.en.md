@@ -88,7 +88,13 @@ Run the test first and look at the **actual** values it prints. Quotation marks 
 
 ## Running this step
 
-Open a terminal with **Terminal > New Terminal** (or press **F1** and type `>Terminal: Create New Terminal`). It opens in the panel at the bottom of the window, and its prompt has to end in `javascript-foundations`. Then run:
+::: do palette="> Terminal: Create New Terminal"
+Open a terminal.
+> expect: A panel opens at the bottom of the window with a prompt in it, and the prompt ends in `javascript-foundations`.
+> recover: If the palette answers *No matching results*, the leading `>` is missing; without that character the palette searches file names instead of commands. If the prompt ends in a different folder, type `cd javascript-foundations` in the terminal.
+:::
+
+Then run:
 
 ```bash
 node --test test/m1-03-coercion-nan.test.js
