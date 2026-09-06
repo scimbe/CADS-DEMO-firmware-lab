@@ -33,7 +33,23 @@
         "m0-03-build",
         "m0-04-flash-console",
         "m0-05-explorer"
-      ]
+      ],
+      "reflection": {
+        "prompts": [
+          {
+            "de": "Zwei Fenster in diesem Modul nehmen Getipptes entgegen, und jedes schluckt die falsche Eingabe ohne eine einzige Fehlermeldung. Beschreibe, woran du künftig in drei Sekunden erkennst, in welchem der beiden du gerade stehst.",
+            "en": "Two windows in this module accept typing, and each swallows the wrong input without a single error message. Describe how you will tell, in three seconds, which of the two you are in."
+          },
+          {
+            "de": "Zwischen „das Projekt hat übersetzt“ und „diese Firmware läuft nachweislich auf dem Chip“ lagen hier mehrere Schritte. Welchen davon hättest du vorher schon für den Nachweis gehalten, und was hat ihm dazu gefehlt?",
+            "en": "Between “the project compiled” and “this firmware demonstrably runs on the chip” lay several steps here. Which of them would you have taken for the proof beforehand, and what was it missing?"
+          },
+          {
+            "de": "Du hast dir eine Zuordnung von Symptom zu Konsolenbefehl aufgebaut. Nenne die eine Frage, die du beim nächsten unklaren Verhalten zuerst an das Board richtest, und sage, warum ausgerechnet diese zuerst.",
+            "en": "You built yourself a mapping from symptom to console command. Name the one question you will put to the board first the next time its behaviour is unclear, and say why that one first."
+          }
+        ]
+      }
     },
     {
       "id": "m1",
@@ -46,7 +62,23 @@
         "m1-02-hal-boundary",
         "m1-03-sim-vs-board",
         "m1-04-splash"
-      ]
+      ],
+      "reflection": {
+        "prompts": [
+          {
+            "de": "Die Schichtgrenzen dieses Baums sind vom Build erzwungen und nicht bloß verabredet. Nenne eine Grenze aus einem Projekt, das du kennst, die nur verabredet war, und sage, was ein erzwungener Nachweis dort gekostet und was er verhindert hätte.",
+            "en": "The layer boundaries of this tree are enforced by the build, not merely agreed. Name a boundary from a project you know that was only agreed, and say what an enforced check would have cost there and what it would have prevented."
+          },
+          {
+            "de": "Der Simulator täuscht nichts vor, wo die Hardware sich nicht fälschen lässt. An welcher Stelle hattest du beim Lesen erwartet, dass er es doch tut, und was wäre der Preis gewesen, wenn er es täte?",
+            "en": "The simulator fakes nothing where the hardware cannot be faked. Where, while reading, did you expect it to fake something anyway, and what would the price have been if it did?"
+          },
+          {
+            "de": "Deine Splash-Änderung war ein einziges String-Literal, ihr Nachweis lief trotzdem über Quelle, Build und Image. Welche der drei Stufen würdest du im Alltag weglassen, und welchen Fehler übersiehst du damit?",
+            "en": "Your splash change was a single string literal, yet its evidence ran through source, build and image. Which of the three stages would you drop in everyday work, and which mistake would that make you miss?"
+          }
+        ]
+      }
     },
     {
       "id": "m2",
@@ -63,7 +95,23 @@
         "m2-03-buttons",
         "m2-04-safety",
         "m2-05-explorer-command"
-      ]
+      ],
+      "reflection": {
+        "prompts": [
+          {
+            "de": "Drei Fehler dieses Moduls sind vollkommen stumm: ein fehlendes `volatile`, ein nie freigeschalteter Peripherietakt und ein Puffer im CCM, an den keine DMA herankommt. Welchen davon hättest du am längsten für einen Hardwaredefekt gehalten, und woran willst du ihn künftig zuerst erkennen?",
+            "en": "Three of this module's failures are entirely silent: a missing `volatile`, a peripheral clock never enabled, and a buffer in CCM that no DMA can reach. Which of them would you have taken for a broken board the longest, and what will you check first to recognise it in future?"
+          },
+          {
+            "de": "Die HAL invertiert die Verdrahtung der Taster an genau einer Stelle, und nichts darüber weiß noch davon. Nenne eine zweite Stelle im System, an der diese Umrechnung ebenfalls hätte stehen können, und begründe, warum eine Stelle besser ist als zwei.",
+            "en": "The HAL inverts the buttons' wiring at exactly one place, and nothing above it knows about that any more. Name a second place in the system where that conversion could equally have sat, and argue why one place is better than two."
+          },
+          {
+            "de": "„Im Zweifel den Pin nicht treiben“ ist die Faustregel dieses Moduls. Schreib die Prüfung auf, die du künftig durchgehst, bevor du eine Zeile schreibst, die einen Pin konfiguriert — in der Reihenfolge, in der du sie tatsächlich machen würdest.",
+            "en": "“When in doubt, do not drive the pin” is this module's rule of thumb. Write down the check you will run before writing a line that configures a pin — in the order you would actually do it."
+          }
+        ]
+      }
     },
     {
       "id": "m3",
@@ -77,7 +125,23 @@
         "m3-03-fault-forensics",
         "m3-04-stack-guard",
         "m3-05-spi-mutex"
-      ]
+      ],
+      "reflection": {
+        "prompts": [
+          {
+            "de": "Diese Firmware hält bei einem Fault an, statt zurückzusetzen, weil ein Reset die einzige Kopie der Beweise vernichtet. Beschreibe eine eigene Fehlersuche, in der du Beweise vernichtet hast, bevor du sie gelesen hattest.",
+            "en": "This firmware halts on a fault instead of resetting, because a reset destroys the only copy of the evidence. Describe a debugging session of your own in which you destroyed the evidence before you had read it."
+          },
+          {
+            "de": "Der Ort, an dem ein Programm anhielt, war in diesem Modul mehrfach nicht der Ort der Ursache — angehalten im Idle-Hook, Ursache im Stack einer ganz anderen Task. Was tust du beim nächsten Absturz anders, bevor du die Zeile ansiehst, auf der der Debugger steht?",
+            "en": "In this module the place where the program stopped repeatedly was not the place of the cause — halted in the idle hook, cause in another task's stack entirely. What will you do differently at the next crash, before you look at the line the debugger is standing on?"
+          },
+          {
+            "de": "Wie hättest du vor diesem Modul die Frage „hält dieser Ausgangspin gerade High?“ beantwortet? Vergleiche das mit dem Weg, den du jetzt nimmst, und sage, was dich dein alter Weg gekostet hätte.",
+            "en": "Before this module, how would you have answered the question “is this output pin currently high?” Compare that with the route you take now, and say what your old route would have cost you."
+          }
+        ]
+      }
     },
     {
       "id": "m4",
@@ -91,7 +155,23 @@
         "m4-03-mutex-spi-bus",
         "m4-04-iwdg-watchdog",
         "m4-05-stack-sizing"
-      ]
+      ],
+      "reflection": {
+        "prompts": [
+          {
+            "de": "Keine der beiden übergelaufenen Tasks wurde von ihrer eigenen Schleife gesprengt. Formuliere daraus die Frage, die du künftig stellst, bevor du einen Stack dimensionierst, und sage, warum die naheliegende Frage — „wie tief ist mein eigener Code?“ — die falsche ist.",
+            "en": "Neither of the two tasks that overflowed was blown by its own loop. Turn that into the question you will ask before sizing a stack in future, and say why the obvious question — “how deep is my own code?” — is the wrong one."
+          },
+          {
+            "de": "Die 48-KB-Untergrenze des Linkers kennt zwei Zustände, die Margenprüfung daneben kennt einen Abstand. Nenne eine Grenze in einem System, mit dem du arbeitest, die heute nur zwei Zustände kennt, und sage, welche Zahl du daneben protokollieren würdest.",
+            "en": "The linker's 48 KB floor knows two states; the margin check beside it knows a distance. Name a limit in a system you work with that today knows only two states, and say which number you would log beside it."
+          },
+          {
+            "de": "Der Watchdog beweist, dass das Interrupt-System lebt — mehr nicht, und das ist so gewollt. Nenne den Ausfall, den du vor diesem Modul von einem Watchdog erwartet hättest, und sage, was du stattdessen bauen müsstest, um ihn zu fangen.",
+            "en": "The watchdog proves that the interrupt system is alive — no more than that, and deliberately so. Name the failure you would have expected a watchdog to catch before this module, and say what you would have to build instead to catch it."
+          }
+        ]
+      }
     },
     {
       "id": "m5",
@@ -104,7 +184,23 @@
         "m5-02-view-dispatcher",
         "m5-03-own-app",
         "m5-04-dirty-rect-eval"
-      ]
+      ],
+      "reflection": {
+        "prompts": [
+          {
+            "de": "Dass Damage klein bleibt, ist eine Gestaltungsregel für Apps und keine Zusicherung des Canvas — und ihr Bruch bleibt stumm, er fühlt sich nur träge an. Nenne eine Regel aus einem eigenen Projekt, die genauso stumm bricht, und die Messung, die sie hörbar machen würde.",
+            "en": "That damage stays small is a design rule for apps, not a guarantee of the canvas — and breaking it stays silent, it merely feels sluggish. Name a rule from a project of your own that breaks just as silently, and the measurement that would make it audible."
+          },
+          {
+            "de": "Deine App erfährt nie, ob eine Eingabe von einer Taste oder von einem Finger kam. Wo hat dich das beim Bauen entlastet, und an welcher Stelle hättest du die Herkunft doch gern gewusst?",
+            "en": "Your app never learns whether an input came from a key or from a finger. Where did that relieve you while building, and where would you have liked to know the origin after all?"
+          },
+          {
+            "de": "Du hast eine Designentscheidung dieses Projekts an gemessenen Zahlen beurteilt statt nach Geschmack. Was hättest du ohne die Messwerte geantwortet, und was genau haben sie an deinem Urteil geändert?",
+            "en": "You judged one of this project's design decisions against measured numbers rather than taste. What would you have answered without the measurements, and what exactly did they change about your verdict?"
+          }
+        ]
+      }
     },
     {
       "id": "m6",
@@ -117,7 +213,23 @@
         "m6-02-config-file",
         "m6-03-config-option",
         "m6-04-build-profiles"
-      ]
+      ],
+      "reflection": {
+        "prompts": [
+          {
+            "de": "Drei voneinander unabhängige Tatsachen schützen das Dateisystem beim Flashen, und jede allein würde genügen. Nenne einen Schutz aus einem eigenen System, der allein dasteht, und sage, was geschieht, wenn genau er einmal nicht greift.",
+            "en": "Three mutually independent facts protect the file system during a flash, and any one alone would suffice. Name a safeguard in a system of your own that stands alone, and say what happens the one time it does not hold."
+          },
+          {
+            "de": "Eine halb geschriebene Textdatei degradiert anders als eine halb geschriebene Binärtabelle. Formuliere daraus ein Kriterium, an dem du künftig zwischen Text- und Binärformat entscheidest, und nenne einen Fall, in dem es für binär spricht.",
+            "en": "A half-written text file degrades differently from a half-written binary table. Turn that into a criterion by which you will choose between a text and a binary format in future, and name a case where it argues for binary."
+          },
+          {
+            "de": "Zwei Entscheidungen über dasselbe Board leben in zwei verschiedenen Dateien: was überhaupt ins Image kommt, und was zur Laufzeit gilt. Woran hast du beim Lesen gemerkt, in welche der beiden eine neue Einstellung gehört?",
+            "en": "Two decisions about the same board live in two different files: what gets into the image at all, and what applies at runtime. While reading, how did you tell which of the two a new setting belongs in?"
+          }
+        ]
+      }
     },
     {
       "id": "m7",
@@ -131,7 +243,23 @@
         "m7-03-dhcp-stack-lesson",
         "m7-04-recon-tools",
         "m7-05-pa7-network-eval"
-      ]
+      ],
+      "reflection": {
+        "prompts": [
+          {
+            "de": "Mit statischer Adresse ist die Adresse eine Konfiguration, mit DHCP ist sie ein Protokoll — derselbe Aufruf, zwei sehr ungleiche Tiefen. Wo verbirgt in einem System, das du kennst, ein einziger Aufruf ebenso zwei ungleich teure Pfade?",
+            "en": "With a static address the address is configuration; with DHCP it is a protocol — the same call, two very unequal depths. Where, in a system you know, does a single call likewise hide two paths of unequal cost?"
+          },
+          {
+            "de": "Die Aufklärungsbefehle liefern Indikatoren, keine Beweise, und ihr aktives Gegenstück ist bewusst nicht gebaut. Schreib in zwei Sätzen auf, was du jemandem antwortest, der aus einer dieser Ausgaben eine Anschuldigung machen will.",
+            "en": "The reconnaissance commands yield indicators, not proof, and their active counterpart is deliberately not built. In two sentences, write what you would answer someone who wants to turn one of those outputs into an accusation."
+          },
+          {
+            "de": "Dieses Modul hat eine Hardwaretatsache — ein Pin mit zwei Besitzern — bis in die Wahl deines Protokolls durchgereicht. An welcher Stelle dieses Kurses hättest du noch geglaubt, Hardware und Anwendungsentwurf blieben getrennt, und was hat dich vom Gegenteil überzeugt?",
+            "en": "This module carried a hardware fact — one pin with two owners — all the way through to your choice of protocol. Where in this course would you still have believed that hardware and application design stay separate, and what convinced you otherwise?"
+          }
+        ]
+      }
     },
     {
       "id": "m8",
@@ -144,7 +272,23 @@
         "m8-02-golden-images",
         "m8-03-clean-room-pr",
         "m8-04-capstone"
-      ]
+      ],
+      "reflection": {
+        "prompts": [
+          {
+            "de": "Ein fehlgeschlagenes Golden kann eine Regression oder ein Rundungsartefakt sein, und die Regel dafür, wann ein Golden neu erzeugt werden darf, ist eng. Beschreibe die Versuchung, der du beim ersten roten Golden nachgeben würdest, und was sie dich kosten würde.",
+            "en": "A failing golden can be a regression or a rounding artefact, and the rule for when a golden may be regenerated is a narrow one. Describe the temptation you would give in to at your first red golden, and what it would cost you."
+          },
+          {
+            "de": "Du hast eine Änderung beurteilt, die vier stehende Regeln auf einmal verletzt. Welche der vier hättest du als ihr Autor selbst übersehen, und welchen einen Handgriff nimmst du dir vor, damit du sie im eigenen Beitrag bemerkst?",
+            "en": "You judged a change that violates four standing rules at once. Which of the four would you have missed as its author, and which single habit will you adopt so that you catch it in a contribution of your own?"
+          },
+          {
+            "de": "Blicke auf die vier Prüfarten dieses Moduls zurück — Unit-Test, Golden Image, Review gegen Regeln, dein eigener Abschlusstest. Welche davon hätte den Fehler gefunden, der dich in diesem Kurs am meisten Zeit gekostet hat, und welche hätte ihn durchgelassen?",
+            "en": "Look back over this module's four kinds of check — unit test, golden image, review against rules, your own capstone test. Which of them would have found the mistake that cost you the most time in this course, and which would have let it through?"
+          }
+        ]
+      }
     }
   ]
 }
