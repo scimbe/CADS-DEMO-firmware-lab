@@ -34,6 +34,8 @@ misconceptions:
 
 Judge code you wrote yourself against criteria you can state - allocation, error contract, and what the design would make hard next.
 
+The review runs against four earlier steps: `m1-02-move-vs-clone` for what a clone costs, `m4-04-collections-report` for reproducible output, `m5-04-custom-error` for the error contract and `m6-01-generics` for the bound a signature actually needs.
+
 ## Two tools that review for you first
 
 ```bash
@@ -67,31 +69,30 @@ Make both tools clean, then write the review. It is graded against a rubric, so 
 
 ## Running it
 
-Open a terminal with the menu **Terminal → New Terminal**, or press **F1**, type `>Terminal: Create New Terminal` and press Enter. The leading `>` is what switches the palette from searching files to searching commands, and F1 remembers whichever mode you used last - without it you get *No matching results*. In a browser F1 is more reliable than Ctrl+Shift+P, which the browser may keep for itself.
+::: do palette="> Terminal: Create New Terminal"
+Open a terminal: press **F1**, type the entry with its leading `>`, press Enter. In a browser F1 is more reliable than Ctrl+Shift+P, which the browser may keep for itself.
+> expect: The panel opens at the bottom on its **Terminal** tab, and the prompt ends in `~/workspace`.
+> recover: If the palette says *No matching results*, the `>` is missing and it is searching for a file of that name - type it in front and repeat. The menu does the same: **Terminal → New Terminal**.
+:::
 
-The terminal opens in the panel at the bottom, in `~/workspace` - the folder **above** this crate, because the lab window holds the Rust and the JavaScript workspace side by side. Change into the crate first, or cargo answers `could not find Cargo.toml`:
+The terminal starts in `~/workspace`, the folder **above** this crate, because the lab window holds the Rust and the JavaScript workspace side by side. Change into the crate once per terminal:
 
 ```bash
 cd ~/workspace/rust-foundations
 ```
 
-You only need that once per terminal. Then run:
+::: do command="cargo fmt --check" cwd="."
+Run the command of the *The workspace is formatted* task.
+> expect: The command ends without an error and without a message; the prompt reappears below it.
+> recover: If the cursor sits there and the prompt does not come back, it is still running - that is not a hang. If cargo answers `could not find Cargo.toml`, the `cd` above is missing.
+:::
 
-```bash
-cargo fmt --check
-cargo clippy --all-targets -- -D warnings
-```
+::: do command="cargo clippy --all-targets -- -D warnings" cwd="."
+Run the command of the *clippy is clean with warnings denied* task.
+> expect: The command ends without an error and without a message; the prompt reappears below it.
+> recover: If the cursor sits there and the prompt does not come back, it is still running - that is not a hang. If cargo answers `could not find Cargo.toml`, the `cd` above is missing.
+:::
 
-The **Check** button next to the task above runs exactly these commands for you and shows the same output in the tutor panel; the terminal is there so you can see it yourself and repeat it.
+![A terminal in the bottom panel: the prompt reads coder@…:~/workspace/rust-foundations, with the cargo command and its output below it.](terminal-run-a-step.png)
 
-**What you see:** cargo's progress lines and a final `Finished` line.
-
-**How long:** a few seconds the first time, because the crate is compiled once; well under a second on every later run.
-
-**Finished when:** the shell prompt reappears below the output. Until it does, the command is still running - a blinking cursor with no prompt is not a hang.
-
-![A terminal in the panel at the bottom: the prompt reads coder@…:~/workspace/rust-foundations, then the cargo command, then its output.](terminal-run-a-step.png)
-
-*The three moves are the same in every step of this course - open a terminal, `cd` into the crate, run the command. Only the last line differs, and this step's version of it is in the block above.*
-
-**If something is off:** the output is in the **Terminal** tab at the bottom, not in **Problems** and not in **Output** - those two show different things and are the usual reason for "nothing happened". If you closed the terminal by accident, open a new one the same way; nothing is lost. If cargo answers `could not find Cargo.toml`, this terminal never got the `cd` above - run it and try again.
+The **Check** button on the task runs the same command and shows the same output in the tutor panel; it always uses the right folder, so it never needs the `cd`. The terminal is there so you can see it yourself and repeat it. The output appears on the **Terminal** tab, not in **Problems** and not in **Output** - those two show other things and are the usual reason for "nothing happens".

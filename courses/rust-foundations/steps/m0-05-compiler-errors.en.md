@@ -84,30 +84,24 @@ Repair the file so it compiles and prints the sentence, then explain which parts
 
 ## Running it
 
-Open a terminal with the menu **Terminal → New Terminal**, or press **F1**, type `>Terminal: Create New Terminal` and press Enter. The leading `>` is what switches the palette from searching files to searching commands, and F1 remembers whichever mode you used last - without it you get *No matching results*. In a browser F1 is more reliable than Ctrl+Shift+P, which the browser may keep for itself.
+::: do palette="> Terminal: Create New Terminal"
+Open a terminal: press **F1**, type the entry with its leading `>`, press Enter. In a browser F1 is more reliable than Ctrl+Shift+P, which the browser may keep for itself.
+> expect: The panel opens at the bottom on its **Terminal** tab, and the prompt ends in `~/workspace`.
+> recover: If the palette says *No matching results*, the `>` is missing and it is searching for a file of that name - type it in front and repeat. The menu does the same: **Terminal → New Terminal**.
+:::
 
-The terminal opens in the panel at the bottom, in `~/workspace` - the folder **above** this crate, because the lab window holds the Rust and the JavaScript workspace side by side. Change into the crate first, or cargo answers `could not find Cargo.toml`:
+The terminal starts in `~/workspace`, the folder **above** this crate, because the lab window holds the Rust and the JavaScript workspace side by side. Change into the crate once per terminal:
 
 ```bash
 cd ~/workspace/rust-foundations
 ```
 
-You only need that once per terminal. Then run:
+::: do command="mkdir -p target/check && rustc --edition 2024 -o target/check/m0_05 repair/m0_05_type_mismatch.rs && target/check/m0_05" cwd="."
+Run the command of the *The repaired file compiles and prints the sentence* task.
+> expect: The command ends without an error and its output contains `Ada is 36 years old and 1 metre 62 tall.`.
+> recover: If the cursor sits there and the prompt does not come back, it is still running - that is not a hang. If cargo answers `could not find Cargo.toml`, the `cd` above is missing.
+:::
 
-```bash
-mkdir -p target/check && rustc --edition 2024 -o target/check/m0_05 repair/m0_05_type_mismatch.rs && target/check/m0_05
-```
+![A terminal in the bottom panel: the prompt reads coder@…:~/workspace/rust-foundations, with the cargo command and its output below it.](terminal-run-a-step.png)
 
-The **Check** button next to the task above runs exactly these commands for you and shows the same output in the tutor panel; the terminal is there so you can see it yourself and repeat it.
-
-**What you see:** the program's output, containing `Ada is 36 years old and 1 metre 62 tall\.`.
-
-**How long:** a few seconds the first time, because the crate is compiled once; well under a second on every later run.
-
-**Finished when:** the shell prompt reappears below the output. Until it does, the command is still running - a blinking cursor with no prompt is not a hang.
-
-![A terminal in the panel at the bottom: the prompt reads coder@…:~/workspace/rust-foundations, then the cargo command, then its output.](terminal-run-a-step.png)
-
-*The three moves are the same in every step of this course - open a terminal, `cd` into the crate, run the command. Only the last line differs, and this step's version of it is in the block above.*
-
-**If something is off:** the output is in the **Terminal** tab at the bottom, not in **Problems** and not in **Output** - those two show different things and are the usual reason for "nothing happened". If you closed the terminal by accident, open a new one the same way; nothing is lost. If cargo answers `could not find Cargo.toml`, this terminal never got the `cd` above - run it and try again.
+The **Check** button on the task runs the same command and shows the same output in the tutor panel; it always uses the right folder, so it never needs the `cd`. The terminal is there so you can see it yourself and repeat it. The output appears on the **Terminal** tab, not in **Problems** and not in **Output** - those two show other things and are the usual reason for "nothing happens".

@@ -37,6 +37,8 @@ misconceptions:
 
 Decide whether a failure is a bug in your program or a condition your caller should handle, and write the panic that says so clearly.
 
+It picks up `m4-01-vectors`: the choice there between `v[i]` and `v.get(i)` is exactly this decision, only without the name it gets here.
+
 ## What a panic does
 
 `panic!` prints a message with the source location, unwinds the stack running every `drop`, and exits the process with code **101**. It is not an exception: nothing catches it in ordinary code, and there is no `try`.
@@ -92,31 +94,24 @@ Predict the example, implement the four functions so each panics exactly where a
 
 ## Running it
 
-Open a terminal with the menu **Terminal → New Terminal**, or press **F1**, type `>Terminal: Create New Terminal` and press Enter. The leading `>` is what switches the palette from searching files to searching commands, and F1 remembers whichever mode you used last - without it you get *No matching results*. In a browser F1 is more reliable than Ctrl+Shift+P, which the browser may keep for itself.
+::: do palette="> Terminal: Create New Terminal"
+Open a terminal: press **F1**, type the entry with its leading `>`, press Enter. In a browser F1 is more reliable than Ctrl+Shift+P, which the browser may keep for itself.
+> expect: The panel opens at the bottom on its **Terminal** tab, and the prompt ends in `~/workspace`.
+> recover: If the palette says *No matching results*, the `>` is missing and it is searching for a file of that name - type it in front and repeat. The menu does the same: **Terminal → New Terminal**.
+:::
 
-The terminal opens in the panel at the bottom, in `~/workspace` - the folder **above** this crate, because the lab window holds the Rust and the JavaScript workspace side by side. Change into the crate first, or cargo answers `could not find Cargo.toml`:
+The terminal starts in `~/workspace`, the folder **above** this crate, because the lab window holds the Rust and the JavaScript workspace side by side. Change into the crate once per terminal:
 
 ```bash
 cd ~/workspace/rust-foundations
 ```
 
-You only need that once per terminal. Then run:
+::: do command="cargo test --test m5-01-panic-vs-result" cwd="."
+Run this step's tests. The same command sits behind the **Check** button on the *The four functions panic where they should* task.
+> expect: One line per test, `test … ok` or `… FAILED`, then the summary `test result: ok. 8 passed; 0 failed` once all 8 pass. The first run takes a few seconds while the crate compiles once; every run after that stays well under a second.
+> recover: If cargo answers `could not find Cargo.toml`, this terminal never got the `cd` above - do it now. If it says `no test target named`, the name after `--test` is wrong; `ls tests/` lists the valid ones.
+:::
 
-```bash
-cargo run --quiet --example m5_unwrap_panic
-cargo test --test m5-01-panic-vs-result
-```
+![A terminal in the bottom panel: the prompt reads coder@…:~/workspace/rust-foundations, with the cargo command and its output below it.](terminal-run-a-step.png)
 
-The **Check** button next to the task above runs exactly these commands for you and shows the same output in the tutor panel; the terminal is there so you can see it yourself and repeat it.
-
-**What you see:** a compiler diagnostic and nothing else - this file is *meant* not to compile, so the error is the expected result, not your mistake.
-
-**How long:** a few seconds the first time, because the crate is compiled once; well under a second on every later run.
-
-**Finished when:** the shell prompt reappears below the output. Until it does, the command is still running - a blinking cursor with no prompt is not a hang.
-
-![A terminal in the panel at the bottom: the prompt reads coder@…:~/workspace/rust-foundations, then the cargo command, then its output.](terminal-run-a-step.png)
-
-*The three moves are the same in every step of this course - open a terminal, `cd` into the crate, run the command. Only the last line differs, and this step's version of it is in the block above.*
-
-**If something is off:** the output is in the **Terminal** tab at the bottom, not in **Problems** and not in **Output** - those two show different things and are the usual reason for "nothing happened". If you closed the terminal by accident, open a new one the same way; nothing is lost. If cargo answers `could not find Cargo.toml`, this terminal never got the `cd` above - run it and try again.
+The **Check** button on the task runs the same command and shows the same output in the tutor panel; it always uses the right folder, so it never needs the `cd`. The terminal is there so you can see it yourself and repeat it. The output appears on the **Terminal** tab, not in **Problems** and not in **Output** - those two show other things and are the usual reason for "nothing happens".
