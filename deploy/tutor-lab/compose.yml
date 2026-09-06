@@ -1,0 +1,93 @@
+# CaDS Tutor Lab - the language lab (Rust + JavaScript) on the lab host.
+#
+# This is the deployment file, not the development one: it never builds, it
+# pins one immutable tag, and every secret comes from .env (cp .env.example
+# .env). The development counterpart with its `build:` block is
+# images/tutor-lab/docker-compose.yml.
+#
+#   cp .env.example .env && $EDITOR .env      # TUTOR_LAB_PASSWORD, TUTOR_LLM_*
+#   ./deploy.sh                               # pull, restart, health, rollback
+#   ./smoke.sh                                # entry links, extensions, courses
+#
+# Operator runbook: docs/TUTOR-LAB-DEPLOY.md.
+#
+# THERE IS DELIBERATELY NO `command:` HERE. Compose's `command:` REPLACES the
+# image's CMD, and this image's CMD is what opens the multi-root workspace and
+# switches the startup noise off:
+#
+#   --bind-addr 0.0.0.0:8080 --app-name "CaDS Tutor Lab" --disable-workspace-trust
+#   --disable-telemetry --disable-update-check
+#   /home/coder/workspace/cads-tutor.code-workspace
+#
+# An overriding command line is how the first attempt failed: it reinstated
+# workspace trust, so every extension - the tutor included - was switched off
+# in Restricted Mode. If you ever need to pass a flag, add it to the image's
+# CMD, not here.
+name: ${TUTOR_LAB_PROJECT:-cads-demo-tutor-lab}
+
+services:
+  tutor-lab:
+    # Immutable tag. Never `next` or `latest`: a moving tag leaves a rollback
+    # with nothing to roll back to. deploy.sh reads the digest of whatever is
+    # running before it changes anything, so the rollback target is observed
+    # rather than assumed.
+    # TUTOR_LAB_IMAGE is parameterised only so a rollback can pin the exact
+    # image that was running, by id, even if its tag has moved since.
+    image: ${TUTOR_LAB_IMAGE:-ghcr.io/scimbe/cads-tutor-lab}:${TUTOR_LAB_TAG:-next-0d432d3}
+    container_name: ${TUTOR_LAB_CONTAINER:-tutor-lab}
+    restart: unless-stopped
+    environment:
+      # Required. The shared student login; code-server reads $PASSWORD.
+      # Set it in .env - never in this file, which is in the repository.
+      - PASSWORD=${TUTOR_LAB_PASSWORD:?set TUTOR_LAB_PASSWORD in .env before starting}
+      # The tutor's "ask" path. All three must be set together, or the tutor
+      # reports itself unconfigured and every comprehension question falls back
+      # to self-assessment. The base URL MUST be https:// - @cads/tutor-platform
+      # throws `LlmClient baseUrl must be https://` on anything else and the ask
+      # path stays dead while the rest of the tutor keeps working.
+      # Verify the endpoint with ./llm-check.sh before a class uses it.
+      - TUTOR_LLM_BASE_URL=${TUTOR_LLM_BASE_URL:-}
+      - TUTOR_LLM_API_KEY=${TUTOR_LLM_API_KEY:-}
+      - TUTOR_LLM_MODEL=${TUTOR_LLM_MODEL:-}
+      # Teacher portal ingest (SPEC A5). Unset = learning events stay in the
+      # container. cads-tutor@0.1.0 does not read these yet; setting them is
+      # harmless and prepares the portal stream.
+      - CADS_TUTOR_TELEMETRY_URL=${CADS_TUTOR_TELEMETRY_URL:-}
+      - CADS_TUTOR_TELEMETRY_TOKEN=${CADS_TUTOR_TELEMETRY_TOKEN:-}
+    ports:
+      # Loopback only - the tunnel on the lab host targets 127.0.0.1:8084.
+      # (The firmware lab uses 8083 on the same host.)
+      - "127.0.0.1:${TUTOR_LAB_PORT:-8084}:8080"
+    volumes:
+      # Student work. Never re-seeded and never overwritten by a new tag; only
+      # the .vscode/settings.json files the image owns are refreshed.
+      # deploy.sh refuses to start if this name differs from the volume the
+      # running container actually has, so an upgrade cannot silently hand the
+      # students an empty workspace.
+      - workspace:/home/coder/workspace
+    healthcheck:
+      # code-server's own endpoint, reachable without a login. It answers as
+      # soon as the HTTP server is up, which is what "the lab is reachable"
+      # means here; the tutor and the workspaces are checked by smoke.sh.
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+    labels:
+      # The two entry links, one per track. Each opens a single workspace
+      # folder, and the tutor shows only the course whose project.root matches
+      # that folder - so each link offers exactly one course. Kept as labels so
+      # smoke.sh checks the links that are published rather than a copy of them
+      # in a script, and so `docker inspect` answers "what do I hand a student".
+      #
+      # A bare https://<host>/ reopens whatever that browser had open last and
+      # is NOT an entry point. Publish these two.
+      cads.tutor-lab.entry.rust: "/?folder=/home/coder/workspace/rust-foundations"
+      cads.tutor-lab.entry.javascript: "/?folder=/home/coder/workspace/javascript-foundations"
+
+volumes:
+  workspace:
+    # Explicit, so the volume does not silently change name when the compose
+    # project or the directory is renamed.
+    name: ${TUTOR_LAB_VOLUME:-tutor-lab-workspace}
