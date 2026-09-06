@@ -388,6 +388,16 @@ auf die Nummer statt auf „oben rechts". *E6 räumliche Kontiguität.*
 **R11a.7 — Jedes Lernziel kehrt zeitversetzt wieder.** Zu jedem Lernziel gibt es mindestens einen Abruf in einem
 späteren Modul. *E7: Praxis-Test und verteilte Wiederholung sind die zwei wirksamsten Verfahren; K8.* **[Validator]**
 
+**R11a.7 Ausnahme — Lernziele des letzten Moduls.** Trägt ein Lernziel **ausschließlich** das letzte Modul
+eines Kurses, ist R11a.7 dort nicht erfüllbar: es gibt kein späteres Modul, aus dem abgerufen werden könnte.
+Das ist keine Lücke, sondern eine Eigenschaft der Kursform, und A9.2 sagt es selbst — *nachgewiesen* verlangt
+einen Abrufbeleg aus einem späteren Modul und kann definitionsgemäß erst später eintreten. Ein Projektlernziel
+bleibt daher bei **geübt**, und das ist die richtige Stufe für es: das Werkstück ist gebaut, aber noch nicht
+nach Abstand wieder abgerufen. Die Messung meldet solche Lernziele getrennt (nicht als Lücke), und wer die
+Ausnahme aufheben will, hängt ein Modul hinter das Projekt statt einen Zeiger ins Leere.
+*Belegt: `rust-project-cli` wird nur von m7-01 und m7-02 getragen, `cads-zero-projects` besteht ausschließlich
+aus solchen Lernzielen — sechs von sechs (2026-09-06).*
+
 **R11a.7a — Kein stummer Zeiger.** Ein `recallFrom` darf nur auf einen Step zeigen, der eine `question`-Aufgabe
 hat, und der Rumpf des zurückverweisenden Steps muss den Verweis auch erwähnen. Grund: die Abrufkarte wird aus
 den `question`-Aufgaben des abgeschlossenen Zielschritts gebaut — ein Zeiger auf einen Step ohne solche Aufgabe
