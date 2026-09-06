@@ -280,7 +280,12 @@ Lauf ab, statt mit einem zweiten Parser zu raten.
 Funktionswortprobe: ein Feld, das komplett in der falschen Sprache steht, wird gemeldet; bei kurzem oder
 fachwortlastigem Text schweigt sie. Das ist kein Schönheitsfehler — ohne Sprachmodell zeigt der Tutor die
 Rubrik als Selbstkontrolle an, deutschsprachige Studierende lasen also eine englische Bewertungsanleitung.
-Derzeit eine Warnung; `--language-errors` macht daraus einen Fehler.
+Das ist ein **Fehler**, seit beide Sprachkurse umgestellt sind.
+
+Nicht geprüft und auch nicht zu prüfen: zweisprachige `{de, en}`-Objekte (dort ist deutscher Text in einer
+`.en.md` richtig) und der Rumpf. Zitate echter Bedienelemente bleiben in ihrer Originalsprache stehen, in beide
+Richtungen — `CaDS Board: Konsole öffnen` in einem englischen Text und `Tests: Run All` in einem deutschen
+(Regel R11a.7b).
 
 `--solutions DIR` ist die **Negativprobe** für sprachunabhängige Tracks: jeder `command`/`testSuite`-Check läuft
 zweimal in einer Kopie des Projekt-Roots — auch dann, wenn er in `predict.then`, `all` oder `any` steckt. Bei

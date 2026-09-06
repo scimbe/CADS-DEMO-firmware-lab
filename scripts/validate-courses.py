@@ -206,6 +206,24 @@ DO_CLOSE_RE = re.compile(r"^:::[ \t]*$")
 DO_ATTR_RE = re.compile(r'([a-zA-Z]+)[ \t]*=[ \t]*(?:"([^"]*)"|(\S+))')
 DO_MARK_RE = re.compile(r"^>[ \t]*(expect|recover):[ \t]*(.*)$")
 FENCE_RE = re.compile(r"^\s*(```|~~~)")
+IMAGE_RE = re.compile(r"!\[[^\]]*\](?:\([^)]*\))?")
+CAPTION_RE = re.compile(r"^\s*[*_][^*_].*[*_]\s*$")
+COMMENT_OPEN = "<!--"
+COMMENT_CLOSE = "-->"
+
+
+def strip_non_prose(line):
+    """The part of a line a student is meant to read, and whether an HTML
+    comment is still open afterwards. Image markup goes, comments go, the prose
+    around them stays - so a sentence next to a screenshot is still checked."""
+    line = IMAGE_RE.sub(" ", line)
+    while COMMENT_OPEN in line:
+        head, rest = line.split(COMMENT_OPEN, 1)
+        if COMMENT_CLOSE in rest:
+            line = head + " " + rest.split(COMMENT_CLOSE, 1)[1]
+        else:
+            return head, True
+    return line, False
 DO_ACTION_KEYS = ("task", "command", "palette", "file", "keys")
 DO_MODIFIER_KEYS = ("cwd", "line")
 
@@ -227,12 +245,46 @@ BUILTIN_PALETTE = {
     "> Debug: Start Debugging",
 }
 
-# Rule 4 fires on a call to action outside a block. Verbs only, in both course
-# languages; the route name has to be present too, so "Öffne die Datei" alone is
-# not flagged - only "Öffne ... CaDS: Build".
+# Rule 4 fires on a call to action outside a block. The route name has to be on
+# the same line, so "Öffne die Datei" alone is not flagged - only "Öffne … CaDS:
+# Build".
+#
+# The first version listed German imperatives, and that made it nearly blind on
+# half of every course: German writes operating instructions in the infinitive -
+# "Terminal öffnen", "`F1` drücken", "`…` tippen" - where English writes "open the
+# terminal". One step with identical content in both languages was reported twice
+# in English and not once in German. A validator that checks a bilingual course
+# on one side only is worse than none, because it reports a clean German half
+# that nobody looked at.
+#
+# So German is matched in the two forms an instruction actually takes: the
+# imperative (öffne, lies, nimm) and the infinitive (öffnen, ausführen,
+# aufklappen), with room for the separable prefix. Deliberately NOT matched are
+# the third person and the participle - "das Terminal öffnet sich", "mitten in
+# `CaDS: Build` geschlossen", "der Check startet den Task" all describe what
+# happens rather than telling anyone to do it, and matching them turned nine of
+# eleven findings in the firmware pack into noise.
+DE_ACTION_STEMS = (
+    "öffn|offn|drück|druck|tipp|führ|fuhr|start|klick|wähl|wahl|klapp|schließ|schliess|"
+    "speicher|wechsl|wechsel|kopier|markier|scroll|navigier|geb|leg|füg|fug|ruf|setz|"
+    "beend|wiederhol|les"
+)
+# German infinitive and third person plural are the same word, so a stem is only
+# usable when the verb is rare in the third person plural. "bestätigen" failed
+# that test on "die Checks bestätigen, dass …" and is left out; the operating
+# verbs above describe what a hand does, which prose rarely says of a subject.
+#
+# Irregular imperatives, which have no -e/-en ending to key on. "halt" is left
+# out too: it matched inside descriptive prose and an instruction to stop is not
+# an operating route anyway.
+DE_IRREGULAR = "lies|nimm|gib|sieh"
+DE_PREFIX = "(?:aus|auf|zu|ein|an|ab|durch|weiter|nach|vor|hin|los|neu|um|über|uber)?"
 CALL_TO_ACTION_RE = re.compile(
-    r"\b(f[üu]hre|[öo]ffne|dr[üu]cke|starte|tippe|klicke|w[äa]hle|klappe|gib|wechsle|"
-    r"run|open|press|start|type|click|select|choose|enter|switch)\b",
+    r"\b" + DE_PREFIX + r"(?:" + DE_ACTION_STEMS + r")(?:e|en)\b"
+    r"|\b" + DE_PREFIX + r"(?:" + DE_IRREGULAR + r")\b"
+    # English needs no stemming: the imperative is the bare verb, and the third
+    # person carries an -s that the word boundary already keeps out.
+    r"|\b(?:run|open|press|start|type|click|select|choose|enter|switch|pick|hit|launch)\b",
     re.IGNORECASE,
 )
 
@@ -275,32 +327,57 @@ def parse_do_attributes(attr_text):
 
 
 def parse_do_blocks(body):
-    """Every `::: do` block in a step body, and the lines that lie outside them.
+    """Every `::: do` block in a step body, and the prose that lies outside them.
 
     Returns (blocks, outside_lines). A block is a dict with attrs, problems,
     instruction, expect, recover and the 1-based line number of its opening.
-    Fenced code is treated as outside-but-inert: it is dropped from
-    outside_lines, so a code sample never trips rule 4.
+
+    What lands in outside_lines is prose a student is meant to follow, and only
+    that. Four things are taken out, because rule 4 was reporting all of them and
+    the course streams were right not to reword any:
+      - fenced code, which shows a command rather than telling anyone to run it;
+      - image markup, whose alt text describes a screenshot ("the palette with
+        `Tasks: Run Task` typed into it") - rewriting a picture's description to
+        please a linter is the wrong direction;
+      - the italic caption directly under an image, for the same reason;
+      - HTML comments, which carry photography briefs (`<!-- SHOT: … -->`) and
+        other notes to ourselves, never instructions to a student.
     """
     blocks = []
     outside = []
     lines = body.replace("\r\n", "\n").split("\n")
     i = 0
     in_fence = False
+    in_comment = False
+    prev_was_image = False
     while i < len(lines):
         line = lines[i]
         if FENCE_RE.match(line):
             in_fence = not in_fence
+            prev_was_image = False
             i += 1
             continue
         if in_fence:
             i += 1
             continue
+        if in_comment:
+            if COMMENT_CLOSE in line:
+                in_comment = False
+                line = line.split(COMMENT_CLOSE, 1)[1]
+            else:
+                i += 1
+                continue
         m = DO_OPEN_RE.match(line.strip())
         if not m:
-            outside.append((i + 1, line))
+            prose, in_comment = strip_non_prose(line)
+            # A caption belongs to the picture above it, not to the reader.
+            if prev_was_image and CAPTION_RE.match(line):
+                prose = ""
+            prev_was_image = bool(IMAGE_RE.search(line)) or (prev_was_image and not line.strip())
+            outside.append((i + 1, prose))
             i += 1
             continue
+        prev_was_image = False
         attrs, problems = parse_do_attributes(m.group(1) or "")
         body_lines = []
         j = i + 1
@@ -434,7 +511,8 @@ def collect_routes(check, tasks, commands):
 
 
 def validate_do_blocks(where, body, root, known, report):
-    """The four A9.1 rules. Rule 4 is a warning until the packs are converted."""
+    """The four A9.1 rules. Returns the number of rule-4 findings, so the two
+    language halves of a step can be held against each other."""
     blocks, outside = parse_do_blocks(body)
     report.do_blocks += len(blocks)
     for block in blocks:
@@ -466,12 +544,15 @@ def validate_do_blocks(where, body, root, known, report):
     # now: it fires on every course written before A9.1, and turning it into an
     # error would block the very commits that fix it.
     named = sorted(known["tasks"] | known["commands"] | {e[2:] for e in known["palette"]}, key=len, reverse=True)
+    found = 0
     for line_no, line in outside:
         if not CALL_TO_ACTION_RE.search(line):
             continue
         hit = next((n for n in named if n and n in line), None)
         if hit:
+            found += 1
             report.warn(f"{where}:{line_no}", f'operating instruction outside a `::: do` block names "{hit}" (A9.1 rule 4)')
+    return found
 
 
 # --- language probe ---------------------------------------------------------
@@ -488,10 +569,11 @@ def validate_do_blocks(where, body, root, known, report):
 # words that belong to one language alone - "in", "an", "man", "war", "hat",
 # "die", "so", "also" and "am" are all common in both and are left out.
 
-# Flip to True once courses/rust-foundations and courses/javascript-foundations
-# carry German rubrics in their .de.md files; until then this would break every
-# other stream's run. `--language-errors` enforces it per run in the meantime.
-LANGUAGE_MISMATCH_IS_ERROR = False
+# Both language packs are converted (rust-foundations 0 of 34,
+# javascript-foundations 0 of 40), so this is an error rather than a warning.
+# `--language-errors` is kept for the case where it has to be forced on a branch
+# where the constant has been turned off again.
+LANGUAGE_MISMATCH_IS_ERROR = True
 
 DE_MARKERS = set("""
 der das den dem des ein eine einen einem einer und oder nicht ist sind wird werden wurde wurden
@@ -910,6 +992,12 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
     repo_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     known = {"tasks": known_tasks, "commands": known_commands, "palette": palette_entries(repo_dir)}
 
+    # Rule-4 findings per file. The two halves of a step say the same thing in
+    # two languages, so they must produce the same number of findings; a
+    # difference means one half is being checked less than the other, which is
+    # how a whole German half once read as clean because nobody had looked.
+    rule4_hits = {}
+
     # Validate each language file.
     for sid in sorted(all_ids):
         for lang in ("en", "de"):
@@ -1064,13 +1152,27 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
             if misconceptions and not (step_check_types & {"command", "testSuite"}):
                 report.warn(where, "misconceptions declared but no command/testSuite task produces output to match")
             # A9.1: instruction blocks, and the call to action that escaped one.
-            validate_do_blocks(where, body, root, known, report)
+            rule4_hits[(sid, lang)] = validate_do_blocks(where, body, root, known, report)
             # A plain-string field carries the language of its own file, and
             # nothing structural can notice when it does not.
             validate_language(where, fm, lang, report, language_errors)
 
             if lang == "en" and listed_steps and sid not in listed_steps:
                 report.warn(where, "step file is not listed in any module of course.json")
+
+    for sid in sorted(all_ids):
+        de = rule4_hits.get((sid, "de"))
+        en = rule4_hits.get((sid, "en"))
+        if de is None or en is None or de == en:
+            continue
+        more, less = ("de", "en") if de > en else ("en", "de")
+        report.warn(
+            f"{name}/{sid}",
+            f"rule 4 finds {max(de, en)} operating instruction(s) in the .{more} step and "
+            f"{min(de, en)} in the .{less} one. Either the two halves do not say the same thing, "
+            f"or the probe is weaker on one of them - a bilingual course checked on one side "
+            f"only reports a clean half that nobody looked at.",
+        )
 
     # Only enforce full checks once (avoid double-counting de/en): dedupe handled
     # by iterating both, which is intentional - both files must be schema-valid.
