@@ -293,6 +293,22 @@ export interface RecallRecord {
   graded?: boolean;
 }
 
+/**
+ * A9.2: a graded recall, kept for good. `recall` holds only the card currently
+ * shown for a step, keyed by that step, and is overwritten the next day - which
+ * would erase the one piece of evidence that can carry an objective to
+ * "nachgewiesen". The log is append-only for exactly that reason.
+ */
+export interface RecallEvidenceRecord {
+  /** ISO date the card was answered. */
+  date: string;
+  /** The step the card was shown on. */
+  onStepId: string;
+  fromStepId: string;
+  taskId: string;
+  outcome: "passed" | "failed";
+}
+
 export interface SessionState {
   schema: 1;
   studentId: string;
@@ -307,6 +323,8 @@ export interface SessionState {
   reflections?: Record<string, ReflectionRecord>;
   /** keyed by "<courseId>/<stepId>" (the step that showed the card) */
   recall?: Record<string, RecallRecord>;
+  /** keyed by courseId: every graded recall, in the order they were answered. */
+  recallLog?: Record<string, RecallEvidenceRecord[]>;
   /** The orientation card has been dismissed; it is reachable again by command. */
   orientationSeen?: boolean;
 }

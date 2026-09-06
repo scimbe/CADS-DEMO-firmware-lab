@@ -46,6 +46,7 @@ import {
   newSession,
   nextOpenStep,
   readSession,
+  recordRecallEvidence,
   recordTaskResult,
   sessionFilePath,
   setAnswer,
@@ -1282,6 +1283,17 @@ export class TutorController implements vscode.Disposable {
       ...(this.session.recall ?? {}),
       [key]: { ...record, ...(answer ? { answer, ...graded } : { dismissed: true }) },
     };
+    // The card in `recall` is per step and per day and is replaced the next time
+    // the step is opened; a graded verdict is evidence and must outlive that.
+    if (graded?.outcome) {
+      recordRecallEvidence(this.session, cur.course.manifest.id, {
+        date: record.date,
+        onStepId: cur.step.id,
+        fromStepId: record.fromStepId,
+        taskId: record.taskId,
+        outcome: graded.outcome,
+      });
+    }
     this.saveSession();
     this.emit({
       type: "recall.answered",

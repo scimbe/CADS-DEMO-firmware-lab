@@ -123,12 +123,43 @@ describe("A9.2 evidence from a session", () => {
     assert.equal(objectiveCompetence(course, s, "firmware-safety").level, "demonstrated");
   });
 
+  it("keeps a graded recall after the card was replaced the next day", () => {
+    const s = newSession();
+    pass(s, "m1-02-reflect", "cleanup");
+    s.recallLog = {
+      [CID]: [{ date: "2026-09-07", onStepId: "m2-02-predict", fromStepId: "m1-02-reflect", taskId: "reflect", outcome: "passed" }],
+    };
+    // The card of the day now points somewhere else entirely; the evidence stays.
+    s.recall = { [stepKey(CID, "m2-02-predict")]: { date: "2026-09-09", fromStepId: "m1-01-board", taskId: "tap" } };
+    assert.equal(objectiveCompetence(course, s, "firmware-safety").level, "demonstrated");
+  });
+
+  it("counts the same repetition once however often the step was reopened", () => {
+    const s = newSession();
+    pass(s, "m1-02-reflect", "cleanup");
+    const entry = { date: "2026-09-07", onStepId: "m2-02-predict", fromStepId: "m1-02-reflect", taskId: "reflect", outcome: "passed" as const };
+    s.recallLog = { [CID]: [entry, { ...entry, date: "2026-09-09" }] };
+    s.recall = {
+      [stepKey(CID, "m2-02-predict")]: { date: "2026-09-09", fromStepId: "m1-02-reflect", taskId: "reflect", outcome: "passed", graded: true },
+    };
+    assert.equal(objectiveEvidence(course, s, "firmware-safety").filter((e) => e.kind === "recall").length, 1);
+  });
+
+  it("ignores a failed recall", () => {
+    const s = newSession();
+    pass(s, "m1-02-reflect", "cleanup");
+    s.recallLog = {
+      [CID]: [{ date: "2026-09-07", onStepId: "m2-02-predict", fromStepId: "m1-02-reflect", taskId: "reflect", outcome: "failed" }],
+    };
+    assert.equal(objectiveEvidence(course, s, "firmware-safety").some((e) => e.kind === "recall"), false);
+  });
+
   it("does not count a recall shown inside the module it came from", () => {
     const s = newSession();
     pass(s, "m1-02-reflect", "cleanup");
     // m1-01-board is in the same module as the recalled step, so there is no delay.
-    s.recall = {
-      [stepKey(CID, "m1-01-board")]: { date: "2026-09-07", fromStepId: "m1-02-reflect", taskId: "reflect", outcome: "passed", graded: true },
+    s.recallLog = {
+      [CID]: [{ date: "2026-09-07", onStepId: "m1-01-board", fromStepId: "m1-02-reflect", taskId: "reflect", outcome: "passed" }],
     };
     assert.equal(objectiveEvidence(course, s, "firmware-safety").some((e) => e.kind === "recall"), false);
   });

@@ -10,7 +10,7 @@ import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { orderedSteps } from "./loader";
-import { EVIDENCE_WEIGHT, stepKey, type CompetenceLevel, type Course, type CourseModule, type Evidence, type EvidenceKind, type Lang, type ObjectiveCompetence, type PredictionOutcome, type SessionState, type Step, type StepProgress, type StepStatus, type TaskSpec, type TaskState, type TaskStatus, type TestCaseResult } from "./types";
+import { EVIDENCE_WEIGHT, stepKey, type CompetenceLevel, type Course, type CourseModule, type Evidence, type EvidenceKind, type Lang, type ObjectiveCompetence, type PredictionOutcome, type RecallEvidenceRecord, type SessionState, type Step, type StepProgress, type StepStatus, type TaskSpec, type TaskState, type TaskStatus, type TestCaseResult } from "./types";
 
 export function newSession(now = new Date()): SessionState {
   const iso = now.toISOString();
@@ -196,6 +196,22 @@ export function recordTaskResult(
   return { state, stepCompleted: done && !wasDone, unlocked };
 }
 
+/**
+ * A9.2: appends a graded recall to the course's evidence log. The card state in
+ * `recall` is per step and per day and is overwritten; this is not.
+ */
+export function recordRecallEvidence(
+  session: SessionState,
+  courseId: string,
+  entry: RecallEvidenceRecord,
+  now = new Date(),
+): void {
+  const log = session.recallLog ?? (session.recallLog = {});
+  const existing = log[courseId] ?? (log[courseId] = []);
+  existing.push(entry);
+  session.updatedAt = now.toISOString();
+}
+
 export function setAnswer(session: SessionState, courseId: string, stepId: string, taskId: string, answer: string, now = new Date()): void {
   const progress = ensureStepProgress(session, courseId, stepId, now);
   const prev = getTaskState(progress, taskId);
@@ -379,31 +395,40 @@ function taskEvidence(step: Step, task: TaskSpec, state: TaskState | undefined, 
  * same module is repetition, not retrieval after a delay.
  */
 function recallEvidence(course: Course, session: SessionState, objectiveSteps: Set<string>): Evidence[] {
-  const out: Evidence[] = [];
-  for (const [key, record] of Object.entries(session.recall ?? {})) {
-    if (record.outcome !== "passed" || !record.graded) continue;
-    if (!objectiveSteps.has(record.fromStepId)) continue;
-    const prefix = `${course.manifest.id}/`;
-    if (!key.startsWith(prefix)) continue;
-    const shownOn = course.steps.get(key.slice(prefix.length));
-    const from = course.steps.get(record.fromStepId);
-    if (!shownOn || !from) continue;
+  const out = new Map<string, Evidence>();
+  const add = (onStepId: string, fromStepId: string, taskId: string, date: string): void => {
+    if (!objectiveSteps.has(fromStepId)) return;
+    const shownOn = course.steps.get(onStepId);
+    const from = course.steps.get(fromStepId);
+    if (!shownOn || !from) return;
     const here = moduleIndex(course, shownOn.moduleId);
     const there = moduleIndex(course, from.moduleId);
-    if (here < 0 || there < 0 || here <= there) continue;
-    out.push({
+    if (here < 0 || there < 0 || here <= there) return;
+    // The same question, repeated at the same place, is one piece of evidence
+    // however often the student reopened the step.
+    out.set(`${onStepId}/${fromStepId}/${taskId}`, {
       kind: "recall",
       weight: EVIDENCE_WEIGHT.recall,
       stepId: shownOn.id,
       moduleId: shownOn.moduleId,
       moduleIndex: here,
-      taskId: record.taskId,
-      at: record.date,
-      fromStepId: record.fromStepId,
+      taskId,
+      at: date,
+      fromStepId,
       fromModuleIndex: there,
     });
+  };
+  for (const r of session.recallLog?.[course.manifest.id] ?? []) {
+    if (r.outcome === "passed") add(r.onStepId, r.fromStepId, r.taskId, r.date);
   }
-  return out;
+  // Sessions written before the log existed keep their evidence: `recall` still
+  // holds the last card per step, and reading it costs nothing.
+  const prefix = `${course.manifest.id}/`;
+  for (const [key, record] of Object.entries(session.recall ?? {})) {
+    if (record.outcome !== "passed" || !record.graded || !key.startsWith(prefix)) continue;
+    add(key.slice(prefix.length), record.fromStepId, record.taskId, record.date);
+  }
+  return [...out.values()];
 }
 
 /** Every piece of evidence a course's session holds for one objective, oldest first. */
