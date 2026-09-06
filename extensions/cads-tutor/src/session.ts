@@ -10,7 +10,7 @@ import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { orderedSteps } from "./loader";
-import { stepKey, type Course, type CourseModule, type Lang, type PredictionOutcome, type SessionState, type Step, type StepProgress, type StepStatus, type TaskState, type TaskStatus, type TestCaseResult } from "./types";
+import { EVIDENCE_WEIGHT, stepKey, type CompetenceLevel, type Course, type CourseModule, type Evidence, type EvidenceKind, type Lang, type ObjectiveCompetence, type PredictionOutcome, type SessionState, type Step, type StepProgress, type StepStatus, type TaskSpec, type TaskState, type TaskStatus, type TestCaseResult } from "./types";
 
 export function newSession(now = new Date()): SessionState {
   const iso = now.toISOString();
@@ -88,6 +88,14 @@ export function isCourseDone(session: SessionState, course: Course): boolean {
   return steps.length > 0 && steps.every((s) => isStepDone(session, s));
 }
 
+/**
+ * Unlocking runs on `requires` and on the course's prerequisites - deliberately
+ * NOT on the competence level (see isModuleCompetenceComplete). A9.2's "geübt"
+ * needs a strong piece of evidence or two medium ones, and a course whose
+ * objective is served by a single `question` step can never produce that, least
+ * of all without a language model. Making the level a gate would lock such a
+ * student out of the rest of the course for a reason they cannot act on.
+ */
 export function isStepUnlocked(session: SessionState, course: Course, step: Step, allCourses: Course[]): boolean {
   for (const pre of course.manifest.prerequisites) {
     const preCourse = allCourses.find((c) => c.manifest.id === pre);
@@ -309,4 +317,174 @@ export function moduleProgress(course: Course, moduleId: string, session: Sessio
     }
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Addendum A9.2: the competence model.
+//
+// A learning objective carries evidence, and the evidence - not the number of
+// steps clicked through - decides the level. Everything here is pure: it reads
+// the course and the session and returns a verdict, so the rule can be tested
+// without a panel, a language model or a board (and so the panel, the progress
+// view and the export cannot drift apart by each computing their own).
+// ---------------------------------------------------------------------------
+
+/** Position of a module in the manifest. "A later module" is decided by this, not by dates. */
+export function moduleIndex(course: Course, moduleId: string): number {
+  return course.manifest.modules.findIndex((m) => m.id === moduleId);
+}
+
+/**
+ * The evidence one finished task contributes. At most two pieces: the pass
+ * itself, and - for a `predict` - the prediction verdict on top of it, because
+ * A9.2 lists "Prüfung bestanden" and "Vorhersage traf zu" as separate rows.
+ *
+ * A self-reported pass contributes nothing (R11a.8). That is the whole point of
+ * the flag: without it the tutor would report competence that nobody checked.
+ */
+function taskEvidence(step: Step, task: TaskSpec, state: TaskState | undefined, index: number): Evidence[] {
+  if (!state || state.status !== "passed" || state.selfReported) return [];
+  const base = { stepId: step.id, moduleId: step.moduleId, moduleIndex: index, taskId: task.id, at: state.checkedAt };
+  const out: Evidence[] = [];
+  // A rubric-graded answer is worth a medium regardless of attempts: A9.2 grades
+  // the question by who judged it, not by how often it was tried.
+  const kind: EvidenceKind =
+    task.check.type === "question" ? "question" : (state.attempts ?? 1) <= 1 && state.hintTier === 0 ? "checkFirstTry" : "checkAssisted";
+  out.push({ ...base, kind, weight: EVIDENCE_WEIGHT[kind] });
+  if (task.check.type === "predict" && state.predictionOutcome === "correct" && state.predictionGraded) {
+    out.push({ ...base, kind: "prediction", weight: EVIDENCE_WEIGHT.prediction });
+  }
+  return out;
+}
+
+/**
+ * Recall evidence: a recall card that was answered and graded as passed, shown
+ * on a step at least one module after the step the question came from. The
+ * distance is the point (E7, verteilte Wiederholung); a card answered inside the
+ * same module is repetition, not retrieval after a delay.
+ */
+function recallEvidence(course: Course, session: SessionState, objectiveSteps: Set<string>): Evidence[] {
+  const out: Evidence[] = [];
+  for (const [key, record] of Object.entries(session.recall ?? {})) {
+    if (record.outcome !== "passed" || !record.graded) continue;
+    if (!objectiveSteps.has(record.fromStepId)) continue;
+    const prefix = `${course.manifest.id}/`;
+    if (!key.startsWith(prefix)) continue;
+    const shownOn = course.steps.get(key.slice(prefix.length));
+    const from = course.steps.get(record.fromStepId);
+    if (!shownOn || !from) continue;
+    const here = moduleIndex(course, shownOn.moduleId);
+    const there = moduleIndex(course, from.moduleId);
+    if (here < 0 || there < 0 || here <= there) continue;
+    out.push({
+      kind: "recall",
+      weight: EVIDENCE_WEIGHT.recall,
+      stepId: shownOn.id,
+      moduleId: shownOn.moduleId,
+      moduleIndex: here,
+      taskId: record.taskId,
+      at: record.date,
+      fromStepId: record.fromStepId,
+      fromModuleIndex: there,
+    });
+  }
+  return out;
+}
+
+/** Every piece of evidence a course's session holds for one objective, oldest first. */
+export function objectiveEvidence(course: Course, session: SessionState, objectiveId: string): Evidence[] {
+  const steps = new Set<string>();
+  const out: Evidence[] = [];
+  for (const step of orderedSteps(course)) {
+    const meta = step.variants.en?.meta;
+    if (!meta || !meta.objectives.includes(objectiveId)) continue;
+    steps.add(step.id);
+    const index = moduleIndex(course, step.moduleId);
+    const progress = getStepProgress(session, course.manifest.id, step.id);
+    for (const task of meta.tasks) out.push(...taskEvidence(step, task, progress?.tasks?.[task.id], index));
+  }
+  out.push(...recallEvidence(course, session, steps));
+  return out.sort((a, b) => (a.at ?? "").localeCompare(b.at ?? ""));
+}
+
+/**
+ * A9.2: berührt = at least one piece of evidence, geübt = one strong or two
+ * medium, nachgewiesen = a strong piece *and* a recall from a later module.
+ *
+ * A recall is itself strong, so "nachgewiesen" deliberately asks for a strong
+ * piece besides it: one event cannot be both the work and the proof that the
+ * work survived a delay.
+ */
+export function competenceLevel(evidence: Evidence[]): CompetenceLevel {
+  if (evidence.length === 0) return "none";
+  const recalls = evidence.filter((e) => e.kind === "recall");
+  const strongBesides = evidence.filter((e) => e.weight === "strong" && e.kind !== "recall");
+  if (recalls.length > 0 && strongBesides.length > 0) return "demonstrated";
+  const strong = evidence.filter((e) => e.weight === "strong").length;
+  const medium = evidence.filter((e) => e.weight === "medium").length;
+  if (strong >= 1 || medium >= 2) return "practised";
+  return "touched";
+}
+
+/** The piece of evidence the competence card names - the one that carried the objective to its level. */
+export function leadingEvidence(evidence: Evidence[], level: CompetenceLevel): Evidence | undefined {
+  if (level === "none") return undefined;
+  if (level === "demonstrated") return evidence.filter((e) => e.kind === "recall").at(-1);
+  if (level === "practised") {
+    // The strong one if there is one; otherwise the second medium, which is the
+    // one that actually reached the level - naming the first would suggest a
+    // single answer was enough.
+    const strong = evidence.find((e) => e.weight === "strong");
+    if (strong) return strong;
+    return evidence.filter((e) => e.weight === "medium")[1];
+  }
+  return evidence[0];
+}
+
+export function objectiveCompetence(course: Course, session: SessionState, objectiveId: string): ObjectiveCompetence {
+  const evidence = objectiveEvidence(course, session, objectiveId);
+  const level = competenceLevel(evidence);
+  const steps = orderedSteps(course)
+    .filter((s) => s.variants.en?.meta.objectives.includes(objectiveId))
+    .map((s) => s.id);
+  return { objectiveId, level, evidence, leading: leadingEvidence(evidence, level), steps };
+}
+
+/** The objectives a module's steps carry, in authored order, each named once. */
+export function moduleObjectiveIds(course: Course, moduleId: string): string[] {
+  const mod = course.manifest.modules.find((m) => m.id === moduleId);
+  const out: string[] = [];
+  for (const sid of mod?.steps ?? []) {
+    for (const o of course.steps.get(sid)?.variants.en?.meta.objectives ?? []) {
+      if (!out.includes(o)) out.push(o);
+    }
+  }
+  return out;
+}
+
+export function moduleCompetence(course: Course, session: SessionState, moduleId: string): ObjectiveCompetence[] {
+  return moduleObjectiveIds(course, moduleId).map((o) => objectiveCompetence(course, session, o));
+}
+
+export const COMPETENCE_ORDER: Readonly<Record<CompetenceLevel, number>> = { none: 0, touched: 1, practised: 2, demonstrated: 3 };
+
+export function atLeast(level: CompetenceLevel, min: CompetenceLevel): boolean {
+  return COMPETENCE_ORDER[level] >= COMPETENCE_ORDER[min];
+}
+
+/**
+ * A9.2: "a module counts as finished only once each of its objectives is at
+ * least *geübt*". This is a statement about competence, not a gate: it is what
+ * the competence card, the can-do card and the progress view report. Step
+ * unlocking still runs on `requires` (see isStepUnlocked) - see the note there.
+ */
+export function isModuleCompetenceComplete(course: Course, session: SessionState, moduleId: string): boolean {
+  const objectives = moduleObjectiveIds(course, moduleId);
+  if (objectives.length === 0) return false;
+  return objectives.every((o) => atLeast(objectiveCompetence(course, session, o).level, "practised"));
+}
+
+/** Every objective of the course with its level, in module order: the source for the record sheet and the progress view. */
+export function courseCompetence(course: Course, session: SessionState): { moduleId: string; objectives: ObjectiveCompetence[] }[] {
+  return course.manifest.modules.map((m) => ({ moduleId: m.id, objectives: moduleCompetence(course, session, m.id) }));
 }
