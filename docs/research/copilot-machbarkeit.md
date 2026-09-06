@@ -744,3 +744,77 @@ beschrieben. Drei Fallstricke: die Anbieter-Methode heißt `provideLanguageModel
 wirksam (der erste meldet noch `UNKNOWN vendor`); und Colima kann eine Datei aus `/private/tmp` nicht
 als Bind-Mount reichen — der Caddyfile-Weg führt über `docker cp` in einen erst später gestarteten
 Container.
+
+---
+
+## 12 — Eine Seite für den Operator
+
+*Alles darüber ist Beleg. Diese Seite ist die Zusammenfassung; sie ist ohne den Rest lesbar.*
+
+### Die Frage war
+
+Können Studierende ihr eigenes GitHub-Copilot-Konto im Firmware-Tutor nutzen, um stärkere Modelle zu
+bekommen — und kann unser Plugin zwischen llm2 und Copilot umschalten?
+
+### Die Antwort ist ja, aber auf einem anderen Weg als geplant
+
+**Ihre Entscheidung für GitHub Models ist überholt: der Dienst existiert nicht mehr.** GitHub hat ihn
+zum 30. Juli 2026 abgeschaltet — Playground, Katalog, Inferenz-Schnittstelle und BYOK. Gemessen: der
+Endpunkt antwortet mit HTTP 410. Das ist nicht reparierbar und braucht keine weitere Prüfung.
+
+**Der übrig gebliebene gute Weg war die ganze Zeit im Haus.** GitHub Copilot Chat liegt seit VS Code
+1.135 **MIT-lizenziert als eingebaute Erweiterung in dem Bild, aus dem wir bauen** — Fassung 0.63.0,
+versionsgleich mit unserem Editor. Wir müssen nichts herunterladen, nichts aus einem fremden Marktplatz
+holen und nichts weiterverteilen. Die Anmeldung läuft über einen Gerätecode, also genau den Weg, der in
+einer Browser-Umgebung funktioniert; ich bin bis zur Kontogrenze gekommen und dort ohne fremde
+Zugangsdaten stehen geblieben.
+
+**Der zweite Weg — Copilot auf dem eigenen Rechner, Brücke ins Labor — funktioniert, ist aber
+schlechter.** Die Kette ist vollständig gemessen und schnell genug (4–12 ms). Aber: Chrome sperrt seit
+Kurzem den Zugriff einer öffentlichen Webseite auf den eigenen Rechner. Die Studierende bekommt eine
+Berechtigungsabfrage; klickt sie einmal „Blockieren", fragt Chrome nicht wieder. Dazu müsste sie ein
+zweites Programm installiert und **dauerhaft offen** haben. Und das Fremdprojekt, das dafür vorgesehen
+war (`vscode-lm-proxy`), ist unbenutzbar: es setzt die nötigen Header nicht und öffnet seinen Zugang
+zusätzlich für das ganze WLAN statt nur für den eigenen Rechner.
+
+### Was Sie entscheiden müssen — drei Dinge, keins davon technisch
+
+| | Was | Warum es blockiert | Aufwand für Sie |
+|---|---|---|---|
+| **1** | **Ein Copilot-Testkonto** besorgen (ein Konto genügt, auch Ihr eigenes) | Damit prüfe ich in einer knappen Stunde, ob die Anmeldung durchläuft, ob unser Tutor die Modelle sieht, und ob Copilot auch llm2 einbinden kann. Ohne Konto ist das nicht messbar. | 10 Minuten |
+| **2** | **Eine Frage an GitHub stellen** | Ob Copilot-Zugriff aus einem quelloffenen VS-Code-Build (code-server) mit eigenem Konto der Studierenden gestattet ist. Ich habe **kein** Verbot in den geltenden Bedingungen gefunden, aber das Fehlen eines Verbots ist keine Erlaubnis. Das ist die einzige Frage, die den Weg noch kippen kann. | Eine Mail, Text steht in §9 |
+| **3** | **Datenschutz klären** | Der Prompt enthält Code der studierenden Person und Auszüge unserer Unterlagen und geht an GitHub — auch wenn das Konto ihr gehört. Verarbeitung durch einen Dritten auf Veranlassung der Hochschule. | Rücksprache Datenschutz |
+
+**Kein Konto darf zur Pflicht werden.** llm2 bleibt der Standardweg; Copilot ist die freiwillige
+Aufwertung, und jeder Fehler fällt still auf llm2 zurück.
+
+### Was danach gebaut wird, in dieser Reihenfolge
+
+1. **Messen, nicht bauen** (½ Tag, sobald Testkonto da): die drei offenen Punkte aus §11 nachholen.
+   Fällt einer davon negativ aus, ändert sich der Plan — deshalb steht er vorn.
+2. **Umschalter im Tutor** (1–2 Tage): Der Tutor kapselt das Modell hinter genau einer Schnittstelle;
+   nötig ist ein zweiter Adapter, der statt eines HTTP-Aufrufs das eingebaute Modell-API nutzt.
+3. **Auswahl je Studierender** (1 Tag): Die gibt es heute nicht — die Modellkonfiguration ist global aus
+   der Umgebung. Ein Schalter „Mein Copilot verwenden" pro Person, mit Rückfall auf llm2.
+4. **Anmelde-Führung** (½ Tag): Der Gerätecode-Fluss ist da, aber unkommentiert. Die studierende Person
+   braucht einen Satz, was passiert, und einen Zustand in der Statusleiste.
+
+**Zusammen etwa drei bis vier Tage** nach den Messungen. Weg B, falls er je nötig wird, ist erheblich
+teurer: dort kämen eine eigene Erweiterung für das lokale VS Code, die Browser-Brücke und die
+Berechtigungsführung hinzu.
+
+### Was Sie sonst noch wissen sollten
+
+Zwei Befunde ohne Bezug zu Copilot, die bei der Prüfung aufgefallen sind:
+
+- **Jede studierende Person verliert bei jedem Image-Rollout ihre Einstellungen** — Anzeigesprache,
+  Editor, alles. Der Container hat nur ein Volume für den Workspace; die Einstellungen liegen daneben.
+  Beschrieben mit Messung und Lösungsvorschlag in `docs/MULTIUSER.md`.
+- **Ein Ablegen persönlicher Schlüssel im „sicheren Speicher" der Erweiterung würde nicht halten**, was
+  der Name verspricht: dieser Speicher folgt im Browser-Betrieb dem Browser, nicht dem Konto. Wer den
+  Rechner wechselt, steht ohne da. Der Entwurf in §5 kommt deshalb ganz ohne Schlüssel aus.
+
+### Der Stand
+
+Gebaut ist **nichts**. Gemessen ist alles, was ohne Copilot-Konto und ohne Ihre Entscheidungen messbar
+war. Der Strang wartet auf Punkt 1 und 2 dieser Seite.
