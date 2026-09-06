@@ -74,3 +74,76 @@ Browser ──TLS──► Edge (Browser-Plane, require_login=1) ──► ct-ag
 und erreicht keinen auf 127.0.0.1 gebundenen Broker. Konsequenz: Eine Caddy-Schwachstelle sähe das Host-Netz statt eines
 Bridge-Segments – deshalb Caddy-Image aktuell halten (`caddy:2-alpine`, Watchtower/Renovate) und keine weiteren
 Dienste ohne Auth auf Loopback des Labor-Hosts anbieten.
+
+## Nutzerdaten und Image-Rollout: was heute verlorengeht (gemessen 2026-09-06)
+
+Befund aus dem Copilot-Strang, aber **unabhängig von Copilot**: Beim Rollout eines neuen Images verliert
+jede studierende Person alle persönlichen Einstellungen. Das betrifft nicht ein Randfeature, sondern
+Anzeigesprache, Editor-Einstellungen, Tastenbelegung und alles, was jemand einmal eingestellt hat.
+
+### Messung
+
+Container aus `cads-firmware-lab:dev`, gestartet wie im Einzelplatz-Modus mit einem Workspace-Volume.
+`docker inspect` zeigt **genau einen** Mount:
+
+```
+volume /var/lib/docker/volumes/firmware-lab-copilot-ws/_data -> /home/coder/workspace
+```
+
+Alles unter `/home/coder/.local/share/code-server/` liegt damit im **beschreibbaren Container-Layer**,
+nicht im Volume — darunter:
+
+| Pfad | Inhalt |
+|---|---|
+| `User/settings.json` | die Nutzereinstellungen (das `Dockerfile` legt unsere Voreinstellungen genau hierhin) |
+| `User/globalStorage/`, `User/workspaceStorage/` | Zustand der Erweiterungen (auch der des Tutors) |
+| `extensions/` | installierte Erweiterungen |
+| `heartbeat` | die Datei, aus der der Idle-Reaper die Aktivität liest |
+
+**Folge nach dem heutigen Lebenszyklus:**
+
+| Vorgang | Workspace (`fl-ws-<slug>`) | Einstellungen / Erweiterungszustand |
+|---|---|---|
+| Idle-Reaper stoppt, nächster Login startet neu | bleibt | **bleibt** (derselbe Container) |
+| **Rollout: Container mit altem Image wird ersetzt** | bleibt | **weg** |
+| Admin-Wipe | weg | weg |
+
+Der Rollout ist kein Ausnahmefall: er ist der vorgesehene Weg, ein neues Image auszuliefern, und wird
+im Semester mehrfach vorkommen.
+
+### Zusatzbefund: SecretStorage hilft hier nicht
+
+Naheliegend wäre, Persönliches über `context.secrets` (SecretStorage) abzulegen. Das löst das Problem
+**nicht** — die Ablage folgt in code-server dem **Browser**, nicht dem Container. Gemessen mit einer
+Wegwerf-Erweiterung, die einen Wert schreibt und beim nächsten Start zu lesen versucht:
+
+| | gleiches Browserprofil | anderes Browserprofil |
+|---|---|---|
+| Container neu gestartet | **überlebt** | – |
+| Container läuft weiter | **überlebt** | **weg** |
+
+Im `localStorage` der Seite liegt der Schlüssel `secrets.provider`. Ein dort abgelegter Wert überlebt
+also den Containerneustart, aber nicht den Wechsel von Browser, Rechner oder ein privates Fenster.
+**SecretStorage ist für Geheimhaltung geeignet, nicht für Beständigkeit.**
+
+### Was zu ändern wäre
+
+**Vorschlag: ein zweites, kleines Volume je Person auf `/home/coder/.local/share/code-server/User`.**
+Nicht das ganze `code-server`-Verzeichnis — dort liegen auch `extensions/` (hunderte MB je Person) und
+`heartbeat`, das der Idle-Reaper bewusst im Container sehen soll.
+
+- **Aufwand:** eine Zeile mehr im `docker create` des Brokers und ein zweites benanntes Volume
+  `fl-user-<slug>` (Größenordnung Kilobytes). Beim Wipe müssen dann **beide** Volumes weg.
+- **Der Haken, der eine Entscheidung braucht:** Unser `Dockerfile` kopiert die Voreinstellungen nach
+  `User/settings.json`. Docker füllt ein *frisches* benanntes Volume beim ersten Start aus dem Image —
+  danach nicht mehr. Änderungen an unseren Voreinstellungen erreichen bestehende Studierende also
+  **nie**. Das ist der eigentliche Preis, nicht der Speicherplatz.
+- **Sauberere Variante, aber ungeprüft:** Voreinstellungen des Images nach `Machine/settings.json`
+  (nicht gemountet), persönliche Überschreibungen nach `User/settings.json` (gemountet). Damit wandern
+  Image-Voreinstellungen weiter mit, und Persönliches bleibt. **Die Vorrangregeln zwischen `Machine`
+  und `User` habe ich nicht gemessen** — vor einer Umsetzung nachprüfen.
+
+**Nicht empfohlen:** Persönliches in den Workspace legen. Es wäre für die studierende Person sichtbar,
+landete in `git status` und vermischte Kursinhalt mit Werkzeugzustand.
+
+Belege und Messaufbau: `docs/research/copilot-machbarkeit.md` §6.
