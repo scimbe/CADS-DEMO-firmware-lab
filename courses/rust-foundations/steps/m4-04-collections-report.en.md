@@ -63,7 +63,7 @@ entries.truncate(n);
 
 Three things worth naming. `collect()` needs to know what to build, so the binding is annotated - without it you get `type annotations needed`. `b.1.cmp(&a.1)` is descending because the arguments are the other way round. And `.then(...)` chains a second comparison used only when the first is `Equal`, which is the tie-break.
 
-Sorting by count alone would be wrong, not merely untested: words with equal counts would come out in the map's arbitrary order, differently on different runs. `truncate(n)` after sorting handles both `n` larger than the map and `n = 0` without a special case.
+Sorting by count alone would be wrong, not merely untested - and the question below asks you to say what exactly goes wrong, given where the entries came from. `truncate(n)` after sorting handles both `n` larger than the map and `n = 0` without a special case.
 
 ## Formatting
 

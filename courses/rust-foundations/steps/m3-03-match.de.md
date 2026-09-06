@@ -74,7 +74,7 @@ Lässt du eine Variante aus, verweigert der Compiler:
 error[E0004]: non-exhaustive patterns: `&Command::ChangeColor(_, _, _)` not covered
 ```
 
-Das ist keine Pedanterie, sondern die Funktion. Ergänze in einem Jahr eine fünfte Variante, und jedes `match`, das sich ändern muss, meldet sich. Ein Sammelzweig `_ => ()` schaltet das dauerhaft ab, deshalb hat `describe` bewusst keinen.
+Das ist keine Pedanterie, sondern die Funktion - und es ist eine Funktion, die man abschalten kann, denn ein Zweig `_ => ()` passt auf alles Übrige. `describe` hat bewusst keinen, `dice_action` bewusst einen. Die Frage unten verlangt, was die beiden Fälle unterscheidet und was die Wahl in einem Jahr kostet.
 
 `dice_action` zeigt die andere Seite: ein `u8` zu matchen bedeutet 254 unabgedeckte Werte, und sie aufzuzählen wäre absurd. Dort ist der Sammelzweig richtig - und er sollte *binden*, `other => format!("move {other}")`, statt mit `_` zu verwerfen, denn du brauchst die Zahl.
 

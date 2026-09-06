@@ -49,7 +49,7 @@ pub enum Command {
 }
 ```
 
-Das ist Listing 6-2 des Buchs. Sein Argument lohnt die Wiederholung: dasselbe als vier getrennte Strukturen zu modellieren verlöre den gemeinsamen Typ - du könntest sie nicht in einen `Vec` legen und keine Funktion schreiben, die eine beliebige davon nimmt. Es als eine Struktur mit einem `kind`-Feld und sechs optionalen Feldern zu modellieren behält den gemeinsamen Typ, macht aber ungültige Zustände darstellbar: nichts hindert ein `Quit` daran, Text zu tragen, und jeder Leser muss ein `None` in `x` behandeln, das legitim nie vorkommen kann.
+Das ist Listing 6-2 des Buchs. Sein Argument lohnt die Wiederholung: dasselbe als vier getrennte Strukturen zu modellieren verlöre den gemeinsamen Typ - du könntest sie nicht in einen `Vec` legen und keine Funktion schreiben, die eine beliebige davon nimmt. Es als eine Struktur mit einem `kind`-Feld und sechs optionalen Feldern zu modellieren behält den gemeinsamen Typ und gibt dafür etwas anderes auf. Was genau, fragt dieser Step: nimm eine Instanz dieser Struktur und frage, was sie darstellen kann, das kein Befehl sein sollte, und was jeder Leser mit den Feldern tun muss, die eine bestimmte Art nie benutzt.
 
 ## Option ist nichts Besonderes
 

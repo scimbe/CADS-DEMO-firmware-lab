@@ -76,7 +76,7 @@ Der Grund, Hash-Maps gründlich zu lernen, ist diese eine Zeile:
 for (name, score) in &scores { … }
 ```
 
-Die Reihenfolge ist nicht festgelegt, und Rust initialisiert seinen Standard-Hasher absichtlich zufällig, sie ändert sich also auch zwischen Läufen desselben Binaries. Das ist eine Abwehr gegen Angriffe auf die algorithmische Komplexität, und es bedeutet: jeder Code, dessen Ausgabe von der Reihenfolge abhängt, ist nichtdeterministisch - ein Test, der lokal besteht und in der CI scheitert, oder umgekehrt.
+Die Reihenfolge ist nicht festgelegt, und Rust initialisiert seinen Standard-Hasher absichtlich zufällig - eine Abwehr gegen Angriffe auf die algorithmische Komplexität. Geh einen Schritt weiter, bevor du die Frage unten beantwortest: wenn die Initialisierung sich unterscheidet, was unterscheidet sich dann zwischen zwei Läufen **desselben** Binaries, und was folgt daraus für Code, dessen Ausgabe von der Reihenfolge abhängt?
 
 `best_team` ist genau deshalb mit einer Gleichstandsregel auf dem Namen spezifiziert: bei zwei Mannschaften mit 30 Punkten und ohne Regel wäre die Antwort ein Münzwurf, und der Test könnte nichts zusichern. Brauchst du eine Reihenfolge, sortierst du ausdrücklich - das ist der nächste Step.
 

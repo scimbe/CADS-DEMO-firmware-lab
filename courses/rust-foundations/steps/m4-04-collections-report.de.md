@@ -63,7 +63,7 @@ entries.truncate(n);
 
 Drei Dinge lohnen die Benennung. `collect()` muss wissen, was es bauen soll, die Bindung ist also annotiert - ohne sie erhältst du `type annotations needed`. `b.1.cmp(&a.1)` sortiert absteigend, weil die Argumente vertauscht sind. Und `.then(...)` hängt einen zweiten Vergleich an, der nur bei `Equal` benutzt wird - die Gleichstandsregel.
 
-Nur nach Anzahl zu sortieren wäre falsch, nicht bloß ungeprüft: Wörter gleicher Häufigkeit kämen in der willkürlichen Reihenfolge der Map heraus, in verschiedenen Läufen verschieden. `truncate(n)` nach dem Sortieren behandelt sowohl ein `n` größer als die Map als auch `n = 0` ohne Sonderfall.
+Nur nach Anzahl zu sortieren wäre falsch, nicht bloß ungeprüft - und die Frage unten verlangt zu sagen, was genau dabei schiefgeht, wenn man bedenkt, woher die Einträge kommen. `truncate(n)` nach dem Sortieren behandelt sowohl ein `n` größer als die Map als auch `n = 0` ohne Sonderfall.
 
 ## Formatieren
 

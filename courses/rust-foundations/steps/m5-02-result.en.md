@@ -67,7 +67,7 @@ That `Err(e) => return Err(e)` arm is `sum_ports`'s whole error handling, and it
 s.parse::<u16>().map_err(|_| format!("'{s}' is not a valid port"))
 ```
 
-`map_err` transforms the error and leaves `Ok` untouched. The closure ignores the original error here, which is a deliberate trade and the subject of the question task. The gain is a message that names the input and the domain concept, which "invalid digit found in string" cannot. The loss is real too: the caller can no longer tell "not a number" from "out of range", and cannot match on the error to decide what to do. Module m5-04 gets that back with an error type of its own.
+`map_err` transforms the error and leaves `Ok` untouched. Look at what the closure does with its argument here: it ignores it. That is a deliberate trade with a gain and a loss, and naming both is this step's question task - hold the new message against `invalid digit found in string` for the gain, and ask what a caller could have done with the error that was thrown away for the loss. Module m5-04 gets that back with an error type of its own.
 
 Note that both `"http"` and `"70000"` fail the same parse - one is not a number, the other does not fit in a `u16` - and one `map_err` covers both.
 

@@ -49,7 +49,7 @@ pub enum Command {
 }
 ```
 
-This is Listing 6-2 of the book. Its argument is worth restating: modelling the same thing as four separate structs would lose the common type - you could not put them in one `Vec` or write one function that takes any of them. Modelling it as one struct with a `kind` field and six optional fields keeps the common type but makes invalid states representable: nothing stops a `Quit` from carrying text, and every reader has to handle a `None` in `x` that can never legitimately occur.
+This is Listing 6-2 of the book. Its argument is worth restating: modelling the same thing as four separate structs would lose the common type - you could not put them in one `Vec` or write one function that takes any of them. Modelling it as one struct with a `kind` field and six optional fields keeps the common type and gives up something else. What exactly it gives up is the question this step asks: take one instance of that struct and ask what it is able to represent that no command should be, and what every reader of it has to do about the fields a given kind never uses.
 
 ## Option is not special
 

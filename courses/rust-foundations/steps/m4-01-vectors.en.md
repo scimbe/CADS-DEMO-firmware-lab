@@ -55,8 +55,7 @@ let third = v.get(2);          // Option<&i32>
 
 They are not interchangeable and the choice is a design decision, not a style one:
 
-- Use `v[i]` when an out-of-range index would mean the program has a bug. Panicking loudly at that point is better than continuing with nonsense.
-- Use `v.get(i)` when the index comes from outside - a user, a file, an argument - and being out of range is a condition your caller should handle.
+The two differ in what they do when the index is out of range: one ends the program, the other hands you a `None` to deal with. Which of the two is right therefore depends on where the index came from and on whether being out of range is a bug or an expected condition - and stating that rule in a form a colleague could apply is the question below.
 
 `get_at` in this step is the second kind, and its signature says so. `.copied()` after `get` turns `Option<&i32>` into `Option<i32>`, which ends the borrow and lets you return a value rather than a reference into the caller's data.
 
