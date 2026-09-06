@@ -11,7 +11,7 @@ steht in [§10](#10-was-ich-nicht-prüfen-konnte) — nicht als Vermutung im Fli
 
 ---
 
-## 1 — Die vier Befunde, die die Lage bestimmen
+## 1 — Die fünf Befunde, die die Lage bestimmen
 
 **B-I. Weg C existiert nicht mehr.** GitHub Models ist zum 2026-07-30 abgeschaltet. Gemessen,
 unangemeldet:
@@ -47,6 +47,21 @@ Zwei Befunde aus dem Quelltext (v1.0.5, `git clone --depth 1`), beide mit einer 
 - `manager.ts:40` ruft `app.listen(port, …)` **ohne Host-Argument**. Express bindet damit auf
   `0.0.0.0`, also auf alle Schnittstellen — nicht auf Loopback. Der Copilot-Zugang der studierenden
   Person wäre im ganzen WLAN erreichbar, ohne jede Authentifizierung.
+
+**B-V. Weg B ist von einem öffentlichen Ursprung aus standardmäßig gesperrt.** Das war die letzte
+offene Messung; sie fällt gegen Weg B aus. Aus einer echten öffentlichen https-Seite blockiert Chrome
+152 den Zugriff auf `http://127.0.0.1:4000` — im Hauptfenster **und** im Worker:
+
+```
+Access to fetch at 'http://127.0.0.1:4000/v1/chat/completions' from origin
+'https://…​.trycloudflare.com' has been blocked by CORS policy:
+Permission was denied for this request to access the `loopback` address space.
+```
+
+Es ist **nicht** endgültig: Chrome kennt dafür eine Berechtigung namens `local-network-access`, deren
+Vorgabe in einem echten Chrome `prompt` ist. Wird sie erteilt, läuft der Worker-Aufruf in 1 ms durch.
+Weg B kostet damit einen **fünften Einrichtungsschritt** — eine Berechtigungsabfrage, die die
+studierende Person auch ablehnen kann. Messprotokoll: [§4.6](#46-der-öffentliche-ursprung-die-entscheidende-messung).
 
 **B-III. Die Umschalt-Mechanik selbst ist ein Standardweg, kein Trick.** In code-server 4.135 darf eine
 beliebige Drittanbieter-Erweiterung einen eigenen Modell-Anbieter registrieren — ohne Proposed-API,
@@ -166,7 +181,7 @@ aber **nur** `Sign in to use Copilot…` an, obwohl unser Anbieter zu diesem Zei
 
 ---
 
-## 4 — Weg B (Hauptweg): Copilot auf dem Rechner der Studierenden
+## 4 — Weg B: Copilot auf dem Rechner der Studierenden
 
 Bauform: lokales VS Code der studierenden Person mit ihrem eigenen Copilot, dazu eine Erweiterung, die
 einen OpenAI-kompatiblen Server auf `localhost:4000` öffnet; unser Tutor spricht ihn über die
@@ -175,7 +190,9 @@ Browser → `fetch`).
 
 ### 4.1 Darf eine https-Seite auf `http://127.0.0.1:4000` zugreifen?
 
-**Ja — aber nur aus dem Web-Worker, nicht aus dem Hauptfenster.** Zwei gegenläufige Ergebnisse aus
+**Aus einem privaten Ursprung ja — aber nur aus dem Web-Worker, nicht aus dem Hauptfenster.** Für den
+produktiven, *öffentlichen* Ursprung gilt eine zusätzliche Sperre: [§4.6](#46-der-öffentliche-ursprung-die-entscheidende-messung).
+Die folgenden Messungen liefen gegen `https://lab.local:8443` (privater Adressraum). Zwei gegenläufige Ergebnisse aus
 derselben Sitzung, beide über die https-Seite `https://lab.local:8443`:
 
 **Hauptfenster: blockiert.** Nicht durch gemischte Inhalte, sondern durch die CSP von code-server:
@@ -301,10 +318,103 @@ abgebrochen habe. Ohne `AbortController` hinge der Tutor unbegrenzt.
 
 ---
 
+### 4.6 Der öffentliche Ursprung: die entscheidende Messung
+
+Alle bisherigen Weg-B-Messungen liefen von einem **privaten** Ursprung. Produktiv ist der Ursprung
+**öffentlich** (Cloudflare-Tunnel), und das ist der Fall, den Chrome anders behandelt.
+
+**Aufbau.** Nicht gegen die Laborinstanz — dort wäre ein Passwort nötig gewesen, und an einer laufenden
+Instanz wollte ich nichts messen. Stattdessen: eine **Wegwerf-Testseite** (statisches HTML, kein
+code-server) auf `127.0.0.1:8099`, per `cloudflared tunnel --url` unter einer zufälligen
+`*.trycloudflare.com`-Adresse öffentlich gemacht, dazu der Mini-Server auf 4000. Die Seite prüft vier
+Dinge: CORS-POST und `no-cors`-Sonde, je einmal aus dem Hauptfenster und einmal aus einem
+**`blob:`-Worker** — derselben Bauform wie der Web-Extension-Host von code-server. Browser: echtes
+**Google Chrome 152.0.7977.76**, frisches Profil. Danach abgebaut; exponiert war nur die Testseite.
+
+**Ergebnis, Vorgabe (nichts erteilt):** alle vier Aufrufe scheitern, in 1–15 ms.
+
+```
+main_cors:    { error: "Failed to fetch", name: "TypeError", ms: 15 }
+main_opaque:  { ok: false, error: "Failed to fetch", ms: 10 }
+worker.cors:  { error: "Failed to fetch", name: "TypeError", ms: 5 }
+worker.opaque:{ ok: false, error: "Failed to fetch", ms: 1 }
+```
+
+Die Konsole nennt den Grund unmissverständlich:
+
+```
+Access to fetch at 'http://127.0.0.1:4000/v1/chat/completions' from origin
+'https://…​.trycloudflare.com' has been blocked by CORS policy:
+Permission was denied for this request to access the `loopback` address space.
+```
+
+**Der Worker hilft hier nicht.** Gegen die CSP von code-server war er der Ausweg (§4.1); gegen Local
+Network Access ist er es nicht — die Sperre hängt am Adressraum des Dokuments, nicht am
+Ausführungskontext.
+
+**Ergebnis mit erteilter Berechtigung.** Chrome kennt die Berechtigung **`local-network-access`**.
+Nach `grantPermissions(['local-network-access'])` meldet `navigator.permissions.query` `granted`, und
+derselbe Worker-Aufruf läuft durch:
+
+```json
+"worker": { "cors":   { "status": 200, "body": "{\"id\":\"chatcmpl-probe\",…", "ms": 1 },
+            "opaque": { "ok": true, "type": "opaque", "ms": 5 } }
+```
+
+**Was eine echte Studierende erlebt.** In einem sichtbaren Chrome mit frischem Profil ist die Vorgabe:
+
+```
+DEFAULT permission state in a real, headed Chrome: prompt
+```
+
+Also **kein** stiller Fehlschlag, sondern eine Abfrage — sie wird gefragt, ob die Seite auf Geräte im
+lokalen Netzwerk zugreifen darf. Solange sie nicht antwortet, **hängt der Aufruf**: im selben Lauf kam
+innerhalb von 45 s kein Ergebnis zurück. (Im Kopflos-Betrieb wird ohne Abfrage abgelehnt; deshalb die
+Fehlschläge oben.)
+
+**Folgen für den Entwurf:**
+
+1. Die Anleitung braucht einen **fünften Schritt**: die Berechtigung erteilen. Er lässt sich nicht
+   wegautomatisieren — eine Seite kann sich keine Berechtigung selbst geben.
+2. Die Abfrage kommt beim **ersten** Zugriffsversuch, also mitten in der Einrichtung. Der Tutor muss
+   sie ankündigen, sonst klickt die Hälfte reflexhaft „Blockieren" — und danach ist der Zustand
+   `denied`, ohne erneute Abfrage.
+3. Die Frist aus §5.3 muss den **unbeantworteten** Fall abdecken, nicht nur den toten Server: 45 s ohne
+   Antwort sahen von innen aus wie ein hängender Server.
+4. Für **Weg A** entfällt das vollständig — dort verlässt keine Anfrage den Container.
+
+**Nachbau in einer Minute** (der Operator kann das gegen die echte Laborinstanz wiederholen; das ist die
+einzige Variante, die auch die CSP von code-server mitprüft):
+
+```bash
+# 1) Mini-Server auf 4000, der jeden Ursprung zulässt
+node -e 'require("http").createServer((q,r)=>{r.setHeader("Access-Control-Allow-Origin",q.headers.origin||"*");
+r.setHeader("Access-Control-Allow-Headers","content-type");r.writeHead(q.method==="OPTIONS"?204:200);
+r.end(q.method==="OPTIONS"?"":JSON.stringify({ok:true}))}).listen(4000,"127.0.0.1")'
+```
+
+```js
+// 2) Im Labor (https://firmware-lab-…) die Entwicklerkonsole öffnen und einfügen:
+(async () => {
+  console.log('Berechtigung:', (await navigator.permissions.query({name:'local-network-access'})).state);
+  try { const r = await fetch('http://127.0.0.1:4000/', {method:'POST',
+        headers:{'content-type':'application/json'}, body:'{}'});
+        console.log('ERFOLG', r.status, await r.text()); }
+  catch (e) { console.log('FEHLGESCHLAGEN', e.message); }
+})();
+```
+
+Zu sehen sein muss: `Berechtigung: prompt`, dann eine Abfrage von Chrome, und nach „Zulassen"
+`ERFOLG 200 {"ok":true}`. Kommt stattdessen `FEHLGESCHLAGEN Failed to fetch` mit der Konsolenzeile
+`… access the 'loopback' address space`, wurde abgelehnt.
+
+
 ## 5 — Die Einrichtung aus Sicht der Studierenden
 
-Vorgabe: höchstens fünf Schritte, eine Seite. Der Entwurf hält vier — und zwar dadurch, dass er
-**nichts zu konfigurieren** lässt.
+Vorgabe: höchstens fünf Schritte, eine Seite. Der Entwurf hält **fünf** — vier davon dadurch, dass er
+nichts zu konfigurieren lässt, und einen, den ich nicht wegbekomme: die Browser-Berechtigung aus
+[§4.6](#46-der-öffentliche-ursprung-die-entscheidende-messung). Damit ist die Vorgabe genau erfüllt,
+aber ohne Reserve — jede weitere Anforderung an Weg B sprengt sie.
 
 ### 5.1 Die Entwurfsentscheidung, die alles andere trägt: kein Geheimnis
 
@@ -332,15 +442,22 @@ beide durch die Messungen in §4 gedeckt:
 > 2. **VS Code offen lassen.** Unten rechts steht jetzt **„CaDS-Brücke: an"**. Steht dort „aus",
 >    klicke darauf.
 > 3. **Im Labor:** im Tutor auf **„Copilot verwenden"** klicken.
-> 4. **Fertig.** Der Tutor prüft die Verbindung selbst und sagt dir, wenn etwas fehlt.
+> 4. **Chrome fragt einmal**, ob diese Seite auf Geräte in deinem lokalen Netzwerk zugreifen darf.
+>    Klicke **„Zulassen"** — gemeint ist damit nur dein eigener Rechner. Klickst du „Blockieren",
+>    fragt Chrome nicht noch einmal; dann hilft nur das Schloss-Symbol links in der Adressleiste.
+> 5. **Fertig.** Der Tutor prüft die Verbindung selbst und sagt dir, wenn etwas fehlt.
 >
-> Beim nächsten Mal entfallen die Schritte 1 und 3: die Erweiterung startet mit VS Code, und das Labor
-> merkt sich deine Wahl. Du lässt einfach VS Code offen.
+> Beim nächsten Mal entfallen die Schritte 1, 3 und 4: die Erweiterung startet mit VS Code, das Labor
+> merkt sich deine Wahl, und Chrome merkt sich die Berechtigung. Du lässt einfach VS Code offen.
 >
 > **Solange VS Code zu ist, antwortet der Tutor mit dem Labor-Modell weiter** — du verlierst nichts,
 > es wird nur nicht das stärkere Modell.
 
-Vier Schritte, kein Eingabefeld, keine Portnummer, kein Schlüssel, kein Konto anzulegen.
+Fünf Schritte, kein Eingabefeld, keine Portnummer, kein Schlüssel, kein Konto anzulegen. Schritt 4 ist
+der einzige, der sich nicht wegkonstruieren lässt: eine Seite kann sich keine Berechtigung selbst
+erteilen. Er ist zugleich der gefährlichste — wer reflexhaft „Blockieren" klickt, landet in einem
+Zustand, den Chrome nicht mehr von selbst erfragt. **Der Tutor muss die Abfrage deshalb ankündigen,
+bevor er sie auslöst.**
 
 ### 5.3 Was der Tutor bei welchem Fehlgriff sagt
 
@@ -354,10 +471,15 @@ Jede Meldung stammt aus einem gemessenen Zustand aus §4.5 und nennt genau **ein
 | Aufruf `200`, aber kein `choices[0]` | „Auf Port 4000 antwortet ein anderes Programm. Beende es oder ändere seinen Port." |
 | eigene Frist gerissen | „Die Brücke antwortet nicht. Starte VS Code neu." |
 | `command … not found` | „Diese Seite ist nicht vollständig geladen. Bitte lade sie neu (F5)." |
+| Berechtigung `denied` (§4.6) | „Der Zugriff auf deinen Rechner ist für diese Seite blockiert. Klicke links in der Adressleiste auf das Schloss und erlaube **Lokales Netzwerk**." |
+| Berechtigung `prompt`, keine Antwort | „Bitte beantworte die Frage von Chrome oben im Fenster." (nach 3 s einblenden, nicht in die Frist laufen lassen) |
 | Copilot im lokalen VS Code nicht angemeldet | Weiterreichen, was die Brücke meldet: „Melde dich in VS Code bei Copilot an." |
 
 Zwei Fristen, beide aus den Messungen abgeleitet: **3 s für die Selbstprüfung** (die Sonde braucht
 0–5 ms, jede Antwort darüber ist ein Problem) und **60 s für einen Tutor-Aufruf** (LLM-Antwortzeit).
+Wichtig: Die Selbstprüfung darf den Zustand `prompt` **nicht** als Fehler behandeln — dort wartet der
+Aufruf auf einen Menschen, nicht auf einen Server (§4.6, 45 s ohne Ergebnis). `navigator.permissions.query`
+liefert den Zustand ohne Nebenwirkung und gehört deshalb **vor** die Sonde.
 
 ### 5.4 Verhalten, das nicht verhandelbar ist
 
@@ -543,27 +665,34 @@ nur den Editor zu bewerten, bei Weg B die Weitergabe.
 
 | | **Weg B** — Brücke zum lokalen VS Code | **Weg A** — Copilot im Container | **Weg C** — GitHub Models |
 |---|---|---|---|
-| **Technisch machbar** | **Ja, gemessen.** Kette trägt über den Web-Worker: 4–12 ms, bis 256 kB, auch von https. Aus dem Hauptfenster blockiert die CSP. Fehlerfälle vollständig charakterisiert. | **Ja, bereits im Bild.** Erweiterung eingebaut, versionsgleich, Device-Flow läuft bis zur Kontogrenze. | **Nein.** HTTP 410, abgeschaltet 2026-07-30. |
+| **Technisch machbar** | **Ja, aber mit Berechtigungsabfrage.** Kette trägt (4–12 ms, bis 256 kB); vom **öffentlichen** Ursprung jedoch erst nach Erteilen von `local-network-access` — Vorgabe `prompt`, ablehnbar (§4.6). | **Ja, bereits im Bild.** Erweiterung eingebaut, versionsgleich, Device-Flow läuft bis zur Kontogrenze. Keine Browser-Sperre, weil nichts den Container verlässt. | **Nein.** HTTP 410, abgeschaltet 2026-07-30. |
 | **Rechtlich** | Schwächer: die Antwort wird an einen anderen Client weitergereicht. Kein ausdrückliches Verbot gefunden, aber genau die Bauform, zu der die Terms schweigen. | Sauberer: eigenes Konto, offizieller Client, kein geteilter Zugang. Eine offene Frage (OSS-Build). | – |
 | **Aufwand** | **Mittel.** Eigene lokale Erweiterung (~150 Zeilen), Web-Extension-Endpunkt, Adapter im Tutor, Selbstprüfung, Anleitung. `vscode-lm-proxy` ist **nicht** verwendbar. | **Klein.** `chat.disableAIFeatures` differenzieren, Adapter über `vscode.lm`. | – |
-| **Zumutung für Studierende** | Lokales VS Code muss offen sein. Vier Einrichtungsschritte, kein Schlüssel. | Nichts zu installieren; Anmeldung im Browser per Gerätecode. | – |
-| **Was noch fehlt** | Beweis, dass Chrome von einem **öffentlichen** Ursprung auf 127.0.0.1 zugreifen darf (Local Network Access). Entscheidung eigene Erweiterung statt Fork. | Copilot-Testkonto. Antwort von GitHub. Datenschutz. | – |
+| **Zumutung für Studierende** | Lokales VS Code muss **offen bleiben**. Fünf Schritte, davon einer eine Berechtigungsabfrage, die bei „Blockieren" nicht wiederkommt. | Nichts zu installieren, nichts offen zu halten; Anmeldung im Browser per Gerätecode. | – |
+| **Dauerhaftigkeit** | Hängt an einer Browser-Regel, die sich zuungunsten von Loopback-Zugriffen entwickelt (§4.6). | Hängt an einer Vertragsfrage, nicht an einer Browser-Regel. | – |
+| **Was noch fehlt** | Entscheidung eigene Erweiterung statt Fork. Verhalten bei Copilot-Ratenbegrenzung. | Copilot-Testkonto. Antwort von GitHub. Datenschutz. | – |
 
 ### Vorschlag
 
-**Weg B ist baubar und die Kette ist gemessen** — ich widerspreche der Richtungsentscheidung nicht. Zwei
-Dinge muss der Operator aber wissen, bevor gebaut wird, weil sie den Auftrag verändern:
+**Weg A zuerst, Weg B als Rückfall** — die Richtungsentscheidung des Strang-Leiters wird durch §4.6
+bestätigt, und zwar deutlicher, als ich erwartet hatte.
 
-1. **`vscode-lm-proxy` fällt weg** (B-II, §4.4). Der Baustein, auf dem der Vorschlag ruhte, funktioniert
-   in unserem Aufbau nicht und hat zusätzlich einen Sicherheitsmangel. Entweder wir schreiben die
-   ~150 Zeilen selbst (empfohlen) oder wir pflegen einen Fork.
-2. **Ein Risiko ist nicht ausgeräumt** (§10, Punkt 4 unten): Local Network Access. Wenn Chrome den
-   Zugriff von unserem öffentlichen Tunnel-Ursprung auf `127.0.0.1` künftig hinter eine
-   Berechtigungsabfrage stellt, kippt die gesamte Bauform — bei Weg A nicht.
+Das Risiko, das ich zuletzt als „nicht ausgeräumt" markiert hatte, ist **kein Risiko mehr, sondern ein
+gemessener Zustand**: Vom öffentlichen Ursprung ist der Zugriff auf `127.0.0.1` bereits heute
+gesperrt und nur über eine Berechtigung zu öffnen, die die studierende Person erteilen muss und mit
+einem Fehlklick dauerhaft verschließt. Das trifft Weg B an drei Stellen zugleich: es kostet den
+fünften Schritt, es erzeugt den unangenehmsten Fehlerzustand (`denied`, ohne erneute Abfrage), und es
+macht die Bauform von einer Browser-Regel abhängig, die sich erkennbar **gegen** Loopback-Zugriffe
+entwickelt. Weg A berührt davon nichts, weil dort keine Anfrage den Container verlässt.
 
-Meine Empfehlung bleibt deshalb: **die Frage an GitHub jetzt stellen** (§9). Fällt sie zugunsten des
-OSS-Builds aus, ist Weg A billiger, robuster und für Studierende zumutbarer — er verlangt kein zweites
-offenes Programm. Weg B ist die richtige Wahl, wenn die Antwort ausbleibt oder negativ ist.
+Zwei Dinge bleiben unabhängig von der Richtung stehen:
+
+1. **`vscode-lm-proxy` fällt weg** (B-II, §4.4) — falls Weg B doch gebaut wird, dann mit einer eigenen,
+   sehr kleinen Erweiterung, nicht mit dem Fremdprojekt und nicht mit einem Fork.
+2. **Die Frage an GitHub ist jetzt der Engpass** (§9). Weg A hängt allein an ihr; alles Technische ist
+   entweder gemessen oder braucht nur ein Testkonto. Solange sie offen ist, kommen wir nicht voran —
+   und Weg B ist keine Umgehung dieser Frage, sondern stellt eine schwierigere (die Weitergabe der
+   Antwort an einen anderen Client).
 
 **Nicht gebaut.** Keine Zeile am Umschalter, wie beauftragt.
 
@@ -571,11 +700,13 @@ offenes Programm. Weg B ist die richtige Wahl, wenn die Antwort ausbleibt oder n
 
 ## 11 — Was ich nicht prüfen konnte
 
-1. **Local Network Access von einem öffentlichen Ursprung.** Mein https-Test lief von einem *privaten*
-   Ursprung (`lab.local` → 192.168.50.201) auf Loopback und war nicht blockiert. Produktiv ist der
-   Ursprung **öffentlich** (Cloudflare-Tunnel) — der strengste Fall. Headless-Chromium behandelt
-   Berechtigungsabfragen zudem anders als ein echtes Chrome. **Nicht bewiesen.** Nur mit echtem Tunnel
-   und echtem Chrome zu klären; das ist die eine Messung, die Weg B noch fehlt.
+1. ~~Local Network Access von einem öffentlichen Ursprung.~~ **Erledigt**, siehe §4.6: gemessen mit
+   echtem Chrome 152 gegen einen echten öffentlichen Ursprung. Ergebnis: standardmäßig gesperrt,
+   Berechtigung `local-network-access` mit Vorgabe `prompt`, nach Erteilen 1 ms.
+   **Rest-Unsicherheit:** Meine Testseite war statisches HTML, nicht code-server; die CSP von
+   code-server war also nicht mit im Spiel. Da die CSP im Worker ohnehin nicht greift (§4.1) und die
+   LNA-Sperre unabhängig davon wirkt, erwarte ich keinen Unterschied — geprüft ist es nicht. Das
+   Rezept am Ende von §4.6 schließt diese Lücke in einer Minute an der echten Instanz.
 2. **Ob die Copilot-Anmeldung im OSS-Build durchläuft** (Weg A) — bis zum Gerätecode gekommen, danach
    offen. Braucht ein Testkonto.
 3. **Ob `selectChatModels({vendor:'copilot'})` nach Anmeldung Modelle liefert.** Mechanismus bewiesen
@@ -585,14 +716,27 @@ offenes Programm. Weg B ist die richtige Wahl, wenn die Antwort ausbleibt oder n
 6. **`Required Mitigations` und `AI Code of Conduct`**, auf die §5.A der Terms verweist.
 7. **Verhalten des echten Copilot bei Ratenbegrenzung** — mein Mini-Server kennt kein 429. Die
    Fehlerbehandlung in §5.3 deckt das noch nicht ab.
+8. **Ob die Berechtigung `local-network-access` je Ursprung dauerhaft ist** — sie überlebte den
+   Neuaufbau der Seite im selben Profil, aber ich habe sie nicht über Browserneustarts hinweg geprüft.
+   Für die Zusage „beim nächsten Mal entfällt Schritt 4" in §5.2 wäre das nachzuholen.
 
 ### Messumgebung und Hygiene
 
 Container `copilot-probe` und `copilot-caddy`, das Netz `copilot-probe-net`, das Testvolume
-`firmware-lab-copilot-ws`, die Mini-Server auf 4000–4009 und die Browserprofile sind **entfernt**;
-geprüft mit `docker ps -a`, `docker volume ls` und `lsof`. Keine Zugangsdaten verwendet, keine VSIX aus
-dem Microsoft-Marktplatz geladen, nichts ins Repository geschrieben außer diesem Bericht und drei
+`firmware-lab-copilot-ws`, die Mini-Server auf 4000–4009 und 8099, der Wegwerf-Tunnel und die
+Browserprofile sind **entfernt**; geprüft mit `docker ps -a`, `docker volume ls`, `lsof` und einem
+Abruf der Tunnel-Adresse (530 = fort). Der Tunnel war rund fünf Minuten offen und hat **nur die
+statische Testseite** exponiert, nie code-server. An der Laborinstanz wurde nichts verändert und nichts
+gemessen. Keine Zugangsdaten verwendet, keine VSIX aus dem Microsoft-Marktplatz geladen, nichts ins
+Repository geschrieben außer diesem Bericht, dem Abschnitt in `docs/MULTIUSER.md` und drei
 Bildschirmfotos in `docs/evidence/`.
+
+**Beinahe-Fehler, dokumentiert:** Beim Abräumen habe ich `pkill -9 -f cloudflared` benutzt. Auf diesem
+Rechner läuft ein **produktiver** cloudflared-Tunnel (der ct-agent-Tunnel, zu dem Zeitpunkt seit 2:41 h);
+das Muster hätte ihn getroffen. Er hat überlebt (PID und Laufzeit unverändert, Laborinstanz weiter
+`http=200`), aber das war Glück, nicht Sorgfalt. Wer hier aufräumt: den Prozess über seine PID beenden,
+nie über den Binärnamen. Nebenbei sichtbar geworden: das Tunnel-Token dieses Prozesses steht in der
+Prozessliste und ist damit für jeden lesbar, der auf dem Rechner `ps` ausführen darf.
 
 Nachbau: Die Wegwerf-Erweiterungen sind bewusst nicht im Repository — sie sind in §3–§4 vollständig
 beschrieben. Drei Fallstricke: die Anbieter-Methode heißt `provideLanguageModelChatInformation`; eine
