@@ -31,6 +31,8 @@ socratic:
 
 Lerne, was die Bring-up-Explorer-Konsole ist, und baue dir eine Zuordnung von Symptom zu Befehl auf, damit du das Board direkt befragst, statt zu raten.
 
+Die Konsole, in der du gleich arbeitest, ist dieselbe, die in `m0-04-flash-console` den Selbsttest gedruckt hat.
+
 ## Zwei Fenster, in die man tippen kann
 
 Ab hier gibt es zwei Eingabefenster, und sie hören auf völlig verschiedene Dinge. Verwechselt man sie, passiert nichts — ohne jede Fehlermeldung. Beide liegen **unten** im Terminal-Bereich; `Strg`/`Cmd`+`J` klappt ihn auf und zu, und rechts im Bereich stehen alle offenen Terminals untereinander, sodass du zwischen ihnen wechselst.

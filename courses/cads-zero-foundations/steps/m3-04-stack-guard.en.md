@@ -37,6 +37,8 @@ socratic:
 
 Recognise a stack overflow from its register signature, and understand how this firmware's stack-guard sentinel and forensic ring convert a silent freeze into a named, fixable cause.
 
+The sentinel writes into the same forensic ring you read out with the command `E` in `m3-03-fault-forensics`.
+
 ## The first move: build the firmware
 
 The user interface is in English while this course text is in German - so the menu entry really is called `Run Task...`. No menu bar is visible: the menus hide behind the three-line icon (**☰**) at the very top left, which opens `File`, `Edit`, `Selection`, `View`, `Go`, `Run`, `Terminal` and `Help`.

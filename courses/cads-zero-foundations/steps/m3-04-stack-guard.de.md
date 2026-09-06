@@ -37,6 +37,8 @@ socratic:
 
 Erkenne einen Stack-Überlauf an seiner Registersignatur und verstehe, wie der Stack-Guard-Wächter und der Forensik-Ring dieser Firmware ein stilles Einfrieren in eine benannte, behebbare Ursache verwandeln.
 
+Der Wächter schreibt in denselben Forensik-Ring, den du in `m3-03-fault-forensics` mit dem Befehl `E` ausgelesen hast.
+
 ## Der erste Handgriff: die Firmware bauen
 
 Die Bedienoberfläche ist englisch, der Kurstext deutsch - der Menüpunkt heißt also `Run Task...`. Eine Menüleiste ist nicht sichtbar: die Menüs stecken hinter dem Symbol mit den drei Strichen (**☰**) ganz oben links, das `File`, `Edit`, `Selection`, `View`, `Go`, `Run`, `Terminal` und `Help` öffnet.

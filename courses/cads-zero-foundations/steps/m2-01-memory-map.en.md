@@ -31,6 +31,8 @@ socratic:
 
 Read the STM32F429ZI memory map the way the linker sees it, and decide from it where a buffer must live — the single constraint that shapes most of this firmware's layout.
 
+The names the regions are given below read by the pattern from `m2-00-register-names`.
+
 ## Four regions, one script
 
 `targets/itsboard/linker/cads_itsboard.ld` declares the memory this firmware may use:

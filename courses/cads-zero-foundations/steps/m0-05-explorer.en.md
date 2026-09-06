@@ -31,6 +31,8 @@ socratic:
 
 Learn what the bring-up explorer console is, and build a mental map from symptom to command so you can interrogate the board directly instead of guessing.
 
+The console you are about to work in is the same one that printed the self test in `m0-04-flash-console`.
+
 ## Two windows you can type into
 
 From here on there are two input windows, and they listen for completely different things. Mixing them up produces nothing at all — without any error message. Both live **at the bottom**, in the terminal area; `Ctrl`/`Cmd`+`J` opens and closes it, and all open terminals are listed on its right so you can switch between them.

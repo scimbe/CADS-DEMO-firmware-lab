@@ -42,6 +42,8 @@ Create a complete app of your own — a view with a widget, registered with the 
 
 **Concretely:** three new files, two CMake files and one menu file changed, a build, a flash, and the new row open on the panel. Each step is spelled out below with its full operating path.
 
+Your app fills in exactly the three parts `m5-02-view-dispatcher` described: a view, its registration with the dispatcher, and a widget that draws.
+
 ## Creating and opening files
 
 To **create** a file: the top icon in the narrow bar on the far left (the file explorer), then right-click the folder in the tree and pick `New File...` or `New Folder...` — the user interface is in English while this course is in German. The terminal does the same. Open one with **☰ → `Terminal` → `New Terminal`** (the three-line icon sits at the very top left; if the area at the bottom is folded away, `Ctrl`/`Cmd`+`J` opens and closes it):

@@ -31,6 +31,8 @@ socratic:
 
 Put your build onto the real board and pass the hardware gate — the moment a compiled image becomes firmware that provably runs on silicon.
 
+Both run over the single connection from `m0-02-connect`: the write over SWD, the console over the virtual COM port.
+
 ## Handgrip 1: flashing
 
 You trigger the flash yourself; this step's check only looks at whether it happened since the step was opened.

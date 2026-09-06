@@ -34,6 +34,8 @@ misconceptions:
 
 Kenne die nicht verhandelbaren Sicherheitsregeln des Boards — geschützte Pins, Nur-Eingangs-Ports, das Flash-Fenster und die zwei verbotenen Flash-Operationen —, bevor du Code schreibst, der echtes Silizium treibt.
 
+Zwei Dinge aus M2 tragen diesen Step: die Registerzugriffe aus `m2-00-mmio-primer`, mit denen ein `MODER` beschrieben wird, und die Flash-Bereiche aus `m2-01-memory-map`, die das Fenster begrenzen.
+
 ## Verbindlich, nicht beratend
 
 `docs/SAFETY.md` ist verbindlich für jede Änderung und jede Person oder jeden Agenten, die an diesem Repository arbeiten. Das meiste am Board ist robust; eine Handvoll Dinge nicht, und die sind aufgezählt. Die Faustregel ganz oben: **im Zweifel den Pin nicht treiben.**
