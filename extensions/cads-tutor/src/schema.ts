@@ -113,6 +113,16 @@ function localized(v: unknown, path: string, required = true): Localized {
   fail(path, "must be a string or {de, en}");
 }
 
+/** A9.2a: `recallPrompt` is optional, but an empty one is an authoring mistake, not "no recall". */
+function optLocalized(v: unknown, path: string): Localized | undefined {
+  if (v === undefined || v === null) return undefined;
+  const out = localized(v, path);
+  if (typeof out === "string" ? out.trim() === "" : !(out.de ?? out.en ?? "").trim()) {
+    fail(path, "is empty – leave it out entirely if the task is not a recall target");
+  }
+  return out;
+}
+
 function strArray(v: unknown, path: string): string[] {
   if (v === undefined || v === null) return [];
   if (!Array.isArray(v)) fail(path, "must be an array of strings");
@@ -268,7 +278,14 @@ export function validateCheck(v: unknown, path: string): CheckSpec {
     case "debugStop":
       return { type: "debugStop", file: optStr(v.file, `${path}.file`), line: optNum(v.line, `${path}.line`), timeoutMs: optNum(v.timeoutMs, `${path}.timeoutMs`) };
     case "question":
-      return { type: "question", prompt: localized(v.prompt, `${path}.prompt`), rubric: str(v.rubric, `${path}.rubric`), bloom: optBloom(v.bloom, `${path}.bloom`), minChars: optNum(v.minChars, `${path}.minChars`) };
+      return {
+        type: "question",
+        prompt: localized(v.prompt, `${path}.prompt`),
+        rubric: str(v.rubric, `${path}.rubric`),
+        bloom: optBloom(v.bloom, `${path}.bloom`),
+        minChars: optNum(v.minChars, `${path}.minChars`),
+        recallPrompt: optLocalized(v.recallPrompt, `${path}.recallPrompt`),
+      };
     case "manual":
       return { type: "manual", label: v.label === undefined ? undefined : localized(v.label, `${path}.label`) };
     case "all":
@@ -313,7 +330,15 @@ export function validateCheck(v: unknown, path: string): CheckSpec {
       if (then.type === "predict") fail(`${path}.then.type`, "a predict check cannot nest another predict check");
       if (then.type === "question" || then.type === "manual") fail(`${path}.then.type`, `"${then.type}" cannot be the observed check of a prediction – use a command, testSuite, task, build or hardware check`);
       const minChars = optNum(v.minChars, `${path}.minChars`);
-      return { type: "predict", prompt, then, rubric: optStr(v.rubric, `${path}.rubric`), bloom: optBloom(v.bloom, `${path}.bloom`), minChars };
+      return {
+        type: "predict",
+        prompt,
+        then,
+        rubric: optStr(v.rubric, `${path}.rubric`),
+        bloom: optBloom(v.bloom, `${path}.bloom`),
+        minChars,
+        recallPrompt: optLocalized(v.recallPrompt, `${path}.recallPrompt`),
+      };
     }
   }
 }

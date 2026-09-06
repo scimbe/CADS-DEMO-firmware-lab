@@ -59,7 +59,7 @@ import {
 import { eventTrigger, hintTierForFailures, selectCause, selectInsight, selectTaskHint, type MatchedInsight } from "./socratic";
 import { TutorTerminal, type TerminalLike } from "./terminal";
 import { CoursesTreeProvider, type TreeNode } from "./tree";
-import { loc, stepKey, type Course, type Lang, type LoadDiagnostic, type ObjectiveCompetence, type SessionState, type Step, type StepContent, type TaskSpec, type TaskState, type TaskStatus } from "./types";
+import { loc, recallPromptOf, stepKey, type Course, type Lang, type LoadDiagnostic, type ObjectiveCompetence, type SessionState, type Step, type StepContent, type TaskSpec, type TaskState, type TaskStatus } from "./types";
 import { DebugStopTracker, ensureBridge, runShellTask, runTaskByLabel } from "./vscodeChecks";
 import { renderCanDo, renderCompetence, renderDoCard, renderPredict, renderRecall, renderReflection, type AskView, type CanDoCardView, type CompetenceCardView, type CompetenceObjectiveView, type FromWebview, type HintView, type NextActionView, type LinkView, type NoteView, type PredictView, type RecallView, type ReflectionView, type StepRef, type StepView, type TaskView } from "./webview";
 
@@ -637,15 +637,10 @@ export class TutorController implements vscode.Disposable {
     const today = new Date().toISOString().slice(0, 10);
     const existing = this.session.recall?.[key];
     if (existing && existing.date === today) {
-      const from = course.steps.get(existing.fromStepId);
-      const src = from ? this.contentFor(from) : undefined;
-      const task = src?.meta.tasks.find((t) => t.id === existing.taskId);
-      if (!src || !task || task.check.type !== "question") return undefined;
+      const view = this.recallCard(course, existing.fromStepId, existing.taskId, lang);
+      if (!view) return undefined;
       return {
-        fromStepId: existing.fromStepId,
-        fromTitle: src.meta.title,
-        taskId: existing.taskId,
-        prompt: loc(task.check.prompt, lang),
+        ...view,
         answer: existing.answer,
         settled: existing.answer !== undefined || existing.dismissed === true,
         outcome: existing.outcome,
@@ -658,22 +653,44 @@ export class TutorController implements vscode.Disposable {
     for (const sid of meta.recallFrom) {
       const from = course.steps.get(sid);
       if (!from || !isStepDone(this.session, from)) continue;
+      // A9.2a: a task is a recall target only if it carries a `recallPrompt`.
+      // The `prompt` of a question or a prediction is written for someone looking
+      // at the file; two modules later it is a question without a subject.
       for (const t of from.variants.en!.meta.tasks) {
-        if (t.check.type === "question") candidates.push({ stepId: sid, taskId: t.id });
+        if (recallPromptOf(t.check) !== undefined) candidates.push({ stepId: sid, taskId: t.id });
       }
     }
     if (candidates.length === 0) return undefined;
     const pick = candidates[hashString(`${key}:${today}`) % candidates.length];
+    const view = this.recallCard(course, pick.stepId, pick.taskId, lang);
+    if (!view) return undefined;
     this.session.recall = { ...(this.session.recall ?? {}), [key]: { date: today, fromStepId: pick.stepId, taskId: pick.taskId } };
     this.saveSession();
-    const src = this.contentFor(course.steps.get(pick.stepId)!);
-    const task = src.meta.tasks.find((t) => t.id === pick.taskId)!;
+    return { ...view, settled: false };
+  }
+
+  /**
+   * A9.2a: the card's own text. It names the step *and the module* it comes from -
+   * a prediction from two modules ago has no code on screen any more, and "from an
+   * earlier step" alone does not tell the student how far back to reach.
+   */
+  private recallCard(course: Course, fromStepId: string, taskId: string, lang: Lang): Omit<RecallView, "settled"> | undefined {
+    const from = course.steps.get(fromStepId);
+    if (!from) return undefined;
+    const src = this.contentFor(from);
+    const task = src.meta.tasks.find((t) => t.id === taskId);
+    const en = from.variants.en?.meta.tasks.find((t) => t.id === taskId);
+    // The prompt is taken from the localized variant, the eligibility from `en`:
+    // a pack that forgot the German `recallPrompt` must not silently drop the card.
+    const prompt = task ? recallPromptOf(task.check) : undefined;
+    if (!en || recallPromptOf(en.check) === undefined) return undefined;
+    const mod = course.manifest.modules.find((m) => m.id === from.moduleId);
     return {
-      fromStepId: pick.stepId,
+      fromStepId,
       fromTitle: src.meta.title,
-      taskId: pick.taskId,
-      prompt: task.check.type === "question" ? loc(task.check.prompt, lang) : "",
-      settled: false,
+      fromModuleTitle: mod ? loc(mod.title, lang) : from.moduleId,
+      taskId,
+      prompt: loc(prompt ?? recallPromptOf(en.check), lang),
     };
   }
 
@@ -1392,8 +1409,13 @@ export class TutorController implements vscode.Disposable {
   ): Promise<{ outcome?: "passed" | "failed"; graded?: boolean; feedback?: string } | undefined> {
     const from = course.steps.get(fromStepId);
     const check = from?.variants.en?.meta.tasks.find((t) => t.id === taskId)?.check;
-    if (!from || check?.type !== "question" || !check.rubric) return undefined;
-    const verdict = await this.platformFor(course).gradeAnswer(loc(check.prompt, this.lang), check.rubric, answer, check.bloom);
+    if (!from || (check?.type !== "question" && check?.type !== "predict")) return undefined;
+    // A9.2a: the answer is judged against the question that was actually asked -
+    // the recall prompt - not against the original one, which assumed the file was
+    // on screen. A `predict` without a rubric cannot be judged at all.
+    const prompt = recallPromptOf(check);
+    if (!check.rubric || prompt === undefined) return undefined;
+    const verdict = await this.platformFor(course).gradeAnswer(loc(prompt, this.lang), check.rubric, answer, check.bloom);
     if (verdict.kind !== "pass" && verdict.kind !== "fail") return { feedback: verdict.feedback };
     return { outcome: verdict.kind === "pass" ? "passed" : "failed", graded: true, feedback: verdict.feedback };
   }

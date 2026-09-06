@@ -153,6 +153,8 @@ export interface OrientationView {
 export interface RecallView {
   fromStepId: string;
   fromTitle: string;
+  /** A9.2a: the module the question comes from - how far back the student has to reach. */
+  fromModuleTitle?: string;
   taskId: string;
   prompt: string;
   answer?: string;
@@ -302,7 +304,7 @@ export function renderRecall(r: RecallView, lang: Lang): string {
     }</div>`;
   }
   return `<div class="card recall"><div class="card-head">${escapeHtml(s.recallTitle)}</div>
-    <div class="card-sub">${escapeHtml(s.recallFrom(r.fromTitle))}</div>
+    <div class="card-sub">${escapeHtml(r.fromModuleTitle ? s.recallFromModule(r.fromTitle, r.fromModuleTitle) : s.recallFrom(r.fromTitle))}</div>
     <div class="card-prompt">${escapeHtml(r.prompt)}</div>
     <textarea id="recall-answer" rows="2" placeholder="${escapeHtml(s.reflectionPlaceholder)}">${escapeHtml(r.answer ?? "")}</textarea>
     <div class="row"><button class="btn primary" id="recall-submit">${escapeHtml(s.recallSubmit)}</button><button class="btn" id="recall-skip">${escapeHtml(s.recallSkip)}</button></div>

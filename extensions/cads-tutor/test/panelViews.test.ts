@@ -101,6 +101,12 @@ describe("predict panel", () => {
 describe("recall card", () => {
   const card: RecallView = { fromStepId: "m1-01", fromTitle: "Ownership", taskId: "why", prompt: "Why is the value gone?", settled: false };
 
+  it("names the module the question comes from and says to answer from memory", () => {
+    const html = renderRecall({ ...card, fromModuleTitle: "Ownership" }, "de");
+    assert.match(html, /Ownership/);
+    assert.match(html, /aus dem Gedächtnis/i, "A9.2a: a recall is answered without the file");
+  });
+
   it("names the step it repeats and offers skipping", () => {
     const html = renderRecall(card, "en");
     assert.match(html, /Recall/);

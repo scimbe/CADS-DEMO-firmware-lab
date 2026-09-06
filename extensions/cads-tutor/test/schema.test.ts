@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { parseFrontMatter } from "../src/frontmatter";
 import { validateCheck, validateCourseManifest, validateStepFrontMatter } from "../src/schema";
+import { recallPromptOf } from "../src/types";
 
 describe("front matter", () => {
   it("parses a YAML block and returns the body", () => {
@@ -166,5 +167,30 @@ describe("v1.1 module reflection", () => {
   it("leaves reflection undefined when the module omits it", () => {
     const r = validateCourseManifest({ id: "c", version: "1", schema: 1, title: "t", modules: [{ id: "m", title: "m", steps: ["a"] }] });
     assert.equal(r.value!.modules[0].reflection, undefined);
+  });
+});
+
+describe("A9.2a recallPrompt", () => {
+  const question = { type: "question", prompt: { en: "Why?" }, rubric: "names the reason" };
+
+  it("is optional and parsed for a question and for a prediction", () => {
+    assert.equal((validateCheck(question, "c") as { recallPrompt?: unknown }).recallPrompt, undefined);
+    const withRecall = validateCheck({ ...question, recallPrompt: { en: "From memory: why?", de: "Aus dem Gedächtnis: warum?" } }, "c");
+    assert.deepEqual(recallPromptOf(withRecall), { en: "From memory: why?", de: "Aus dem Gedächtnis: warum?" });
+    const predict = validateCheck(
+      { type: "predict", prompt: { en: "What prints?" }, then: { type: "command", command: "true" }, recallPrompt: "From memory: what does a `var` loop capture?" },
+      "c",
+    );
+    assert.equal(recallPromptOf(predict), "From memory: what does a `var` loop capture?");
+  });
+
+  it("has no recall prompt on a check type that cannot be a recall target", () => {
+    assert.equal(recallPromptOf(validateCheck({ type: "command", command: "true" }, "c")), undefined);
+    assert.equal(recallPromptOf(validateCheck({ type: "manual" }, "c")), undefined);
+  });
+
+  it("rejects an empty one instead of silently dropping the recall target", () => {
+    assert.throws(() => validateCheck({ ...question, recallPrompt: "  " }, "c"), /recallPrompt/);
+    assert.throws(() => validateCheck({ ...question, recallPrompt: { en: "" } }, "c"), /recallPrompt/);
   });
 });

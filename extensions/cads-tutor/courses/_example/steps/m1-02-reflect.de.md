@@ -18,6 +18,9 @@ tasks:
       type: question
       prompt: { en: "Why must the flash tool never perform a mass erase on the ITSboard?", de: "Warum darf das Flash-Werkzeug auf dem ITSboard nie einen Mass-Erase ausführen?" }
       rubric: "Mentions that a mass erase can clear option bytes / protection or brick the board and that writes must stay inside 0x08000000-0x080FFFFF"
+      recallPrompt:
+        en: "From memory: name one thing a mass erase can destroy on this board, and the address range a flash write must stay inside."
+        de: "Aus dem Gedächtnis: nenne eine Sache, die ein Mass Erase auf diesem Board zerstören kann, und den Adressbereich, in dem ein Flash-Schreibzugriff bleiben muss."
       bloom: analyze
       minChars: 30
   - id: cleanup

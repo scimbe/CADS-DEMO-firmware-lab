@@ -25,7 +25,7 @@ export type CheckSpec =
   | { type: "flash"; since?: "stepStart" | "sessionStart" | "any"; file?: string }
   | { type: "serialExpect"; send?: string; pattern: string; timeoutMs?: number }
   | { type: "debugStop"; file?: string; line?: number; timeoutMs?: number }
-  | { type: "question"; prompt: Localized; rubric: string; bloom?: BloomLevel; minChars?: number }
+  | { type: "question"; prompt: Localized; rubric: string; bloom?: BloomLevel; minChars?: number; recallPrompt?: Localized }
   | { type: "manual"; label?: Localized }
   | { type: "all"; checks: CheckSpec[] }
   | { type: "any"; checks: CheckSpec[] }
@@ -72,6 +72,20 @@ export interface PredictCheck {
   rubric?: string;
   bloom?: BloomLevel;
   minChars?: number;
+  /** A9.2a: the question to ask about this later, from memory. See `recallPrompt` on `question`. */
+  recallPrompt?: Localized;
+}
+
+/**
+ * A9.2a: the question a recall card may ask about this task two modules later.
+ * A `prompt` is answered with the file on screen; a recall is answered from
+ * memory, and the recall card draws only a heading, the source step's title and
+ * this text - no body, no code block, no file link. A task without it is not a
+ * valid recall target, and the card stays silent rather than asking a question
+ * whose subject has scrolled away.
+ */
+export function recallPromptOf(check: CheckSpec): Localized | undefined {
+  return check.type === "question" || check.type === "predict" ? check.recallPrompt : undefined;
 }
 
 export type CheckType = CheckSpec["type"];
