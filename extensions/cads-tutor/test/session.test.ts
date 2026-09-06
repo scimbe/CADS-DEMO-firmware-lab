@@ -4,7 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { describe, it } from "node:test";
 import { loadCoursePack, orderedSteps } from "../src/loader";
-import { adjacentStep, defaultStart, isStepUnlocked, moduleProgress, newSession, nextOpenStep, readSession, recordTaskResult, setCurrentStep, stepStatus, writeSession } from "../src/session";
+import { adjacentStep, defaultStart, isStepUnlocked, moduleProgress, moduleReflectionDue, newSession, nextOpenStep, readSession, recordTaskResult, setCurrentStep, stepStatus, writeSession } from "../src/session";
 import { hintTierForFailures, selectHint, taskFailedTrigger } from "../src/socratic";
 
 const EXAMPLE = path.resolve(__dirname, "..", "..", "courses", "_example");
@@ -133,5 +133,34 @@ describe("module progress (A3)", () => {
     const p = moduleProgress(course, "does-not-exist", newSession());
     assert.equal(p.stepsTotal, 0);
     assert.equal(p.open, 0);
+  });
+});
+
+describe("A3 module reflection", () => {
+  const steps = orderedSteps(course);
+  const m2 = steps.filter((s) => s.moduleId === "m2");
+
+  const finish = (s: ReturnType<typeof newSession>, step: (typeof steps)[number]) => {
+    setCurrentStep(s, course.manifest.id, step.id);
+    for (const t of step.variants.en!.meta.tasks) recordTaskResult(s, course, step, t.id, "passed", "ok", all);
+  };
+
+  it("comes due exactly on the module's last step, once every step in it is done", () => {
+    const s = newSession();
+    assert.equal(moduleReflectionDue(s, course, m2[0]), undefined, "not due on the first step");
+    finish(s, m2[0]);
+    assert.equal(moduleReflectionDue(s, course, m2[0]), undefined, "still not due: not the last step");
+    assert.equal(moduleReflectionDue(s, course, m2[1]), undefined, "last step not done yet");
+    finish(s, m2[1]);
+    // This is the moment the card must be pushed to the panel: the step page was rendered while
+    // the module was still open, so a full re-render never happens for it.
+    assert.equal(moduleReflectionDue(s, course, m2[1])?.id, "m2");
+  });
+
+  it("stays undefined for a module that declares no prompts", () => {
+    const s = newSession();
+    for (const step of steps.filter((x) => x.moduleId === "m0")) finish(s, step);
+    const last = steps.filter((x) => x.moduleId === "m0").at(-1)!;
+    assert.equal(moduleReflectionDue(s, course, last), undefined);
   });
 });

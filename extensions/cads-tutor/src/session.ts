@@ -10,7 +10,7 @@ import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { orderedSteps } from "./loader";
-import { stepKey, type Course, type Lang, type PredictionOutcome, type SessionState, type Step, type StepProgress, type StepStatus, type TaskState, type TaskStatus, type TestCaseResult } from "./types";
+import { stepKey, type Course, type CourseModule, type Lang, type PredictionOutcome, type SessionState, type Step, type StepProgress, type StepStatus, type TaskState, type TaskStatus, type TestCaseResult } from "./types";
 
 export function newSession(now = new Date()): SessionState {
   const iso = now.toISOString();
@@ -65,6 +65,22 @@ export function isStepDone(session: SessionState, step: Step): boolean {
   const tasks = step.variants.en?.meta.tasks ?? [];
   if (tasks.length === 0) return !!p.startedAt;
   return tasks.every((t) => p.tasks[t.id]?.status === "passed");
+}
+
+/**
+ * A3: the module whose reflection card is due at this step - the step is the module's last one and
+ * every step in the module is done. Kept here (not in the controller) so it is testable: the card
+ * became due only at the moment the last check passed, which is exactly what went unnoticed.
+ */
+export function moduleReflectionDue(session: SessionState, course: Course, step: Step): CourseModule | undefined {
+  const mod = course.manifest.modules.find((m) => m.id === step.moduleId);
+  if (!mod?.reflection || mod.reflection.prompts.length === 0) return undefined;
+  if (mod.steps[mod.steps.length - 1] !== step.id) return undefined;
+  const done = mod.steps.every((sid) => {
+    const st = course.steps.get(sid);
+    return st ? isStepDone(session, st) : true;
+  });
+  return done ? mod : undefined;
 }
 
 export function isCourseDone(session: SessionState, course: Course): boolean {

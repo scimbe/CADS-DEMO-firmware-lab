@@ -37,6 +37,7 @@ import {
   getStepProgress,
   getTaskState,
   isStepDone,
+  moduleReflectionDue,
   newSession,
   nextOpenStep,
   readSession,
@@ -634,15 +635,8 @@ export class TutorController implements vscode.Disposable {
 
   /** A3: the module's reflection card, once its last step is done. */
   private reflectionView(course: Course, step: Step, lang: Lang): ReflectionView | undefined {
-    const mod = course.manifest.modules.find((m) => m.id === step.moduleId);
-    if (!mod?.reflection || mod.reflection.prompts.length === 0) return undefined;
-    const lastStepId = mod.steps[mod.steps.length - 1];
-    if (lastStepId !== step.id) return undefined;
-    const moduleDone = mod.steps.every((sid) => {
-      const st = course.steps.get(sid);
-      return st ? isStepDone(this.session, st) : true;
-    });
-    if (!moduleDone) return undefined;
+    const mod = moduleReflectionDue(this.session, course, step);
+    if (!mod?.reflection) return undefined;
     const record = this.session.reflections?.[stepKey(course.manifest.id, mod.id)];
     return {
       moduleId: mod.id,
@@ -939,8 +933,14 @@ export class TutorController implements vscode.Disposable {
     const s = ui(this.lang);
     const refs: StepRef[] = unlocked.map((u) => ({ stepId: u.id, title: this.contentFor(u).meta.title }));
     this.panel.post({ type: "stepDone", unlocked: refs });
+    // A3: the module's reflection card only becomes due with this very completion. The step was
+    // rendered while the module was still open, so the card is missing from the page - push it now,
+    // otherwise it is never seen: the student is invited to the next step right away.
+    const reflection = this.reflectionView(cur.course, cur.step, this.lang);
+    if (reflection && !reflection.saved) this.panel.post({ type: "reflection", html: renderReflection(reflection, this.lang) });
     const next = unlocked[0] ?? adjacentStep(cur.course, cur.step.id, 1);
-    const msg = `${s.done} ${cur.content.meta.title}` + (refs.length ? ` – ${s.unlocked(refs.map((r) => r.title).join(", "))}` : "");
+    const msg = `${s.done} ${cur.content.meta.title}` + (refs.length ? ` – ${s.unlocked(refs.map((r) => r.title).join(", "))}` : "")
+      + (reflection && !reflection.saved ? ` – ${s.reflectionDue}` : "");
     if (next) {
       const nextTitle = this.contentFor(next).meta.title;
       void vscode.window.showInformationMessage(msg, `${s.next} ${nextTitle}`).then((choice) => {
