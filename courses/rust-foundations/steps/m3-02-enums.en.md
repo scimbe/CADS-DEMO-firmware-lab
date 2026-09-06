@@ -18,7 +18,7 @@ tasks:
     title: "The four constructors pass"
     check: { type: "testSuite", runner: "cargo", command: "cargo test --test m3-02-enums", expectPass: [ "m3_02_enums::make_move_carries_both_coordinates", "m3_02_enums::make_write_owns_its_text", "m3_02_enums::first_char_is_optional", "m3_02_enums::safe_div_never_panics" ], minPass: 4, timeoutMs: 180000 }
   - id: vs-struct
-    title: "You can argü enum against struct"
+    title: "You can argue enum against struct"
     check: { type: "question", prompt: { en: "Model Command as a struct instead: one kind field plus x, y, text and three colour components, all optional. Name two concrete defects of that design that the enum does not have, and one situation in which the struct would nevertheless be the better choice.", de: "Modelliere Command stattdessen als Struktur: ein Feld kind plus x, y, text und drei Farbkomponenten, alle optional. Nenne zwei konkrete Mängel dieses Entwurfs, die das Enum nicht hat, und eine Situation, in der die Struktur dennoch die bessere Wahl wäre." }, rubric: "Two defects, each one a consequence a reader or a caller would feel: invalid states become representable (a Quit carrying text, a Move with no coordinates), every consumer must handle a None that cannot legitimately occur, memory is spent on fields most variants never use, or the compiler can no longer check that every case is handled. The third part names a case where the struct wins - all variants genuinely share the same fields, or the record maps onto an external format or a database row. Does not pass: two restatements of the same defect in different words, or a third part that only repeats that the enum is better.", bloom: "evaluate", minChars: 80 }
 socratic:
   - { trigger: "task:vs-struct:failed", question: { en: "Write the struct version out with its optional fields. Which combinations does it allow that no command should have?", de: "Schreibe die Struktur-Fassung mit ihren optionalen Feldern aus. Welche Kombinationen erlaubt sie, die kein Kommando haben sollte?" }, hints: [ { en: "Set kind to Quit and fill in the text and the coordinates anyway. Nothing stops you - that is the first defect.", de: "Setze kind auf Quit und fülle Text und Koordinaten trotzdem aus. Nichts hindert dich - das ist der erste Mangel." }, { en: "Now write the reader: for a Move you know x exists, but the field is an Option, so ask what that forces every reader to write.", de: "Schreibe nun den Leser: bei einem Move weißt du, dass x existiert, aber das Feld ist ein Option - frage, was das jeden Leser zu schreiben zwingt." }, { en: "For the third part, think of data where every case really does carry the same fields; a fixed-layout record from a file or a table row is the usual example.", de: "Denke beim dritten Teil an Daten, bei denen wirklich jeder Fall dieselben Felder trägt; ein Datensatz mit festem Aufbau aus einer Datei oder eine Tabellenzeile ist das übliche Beispiel." } ] }
@@ -70,7 +70,7 @@ Notice what you cannot do yet: read the data back out. That needs `match`, which
 
 ## Your task
 
-Implement the four functions, then argü the enum against the struct-with-a-kind-field design.
+Implement the four functions, then argue the enum against the struct-with-a-kind-field design.
 
 ## Running it
 

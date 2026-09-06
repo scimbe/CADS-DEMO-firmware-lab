@@ -6,7 +6,7 @@ objectives: [ "rust-ch04-02-references-and-borrowing" ]
 requires: [ "m2-02-mutable-references" ]
 estimatedMinutes: 25
 scaffold: faded
-recallFrom: [ "m2-02-mutable-references" ]
+recallFrom: [ "m2-02-mutable-references", "m0-05-compiler-errors" ]
 links:
   - { step: "m2-04-slices" }
   - { file: "src/m2/m2_03_aliasing.rs" }
@@ -15,8 +15,8 @@ links:
 sources: [ "src/m2/m2_03_aliasing.rs", "tests/m2-03-aliasing-rule.rs", "examples/m2_borrow_scopes.rs", "snippets/m2_03_two_mut_borrows.rs" ]
 tasks:
   - id: two-mut
-    title: "Bestätige, dass zwei veränderliche Leihen abgelehnt werden"
-    check: { type: "command", command: "mkdir -p target/check && rustc --edition 2024 --emit=metadata --out-dir target/check snippets/m2_03_two_mut_borrows.rs", seedMustFail: false, expectExitCode: 1, expectStderr: "error\\[E0499\\]: cannot borrow `s` as mutable more than once at a time", timeoutMs: 120000 }
+    title: "Sage vorher, welche Zeilen der Compiler markiert"
+    check: { type: "predict", prompt: { en: "snippets/m2_03_two_mut_borrows.rs is the minimal E0499. Before you run it: how many places will the diagnostic point at, and which lines are they?", de: "snippets/m2_03_two_mut_borrows.rs ist das minimale E0499. Bevor du es ausführst: auf wie viele Stellen zeigt die Diagnose, und welche Zeilen sind das?" }, then: { type: "command", command: "mkdir -p target/check && rustc --edition 2024 --emit=metadata --out-dir target/check snippets/m2_03_two_mut_borrows.rs", seedMustFail: false, expectExitCode: 1, expectStderr: "error\\[E0499\\]: cannot borrow `s` as mutable more than once at a time", timeoutMs: 120000 }, rubric: "Predicts three marked places, not one: the first `&mut` as the borrow that came first, the second `&mut` as the one the error is reported at, and the `println!` as the later use of the first borrow. Naming only the second `&mut` is the common model and the useful one to be wrong about, because the overlap exists precisely on account of that later use - without it the two borrows no longer overlap.", bloom: "evaluate" }
   - id: aliasing
     title: "Die drei Aliasing-Übungen bestehen"
     check: { type: "testSuite", runner: "cargo", command: "cargo test --test m2-03-aliasing-rule", expectPass: [ "m2_03_aliasing_rule::first_then_push_returns_first_and_pushes", "m2_03_aliasing_rule::longest_len_then_clear_works", "m2_03_aliasing_rule::longest_len_of_empty_is_zero", "m2_03_aliasing_rule::double_all_and_sum_mutates_and_sums" ], minPass: 4, timeoutMs: 180000 }
@@ -24,6 +24,7 @@ tasks:
     title: "Du kannst benennen, was die Regel einbringt"
     check: { type: "question", prompt: { en: "E0502 rejects code that would usually run correctly. Two sentences: what push may do to the buffer, and why a test suite would not reliably catch the result.", de: "E0502 lehnt Code ab, der meistens korrekt liefe. Zwei Sätze: was push mit dem Puffer tun darf, und warum eine Testsuite das Ergebnis nicht verlässlich fände." }, rubric: "First sentence: push may exceed the capacity, allocate a new buffer, move the elements and free the old one, leaving the earlier reference pointing at freed memory. Second sentence: whether the reallocation happens depends on the capacity at that moment, so the same code passes on some inputs and corrupts memory on others. Does not pass: saying only that the borrow checker forbids it, or naming a wrong value rather than freed memory, or stopping at 'undefined behaviour' without the reallocation.", bloom: "analyze", minChars: 60 }
 socratic:
+  - { trigger: "task:two-mut:failed", question: { en: "Your prediction and the diagnostic do not agree. Is the number of marked places wrong, or the lines they sit on?", de: "Deine Vorhersage und die Diagnose gehen auseinander. Stimmt die Zahl der markierten Stellen nicht, oder stimmen die Zeilen nicht, auf denen sie sitzen?" }, hints: [ { en: "An error needs two things that overlap, and an overlap has two ends. Ask how the compiler could show you an overlap by pointing at a single line.", de: "Ein Fehler braucht zwei Dinge, die sich überlappen, und eine Überlappung hat zwei Enden. Frage, wie der Compiler dir eine Überlappung zeigen könnte, indem er auf eine einzige Zeile zeigt." }, { en: "Open `snippets/m2_03_two_mut_borrows.rs`; it is four lines of code. Run the check and read the block under the message from top to bottom - every line of code it reprints carries its own label underneath.", de: "Öffne `snippets/m2_03_two_mut_borrows.rs`; es sind vier Zeilen Code. Führe die Prüfung aus und lies den Block unter der Meldung von oben nach unten - jede Codezeile, die er wiederholt, trägt darunter ihre eigene Beschriftung." }, { en: "The label most predictions miss sits on neither borrow. Ask yourself when an overlap begins to exist at all: taking the second borrow is not enough on its own, something has to happen to the first one afterwards.", de: "Die Beschriftung, die den meisten Vorhersagen fehlt, sitzt auf keiner der beiden Leihen. Frage dich, wann eine Überlappung überhaupt entsteht: die zweite Leihe zu nehmen genügt für sich nicht, mit der ersten muss danach noch etwas geschehen." } ] }
   - { trigger: "task:price:failed", question: { en: "A vector that is full has to grow somewhere. Where does the old content go?", de: "Ein voller Vektor muss irgendwo wachsen. Wohin gerät der alte Inhalt?" }, hints: [ { en: "`Vec` stores its elements in one contiguous block with a fixed capacity. Ask what has to happen when the block is full and one more element arrives.", de: "`Vec` speichert seine Elemente in einem zusammenhängenden Block mit fester Kapazität. Frage, was passieren muss, wenn der Block voll ist und ein Element hinzukommt." }, { en: "A reference is an address. If the elements move to a different address, ask what the old reference now names.", de: "Eine Referenz ist eine Adresse. Wandern die Elemente an eine andere Adresse, frage, was die alte Referenz jetzt benennt." }, { en: "Whether the block was full at that moment depends on how many elements were pushed before - which is why the failure is not reproducible from the code alone.", de: "Ob der Block in diesem Moment voll war, hängt davon ab, wie viele Elemente vorher eingefügt wurden - deshalb ist der Fehlschlag aus dem Code allein nicht reproduzierbar." } ] }
   - { trigger: "task:aliasing:failed", question: { en: "Which function does not compile, and which two borrows overlap in it? Ask for each: could the reading one end before the writing one starts?", de: "Welche Funktion kompiliert nicht, und welche beiden Leihen überlappen darin? Frage jeweils: könnte die lesende enden, bevor die schreibende beginnt?" }, hints: [ { en: "Copy the value out first: `let first = v[0];` (no `&`) reads an `i32` and ends the borrow immediately.", de: "Kopiere den Wert zuerst heraus: `let first = v[0];` (ohne `&`) liest ein `i32` und beendet die Leihe sofort." }, { en: "In `longest_len_then_clear`, finish the loop over `words.iter()` completely before calling `clear`.", de: "Beende in `longest_len_then_clear` die Schleife über `words.iter()` vollständig, bevor du `clear` aufrufst." }, { en: "`double_all_and_sum` needs one loop with `iter_mut()`; write through `*x` and add to the running total in the same pass.", de: "`double_all_and_sum` braucht eine Schleife mit `iter_mut()`; schreibe über `*x` und addiere im selben Durchgang zur Summe." } ] }
 misconceptions:
@@ -43,7 +44,7 @@ Zu jedem Zeitpunkt darfst du für einen Wert **entweder** beliebig viele geteilt
 - **E0499** - zwei veränderliche Leihen gleichzeitig.
 - **E0502** - eine veränderliche Leihe, während eine geteilte noch lebt.
 
-`snippets/m2_03_two_mut_borrows.rs` ist das minimale E0499; der erste Check übersetzt es und erwartet diesen Fehlschlag, damit du die Meldung im eigenen Terminal siehst und nicht nur in diesem Text.
+`snippets/m2_03_two_mut_borrows.rs` ist das minimale E0499. Der erste Check lässt dich vorhersagen, welche Zeilen der Compiler markieren wird, und übersetzt die Datei erst danach, damit du der Meldung im eigenen Terminal begegnest und nicht nur in diesem Text - und die Datei bleibt, wie sie ist, denn ein Check, der einen Fehler sehen will, wird rot, sobald der Fehler weg ist.
 
 ## Warum "funktioniert doch trotzdem" kein Argument ist
 
@@ -82,7 +83,7 @@ Die Übungen sind drei Formen derselben Lösung.
 
 ## Deine Aufgabe
 
-Führe den Snippet-Check aus, implementiere die drei Funktionen und benenne dann, was tatsächlich schiefgehen kann, wäre E0502 erlaubt. Der nächste Step führt Slices ein, deren ganzer Zweck es ist, das Leihen eines *Teils* einer Sammlung sicher zu machen.
+Sage vorher, was der Snippet-Check melden wird, implementiere die drei Funktionen und benenne dann, was tatsächlich schiefgehen kann, wäre E0502 erlaubt. Der nächste Step führt Slices ein, deren ganzer Zweck es ist, das Leihen eines *Teils* einer Sammlung sicher zu machen.
 
 ## So führst du das aus
 
