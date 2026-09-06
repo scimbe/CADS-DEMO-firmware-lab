@@ -57,11 +57,11 @@ pub fn first_word(s: &str) -> &str
 
 ```rust
 let word = first_word(&s);
-s.clear();                              // error[E0502]
+s.clear();
 println!("the first word is: {word}");
 ```
 
-Predict the outcome before compiling. `clear` needs a mutable borrow; `word` still holds a shared one, because the `println!` on the next line uses it. The compiler rejects the *shape*, and the bug that would have been a stale index in another language never exists.
+Predict the outcome before compiling: three statements, and the question is whether they are allowed to stand next to each other in that order. What is rejected here is the *shape* and not a value - the bug that would have been a stale index in another language never exists.
 
 ## `&str` is a slice
 

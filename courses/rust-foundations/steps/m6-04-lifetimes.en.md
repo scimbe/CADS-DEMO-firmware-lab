@@ -53,7 +53,6 @@ fn longest(x: &str, y: &str) -> &str {
 ```
 
 ```text
-error[E0106]: missing lifetime specifier
    = help: this function's return type contains a borrowed value, but the
      signature does not say whether it is borrowed from `x` or `y`
 ```
