@@ -6,7 +6,7 @@ objectives: [js.tooling.node-test, javascript-web-javascript-guide-indexed-colle
 requires: [m6-04-concurrency]
 estimatedMinutes: 25
 scaffold: faded
-recallFrom: [m5-04-transformations, m2-04-error-objects, m1-03-coercion-nan]
+recallFrom: [m5-04-transformations, m2-04-error-objects, m1-03-coercion-nan, m6-04-concurrency]
 links:
   - { step: m6-04-concurrency }
   - { step: m7-02-capstone-build }
@@ -73,7 +73,7 @@ Every module of this course has a fingerprint on this problem. Find them before 
 - **Ties.** Two labels with the same total need a documented order, or the output is unstable.
 - **Ownership.** `summarize` receives an array from its caller and must not reorder it ([m5-03](step:m5-03-arrays)).
 - **Errors.** A malformed line has to be distinguishable from a comment ([m2-04](step:m2-04-error-objects)).
-- **Async.** `loadReport` awaits a reader that may reject, and the rejection must not escape as an unhandled one ([m6-03](step:m6-03-async-errors)).
+- **Async.** `loadReport` awaits a reader that may reject, and the rejection must not escape as an unhandled one ([m6-03](step:m6-03-async-errors)). There is one source, so nothing here has to run at the same time as anything else - the choice between the combinators ([m6-04](step:m6-04-concurrency)) is one this design gets to decline, and saying why is part of the design.
 
 ## The decision this step asks for
 

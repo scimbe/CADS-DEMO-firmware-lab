@@ -6,7 +6,7 @@ objectives: [javascript-web-javascript-guide-control-flow-and-error-handling]
 requires: [m1-04-equality]
 estimatedMinutes: 15
 scaffold: worked
-recallFrom: [m1-04-equality]
+recallFrom: [m1-04-equality, m0-05-predict-output]
 links:
   - { step: m1-04-equality }
   - { step: m2-02-truthy-falsy }
@@ -62,7 +62,7 @@ Die interessanten Fehler wohnen an den Grenzen. `>` und `>=` unterscheiden sich 
 
 MDNs Kapitel [Control flow](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Control_flow_and_error_handling) sagt es unumwunden: ein `case` endet nicht von selbst. Passt ein Fall, springt die Ausführung dorthin und **läuft weiter** in die folgenden case-Rümpfe, bis sie auf ein `break` oder das Ende des switch trifft.
 
-Sag vorher, was das ausgibt, und führe dann [`examples/m2-switch-fallthrough.js`](file:examples/m2-switch-fallthrough.js) aus:
+Sag vorher, was das ausgibt - erst aufgeschrieben, so wie es das [Vorhersagen von Ausgaben](step:m0-05-predict-output) verlangt hat -, und führe dann [`examples/m2-switch-fallthrough.js`](file:examples/m2-switch-fallthrough.js) aus:
 
 ```bash
 node examples/m2-switch-fallthrough.js

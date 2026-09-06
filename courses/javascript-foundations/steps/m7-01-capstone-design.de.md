@@ -6,7 +6,7 @@ objectives: [js.tooling.node-test, javascript-web-javascript-guide-indexed-colle
 requires: [m6-04-concurrency]
 estimatedMinutes: 25
 scaffold: faded
-recallFrom: [m5-04-transformations, m2-04-error-objects, m1-03-coercion-nan]
+recallFrom: [m5-04-transformations, m2-04-error-objects, m1-03-coercion-nan, m6-04-concurrency]
 links:
   - { step: m6-04-concurrency }
   - { step: m7-02-capstone-build }
@@ -73,7 +73,7 @@ Jedes Modul dieses Kurses hinterlässt seinen Fingerabdruck auf diesem Problem. 
 - **Gleichstand.** Zwei Labels mit derselben Summe brauchen eine dokumentierte Reihenfolge, sonst ist die Ausgabe instabil.
 - **Eigentümerschaft.** `summarize` bekommt ein Array vom Aufrufer und darf es nicht umsortieren ([m5-03](step:m5-03-arrays)).
 - **Fehler.** Eine fehlerhafte Zeile muss von einem Kommentar unterscheidbar sein ([m2-04](step:m2-04-error-objects)).
-- **Asynchronität.** `loadReport` wartet auf einen Reader, der ablehnen kann, und die Ablehnung darf nicht als unbehandelte entkommen ([m6-03](step:m6-03-async-errors)).
+- **Asynchronität.** `loadReport` wartet auf einen Reader, der ablehnen kann, und die Ablehnung darf nicht als unbehandelte entkommen ([m6-03](step:m6-03-async-errors)). Es gibt eine einzige Quelle, hier muss also nichts gleichzeitig mit etwas anderem laufen - die Wahl zwischen den Kombinatoren ([m6-04](step:m6-04-concurrency)) darf dieser Entwurf ausschlagen, und zu sagen warum gehört zum Entwurf.
 
 ## Die Entscheidung, um die es hier geht
 

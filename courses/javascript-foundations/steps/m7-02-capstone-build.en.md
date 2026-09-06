@@ -6,7 +6,7 @@ objectives: [js.tooling.node-test, js.errors.custom-class, js.async.errors, java
 requires: [m7-01-capstone-design]
 estimatedMinutes: 60
 scaffold: independent
-recallFrom: [m7-01-capstone-design, m5-04-transformations, m6-03-async-errors]
+recallFrom: [m7-01-capstone-design, m5-04-transformations, m6-03-async-errors, m6-02-async-await]
 links:
   - { step: m7-01-capstone-design }
   - { step: m2-04-error-objects }
@@ -68,7 +68,7 @@ Everything in [`src/m7/report-tool.js`](file:src/m7/report-tool.js). Six exports
 | `parseReport` | text to records, in file order | [m3-03](step:m3-03-for-of-and-in) |
 | `summarize` | records to `{count, sum, byLabel}` | [m5-04](step:m5-04-transformations) |
 | `formatReport` | summary to sorted lines plus `TOTAL` | [m5-04](step:m5-04-transformations) |
-| `loadReport` | await a reader, then the three above | [m6-03](step:m6-03-async-errors) |
+| `loadReport` | await a reader, then the three above | [m6-02](step:m6-02-async-await), [m6-03](step:m6-03-async-errors) |
 
 Work from the tests. `node --test test/m7-02-capstone-build.test.js` gives you seven failures; take them one at a time, top to bottom, and the shape of each function follows from the assertions.
 
