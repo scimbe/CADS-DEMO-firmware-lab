@@ -6,7 +6,7 @@ objectives: [ "rust-ch08-01-vectors" ]
 requires: [ "m3-04-if-let" ]
 estimatedMinutes: 20
 scaffold: worked
-recallFrom: [ "m2-03-aliasing-rule" ]
+recallFrom: [ "m2-03-aliasing-rule", "m2-02-mutable-references" ]
 links:
   - { step: "m4-02-strings" }
   - { file: "src/m4/m4_01_vectors.rs" }
@@ -32,6 +32,8 @@ misconceptions:
 ## Lernziel
 
 Baue, lies, durchlaufe und ändere einen `Vec<T>` und wähle bewusst zwischen einer Indizierung, die abstürzt, und einer, die ein `Option` liefert.
+
+Jedes `push` verlangt die veränderliche Leihe aus `m2-02-mutable-references`, und `m2-03-aliasing-rule` erklärt, warum sie neben keiner anderen stehen darf - hier zahlt sich beides zum ersten Mal an einer wachsenden Sammlung aus.
 
 ## Erzeugen und wachsen lassen
 

@@ -6,7 +6,7 @@ objectives: [ "rust-project-cli" ]
 requires: [ "m6-04-lifetimes" ]
 estimatedMinutes: 90
 scaffold: independent
-recallFrom: [ "m5-04-custom-error", "m4-04-collections-report", "m4-03-hash-maps", "m3-01-structs", "m5-01-panic-vs-result", "m6-02-traits" ]
+recallFrom: [ "m5-04-custom-error", "m4-04-collections-report", "m4-03-hash-maps", "m3-01-structs", "m5-01-panic-vs-result", "m6-02-traits", "m5-02-result", "m5-03-question-mark" ]
 links:
   - { step: "m7-02-review" }
   - { file: "src/project/wordstat.rs" }
@@ -37,6 +37,8 @@ misconceptions:
 ## Lernziel
 
 Baue ein funktionierendes Kommandozeilenwerkzeug aus den Bausteinen von M1 bis M6 und weise mit den mitgelieferten Tests nach, dass es funktioniert.
+
+Der Fehlerpfad des Werkzeugs kommt aus M5: `m5-02-result` für den Rückgabetyp, der den Fehlschlag mitträgt, `m5-03-question-mark` für den Operator, der ihn weiterreicht, und `m5-04-custom-error` für den eigenen Typ, der beides zusammenhält.
 
 ## Was du baust
 
