@@ -201,11 +201,34 @@ DO_BLOCK_RE = re.compile(r"^:::[ \t]+do\b.*?^:::[ \t]*$", re.M | re.S)
 # the ratio is taken, so the figure measures shared PROSE.
 #
 # Why: a rubric about `Copy`, `drop`, `E0507` or `Number.isNaN` cannot avoid
-# those words, they ARE its subject. Measured across the rubrics that were over
-# the limit, 86 percent (en) and 85 percent (de) of everything they shared with
-# their body was an identifier, and six shared nothing else at all. At a limit
-# of 35 the vocabulary floor of such a rubric sits above the limit, and the
-# number then answers a question nobody asked.
+# those words, they ARE its subject, and a rubric should not be penalised for
+# naming its subject the same way its step does.
+#
+# HOW BIG THE EFFECT ACTUALLY IS. An earlier figure in this comment said 86
+# percent (en) and 85 percent (de) of what an over-limit rubric shares with its
+# body is an identifier. That number was wrong: it came from an inline-code
+# regex without a newline guard, which ran across block boundaries and swallowed
+# whole paragraphs of prose as "identifiers" - 5251 tokens where the regex below
+# finds 1037. Re-measured over the rust pack's over-limit rubrics, what they
+# share decomposes as:
+#
+#     identifiers    19 % (en)  14 % (de)
+#     function words 19 % (en)  17 % (de)   the words EXTRA_STOP adds
+#     content prose  62 % (en)  69 % (de)
+#
+# So this discount is a real correction but a small one, and the claim it was
+# once used to support - that the residue is mostly vocabulary - does not hold.
+# Most of what an over-limit rubric shares with its body is ordinary prose, which
+# is the thing R4.2 is about. Treat a row over the limit as worth reading, not as
+# noise.
+#
+# AND KNOW WHAT NO TOKEN MEASURE CAN SEE: it cannot tell a body that states the
+# answer from a body that asks the question using the same nouns. m4-01's body
+# was rewritten from "use v[i] when an out-of-range index would mean a bug" into
+# "which of the two is right depends on where the index came from and whether
+# being out of range is a bug" - a statement turned into a question, same words,
+# same overlap. Reading found twelve such bodies in this pack; the number found
+# none of them on its own.
 #
 # What `ovl` therefore does NOT measure any more, deliberately: shared technical
 # vocabulary. A course is expected to name its subject the same way twice. What
