@@ -48,6 +48,8 @@ misconceptions:
 
 Benenne die Werttypen, die JavaScript wirklich hat, nutze `typeof` für das, wofür es taugt, und greif dort zu einer anderen Prüfung, wo `typeof` nicht weiterhilft.
 
+Aus [m1-01](step:m1-01-let-const) mitgenommen: eine Bindung ist nicht ihr Wert. Genau diese Unterscheidung erlaubt dir zu sagen, dass ein Typ zum Wert gehört und nie zum Namen.
+
 ## Die Typen, einmal im Überblick
 
 MDNs Kapitel [Grammar and types](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Grammar_and_types) nennt sieben primitive Typen plus Objekte:

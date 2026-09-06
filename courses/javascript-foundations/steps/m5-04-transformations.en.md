@@ -57,6 +57,8 @@ misconceptions:
 
 Express an aggregation as a pipeline of array methods, and know the two defaults that make `sort` and `reduce` wrong in exactly the cases you did not test.
 
+Carried over from [m4-02](step:m4-02-parameters): every callback here is a function with parameters, and `reduce`'s second argument is a default in all but name.
+
 ## Three methods, one shape
 
 ```js

@@ -45,6 +45,8 @@ misconceptions:
 
 Entscheide, ob Arbeit überlappen soll, und wähle den Kombinator, der dem Aufrufer sagt, was er über einen Teilfehlschlag wirklich wissen muss.
 
+Aus [m5-04](step:m5-04-transformations) mitgenommen: mit `map` startest du alle Aufgaben auf einmal, und das Array, das dabei zurückkommt, ist genau das, was die Kombinatoren dieses Steps nehmen.
+
 ## Ein Promise beginnt, wenn es erzeugt wird
 
 Das ist die Tatsache, die Nebenläufigkeit in JavaScript einfach macht, sobald man sie sieht: die Arbeit beginnt in dem Moment, in dem das Promise existiert, nicht wenn du es `await`est. Der Unterschied zwischen nacheinander und gleichzeitig liegt also darin, **wo die Aufrufe stehen**, nicht wo die awaits stehen.

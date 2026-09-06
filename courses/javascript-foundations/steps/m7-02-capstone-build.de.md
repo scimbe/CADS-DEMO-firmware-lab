@@ -57,6 +57,8 @@ misconceptions:
 
 Bau aus einer Spezifikation ein funktionierendes Werkzeug und schreib die Tests, die prüfen, woran die Spezifikation nicht gedacht hat.
 
+Aus [m7-01](step:m7-01-capstone-design) mitgenommen: die Strategie, die du dort für eine fehlerhafte Zeile gewählt hast, prüfen die Tests unten - bau also, was du entschieden hast.
+
 ## Was du schreibst
 
 Alles in [`src/m7/report-tool.js`](file:src/m7/report-tool.js). Sechs Exporte, und jeder ist ein Stück dieses Kurses:

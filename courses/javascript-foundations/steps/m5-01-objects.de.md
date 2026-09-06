@@ -42,6 +42,8 @@ misconceptions:
 
 Lies ein Objekt als eine Menge benannter Referenzen und wisse genau, wie viel von einer Struktur eine Kopie tatsächlich kopiert.
 
+Aus [m4-04](step:m4-04-arrow-and-this) mitgenommen: eine Methode erreicht ihr Objekt über den Empfänger - und genau die Identität dieses Objekts bewahrt eine Kopie oder eben nicht.
+
 ## Objekte halten Referenzen
 
 Eine Objekteigenschaft hält einen Wert. Ist dieser Wert ein Array oder ein anderes Objekt, wird eine **Referenz** darauf gespeichert, nicht die Sache selbst. Zwei Eigenschaften können deshalb dasselbe Array benennen:

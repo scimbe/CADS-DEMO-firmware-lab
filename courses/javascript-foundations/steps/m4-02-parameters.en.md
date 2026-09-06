@@ -45,6 +45,8 @@ misconceptions:
 
 Give a function a sensible default without swallowing the caller's value, and collect a variable number of arguments into a real array.
 
+Carried over from [m4-01](step:m4-01-declare-and-call): both ways of writing a function take the parameters this step is about, and a default is evaluated when the call happens, not when the function is written.
+
 ## Default parameters
 
 ```js

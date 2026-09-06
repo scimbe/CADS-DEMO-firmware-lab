@@ -45,6 +45,8 @@ misconceptions:
 
 Gib einer Funktion einen sinnvollen Standardwert, ohne den Wert des Aufrufers zu verschlucken, und sammle eine wechselnde Anzahl von Argumenten in ein echtes Array.
 
+Aus [m4-01](step:m4-01-declare-and-call) mitgenommen: beide Schreibweisen einer Funktion nehmen die Parameter, um die es hier geht, und ein Standardwert wird beim Aufruf ausgewertet, nicht beim Schreiben.
+
 ## Standardparameter
 
 ```js

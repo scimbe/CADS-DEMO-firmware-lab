@@ -45,6 +45,8 @@ misconceptions:
 
 Fang einen Fehlschlag ab, der noch nicht passiert ist, und reich einen Fehler nach oben, ohne die Beweise zu vernichten.
 
+Aus [m6-02](step:m6-02-async-await) mitgenommen: das fehlende `await`, das du erkennen gelernt hast, ist dieselbe Auslassung, die einen `try`-Block fertig werden lässt, bevor der Fehlschlag eintrifft.
+
 ## try/catch fängt nur ein throw
 
 `try`/`catch` aus [m2-03](step:m2-03-try-catch-finally) fängt ein **synchrones** throw. Eine Funktion, die ein abgelehntes Promise zurückgibt, wirft an der Aufrufstelle nicht - sie kehrt normal zurück, mit einem Objekt, das später scheitern wird.

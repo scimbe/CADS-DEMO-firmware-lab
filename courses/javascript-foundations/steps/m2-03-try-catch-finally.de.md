@@ -54,6 +54,8 @@ misconceptions:
 
 Entscheide bewusst, ob ein Fehler bei deiner Funktion stehen bleibt oder weiterreist, und nutze `finally` für die Arbeit, die in beiden Fällen passieren muss.
 
+Du brauchst die falsy-Werte aus [m2-02](step:m2-02-truthy-falsy), um zu sehen, warum ein Ersatzwert ein echtes Ergebnis verschlucken kann, und die Blockgrenzen aus [m1-01](step:m1-01-let-const), um zu wissen, wo ein im `try` deklarierter Name noch existiert.
+
 ## Werfen und fangen
 
 `throw` schickt einen Wert den Aufrufstapel hinauf, bis ihn etwas fängt. `try`/`catch` ist das, was ihn fängt:

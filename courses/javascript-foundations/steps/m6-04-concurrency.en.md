@@ -45,6 +45,8 @@ misconceptions:
 
 Decide whether work should overlap, and choose the combinator that tells the caller what they actually need to know about a partial failure.
 
+Carried over from [m5-04](step:m5-04-transformations): `map` is how you start every job at once, and the array it hands back is exactly what this step's combinators take.
+
 ## A promise starts when it is created
 
 This is the fact that makes concurrency in JavaScript simple once you see it: the work begins the moment the promise exists, not when you `await` it. So the difference between sequential and concurrent is **where the calls happen**, not where the awaits do.

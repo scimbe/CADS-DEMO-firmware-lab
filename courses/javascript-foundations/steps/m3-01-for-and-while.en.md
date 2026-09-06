@@ -42,6 +42,8 @@ misconceptions:
 
 Choose the loop that matches the problem: a counting `for` when you know how many passes there are, a `while` when a condition decides as you go.
 
+Carried over from [m2-01](step:m2-01-if-switch): a loop head is a condition like any other, evaluated left to right and stopping as soon as the answer is decided.
+
 ## The three shapes
 
 MDN's [Loops and iteration](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Loops_and_iteration) chapter lists them; the difference that matters in practice is **when the condition is checked**.

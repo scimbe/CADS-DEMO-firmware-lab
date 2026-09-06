@@ -57,6 +57,8 @@ misconceptions:
 
 Build a working tool from a specification, and write the tests that check what the specification did not think of.
 
+Carried over from [m7-01](step:m7-01-capstone-design): the policy you chose there for a malformed line is the one the tests below check, so build what you decided.
+
 ## What you write
 
 Everything in [`src/m7/report-tool.js`](file:src/m7/report-tool.js). Six exports, and each one is a piece of the course:

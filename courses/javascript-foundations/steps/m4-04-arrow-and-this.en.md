@@ -45,6 +45,8 @@ misconceptions:
 
 Explain what sets `this`, recognise the error a detached method produces, and choose a design in which the question does not arise.
 
+Carried over from [m2-04](step:m2-04-error-objects): a detached method fails with a `TypeError`, and reading which object was missing from it is the same skill you practised on your own error class.
+
 ## `this` comes from the call, not from the code
 
 In a normal function, `this` is whatever was in front of the dot **at the moment of the call**:

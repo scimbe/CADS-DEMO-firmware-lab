@@ -42,6 +42,8 @@ misconceptions:
 
 Unterscheide „dieser Wert ist leer" von „dieser Wert wurde nie übergeben" und wähle den Operator, der die Frage stellt, die du wirklich meinst.
 
+Hier treffen zwei Fäden zusammen: die Verzweigung aus [m2-01](step:m2-01-if-switch) und die stillen Umwandlungen aus [m1-03](step:m1-03-coercion-nan) - Truthiness ist Umwandlung mit anderem Hut.
+
 ## Die acht falsy-Werte
 
 Überall, wo JavaScript einen Wahrheitswert braucht - eine `if`-Bedingung, `||`, `&&`, ein Ternär -, wandelt es den übergebenen Wert um. MDNs Kapitel [Control flow](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Control_flow_and_error_handling) listet die Werte, die zu `false` werden:

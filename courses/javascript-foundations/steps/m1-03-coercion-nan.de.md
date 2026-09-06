@@ -45,6 +45,8 @@ misconceptions:
 
 Sag vorher, was `+` mit gemischten Typen macht, erkenne `NaN` daran, dass ein Programm nicht abstürzt, sondern still Unsinn liefert, und prüfe korrekt darauf.
 
+Zwei Dinge kommen mit: die Typnamen aus [m1-02](step:m1-02-types-typeof) und das Lesen eines Diffs aus [m0-03](step:m0-03-read-a-test) - hier sind es die Anführungszeichen darin, die den Fehler verraten.
+
 ## `+` sind zwei Operatoren
 
 Jeder andere Rechenoperator wandelt seine Operanden in Zahlen um. `+` nicht: ist **eine** Seite eine Zeichenkette, hängt `+` Zeichenketten aneinander.
