@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import * as path from "node:path";
 import { describe, it } from "node:test";
 import { loadCoursePack } from "../src/loader";
-import { competenceRecordEntries, renderCompetenceRecordMarkdown, type RecordLookups } from "../src/record";
-import { ensureStepProgress, newSession } from "../src/session";
+import { competenceRecordEntries, moduleRowText, objectiveRowText, renderCompetenceRecordMarkdown, type RecordLookups } from "../src/record";
+import { ensureStepProgress, newSession, objectiveCompetence } from "../src/session";
 import type { SessionState, TaskState } from "../src/types";
 
 const EXAMPLE = path.resolve(__dirname, "..", "..", "courses", "_example");
@@ -68,5 +68,36 @@ describe("A9.3 record of competence", () => {
     const md = renderCompetenceRecordMarkdown(course, newSession(), competenceRecordEntries(course, newSession(), { ...lookups, statementFor: () => "a | b" }), lookups);
     assert.match(md, /a \\\| b/);
     assert.doesNotMatch(md, /\| a \| b \|/);
+  });
+});
+
+describe("A9.2 progress rows show levels, not raw counters", () => {
+  it("puts the level and the evidence on the objective row and the whole trail in the tooltip", () => {
+    const s = newSession();
+    pass(s, "m0-02-build", "build");
+    pass(s, "m0-02-build", "preset", { attempts: 4, hintTier: 3, checkedAt: "2026-09-06T11:00:00.000Z" });
+    const row = objectiveRowText(objectiveCompetence(course, s, "firmware-how-to-build"), lookups);
+    assert.equal(row.label, "firmware-how-to-build");
+    assert.equal(row.description, "geübt · Prüfung im ersten Versuch ohne Hinweis bestanden");
+    assert.match(row.tooltip, /Stufe: geübt — Ein starker Beleg oder zwei mittlere\./);
+    assert.match(row.tooltip, /2026-09-06 Prüfung mit weiterem Versuch oder Hinweis bestanden/);
+    assert.doesNotMatch(row.description, /\d+ %/, "a percentage is a score by another name");
+  });
+
+  it("says so plainly when an objective has no verified evidence", () => {
+    const row = objectiveRowText(objectiveCompetence(course, newSession(), "firmware-safety"), lookups);
+    assert.equal(row.description, "nicht begonnen");
+    assert.match(row.tooltip, /noch kein geprüfter Beleg/);
+  });
+
+  it("leads the module row with steps and practised objectives, and keeps the counters in the tooltip", () => {
+    const s = newSession();
+    pass(s, "m0-01-welcome", "readme");
+    pass(s, "m0-01-welcome", "hello");
+    const row = moduleRowText(course, s, "m0", lookups);
+    assert.equal(row.label, "Orientierung");
+    assert.equal(row.description, "1/2 · 2/3 geübt");
+    assert.match(row.tooltip, /nachgewiesen: 0\/3/);
+    assert.match(row.tooltip, /im Erstversuch bestanden: 2/, "the old counters are still reachable, just not the headline");
   });
 });

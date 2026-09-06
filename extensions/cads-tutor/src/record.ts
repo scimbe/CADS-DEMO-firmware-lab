@@ -1,7 +1,9 @@
 /**
- * Addendum A9.3: the evidence sheet ("Kompetenznachweis"). One entry per learning
- * objective with its level, the criterion that level stands for, the date, the kind
- * of evidence and the step it happened in.
+ * Addendum A9.3: the competence model in human-readable form outside the panel -
+ * the evidence sheet ("Kompetenznachweis") and the rows of the progress tree.
+ *
+ * The sheet holds one entry per learning objective with its level, the criterion
+ * that level stands for, the date, the kind of evidence and the step it happened in.
  *
  * Pure: it takes the course, the session and two lookups, and returns rows and a
  * Markdown document. Open Badges 3.0 asks a claim to carry its criterion and its
@@ -10,6 +12,7 @@
  * count of its own.
  */
 import { ui } from "./i18n";
+import { atLeast, moduleCompetence, moduleProgress } from "./session";
 import { courseCompetence } from "./session";
 import { loc, type CompetenceLevel, type Course, type Evidence, type Lang, type ObjectiveCompetence, type SessionState } from "./types";
 
@@ -116,4 +119,69 @@ export function renderCompetenceRecordMarkdown(course: Course, session: SessionS
     lines.push(`${s.recordCriterion}: ${s.competenceLevel.practised} — ${s.competenceLevelWhy.practised} · ${s.competenceLevel.demonstrated} — ${s.competenceLevelWhy.demonstrated}`, "");
   }
   return lines.join("\n") + "\n";
+}
+
+
+// ---------------------------------------------------------------------------
+// A9.3 / A9.4: the progress tree shows levels, not raw counters.
+//
+// Kept here rather than in progressView.ts because that module imports `vscode`
+// and cannot be unit-tested; the text a teacher reads off the tree is exactly the
+// part that must not drift from the model.
+// ---------------------------------------------------------------------------
+
+export interface RowText {
+  label: string;
+  description: string;
+  tooltip: string;
+}
+
+/** One objective row: its level, and the evidence that produced it. */
+export function objectiveRowText(c: ObjectiveCompetence, lookups: RecordLookups): RowText {
+  const s = ui(lookups.lang);
+  const statement = lookups.statementFor(c.objectiveId) ?? c.objectiveId;
+  const cellsOf = evidenceCell(c.leading, lookups, s);
+  const lines = [statement, `${s.recordColLevel}: ${s.competenceLevel[c.level]} — ${s.competenceLevelWhy[c.level]}`];
+  if (c.evidence.length === 0) lines.push(s.competenceNoEvidence);
+  for (const e of c.evidence) {
+    const cell = evidenceCell(e, lookups, s);
+    lines.push(`· ${day(e.at)} ${cell.kind} (${cell.step})`);
+  }
+  if (c.steps.length > 0) lines.push(`${s.step}: ${c.steps.join(", ")}`);
+  return {
+    label: c.objectiveId,
+    description: c.leading ? `${s.competenceLevel[c.level]} · ${cellsOf.kind}` : s.competenceLevel[c.level],
+    tooltip: lines.join("\n"),
+  };
+}
+
+/**
+ * One module row. The counters that used to be the headline (first try, assisted,
+ * predictions) move into the tooltip: they say how the work went, not what the
+ * student can do, and A9 asks the view to answer the second question.
+ */
+export function moduleRowText(course: Course, session: SessionState, moduleId: string, lookups: RecordLookups): RowText {
+  const s = ui(lookups.lang);
+  const mod = course.manifest.modules.find((m) => m.id === moduleId);
+  const objectives = moduleCompetence(course, session, moduleId);
+  const practised = objectives.filter((o) => atLeast(o.level, "practised")).length;
+  const demonstrated = objectives.filter((o) => o.level === "demonstrated").length;
+  const p = moduleProgress(course, moduleId, session);
+  const lines = [
+    `${s.step}: ${p.stepsDone}/${p.stepsTotal}`,
+    `${s.competenceLevel.practised}: ${practised}/${objectives.length}`,
+    `${s.competenceLevel.demonstrated}: ${demonstrated}/${objectives.length}`,
+    ...objectives.map((o) => `· ${lookups.statementFor(o.objectiveId) ?? o.objectiveId} — ${s.competenceLevel[o.level]}`),
+    "",
+    `${s.progressFirstTry}: ${p.firstTry} · ${s.progressAssisted}: ${p.assisted} · ${s.pending}: ${p.open}`,
+  ];
+  if (p.predictionsCorrect + p.predictionsDeviated + p.predictionsOpen > 0) {
+    lines.push(`${s.progressPredictions}: ${p.predictionsCorrect} ✔ / ${p.predictionsDeviated} ✘${p.predictionsOpen > 0 ? ` / ${p.predictionsOpen} ?` : ""}`);
+  }
+  if (p.reflectionOffered) lines.push(`${s.progressReflection}: ${p.reflection ? s.progressYes : s.progressNo}`);
+  return {
+    label: mod ? loc(mod.title, lookups.lang) : moduleId,
+    description: `${p.stepsDone}/${p.stepsTotal} · ${practised}/${objectives.length} ${s.competenceLevel.practised}`,
+    tooltip: lines.join("\n"),
+  };
 }

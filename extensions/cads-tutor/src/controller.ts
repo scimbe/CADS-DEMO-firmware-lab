@@ -34,7 +34,6 @@ import {
 import {
   adjacentStep,
   atLeast,
-  courseCompetence,
   defaultStart,
   ensureStepProgress,
   getStepProgress,
