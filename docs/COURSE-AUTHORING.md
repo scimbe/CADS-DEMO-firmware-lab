@@ -275,14 +275,18 @@ einem doppelt gequoteten Muster (`"…\s*…"`, in einfachen Anführungszeichen 
 kein PASS. Voraussetzung: Node 22.18+ und einmal `npm ci` in `extensions/cads-tutor`; fehlt beides, bricht der
 Lauf ab, statt mit einem zweiten Parser zu raten.
 
-`--solutions DIR` ist die **Negativprobe** für sprachunabhängige Tracks: jeder `command`/`testSuite`-Check auf
-oberster Ebene läuft zweimal in einer Kopie des Projekt-Roots – ohne Lösung **muss er fehlschlagen**, mit der
-darübergelegten Referenzlösung **muss er bestehen**. Ein Check, der schon auf dem Seed-Workspace besteht, ist
-ein Fehler; ist das ausnahmsweise beabsichtigt, trägt der Check `seedMustFail: false`. Fehlt das Werkzeug
+`--solutions DIR` ist die **Negativprobe** für sprachunabhängige Tracks: jeder `command`/`testSuite`-Check läuft
+zweimal in einer Kopie des Projekt-Roots — auch dann, wenn er in `predict.then`, `all` oder `any` steckt. Bei
+zusammengesetzten Checks zählt die Semantik des Verbunds: `all` besteht nur, wenn alle Kinder bestehen, `any`
+schon bei einem, und auf dem Seed gilt die Umkehrung. Im Protokoll steht der Pfad der tatsächlich gelaufenen
+Prüfung (`two-mut/then`, `substance/all[1]`). Ein `predict` beobachtet ein Programm, das es schon gibt; seine
+`then`-Prüfung besteht deshalb regulär auf dem Seed und trägt `seedMustFail: false`.
+
+Sonst gilt: ohne Lösung **muss der Check fehlschlagen**, mit der darübergelegten Referenzlösung **muss er
+bestehen**. Ein Check, der schon auf dem Seed-Workspace besteht, ist ein Fehler; ist das ausnahmsweise
+beabsichtigt, trägt er `seedMustFail: false`. Fehlt das Werkzeug
 (kein `cargo`, kein `node`), wird die Probe mit Warnung übersprungen statt fehlzuschlagen.
 
-Nur Checks auf oberster Ebene werden ausgeführt; ein `command` innerhalb von `all`/`any` oder in `predict.then`
-wird zwar schema-geprüft, aber nicht ausgeführt.
 
 ## Grounding und Objectives
 

@@ -16,7 +16,7 @@ sources: [src/m4/counter-factory.js, test/m4-03-closures.test.js, examples/m4-cl
 tasks:
   - id: guess-capture
     title: Predict what the loop closures return
-    check: { type: predict, prompt: { en: "Read examples/m4-closure-loop.js. Write down the two arrays and the three numbers it prints.", de: "Lies examples/m4-closure-loop.js. Schreib die zwei Arrays und die drei Zahlen auf, die es ausgibt." }, then: { type: command, command: "node examples/m4-closure-loop.js", expectExitCode: 0, expectStdout: "3, 3, 3" }, rubric: "Sets both predicted arrays against the printed ones and names what differs between the two loops. Does not pass: reporting the output without saying why the two arrays differ.", bloom: evaluate }
+    check: { type: predict, prompt: { en: "Read examples/m4-closure-loop.js. Write down the two arrays and the three numbers it prints.", de: "Lies examples/m4-closure-loop.js. Schreib die zwei Arrays und die drei Zahlen auf, die es ausgibt." }, then: { type: command, command: "node examples/m4-closure-loop.js", seedMustFail: false, expectExitCode: 0, expectStdout: "3, 3, 3" }, rubric: "Sets both predicted arrays against the printed ones and names what differs between the two loops. Does not pass: reporting the output without saying why the two arrays differ.", bloom: evaluate }
   - id: counters
     title: All three closure tests are green
     check: { type: testSuite, runner: node-test, expectPass: ["m4-03 a counter keeps its own state", "m4-03 two counters do not share state", "m4-03 every adder captures its own number"], minPass: 3 }

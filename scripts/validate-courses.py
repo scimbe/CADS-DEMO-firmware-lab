@@ -29,9 +29,11 @@ What it checks, per the task brief:
      `.vscode/tasks.json`, or in the palette list of the shipped extensions).
      Rule 4 - a call to action outside such a block - is a warning until the
      course packs have been converted.
-  9. `--solutions DIR`: every top-level `testSuite`/`command` check is executed
-     twice in a scratch copy of PROJECT_ROOT - without the solution it must FAIL,
-     with DIR overlaid it must PASS. DIR may mirror the project root directly, or
+  9. `--solutions DIR`: every `testSuite`/`command` check is executed twice in a
+     scratch copy of PROJECT_ROOT - without the solution it must FAIL, with DIR
+     overlaid it must PASS. Checks nested in `predict.then`, `all` or `any` are
+     probed too, and the composite's own semantics decide the verdict (`all`
+     needs every child, `any` needs one; the seed side is the mirror of that). DIR may mirror the project root directly, or
      hold one directory per step id (SPEC v1.1 A4), in which case every step
      directory is overlaid. A check that is meant to pass on the untouched seed -
      a toolchain probe such as `node --version` - declares `seedMustFail: false`.
@@ -928,7 +930,7 @@ def validate_course(course_dir, root, symbols, report, probes=None):
                 task_ids.add(task.get("id"))
                 ctype = validate_check(check, where, task.get("id"), report)
                 step_check_types |= _check_types(check)
-                if probes is not None and lang == "en" and ctype in ("command", "testSuite"):
+                if probes is not None and lang == "en" and probe_leaves(check):
                     probes.append((f"{name}/{sid}", task.get("id"), check))
                 for kind, value in iter_check_paths(check):
                     if kind == "file":
@@ -1144,6 +1146,68 @@ def _leading_binary(command):
     return first
 
 
+# The negative probe used to look at the top level of a check only, so a check
+# that moved into `predict.then` or into an `all` silently stopped being probed -
+# which is how a pack went from 38 probes to 37 the day a confirmation task
+# became a prediction. Across the four packs, 45 checks were invisible that way.
+#
+# Descending is not simply "probe every leaf": `all` passes only if every child
+# passes, `any` if one does, and the seed side is the mirror of that. So the
+# leaves are run and the composite verdict is folded back up the tree, and the
+# paths below (`two-mut/then`, `substance/all[1]`) say which leaf was run.
+
+
+def probe_leaves(check, path=""):
+    """Every runnable command/testSuite in a check tree, with its path."""
+    ctype = check.get("type")
+    if ctype in ("command", "testSuite"):
+        return [(path, check)]
+    if ctype == "predict" and isinstance(check.get("then"), dict):
+        return probe_leaves(check["then"], f"{path}/then" if path else "then")
+    if ctype in ("all", "any"):
+        out = []
+        for i, sub in enumerate(check.get("checks") or []):
+            if isinstance(sub, dict):
+                child = f"{ctype}[{i}]"
+                out += probe_leaves(sub, f"{path}/{child}" if path else child)
+        return out
+    return []
+
+
+def fold_probe(check, results, path=""):
+    """Composite verdict from the leaf results: True, False, or None when the
+    tree holds something this script cannot run (a fileMatches inside an `all`,
+    a skipped toolchain) and the outcome therefore is not decidable."""
+    ctype = check.get("type")
+    if ctype in ("command", "testSuite"):
+        return results.get(path)
+    if ctype == "predict" and isinstance(check.get("then"), dict):
+        return fold_probe(check["then"], results, f"{path}/then" if path else "then")
+    if ctype in ("all", "any"):
+        values = []
+        for i, sub in enumerate(check.get("checks") or []):
+            if not isinstance(sub, dict):
+                continue
+            child = f"{ctype}[{i}]"
+            values.append(fold_probe(sub, results, f"{path}/{child}" if path else child))
+        if not values:
+            return None
+        if ctype == "all":
+            # One failing child sinks the whole thing, whatever the rest does.
+            if any(v is False for v in values):
+                return False
+            return None if any(v is None for v in values) else True
+        if any(v is True for v in values):
+            return True
+        return None if any(v is None for v in values) else False
+    # question, manual, fileMatches, board … - nothing this script can run.
+    return None
+
+
+def _probe_label(task_id, path):
+    return f"{task_id}/{path}" if path else task_id
+
+
 def _run_probe(check, root):
     """Runs a command/testSuite check in `root`; returns (passed, message, skipped)."""
     ctype = check.get("type")
@@ -1211,28 +1275,74 @@ def run_solution_probes(probes, root, solutions_dir, report):
     n_step_dirs = _overlay_solutions(solutions_dir, solved, step_ids)
     if n_step_dirs:
         print(f"solutions: {n_step_dirs} per-step solution director{'y' if n_step_dirs == 1 else 'ies'} applied")
-    n_ok = n_skip = 0
+    n_ok = n_skip = n_leaves = 0
     try:
         for where, task_id, check in probes:
-            label = f"{where} task '{task_id}' [{check.get('type')}]"
-            ok, msg, skipped = _run_probe(check, solved)
-            if skipped:
-                report.warn(where, f"task '{task_id}': {msg}")
+            leaves = probe_leaves(check)
+            n_leaves += len(leaves)
+            seed_must_fail = check.get("seedMustFail", True)
+
+            # Run every leaf against the solved copy first; a leaf whose
+            # toolchain is missing stays unknown rather than counting as failed.
+            solved_results, messages, skipped_msgs = {}, {}, []
+            for path, leaf in leaves:
+                ok, msg, skipped = _run_probe(leaf, solved)
+                solved_results[path] = None if skipped else ok
+                messages[path] = msg
+                if skipped:
+                    skipped_msgs.append(f"{_probe_label(task_id, path)}: {msg}")
+
+            verdict = fold_probe(check, solved_results)
+            if verdict is None:
+                for msg in skipped_msgs or [f"{_probe_label(task_id, '')}: nothing in this check can be probed"]:
+                    report.warn(where, msg)
                 n_skip += 1
                 continue
-            if not ok:
-                report.error(where, f"task '{task_id}' FAILS with the reference solution: {msg}")
+            if verdict is False:
+                failed = ", ".join(
+                    f"{_probe_label(task_id, path)} [{leaf.get('type')}]: {messages[path]}"
+                    for path, leaf in leaves
+                    if solved_results.get(path) is False
+                )
+                report.error(where, f"task '{task_id}' FAILS with the reference solution: {failed}")
                 continue
-            if check.get("seedMustFail", True):
-                ok2, msg2, _ = _run_probe(check, seed)
-                if ok2:
-                    report.error(where, f"task '{task_id}' PASSES on the seed workspace without a solution ({msg2}) - a check that always passes is worthless (set seedMustFail: false if intended)")
+
+            if seed_must_fail:
+                seed_results = {}
+                for path, leaf in leaves:
+                    if leaf.get("seedMustFail") is False or solved_results.get(path) is None:
+                        seed_results[path] = None
+                        continue
+                    ok2, msg2, skipped2 = _run_probe(leaf, seed)
+                    seed_results[path] = None if skipped2 else ok2
+                    messages[path] = msg2
+                seed_verdict = fold_probe(check, seed_results)
+                if seed_verdict is True:
+                    passing = ", ".join(
+                        f"{_probe_label(task_id, path)} [{leaf.get('type')}]: {messages[path]}"
+                        for path, leaf in leaves
+                        if seed_results.get(path) is True
+                    )
+                    report.error(
+                        where,
+                        f"task '{task_id}' PASSES on the seed workspace without a solution "
+                        f"({passing}) - a check that always passes is worthless "
+                        "(set seedMustFail: false if intended)",
+                    )
                     continue
+
             n_ok += 1
-            print(f"probe ok   {label}: solution passes ({msg})" + ("" if check.get("seedMustFail", True) else "; seed probe skipped (seedMustFail: false)"))
+            paths = ", ".join(_probe_label(task_id, path) for path, _ in leaves)
+            print(
+                f"probe ok   {where} [{check.get('type')}] {paths}: solution passes"
+                + ("" if seed_must_fail else "; seed probe skipped (seedMustFail: false)")
+            )
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
-    print(f"solutions: {len(probes)} probe(s), {n_ok} ok, {n_skip} skipped, {len(probes) - n_ok - n_skip} failed")
+    print(
+        f"solutions: {len(probes)} probe(s) over {n_leaves} check(s), "
+        f"{n_ok} ok, {n_skip} skipped, {len(probes) - n_ok - n_skip} failed"
+    )
 
 
 def main():
