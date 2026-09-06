@@ -377,6 +377,17 @@ den `question`-Aufgaben des abgeschlossenen Zielschritts gebaut — ein Zeiger a
 erzeugt gar nichts, sieht in den Daten aber wie erfüllte Abdeckung aus. Ein Abruf innerhalb desselben Moduls
 zählt nicht als zeitversetzt. *Herkunft: Prüfung der Abrufabdeckung im JavaScript-Pack, 2026-09-06.* **[Validator]**
 
+**R11a.7b — Der englische Kurs zitiert die Bedienelemente so, wie sie auf dem Bildschirm stehen — auch wenn
+sie deutsch sind.** Die Befehle der Board-Erweiterung tragen feste deutsche Titel (`CaDS Board: Konsole öffnen`,
+`CaDS Board: Anhalten`) und sind **nicht** übersetzbar hinterlegt; die Tutor-Erweiterung dagegen hat
+`package.nls.json`. Solange für code-server kein deutsches Sprachpaket verfügbar ist, läuft die Oberfläche
+englisch, die Board-Befehle bleiben aber deutsch. Wer in den englischen Kurstexten die deutschen Titel durch
+englische ersetzt, macht sie falsch: die Studierende fände den Eintrag nicht mehr. Umgekehrt gilt: Wer der
+Board-Erweiterung Übersetzungen gibt, muss im selben Zug **beide** Kursfassungen nachziehen und das Sprachpaket
+klären — sonst bricht der deutsche Kurs, der heute korrekt die deutschen Titel nennt.
+*Herkunft: 34 deutsche Wörter in englischen Kursrümpfen, geprüft 2026-09-06 — bis auf einen zerstörten
+Transliterationsrest waren alle korrekte Zitate echter Bedienelemente.*
+
 **R11a.8 — Selbstauskunft ist kein Nachweis.** Ohne Sprachmodell bestätigte Antworten zählen als `selfReported`
 und tragen nichts zur Kompetenzstufe bei; sie schalten nichts frei. *E8; K7.*
 
