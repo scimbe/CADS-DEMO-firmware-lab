@@ -33,6 +33,8 @@ misconceptions:
 
 Bringe den Fehlschlag in den Rückgabetyp einer Funktion, sodass der Aufrufer ihn nicht ignorieren kann - und schreibe eine Fehlermeldung, die es wert ist, gelesen zu werden.
 
+`Result` ist ein Enum, dieser Step steht also auf `m3-02-enums`, `m3-03-match` und `m3-04-if-let`: dieselben drei Werkzeuge, angewandt auf einen Typ, der einen Fehlschlag trägt.
+
 ## Der Typ
 
 ```rust

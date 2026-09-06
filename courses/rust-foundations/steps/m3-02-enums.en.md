@@ -32,6 +32,8 @@ misconceptions:
 
 Decide when a set of alternatives is the right model, and build values of an enum whose variants carry different data.
 
+Read it against `m3-01-structs`: there a value carried all its fields at once, here it carries exactly one of several faces.
+
 ## The idea
 
 A struct says *and*: a rectangle has a width **and** a height. An enum says *or*: a command is a quit **or** a move **or** a write. The two compose, and choosing the wrong one is one of the more expensive design mistakes in a codebase.

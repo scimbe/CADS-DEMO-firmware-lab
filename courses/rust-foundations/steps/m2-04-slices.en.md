@@ -37,6 +37,8 @@ misconceptions:
 
 Return a reference to part of a collection, and see the borrow checker connect that reference back to the collection it came from.
 
+It needs `m2-02-mutable-references` and `m2-03-aliasing-rule`: a slice is a borrow, and every rule from those two steps applies to it unchanged.
+
 ## The problem in the book
 
 Chapter 4.3 opens with `first_word` returning a `usize` index. It compiles and it is a trap: the index is just a number, unconnected to the string. Clear the string and the index survives, now meaningless. With two indices for a second word, the bug doubles.

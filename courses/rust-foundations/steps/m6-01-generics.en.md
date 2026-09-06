@@ -33,6 +33,8 @@ misconceptions:
 
 Read and write a generic signature, and say what the compiler is allowed to assume about a type parameter.
 
+Two steps supply the examples: `m4-01-vectors` for the slice iterated over generically here, and `m1-03-copy-types` for the question of what a type has to be able to do before you may hand it out.
+
 ## The duplication generics remove
 
 Two functions that find the largest element - one for `i32`, one for `char` - differ only in a type name. Chapter 10.1 walks that refactor; the result is:

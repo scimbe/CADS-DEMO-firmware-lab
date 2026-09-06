@@ -37,6 +37,8 @@ misconceptions:
 
 Zerlege ein Enum mit `match` und nutze die Vollständigkeitsprüfung als Entwurfswerkzeug statt als Hindernis.
 
+Gebaut wird auf `m3-02-enums`: die Varianten von dort sind genau die Fälle, die `match` hier auseinandernehmen muss.
+
 ## match ist ein Ausdruck
 
 ```rust

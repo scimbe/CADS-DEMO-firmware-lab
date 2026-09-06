@@ -33,6 +33,8 @@ misconceptions:
 
 Wähle zwischen `match`, `if let` und `let ... else` und benenne, was jede Wahl aufgibt.
 
+Das Gegenstück ist `m3-02-enums`: dieselben Varianten, nur interessiert hier eine einzige davon und der Rest soll schweigen dürfen.
+
 ## Die Zeremonie, die `if let` erspart
 
 ```rust

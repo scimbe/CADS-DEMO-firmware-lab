@@ -33,6 +33,8 @@ misconceptions:
 
 Define a trait, implement it for two types, and use a default method so one of them needs no code at all.
 
+It needs `m6-01-generics` for the type parameter and `m5-04-custom-error` for the first trait you implemented yourself, without it being called that at the time.
+
 ## A trait is a named set of methods
 
 ```rust

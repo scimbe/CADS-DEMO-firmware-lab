@@ -33,6 +33,8 @@ misconceptions:
 
 Associate keys with values, use the `entry` API to insert-or-update in one expression, and treat a hash map's iteration order as the non-guarantee it is.
 
+Hold it next to `m4-01-vectors`: the same question of ownership and borrowing on insert and lookup, except the key is no longer an index.
+
 ## Not in the prelude
 
 ```rust

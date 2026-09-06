@@ -33,6 +33,8 @@ misconceptions:
 
 Put failure into a function's return type so the caller cannot ignore it, and write an error message worth reading.
 
+`Result` is an enum, so this step stands on `m3-02-enums`, `m3-03-match` and `m3-04-if-let`: the same three tools, applied to a type that carries a failure.
+
 ## The type
 
 ```rust

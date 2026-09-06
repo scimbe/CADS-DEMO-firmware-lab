@@ -33,6 +33,8 @@ misconceptions:
 
 Verknüpfe Schlüssel mit Werten, nutze die `entry`-API für Einfügen-oder-Aktualisieren in einem Ausdruck und behandle die Iterationsreihenfolge einer Hash-Map als die Nicht-Zusage, die sie ist.
 
+Daneben zu halten ist `m4-01-vectors`: dieselbe Frage nach Besitz und Leihe beim Einfügen und Nachschlagen, nur ist der Schlüssel jetzt kein Index mehr.
+
 ## Nicht im Prelude
 
 ```rust

@@ -33,6 +33,8 @@ misconceptions:
 
 Replace error-propagation boilerplate with `?`, and recognise the two situations in which it does not apply.
 
+It assumes `m5-02-result`: the frame you wrote by hand there is what this operator replaces.
+
 ## What `?` expands to
 
 ```rust

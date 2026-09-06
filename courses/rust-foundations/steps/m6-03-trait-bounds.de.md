@@ -33,6 +33,8 @@ misconceptions:
 
 Schreibe die drei Formen einer Trait-Schranke, kombiniere zwei Schranken und wähle die Form, die sagt, was du meinst.
 
+Zusammen gelesen mit `m6-01-generics` und `m6-02-traits`: der Typparameter von dort und das Trait von hier treffen sich in der Schranke.
+
 ## Drei Schreibweisen, eine Idee
 
 ```rust

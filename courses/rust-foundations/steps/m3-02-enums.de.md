@@ -32,6 +32,8 @@ misconceptions:
 
 Entscheide, wann eine Menge von Alternativen das richtige Modell ist, und baue Werte eines Enums, dessen Varianten unterschiedliche Daten tragen.
 
+Gegengelesen wird `m3-01-structs`: dort trug ein Wert alle Felder gleichzeitig, hier trägt er genau eines von mehreren Gesichtern.
+
 ## Die Idee
 
 Eine Struktur sagt *und*: ein Rechteck hat eine Breite **und** eine Höhe. Ein Enum sagt *oder*: ein Kommando ist ein Quit **oder** ein Move **oder** ein Write. Beide lassen sich kombinieren, und das falsche zu wählen gehört zu den teureren Entwurfsfehlern in einer Codebasis.

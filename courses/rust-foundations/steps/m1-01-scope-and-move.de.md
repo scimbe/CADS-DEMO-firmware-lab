@@ -32,6 +32,8 @@ misconceptions:
 
 Nenne die drei Ownership-Regeln und erkenne in einer Diagnose den Moment, in dem ein Wert aufgehört hat, einer Variablen zu gehören.
 
+Dieser Step knüpft an `m0-03-first-test` an: Meldung lesen, Zeile finden, erneut laufen lassen - derselbe Handgriff, nur stellt die Aufgabe diesmal der Compiler und nicht eine Zusicherung.
+
 ## Die drei Regeln
 
 Aus Kapitel 4.1, unverändert:

@@ -37,6 +37,8 @@ misconceptions:
 
 Decide whether a failure is a bug in your program or a condition your caller should handle, and write the panic that says so clearly.
 
+It picks up `m4-01-vectors`: the choice there between `v[i]` and `v.get(i)` is exactly this decision, only without the name it gets here.
+
 ## What a panic does
 
 `panic!` prints a message with the source location, unwinds the stack running every `drop`, and exits the process with code **101**. It is not an exception: nothing catches it in ordinary code, and there is no `try`.

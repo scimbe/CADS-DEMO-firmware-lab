@@ -37,6 +37,8 @@ misconceptions:
 
 Destructure an enum with `match`, and use the exhaustiveness check as a design tool rather than an obstacle.
 
+It builds on `m3-02-enums`: the variants from there are exactly the cases `match` has to take apart here.
+
 ## match is an expression
 
 ```rust

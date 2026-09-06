@@ -32,6 +32,8 @@ misconceptions:
 
 Übergib einen Wert an eine Funktion, ohne ihn wegzugeben, und wisse genau, was das Ausleihen erlaubt.
 
+Der Schritt setzt `m1-02-move-vs-clone` fort: dort war die Wahl zwischen Verschieben und Klonen, hier kommt die dritte Möglichkeit dazu, den Wert weder aufzugeben noch zu verdoppeln.
+
 ## Das Problem, das Borrowing löst
 
 Das `length_and_back` aus dem letzten Modul musste die Zeichenkette neben der Länge zurückgeben, nur damit der Aufrufer sie weiter nutzen konnte. Eine Referenz erledigt das:

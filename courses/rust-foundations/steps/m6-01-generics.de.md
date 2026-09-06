@@ -33,6 +33,8 @@ misconceptions:
 
 Lies und schreibe eine generische Signatur und sage, was der Compiler über einen Typparameter annehmen darf.
 
+Zwei Steps liefern die Beispiele: `m4-01-vectors` für den Slice, über den hier generisch iteriert wird, und `m1-03-copy-types` für die Frage, was ein Typ können muss, damit man ihn herausgeben darf.
+
 ## Die Verdopplung, die Generics beseitigen
 
 Zwei Funktionen, die das größte Element finden - eine für `i32`, eine für `char` - unterscheiden sich nur in einem Typnamen. Kapitel 10.1 führt diese Umformung vor; das Ergebnis ist:

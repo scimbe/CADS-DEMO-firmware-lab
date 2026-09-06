@@ -38,6 +38,8 @@ misconceptions:
 
 Lies `'a` in einer Signatur als Beziehung zwischen Referenzen, ergänze die Annotationen, die der Compiler verlangt, und wisse, wann er nicht verlangt.
 
+Fortgesetzt wird `m6-03-trait-bounds`: dort sagte eine Signatur, was ein Typ können muss, hier sagt sie, woher eine Referenz stammt.
+
 ## Was eine Lifetime-Annotation nicht ist
 
 Sie ändert nicht, wie lange etwas lebt. Nichts wird länger am Leben gehalten, nichts früher aufgeräumt, und es wird kein Code dafür erzeugt. Eine Annotation *beschreibt* eine Beziehung, die der Compiler nicht herleiten kann, damit er die Aufrufe prüfen kann.

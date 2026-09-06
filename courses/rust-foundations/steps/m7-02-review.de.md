@@ -34,6 +34,8 @@ misconceptions:
 
 Beurteile selbst geschriebenen Code an Kriterien, die du benennen kannst - Allokation, Fehlervertrag und was der Entwurf als Nächstes erschwert.
 
+Begutachtet wird gegen vier frühere Steps: `m1-02-move-vs-clone` für die Frage, was ein Klon kostet, `m4-04-collections-report` für die Reproduzierbarkeit einer Ausgabe, `m5-04-custom-error` für den Fehlervertrag und `m6-01-generics` für die Schranke, die eine Signatur wirklich braucht.
+
 ## Zwei Werkzeuge, die zuerst für dich begutachten
 
 ```bash

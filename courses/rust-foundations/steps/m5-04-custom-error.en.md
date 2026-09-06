@@ -33,6 +33,8 @@ misconceptions:
 
 Define an error type for your module, make `?` convert into it automatically, and decide what deserves to be an error at all.
 
+It brings `m3-02-enums` and `m5-03-question-mark` together: your own error type is an enum, and it exists so that `?` works everywhere again.
+
 ## Why not just `String`
 
 `Result<T, String>` is what m5-02 used, and it is fine for a small function. It stops being fine as soon as a caller wants to *do* something different per failure: a `String` can be printed and nothing else. An enum can be matched.

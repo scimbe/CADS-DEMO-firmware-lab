@@ -34,6 +34,8 @@ misconceptions:
 
 Judge code you wrote yourself against criteria you can state - allocation, error contract, and what the design would make hard next.
 
+The review runs against four earlier steps: `m1-02-move-vs-clone` for what a clone costs, `m4-04-collections-report` for reproducible output, `m5-04-custom-error` for the error contract and `m6-01-generics` for the bound a signature actually needs.
+
 ## Two tools that review for you first
 
 ```bash

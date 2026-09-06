@@ -37,6 +37,8 @@ misconceptions:
 
 Gib eine Referenz auf einen Teil einer Sammlung zurück und sieh, wie der Borrow-Checker diese Referenz mit der Sammlung verknüpft, aus der sie stammt.
 
+Gebraucht werden `m2-02-mutable-references` und `m2-03-aliasing-rule`: ein Slice ist eine Leihe, und jede Regel dieser beiden Steps gilt für ihn unverändert weiter.
+
 ## Das Problem aus dem Buch
 
 Kapitel 4.3 beginnt mit einem `first_word`, das einen `usize`-Index liefert. Es kompiliert und ist eine Falle: der Index ist nur eine Zahl, ohne Verbindung zur Zeichenkette. Leere die Zeichenkette, und der Index überlebt - nun bedeutungslos. Bei zwei Indizes für ein zweites Wort verdoppelt sich der Fehler.

@@ -33,6 +33,8 @@ misconceptions:
 
 Definiere ein Trait, implementiere es für zwei Typen und nutze eine Vorgabemethode, sodass einer davon gar keinen Code braucht.
 
+Gebraucht werden `m6-01-generics` für den Typparameter und `m5-04-custom-error` für das erste Trait, das du selbst implementiert hast, ohne dass es damals so hieß.
+
 ## Ein Trait ist eine benannte Menge von Methoden
 
 ```rust

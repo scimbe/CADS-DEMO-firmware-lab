@@ -33,6 +33,8 @@ misconceptions:
 
 Definiere einen Fehlertyp für dein Modul, lass `?` automatisch dorthin wandeln und entscheide, was überhaupt ein Fehler sein soll.
 
+Zusammengeführt werden `m3-02-enums` und `m5-03-question-mark`: der eigene Fehlertyp ist ein Enum, und er existiert, damit `?` wieder überall funktioniert.
+
 ## Warum nicht einfach `String`
 
 `Result<T, String>` hat m5-02 benutzt, und für eine kleine Funktion ist das in Ordnung. Es hört auf, in Ordnung zu sein, sobald ein Aufrufer je nach Fehlschlag etwas anderes *tun* will: ein `String` lässt sich ausgeben und sonst nichts. Ein Enum lässt sich matchen.

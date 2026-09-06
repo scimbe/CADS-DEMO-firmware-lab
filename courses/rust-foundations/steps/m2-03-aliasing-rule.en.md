@@ -37,6 +37,8 @@ misconceptions:
 
 State the aliasing rule, recognise the two errors that enforce it, and restructure code so the borrows do not overlap.
 
+It assumes `m2-02-mutable-references`, and it reads its diagnostics the way `m0-05-compiler-errors` did: this step's two errors differ mainly in where they put their marks.
+
 ## The rule
 
 At any point, for any value, you may have **either** any number of shared references (`&T`) **or** exactly one mutable reference (`&mut T`) - never both. Two errors enforce it:

@@ -33,6 +33,8 @@ misconceptions:
 
 Ersetze den Rahmen zur Fehlerweitergabe durch `?` und erkenne die zwei Situationen, in denen er nicht anwendbar ist.
 
+Vorausgesetzt ist `m5-02-result`: der Rahmen, den du dort von Hand geschrieben hast, ist das, was dieser Operator ersetzt.
+
 ## Wozu `?` sich entfaltet
 
 ```rust

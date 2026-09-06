@@ -32,6 +32,8 @@ misconceptions:
 
 Pass a value to a function without giving it away, and know exactly what the borrow allows.
 
+It continues `m1-02-move-vs-clone`: there the choice was between moving and cloning, here the third possibility arrives - neither giving the value up nor duplicating it.
+
 ## The problem borrowing solves
 
 Last module's `length_and_back` had to return the string alongside the length, purely so the caller could keep using it. A reference removes that:

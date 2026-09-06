@@ -37,6 +37,8 @@ misconceptions:
 
 Nenne die Aliasing-Regel, erkenne die beiden Fehler, die sie durchsetzen, und strukturiere Code so um, dass sich die Leihen nicht überlappen.
 
+Vorausgesetzt ist `m2-02-mutable-references`, und gelesen wird wie in `m0-05-compiler-errors`: die beiden Fehler dieses Steps unterscheiden sich vor allem darin, wohin sie ihre Markierungen setzen.
+
 ## Die Regel
 
 Zu jedem Zeitpunkt darfst du für einen Wert **entweder** beliebig viele geteilte Referenzen (`&T`) **oder** genau eine veränderliche Referenz (`&mut T`) halten - nie beides. Zwei Fehler setzen das durch:

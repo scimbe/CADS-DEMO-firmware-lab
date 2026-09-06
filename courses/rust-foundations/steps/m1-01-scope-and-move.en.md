@@ -32,6 +32,8 @@ misconceptions:
 
 State the three ownership rules and recognise, in a diagnostic, the moment a value stopped belonging to a variable.
 
+This step picks up `m0-03-first-test`: read the message, find the line, run it again - the same handgrip, except that this time the compiler sets the task rather than an assertion.
+
 ## The three rules
 
 From ch. 4.1, unchanged:

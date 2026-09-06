@@ -37,6 +37,8 @@ misconceptions:
 
 Explain why `s[0]` is not allowed on a `String`, and write string code that stays correct for text that is not ASCII.
 
+Two earlier steps carry into this one: `m2-04-slices` for a slice as a reference to part of something and `m2-03-aliasing-rule` for the borrow that comes with it, while `m4-01-vectors` supplies the handling of the collection itself.
+
 ## Two types, one job
 
 `String` owns growable UTF-8 text on the heap. `&str` borrows a slice of UTF-8 text, wherever it lives - in a `String`, in the binary, in a buffer. Almost every method you want is on `str`, and `String` gets them all through deref, which is why `&str` is the parameter type and `String` the storage type.

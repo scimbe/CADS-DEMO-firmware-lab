@@ -37,6 +37,8 @@ misconceptions:
 
 Erkläre, warum `s[0]` an einem `String` nicht erlaubt ist, und schreibe String-Code, der auch für Text jenseits von ASCII korrekt bleibt.
 
+Zwei frühere Steps tragen hierher: `m2-04-slices` für den Slice als Referenz auf einen Teil und `m2-03-aliasing-rule` für die Leihe, die dabei entsteht; aus `m4-01-vectors` kommt der Umgang mit der Sammlung selbst.
+
 ## Zwei Typen, eine Aufgabe
 
 `String` besitzt wachsenden UTF-8-Text auf dem Heap. `&str` leiht einen Slice aus UTF-8-Text, wo immer er liegt - in einem `String`, im Binary, in einem Puffer. Fast jede Methode, die du willst, hängt an `str`, und `String` erhält sie alle über Deref - deshalb ist `&str` der Parametertyp und `String` der Speichertyp.

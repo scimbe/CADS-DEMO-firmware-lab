@@ -38,6 +38,8 @@ misconceptions:
 
 Read `'a` in a signature as a relationship between references, add the annotations a compiler asks for, and know when it does not ask.
 
+It continues `m6-03-trait-bounds`: there a signature said what a type has to be able to do, here it says where a reference came from.
+
 ## What a lifetime annotation is not
 
 It does not change how long anything lives. Nothing is kept alive longer, nothing is dropped sooner, and no code is generated for it. An annotation *describes* a relationship the compiler cannot infer, so it can check the calls.

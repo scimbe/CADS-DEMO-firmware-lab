@@ -37,6 +37,8 @@ misconceptions:
 
 Entscheide, ob ein Fehlschlag ein Fehler in deinem Programm ist oder ein Zustand, den dein Aufrufer behandeln soll - und schreibe die Panic, die das deutlich sagt.
 
+Angeknüpft wird an `m4-01-vectors`: die dortige Wahl zwischen `v[i]` und `v.get(i)` ist genau diese Entscheidung, nur noch ohne den Namen, den sie hier bekommt.
+
 ## Was eine Panic tut
 
 `panic!` gibt eine Meldung samt Quellposition aus, wickelt den Stack ab und führt dabei jedes `drop` aus, und beendet den Prozess mit Code **101**. Es ist keine Ausnahme: in gewöhnlichem Code fängt sie niemand ab, und ein `try` gibt es nicht.

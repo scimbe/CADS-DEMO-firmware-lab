@@ -33,6 +33,8 @@ misconceptions:
 
 Write the three forms of a trait bound, combine two bounds, and choose the form that says what you mean.
 
+Read alongside `m6-01-generics` and `m6-02-traits`: the type parameter from the one and the trait from the other meet in the bound.
+
 ## Three spellings, one idea
 
 ```rust
