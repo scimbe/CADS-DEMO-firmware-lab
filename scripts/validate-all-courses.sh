@@ -18,4 +18,17 @@ run cads-zero-foundations  "$FW"
 run cads-zero-projects     "$FW"
 run rust-foundations       workspaces/rust-foundations       --solutions workspaces/rust-foundations/solutions
 run javascript-foundations workspaces/javascript-foundations --solutions workspaces/javascript-foundations/solutions
+
+# The R4.2 calibration, checked rather than remembered: fourteen rubrics that
+# were read and judged to state their own answer must still be flagged by
+# whatever the measurement currently is. If a change to the tokeniser, the stop
+# list or the limits stops flagging one of them, the rule has been loosened
+# without anyone saying so. See the header of pedagogy-metrics.py.
+printf '%-24s ' "R4.2 calibration"
+if out=$(python3 scripts/pedagogy-metrics.py --selftest 2>&1); then
+  echo "$out" | tail -1
+else
+  echo "$out" | tail -6; fail=1
+fi
+
 exit $fail

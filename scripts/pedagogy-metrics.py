@@ -9,7 +9,8 @@ does not pass, and whether the task has its own hint ladder. Also counts tasks
 of any kind with no ladder.
 
 Run from the repository root:
-    python3 scripts/pedagogy-metrics.py [<pack>] [--over] [--raw] [--lang de|en]
+    python3 scripts/pedagogy-metrics.py [<pack>] [--over] [--raw] [--lang de|en] [--legacy]
+    python3 scripts/pedagogy-metrics.py --selftest
 
 <pack> is a directory name under courses/ and defaults to rust-foundations.
 
@@ -57,47 +58,62 @@ from 44.4 to 50.0. Never gate on A or D. Short prompts make A useless in any
 case - these packs carry eight to twelve content words per prompt, so four
 shared words already read as 40 percent.
 
---prose: WHAT IT CHANGES, AND WHY IT IS NOT ON BY DEFAULT
---------------------------------------------------------
+WHAT `ovl` MEASURES, AND THE LIMITS THAT BELONG TO IT
+-----------------------------------------------------
 Two corrections, from the rust and javascript streams measuring the same rubrics
-and disagreeing about them:
+and disagreeing about them. Both are on; `--legacy` restores the old pair for a
+comparison, and nothing else.
 
   * identifiers out. Everything the body puts in backticks or a code block, plus
     the test names the checks wait for, leaves BOTH sides of the ratio, so `ovl`
-    measures shared PROSE. 86 percent (en) and 85 percent (de) of what the
-    over-limit rubrics shared with their bodies was an identifier, and six
-    shared nothing else at all. A rubric about `Copy`, `drop` or `Number.isNaN`
-    cannot avoid those words - they ARE its subject. What `ovl` then no longer
-    measures, deliberately: shared technical vocabulary. A course is expected to
-    name its subject the same way twice.
-  * a symmetric stop list. The default list strikes the question words in its
-    German half and not in its English half, so the two language halves of a
-    pack were never held to the same standard. EXTRA_STOP adds the question
-    words, determiners and conjunctions to both.
+    measures shared PROSE. A rubric about `Copy`, `drop` or `Number.isNaN`
+    cannot avoid those words - they ARE its subject. What `ovl` therefore does
+    not measure, deliberately: shared technical vocabulary. A course is expected
+    to name its subject the same way twice. The size of the discount is small -
+    identifiers are 19 percent (en) / 14 percent (de) of what an over-limit
+    rubric shares with its body; see the decomposition further down.
+  * a symmetric stop list. The old list struck the question words in its German
+    half and not in its English half, so a pack's two language halves were never
+    held to the same standard. EXTRA_STOP adds the question words, determiners
+    and conjunctions to both, and the German counts RISE as a result - the German
+    half had been the lenient one.
 
-Both improve WHAT is measured, and both move the scale: over all 252 rubrics in
-this repository the median figure falls by a factor of 0.851. Holding the old
-35/50 against the new quantity would loosen R4.2 silently - measured, it drops
-5 of the 14 javascript rubrics that reading had established as genuine findings.
-So --prose moves the limits with the measurement, to 28/40, the pair at which
-all 14 are still flagged. It is off by default because that pair is a decision
-for the pedagogy owner, not a detail of the tool.
+THE LIMIT MOVED WITH THE MEASUREMENT, AND THAT IS THE POINT. Both corrections
+change the scale: over all rubrics in this repository the median figure falls by
+a factor of 0.851. Holding the old 35/50 against the new quantity would have
+loosened R4.2 without saying so - measured, it drops 5 of the 14 javascript
+rubrics that reading had established as genuine findings, all of them landing
+between 30.0 and 42.1. So the limits are 28/40, the pair at which all 14 are
+flagged again; 30/42 keeps 13. A NEW QUANTITY AGAINST AN OLD THRESHOLD IS A
+SILENT CHANGE OF RULE: whoever edits one of the two edits both, and
+test_regression() below is what notices if they do not.
 
-  pack                       now   --prose (28/40)
-  cads-zero-foundations  en    47 (+0)      52 (+0)
-  cads-zero-foundations  de    41 (+0)      41 (+0)
-  cads-zero-projects     en     3 (+0)       4 (+0)
-  cads-zero-projects     de     2 (+0)       4 (+0)
-  rust-foundations       en    18 (+0)      16 (+0)
-  rust-foundations       de    12 (+0)      11 (+0)
-  javascript-foundations en     0 (+3)       2 (+3)
-  javascript-foundations de     0 (+0)       6 (+1)
+Counts per pack, old pair against new (the summary line's own counting, with the
+R4.2a exceptions taken out):
 
-Counted the way the summary line counts, with the R4.2a exceptions taken out.
-Measured over every over-limit rubric including the excepted ones, the totals
-across all four packs are 126 now, 84 with --prose held at the old 35/50, 116 at
-30/42 and 141 at 28/40 - which is why 35/50 is the one pairing that must not be
-used with this measurement.
+  pack                       35/50 old rule    28/40 new rule
+  cads-zero-foundations  en        47                52
+  cads-zero-foundations  de        41                41
+  cads-zero-projects     en         3                 4
+  cads-zero-projects     de         2                 4
+  rust-foundations       en        18                16
+  rust-foundations       de        12                11
+  javascript-foundations en         0 (+3)            2 (+3)
+  javascript-foundations de         0                 6 (+1)
+
+WHAT THE NUMBER CANNOT DO, AND IT IS THE MORE IMPORTANT HALF
+------------------------------------------------------------
+No token measure can tell a body that STATES the answer from a body that ASKS
+the question with the same nouns. The rust stream rewrote m4-01 from "use v[i]
+when an out-of-range index would mean a bug" into "which of the two is right
+depends on where the index came from and whether being out of range is a bug" -
+a statement turned into a question, the same words, and `ovl` measures it
+identically before and after. Reading found twelve such bodies in that pack and
+the number found none of them.
+
+Use it to sort candidates for reading. Do not use it to judge one: a row over
+the limit is worth reading, a row under it is not thereby cleared, and under
+roughly 25 content words the shared tokens are worth more than the percentage.
 
 The German columns rise, so this is not a one-way loosening: a symmetric stop
 list makes German stricter.
@@ -177,18 +193,19 @@ raw = "--raw" in sys.argv
 # --prose: the two changes proposed after the rust/javascript cross-check.
 # OFF by default: they move the scale, so the limit has to move with them,
 # and that pair is a decision, not a detail. See the header.
-prose_only = "--prose" in sys.argv
+legacy = "--legacy" in sys.argv   # the pre-2026-09 pair, for comparison only
 # Calibrated, not guessed: with identifiers out and the stop list symmetric the
 # figure drops by a median factor of 0.851 over all 252 rubrics in the repo.
 # 28/40 is the pair at which every rubric known to be a genuine finding is
 # still flagged - all 14 of them, measured against their pre-rewrite text.
-LIM_HI, LIM_LO = (28, 40) if prose_only else (35, 50)
-if prose_only: STOP = STOP | EXTRA_STOP
+LIM_HI, LIM_LO = (35, 50) if legacy else (28, 40)
+if not legacy: STOP = STOP | EXTRA_STOP
 lang = sys.argv[sys.argv.index("--lang")+1] if "--lang" in sys.argv else "en"
 assert lang in ("de", "en"), "--lang takes de or en"
 # R4.4 in both languages: a rubric has to name what it rejects.
 REJECTS = re.compile(r"does not pass|not accepted|besteht nicht|nicht akzeptiert", re.I)
 if raw: STOP = set()
+
 rows=[]; ladders_missing=0; tasks_total=0
 # A9.1 instruction blocks are not exposition: they say how to run something, and
 # they never carry the answer to a question. Counting them as body inflated the
@@ -260,10 +277,83 @@ def identifiers(body, tasks):
         walk(task.get("check"))
     return out
 
+# --- self-test: the calibration, as a test rather than as a table -----------
+# The measurement and its limit belong together. These fourteen rubrics were
+# read, judged to state their own answer, and rewritten; their PRE-REWRITE text
+# is kept here with the figure it must still produce. If a later change to the
+# tokeniser, the stop list, the discount or the limits stops flagging one of
+# them, that change has quietly loosened R4.2 and this test says so.
+#
+# Refresh a value only together with a stated reason. `git log -S` on the rubric
+# text finds the commit the wording came from.
+REGRESSION = [
+    # step, task, lang - the limit is NOT written down here on purpose: it is taken
+    # from LIM_HI/LIM_LO through the check's own bloom, so editing the limits is
+    # exactly what this test is meant to catch.
+    ("m0-04-modules", "named-vs-default", "en"),
+    ("m1-01-let-const", "two-errors", "en"),
+    ("m1-01-let-const", "two-errors", "de"),
+    ("m1-03-coercion-nan", "why-silent", "en"),
+    ("m1-03-coercion-nan", "why-silent", "de"),
+    ("m3-01-for-and-while", "which-loop", "en"),
+    ("m4-01-declare-and-call", "hoisting", "en"),
+    ("m4-01-declare-and-call", "hoisting", "de"),
+    ("m4-02-parameters", "default-trigger", "en"),
+    ("m4-02-parameters", "default-trigger", "de"),
+    ("m5-01-objects", "shared-or-copied", "en"),
+    ("m5-01-objects", "shared-or-copied", "de"),
+    ("m5-02-optional-chaining", "chaining-limits", "en"),
+    ("m5-02-optional-chaining", "chaining-limits", "de"),
+]
+# The rubric text as it stood before the rewrite, keyed step|task|lang. Held here
+# rather than read from git so the test runs in a checkout without history.
+REGRESSION_RUBRICS = {}
+
+
+def _selftest():
+    """Checks the fourteen against the current measurement. Exit code is the verdict."""
+    import json as _json
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pedagogy-regression.json")
+    if not os.path.exists(path):
+        print(f"self-test: {path} is missing; it holds the pre-rewrite rubric texts")
+        return 2
+    fixtures = _json.load(open(path, encoding="utf-8"))
+    bad = 0
+    print(f"{'case':44} {'ovl':>6} {'limit':>6}  verdict")
+    for sid, tid, lang in REGRESSION:
+        key = f"{sid}|{tid}|{lang}"
+        if key not in fixtures:
+            print(f"{key:44} {'':6} {'':6}  NO FIXTURE"); bad += 1; continue
+        f = f"courses/javascript-foundations/steps/{sid}.{lang}.md"
+        fm, body = V.load_step(f)[:2]
+        task = next(x for x in fm["tasks"] if x["id"] == tid)
+        cb = (task["check"].get("bloom") or fm["bloom"])
+        limit = LIM_HI if cb in ("analyze", "evaluate") else LIM_LO
+        prose = LINK_TARGET_RE.sub("](-)", DO_BLOCK_RE.sub("", body))
+        ids = set() if legacy else identifiers(prose, fm.get("tasks") or [])
+        rt = toks(fixtures[key]) - ids
+        bt = toks(prose) - ids
+        got = len(rt & bt) / len(rt) * 100 if rt else 0
+        ok = got > limit
+        if not ok: bad += 1
+        print(f"{key:44} {got:6.1f} {limit:6}  {'flagged' if ok else 'LOST - the rule just got looser'}")
+    print()
+    print(f"self-test: {len(REGRESSION) - bad} of {len(REGRESSION)} still flagged"
+          f" at limits {LIM_HI}/{LIM_LO}" + ("  (--legacy)" if legacy else ""))
+    if bad:
+        print("A rubric that was read and judged to state its own answer is no longer a")
+        print("finding. Either the change is too coarse, or the limits have to move with")
+        print("it - see the header. Do not adjust the expectations to make this pass.")
+    return 1 if bad else 0
+
+
+if "--selftest" in sys.argv:
+    sys.exit(_selftest())
+
 for f in sorted(glob.glob(f"{D}/*.{lang}.md")):
     sid=os.path.basename(f)[:-6]; fm,body=V.load_step(f)[:2]   # load_step also returns a parse error
     prose=LINK_TARGET_RE.sub("](-)", DO_BLOCK_RE.sub("", body))
-    idents=identifiers(prose, fm.get("tasks") or []) if prose_only else set()
+    idents=set() if legacy else identifiers(prose, fm.get("tasks") or [])
     btok=toks(prose) - idents; soc=fm.get("socratic") or []
     trig=set()
     for s0 in soc:
@@ -294,7 +384,7 @@ for f in sorted(glob.glob(f"{D}/*.{lang}.md")):
         rows.append((sid,t["id"],cb + ("*" if c.get("bloom") and c["bloom"]!=fm["bloom"] else ""),len(re.findall(r"\S+",pr)),pr.count("?"),round(ov,1),lim,
                      round(h3ov,1), bool(REJECTS.search(ru)), t["id"] in trig,
                      round(qr,1), round(jac,1), (pack,sid,t["id"]) in EXCEPT_R42))
-print(f"pack={pack} lang={lang}" + ("  --prose: identifiers removed, symmetric stop list, limits {}/{}".format(LIM_HI, LIM_LO) if prose_only else "") + ("  (--raw: stop list off)" if raw else ""))
+print(f"pack={pack} lang={lang}" + ("  --legacy: pre-2026-09 measurement" if legacy else "") + ("  (--raw: stop list off)" if raw else ""))
 print(f"{'step':26} {'task':18} {'bloom*':11} pw q? ovl/lim   q/r   jac  h3ovl notpass ladder")
 print("  bloom is the CHECK's level, which sets the limit; * marks a check whose level differs from its step's")
 for r in rows:
