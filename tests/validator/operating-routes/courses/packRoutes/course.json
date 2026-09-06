@@ -1,0 +1,12 @@
+{ "id": "packRoutes", "version": "1.0.0", "schema": 1, "title": {"de":"R","en":"R"},
+  "description": {"de":"d","en":"e"}, "prerequisites": [],
+  "operatingRoutes": {
+    "needsNoTasks": true,
+    "palette": ["> View: Toggle Terminal"],
+    "files": ["only.txt"],
+    "commands": [
+      { "command": "node --test test/<step-id>.test.js",
+        "why": "the course teaches running one test file at a time, not the whole suite" }
+    ]
+  },
+  "modules": [ { "id": "m1", "title": {"de":"M","en":"M"}, "steps": ["s1"] } ] }

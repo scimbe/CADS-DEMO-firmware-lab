@@ -206,6 +206,24 @@ DO_CLOSE_RE = re.compile(r"^:::[ \t]*$")
 DO_ATTR_RE = re.compile(r'([a-zA-Z]+)[ \t]*=[ \t]*(?:"([^"]*)"|(\S+))')
 DO_MARK_RE = re.compile(r"^>[ \t]*(expect|recover):[ \t]*(.*)$")
 FENCE_RE = re.compile(r"^\s*(```|~~~)")
+IMAGE_RE = re.compile(r"!\[[^\]]*\](?:\([^)]*\))?")
+CAPTION_RE = re.compile(r"^\s*[*_][^*_].*[*_]\s*$")
+COMMENT_OPEN = "<!--"
+COMMENT_CLOSE = "-->"
+
+
+def strip_non_prose(line):
+    """The part of a line a student is meant to read, and whether an HTML
+    comment is still open afterwards. Image markup goes, comments go, the prose
+    around them stays - so a sentence next to a screenshot is still checked."""
+    line = IMAGE_RE.sub(" ", line)
+    while COMMENT_OPEN in line:
+        head, rest = line.split(COMMENT_OPEN, 1)
+        if COMMENT_CLOSE in rest:
+            line = head + " " + rest.split(COMMENT_CLOSE, 1)[1]
+        else:
+            return head, True
+    return line, False
 DO_ACTION_KEYS = ("task", "command", "palette", "file", "keys")
 DO_MODIFIER_KEYS = ("cwd", "line")
 
@@ -227,12 +245,46 @@ BUILTIN_PALETTE = {
     "> Debug: Start Debugging",
 }
 
-# Rule 4 fires on a call to action outside a block. Verbs only, in both course
-# languages; the route name has to be present too, so "Öffne die Datei" alone is
-# not flagged - only "Öffne ... CaDS: Build".
+# Rule 4 fires on a call to action outside a block. The route name has to be on
+# the same line, so "Öffne die Datei" alone is not flagged - only "Öffne … CaDS:
+# Build".
+#
+# The first version listed German imperatives, and that made it nearly blind on
+# half of every course: German writes operating instructions in the infinitive -
+# "Terminal öffnen", "`F1` drücken", "`…` tippen" - where English writes "open the
+# terminal". One step with identical content in both languages was reported twice
+# in English and not once in German. A validator that checks a bilingual course
+# on one side only is worse than none, because it reports a clean German half
+# that nobody looked at.
+#
+# So German is matched in the two forms an instruction actually takes: the
+# imperative (öffne, lies, nimm) and the infinitive (öffnen, ausführen,
+# aufklappen), with room for the separable prefix. Deliberately NOT matched are
+# the third person and the participle - "das Terminal öffnet sich", "mitten in
+# `CaDS: Build` geschlossen", "der Check startet den Task" all describe what
+# happens rather than telling anyone to do it, and matching them turned nine of
+# eleven findings in the firmware pack into noise.
+DE_ACTION_STEMS = (
+    "öffn|offn|drück|druck|tipp|führ|fuhr|start|klick|wähl|wahl|klapp|schließ|schliess|"
+    "speicher|wechsl|wechsel|kopier|markier|scroll|navigier|geb|leg|füg|fug|ruf|setz|"
+    "beend|wiederhol|les"
+)
+# German infinitive and third person plural are the same word, so a stem is only
+# usable when the verb is rare in the third person plural. "bestätigen" failed
+# that test on "die Checks bestätigen, dass …" and is left out; the operating
+# verbs above describe what a hand does, which prose rarely says of a subject.
+#
+# Irregular imperatives, which have no -e/-en ending to key on. "halt" is left
+# out too: it matched inside descriptive prose and an instruction to stop is not
+# an operating route anyway.
+DE_IRREGULAR = "lies|nimm|gib|sieh"
+DE_PREFIX = "(?:aus|auf|zu|ein|an|ab|durch|weiter|nach|vor|hin|los|neu|um|über|uber)?"
 CALL_TO_ACTION_RE = re.compile(
-    r"\b(f[üu]hre|[öo]ffne|dr[üu]cke|starte|tippe|klicke|w[äa]hle|klappe|gib|wechsle|"
-    r"run|open|press|start|type|click|select|choose|enter|switch)\b",
+    r"\b" + DE_PREFIX + r"(?:" + DE_ACTION_STEMS + r")(?:e|en)\b"
+    r"|\b" + DE_PREFIX + r"(?:" + DE_IRREGULAR + r")\b"
+    # English needs no stemming: the imperative is the bare verb, and the third
+    # person carries an -s that the word boundary already keeps out.
+    r"|\b(?:run|open|press|start|type|click|select|choose|enter|switch|pick|hit|launch)\b",
     re.IGNORECASE,
 )
 
@@ -275,32 +327,57 @@ def parse_do_attributes(attr_text):
 
 
 def parse_do_blocks(body):
-    """Every `::: do` block in a step body, and the lines that lie outside them.
+    """Every `::: do` block in a step body, and the prose that lies outside them.
 
     Returns (blocks, outside_lines). A block is a dict with attrs, problems,
     instruction, expect, recover and the 1-based line number of its opening.
-    Fenced code is treated as outside-but-inert: it is dropped from
-    outside_lines, so a code sample never trips rule 4.
+
+    What lands in outside_lines is prose a student is meant to follow, and only
+    that. Four things are taken out, because rule 4 was reporting all of them and
+    the course streams were right not to reword any:
+      - fenced code, which shows a command rather than telling anyone to run it;
+      - image markup, whose alt text describes a screenshot ("the palette with
+        `Tasks: Run Task` typed into it") - rewriting a picture's description to
+        please a linter is the wrong direction;
+      - the italic caption directly under an image, for the same reason;
+      - HTML comments, which carry photography briefs (`<!-- SHOT: … -->`) and
+        other notes to ourselves, never instructions to a student.
     """
     blocks = []
     outside = []
     lines = body.replace("\r\n", "\n").split("\n")
     i = 0
     in_fence = False
+    in_comment = False
+    prev_was_image = False
     while i < len(lines):
         line = lines[i]
         if FENCE_RE.match(line):
             in_fence = not in_fence
+            prev_was_image = False
             i += 1
             continue
         if in_fence:
             i += 1
             continue
+        if in_comment:
+            if COMMENT_CLOSE in line:
+                in_comment = False
+                line = line.split(COMMENT_CLOSE, 1)[1]
+            else:
+                i += 1
+                continue
         m = DO_OPEN_RE.match(line.strip())
         if not m:
-            outside.append((i + 1, line))
+            prose, in_comment = strip_non_prose(line)
+            # A caption belongs to the picture above it, not to the reader.
+            if prev_was_image and CAPTION_RE.match(line):
+                prose = ""
+            prev_was_image = bool(IMAGE_RE.search(line)) or (prev_was_image and not line.strip())
+            outside.append((i + 1, prose))
             i += 1
             continue
+        prev_was_image = False
         attrs, problems = parse_do_attributes(m.group(1) or "")
         body_lines = []
         j = i + 1
@@ -396,9 +473,8 @@ def palette_entries(repo):
     return entries
 
 
-def tasks_json_labels(root):
-    """Task labels from a project's .vscode/tasks.json (JSONC: comments stripped)."""
-    path = os.path.join(root, ".vscode", "tasks.json")
+def _labels_of(path):
+    """Task labels from one tasks.json (JSONC: line comments stripped)."""
     if not os.path.exists(path):
         return None
     try:
@@ -412,6 +488,191 @@ def tasks_json_labels(root):
     except ValueError:
         return None
     return {t.get("label") for t in (data.get("tasks") or []) if isinstance(t, dict) and t.get("label")}
+
+
+def tasks_json_labels(root, repo, uses_tasks):
+    """The tasks a student can actually run.
+
+    Returns (project_labels, seed_labels). They are kept apart on purpose.
+
+    `project_labels` come from the project repository's own
+    `.vscode/tasks.json`, and whether that file exists is what decides the
+    "no tasks.json" warning and the `needsNoTasks` declaration.
+
+    `seed_labels` come from the vscode-templates the image copies into the
+    student's workspace. For the firmware packs the two files share not one
+    label - the repo has "Build: ITSboard firmware" while the student sees
+    "CaDS: Build" - so checking a course against the repo's file alone measured
+    it against a list nobody ever sees. They are only added for a pack that runs
+    VS Code tasks at all; a course whose checks never name one is not opening
+    that workspace, and inheriting its tasks would be a licence, not a fact.
+    """
+    project = _labels_of(os.path.join(root, ".vscode", "tasks.json"))
+    seed = set()
+    if uses_tasks:
+        for d in ("image", os.path.join("images", "tutor-lab")):
+            found = _labels_of(os.path.join(repo, d, "vscode-templates", "tasks.json"))
+            if found:
+                seed |= found
+    return project, seed
+
+
+# --- A9.1: the operating vocabulary a pack declares --------------------------
+# Rule 3 derives the legal routes from the pack's own checks, which is right for
+# a course whose text and checks run the same thing. It is wrong for a course
+# whose text deliberately runs something narrower: the JavaScript track tells a
+# student to run `node --test test/<step-id>.test.js`, while its check runs the
+# whole suite with a TAP reporter. The three obvious ways out all break
+# something - put the reporter flag into the sentence the student types, build a
+# button that does something other than what the text says, or invent tasks the
+# course does not need.
+#
+# So a pack may declare its student-facing routes, and rule 3 accepts those too.
+# To keep the declaration from being a blank cheque it has to hold up: every file
+# it names must exist, every command's binary must be resolvable, every path in a
+# command must exist, and each command must say in one line why the course uses
+# it rather than its own check.
+OPERATING_ROUTE_KEYS = {"tasks", "palette", "commands", "files", "needsNoTasks"}
+STEP_ID_PLACEHOLDER = "<step-id>"
+# An argument that names a file: it has a directory separator or a known suffix.
+PATHY_RE = re.compile(r"^[\w./@-]+(?:/[\w./@-]+|\.(?:js|mjs|cjs|ts|rs|py|c|h|json|md|toml|sh))$")
+
+
+# A9.1 rule 3 outside a block. `m2-02` and `m2-03` sent the English reader to
+# `CaDS Board: Open console`; no extension carries that entry - it is called
+# `CaDS Board: Konsole öffnen` in both languages - and no rule could see it,
+# because rule 3 only ever looked inside `::: do` and rule 4 only fires when a
+# KNOWN route name appears. An invented one matched nothing and passed.
+#
+# The pattern is deliberately narrow: a backticked name of the shape
+# `CaDS …: …` or `Tasks: …`, which is how this project's palette entries and
+# tasks are written and quoted throughout the courses. A menu path (`Run
+# Task...`) or a plain UI word (`Terminal`) is not route-shaped and is left
+# alone.
+BACKTICKED_RE = re.compile(r"`([^`\n]{2,120})`")
+ROUTE_SHAPED_RE = re.compile(r"^(?:CaDS\b[^:]*|Tasks):\s*\S.*$")
+
+
+PLACEHOLDER_RE = re.compile(r"[<>{}]|…|\.\.\.")
+
+
+def route_shaped_names(text):
+    """Backticked names in prose that read like a palette entry or a task.
+
+    A name carrying a placeholder is skipped: `CaDS Tutor: <Titel>` names the
+    shape of the panel's editor tab, not an entry anyone types.
+    """
+    out = []
+    for m in BACKTICKED_RE.finditer(text):
+        name = m.group(1).strip()
+        if ROUTE_SHAPED_RE.match(name) and not PLACEHOLDER_RE.search(name):
+            out.append(name)
+    return out
+
+
+PANEL_TAB_PREFIX = "CaDS Tutor: "
+
+
+def route_known(name, legal, step_titles=()):
+    """A route is known when it is one, or when typing it finds one: the palette
+    filters as you type, so `CaDS Board: Verbinden` reaches
+    `CaDS Board: Verbinden (USB/Serial freigeben)` and is not an invention.
+
+    `CaDS Tutor: <step title>` is not a route at all - the panel names its editor
+    tab that way (panel.ts: `CaDS Tutor: ${view.title}`). Rather than exempt the
+    shape, the title behind it is held against the course's own step titles, so a
+    tab name the course made up is still caught.
+    """
+    if name.startswith(PANEL_TAB_PREFIX) and name[len(PANEL_TAB_PREFIX):] in step_titles:
+        return True
+    return any(entry == name or entry.startswith(name) for entry in legal)
+
+
+def _route_paths(command):
+    """The arguments of a command that name a file in the project."""
+    try:
+        parts = shlex.split(command)
+    except ValueError:
+        return []
+    return [p for p in parts[1:] if not p.startswith("-") and PATHY_RE.match(p)]
+
+
+def load_operating_routes(manifest, name, root, report):
+    """Reads and checks `operatingRoutes` from course.json.
+
+    Returns {"tasks": set, "palette": set, "commands": set, "needsNoTasks": bool};
+    entries may carry the <step-id> placeholder, which is expanded per use site.
+    """
+    empty = {"tasks": set(), "palette": set(), "commands": set(), "needsNoTasks": False}
+    declared = manifest.get("operatingRoutes")
+    if declared is None:
+        return empty
+    where = f"{name}/course.json operatingRoutes"
+    if not isinstance(declared, dict):
+        report.error(where, "must be an object")
+        return empty
+    for key in declared:
+        if key not in OPERATING_ROUTE_KEYS:
+            report.error(where, f"unknown key '{key}'; allowed: {', '.join(sorted(OPERATING_ROUTE_KEYS))}")
+
+    out = dict(empty)
+    out["needsNoTasks"] = bool(declared.get("needsNoTasks"))
+
+    for key in ("tasks", "palette"):
+        values = declared.get(key) or []
+        if not isinstance(values, list):
+            report.error(where, f"{key} must be a list of strings")
+            continue
+        for value in values:
+            if not isinstance(value, str) or not value.strip():
+                report.error(where, f"{key} holds a non-string entry")
+                continue
+            if key == "palette" and not value.startswith(">"):
+                report.error(where, f'palette entry "{value}" must carry the leading ">"')
+            out[key].add(value)
+
+    for rel in declared.get("files") or []:
+        if not isinstance(rel, str) or not repo_path_exists(root, rel):
+            report.error(where, f"files -> missing path '{rel}'")
+
+    commands = declared.get("commands") or []
+    if not isinstance(commands, list):
+        report.error(where, "commands must be a list of objects")
+        commands = []
+    for i, entry in enumerate(commands):
+        at = f"{where}.commands[{i}]"
+        if not isinstance(entry, dict):
+            report.error(at, "is not an object")
+            continue
+        command = entry.get("command")
+        if not isinstance(command, str) or not command.strip():
+            report.error(at, "needs a 'command' string")
+            continue
+        # A declared route costs one sentence, so nobody adds one by reflex.
+        why = entry.get("why")
+        if not isinstance(why, str) or not why.strip():
+            report.error(at, f'"{command}" needs a "why": one line on what the course teaches with it')
+        elif len(why.split()) < 4:
+            report.error(at, f'"{command}" has a "why" of {len(why.split())} word(s); say what the course teaches with it')
+        binary = _leading_binary(command)
+        if binary and "/" not in binary and shutil.which(binary) is None:
+            report.warn(at, f"toolchain binary '{binary}' is not installed here, so '{command}' could not be checked")
+        for rel in _route_paths(command):
+            if STEP_ID_PLACEHOLDER in rel:
+                continue  # checked per use site, where the step id is known
+            if not repo_path_exists(root, rel):
+                report.error(at, f"'{command}' names a path that does not exist in the workspace: '{rel}'")
+        out["commands"].add(command)
+    return out
+
+
+def expand_route(route, step_id):
+    return route.replace(STEP_ID_PLACEHOLDER, step_id)
+
+
+def route_declared(value, declared, step_id):
+    """True when a declared route matches, the <step-id> placeholder expanded."""
+    return any(expand_route(r, step_id) == value for r in declared)
 
 
 def collect_routes(check, tasks, commands):
@@ -433,8 +694,9 @@ def collect_routes(check, tasks, commands):
         collect_routes(check["then"], tasks, commands)
 
 
-def validate_do_blocks(where, body, root, known, report):
-    """The four A9.1 rules. Rule 4 is a warning until the packs are converted."""
+def validate_do_blocks(where, step_id, body, root, known, report):
+    """The four A9.1 rules. Returns the number of rule-4 findings, so the two
+    language halves of a step can be held against each other."""
     blocks, outside = parse_do_blocks(body)
     report.do_blocks += len(blocks)
     for block in blocks:
@@ -452,26 +714,77 @@ def validate_do_blocks(where, body, root, known, report):
             report.error(at, "::: do - `recover:` only repeats `expect:` instead of naming a way back")
 
         # Rule 3: a route nothing defines is an error, not a matter of style (A8.3).
+        # A route the pack DECLARES in course.json counts as defined - that is
+        # the form A8.3 meant, an explained and checkable route rather than one
+        # invented or copied out of a check command.
         attrs = block["attrs"]
-        if "task" in attrs and attrs["task"] and attrs["task"] not in known["tasks"]:
-            report.error(at, f'::: do - task "{attrs["task"]}" is in no check of this course and in no .vscode/tasks.json')
-        if "command" in attrs and attrs["command"] and attrs["command"] not in known["commands"]:
-            report.error(at, f'::: do - command "{attrs["command"]}" is run by no check of this course')
-        if "palette" in attrs and attrs["palette"] and attrs["palette"] not in known["palette"]:
-            report.error(at, f'::: do - palette entry "{attrs["palette"]}" is contributed by no extension of this repository')
+        declared = known["declared"]
+        if "task" in attrs and attrs["task"] and attrs["task"] not in known["tasks"] \
+                and not route_declared(attrs["task"], declared["tasks"], step_id):
+            report.error(at, f'::: do - task "{attrs["task"]}" is in no check of this course, in no .vscode/tasks.json and in no operatingRoutes of course.json')
+        if "command" in attrs and attrs["command"]:
+            command = attrs["command"]
+            if command in known["commands"]:
+                pass
+            elif route_declared(command, declared["commands"], step_id):
+                # The declaration was checked once; here the expansion is checked,
+                # so a step naming a test file that does not exist still fails.
+                for rel in _route_paths(command):
+                    if not repo_path_exists(root, rel):
+                        report.error(at, f'::: do - command "{command}" names a path that does not exist: \'{rel}\'')
+            else:
+                report.error(at, f'::: do - command "{command}" is run by no check of this course and is in no operatingRoutes of course.json')
+        if "palette" in attrs and attrs["palette"] and attrs["palette"] not in known["palette"] \
+                and not route_declared(attrs["palette"], declared["palette"], step_id):
+            report.error(at, f'::: do - palette entry "{attrs["palette"]}" is contributed by no extension of this repository and is in no operatingRoutes of course.json')
         if "file" in attrs and attrs["file"] and not repo_path_exists(root, attrs["file"]):
             report.error(at, f'::: do - file "{attrs["file"]}" does not exist under the project root')
+
+    # Rule 3, outside a block too: a name that READS like an operating route and
+    # matches nothing is an invented route wherever it stands. Inside a block the
+    # attribute is checked; in prose nothing looked, which is how an English
+    # reader was sent to a palette entry that exists in neither language.
+    legal = (
+        known["tasks"]
+        | {e[2:] for e in known["palette"]}
+        | {expand_route(r, step_id) for r in known["declared"]["tasks"]}
+        | {expand_route(r, step_id)[2:] for r in known["declared"]["palette"]}
+    )
+    prose = list(outside) + [
+        (b["line"], " ".join(filter(None, (b["instruction"], b["expect"], b["recover"]))))
+        for b in blocks
+    ]
+    seen = set()
+    for line_no, line in prose:
+        for name in route_shaped_names(line):
+            if route_known(name, legal, known["stepTitles"]) or (name, line_no) in seen:
+                continue
+            seen.add((name, line_no))
+            report.error(
+                f"{where}:{line_no}",
+                f'"{name}" reads like a task or palette entry, but no check of this course, no tasks.json, '
+                f"no extension of this repository and no operatingRoutes entry carries that name (A9.1 rule 3)",
+            )
 
     # Rule 4: outside a block, no call to action that names a route. Warning for
     # now: it fires on every course written before A9.1, and turning it into an
     # error would block the very commits that fix it.
-    named = sorted(known["tasks"] | known["commands"] | {e[2:] for e in known["palette"]}, key=len, reverse=True)
+    named = sorted(
+        known["tasks"] | known["commands"] | {e[2:] for e in known["palette"]}
+        | {expand_route(r, step_id) for r in known["declared"]["tasks"] | known["declared"]["commands"]}
+        | {expand_route(r, step_id)[2:] for r in known["declared"]["palette"]},
+        key=len,
+        reverse=True,
+    )
+    found = 0
     for line_no, line in outside:
         if not CALL_TO_ACTION_RE.search(line):
             continue
         hit = next((n for n in named if n and n in line), None)
         if hit:
+            found += 1
             report.warn(f"{where}:{line_no}", f'operating instruction outside a `::: do` block names "{hit}" (A9.1 rule 4)')
+    return found
 
 
 # --- language probe ---------------------------------------------------------
@@ -488,10 +801,11 @@ def validate_do_blocks(where, body, root, known, report):
 # words that belong to one language alone - "in", "an", "man", "war", "hat",
 # "die", "so", "also" and "am" are all common in both and are left out.
 
-# Flip to True once courses/rust-foundations and courses/javascript-foundations
-# carry German rubrics in their .de.md files; until then this would break every
-# other stream's run. `--language-errors` enforces it per run in the meantime.
-LANGUAGE_MISMATCH_IS_ERROR = False
+# Both language packs are converted (rust-foundations 0 of 34,
+# javascript-foundations 0 of 40), so this is an error rather than a warning.
+# `--language-errors` is kept for the case where it has to be forced on a branch
+# where the constant has been turned off again.
+LANGUAGE_MISMATCH_IS_ERROR = True
 
 DE_MARKERS = set("""
 der das den dem des ein eine einen einem einer und oder nicht ist sind wird werden wurde wurden
@@ -546,6 +860,41 @@ def free_text_fields(fm):
         check = task.get("check")
         if isinstance(check, dict) and isinstance(check.get("rubric"), str):
             yield f"tasks[{tid}].rubric", check["rubric"]
+
+
+# --- A1/A9.1: a predict step must not hand out its own reveal ----------------
+# The runtime withholds the observed output until a prediction has been written -
+# it is not merely hidden, it is never put in the DOM, so it cannot be read out.
+# The course text can undo that in one line. The Rust track said "do not run it
+# yet" and named the exact command in the same sentence; the JavaScript track
+# printed it in a code block in all eight predict steps. A student runs it, reads
+# the number and writes it down as a "prediction", and the one exercise that
+# measures what they believed measures nothing.
+#
+# Naming the FILE is fine and unavoidable - the student has to know what they are
+# predicting about. Only the literal command of `predict.then` is a leak, which
+# is what makes this decidable: it fires on five firmware steps and on neither
+# language pack, both of which have been through exactly this correction.
+
+
+def validate_predict_reveal(where, fm, body, report):
+    """A predict step whose own body prints the command that reveals the answer."""
+    prose = re.sub(r"\s+", " ", body)
+    for task in fm.get("tasks") or []:
+        if not isinstance(task, dict):
+            continue
+        check = task.get("check")
+        if not isinstance(check, dict) or check.get("type") != "predict":
+            continue
+        for _, leaf in probe_leaves(check):
+            command = leaf.get("command") or _suite_command(leaf)
+            if command and re.sub(r"\s+", " ", command) in prose:
+                report.warn(
+                    where,
+                    f"task '{task.get('id')}' asks for a prediction and the step body prints the command "
+                    f"that reveals it (`{command}`). The panel withholds the observed output until a "
+                    f"prediction exists; a student who can run it first is predicting nothing.",
+                )
 
 
 def validate_language(where, fm, lang, report, as_error):
@@ -882,7 +1231,7 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
     # read: a `::: do` block may name a route that only the German variant's
     # checks declare, and that route is just as real.
     recall_sources = set()
-    known_tasks, known_commands = set(), set()
+    known_tasks, known_commands, step_titles = set(), set(), set()
     # One node call for the whole directory rather than one per file.
     preload_front_matter([
         os.path.join(steps_dir, f"{sid}.{lang}.md")
@@ -896,19 +1245,41 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
             if not os.path.exists(fpath):
                 continue
             fm, _, _ = load_step(fpath)
+            if isinstance((fm or {}).get("title"), str):
+                step_titles.add(fm["title"])
             for task in (fm or {}).get("tasks") or []:
                 if not isinstance(task, dict) or not isinstance(task.get("check"), dict):
                     continue
                 if lang == "en" and task["check"].get("type") == "question":
                     recall_sources.add(sid)
                 collect_routes(task["check"], known_tasks, known_commands)
-    from_tasks_json = tasks_json_labels(root)
+    declared_routes = load_operating_routes(manifest, name, root, report)
+    repo_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    from_tasks_json, seed_tasks = tasks_json_labels(root, repo_dir, uses_tasks=bool(known_tasks))
+    known_tasks |= seed_tasks
     if from_tasks_json is None:
-        report.warn(name, "no .vscode/tasks.json under the project root; `::: do task=` is checked against the course's own checks only")
+        # A course may legitimately have no VS Code tasks - the language tracks
+        # run everything from a terminal. Saying so in course.json turns a
+        # standing warning into a statement somebody made on purpose.
+        if not declared_routes["needsNoTasks"]:
+            report.warn(name, "no .vscode/tasks.json under the project root; `::: do task=` is checked against the course's own checks and operatingRoutes only. Declare \"needsNoTasks\": true in course.json's operatingRoutes if this course needs none")
     else:
         known_tasks |= from_tasks_json
-    repo_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    known = {"tasks": known_tasks, "commands": known_commands, "palette": palette_entries(repo_dir)}
+        if declared_routes["needsNoTasks"]:
+            report.error(name, "course.json declares operatingRoutes.needsNoTasks, but the project root has a .vscode/tasks.json")
+    known = {
+        "tasks": known_tasks,
+        "commands": known_commands,
+        "palette": palette_entries(repo_dir),
+        "declared": declared_routes,
+        "stepTitles": step_titles,
+    }
+
+    # Rule-4 findings per file. The two halves of a step say the same thing in
+    # two languages, so they must produce the same number of findings; a
+    # difference means one half is being checked less than the other, which is
+    # how a whole German half once read as clean because nobody had looked.
+    rule4_hits = {}
 
     # Validate each language file.
     for sid in sorted(all_ids):
@@ -1064,13 +1435,29 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
             if misconceptions and not (step_check_types & {"command", "testSuite"}):
                 report.warn(where, "misconceptions declared but no command/testSuite task produces output to match")
             # A9.1: instruction blocks, and the call to action that escaped one.
-            validate_do_blocks(where, body, root, known, report)
+            rule4_hits[(sid, lang)] = validate_do_blocks(where, sid, body, root, known, report)
             # A plain-string field carries the language of its own file, and
             # nothing structural can notice when it does not.
             validate_language(where, fm, lang, report, language_errors)
+            # A1: the predict gate is worthless if the text hands out the reveal.
+            validate_predict_reveal(where, fm, body, report)
 
             if lang == "en" and listed_steps and sid not in listed_steps:
                 report.warn(where, "step file is not listed in any module of course.json")
+
+    for sid in sorted(all_ids):
+        de = rule4_hits.get((sid, "de"))
+        en = rule4_hits.get((sid, "en"))
+        if de is None or en is None or de == en:
+            continue
+        more, less = ("de", "en") if de > en else ("en", "de")
+        report.warn(
+            f"{name}/{sid}",
+            f"rule 4 finds {max(de, en)} operating instruction(s) in the .{more} step and "
+            f"{min(de, en)} in the .{less} one. Either the two halves do not say the same thing, "
+            f"or the probe is weaker on one of them - a bilingual course checked on one side "
+            f"only reports a clean half that nobody looked at.",
+        )
 
     # Only enforce full checks once (avoid double-counting de/en): dedupe handled
     # by iterating both, which is intentional - both files must be schema-valid.

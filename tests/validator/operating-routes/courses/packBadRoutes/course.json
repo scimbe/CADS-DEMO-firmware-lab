@@ -1,0 +1,13 @@
+{ "id": "packBadRoutes", "version": "1.0.0", "schema": 1, "title": {"de":"B","en":"B"},
+  "description": {"de":"d","en":"e"}, "prerequisites": [],
+  "operatingRoutes": {
+    "palette": ["View: Toggle Terminal"],
+    "files": ["nowhere.txt"],
+    "commands": [
+      { "command": "node --test test/absent.test.js", "why": "runs one file" },
+      { "command": "node --test test/s1.test.js" },
+      { "command": "definitely-not-a-real-binary --go", "why": "this one only exists in the text" }
+    ],
+    "invented": true
+  },
+  "modules": [ { "id": "m1", "title": {"de":"M","en":"M"}, "steps": ["s1"] } ] }
