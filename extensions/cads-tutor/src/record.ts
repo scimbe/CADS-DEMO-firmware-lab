@@ -93,6 +93,9 @@ function reachable(r: RecordEntry, s: ReturnType<typeof ui>): string {
   // R11a.7c: terminal is a different marker from a gap, and the portal has to be
   // able to tell them apart - one is the course's shape, the other its defect.
   if (r.ceiling.noLaterRecall) marks.push(r.ceiling.terminal ? s.ceilingMarkTerminal : s.ceilingMarkRecall);
+  // The pointer is there and the text is not: a defect the course stream can fix,
+  // and the only one of the three markers that names work rather than a boundary.
+  if (r.ceiling.recallTargetMissing) marks.push(s.ceilingMarkNoTarget);
   return `${s.competenceLevel[level]}${marks.length ? ` (${marks.join(", ")})` : ""}`;
 }
 
@@ -170,8 +173,12 @@ export function objectiveRowText(course: Course, c: ObjectiveCompetence, lookups
   const cellsOf = evidenceCell(c.leading, lookups, s);
   const ceiling = objectiveCeiling(course, c.objectiveId, lookups.hasLlm);
   const lines = [statement, `${s.recordColLevel}: ${s.competenceLevel[c.level]} — ${s.competenceLevelWhy[c.level]}`];
-  if (ceiling.limitedByLlm || ceiling.noLaterRecall) {
-    const why = [ceiling.limitedByLlm ? s.ceilingMarkLlm : "", ceiling.noLaterRecall ? (ceiling.terminal ? s.ceilingMarkTerminal : s.ceilingMarkRecall) : ""].filter(Boolean);
+  if (ceiling.limitedByLlm || ceiling.noLaterRecall || ceiling.recallTargetMissing) {
+    const why = [
+      ceiling.limitedByLlm ? s.ceilingMarkLlm : "",
+      ceiling.noLaterRecall ? (ceiling.terminal ? s.ceilingMarkTerminal : s.ceilingMarkRecall) : "",
+      ceiling.recallTargetMissing ? s.ceilingMarkNoTarget : "",
+    ].filter(Boolean);
     lines.push(`${s.ceilingColumn}: ${s.competenceLevel[ceiling.level]}${why.length ? ` (${why.join(", ")})` : ""}`);
   }
   if (c.evidence.length === 0) lines.push(s.competenceNoEvidence);

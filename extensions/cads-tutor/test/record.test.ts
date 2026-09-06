@@ -57,6 +57,20 @@ describe("A9.3 record of competence", () => {
     assert.match(md, /Erreichte Stufen: 0 nachgewiesen, 1 geübt/);
   });
 
+  it("marks a recall pointer whose target has no recallPrompt as the authoring defect it is", () => {
+    // m1-01-board is pointed at by nothing; m2-02-predict points back at
+    // m1-02-reflect, whose question carries a recallPrompt - so only a course
+    // whose pointer lacks the text gets the marker.
+    const entries = competenceRecordEntries(course, newSession(), lookups);
+    const safety = entries.find((e) => e.objectiveId === "firmware-safety")!;
+    assert.equal(safety.ceiling.recallTargetMissing, false);
+    assert.equal(safety.ceiling.noLaterRecall, false);
+    const md = renderCompetenceRecordMarkdown(course, newSession(), entries, lookups);
+    // Terminal and structural gaps are separate markers in the sheet.
+    assert.match(md, /terminal \(letztes Modul\)/);
+    assert.match(md, /kein späterer Abruf/);
+  });
+
   it("names no points currency outside the sentence that rules it out", () => {
     const md = renderCompetenceRecordMarkdown(course, newSession(), competenceRecordEntries(course, newSession(), lookups), lookups);
     // The intro says there are none, so it is the one line allowed to name them.

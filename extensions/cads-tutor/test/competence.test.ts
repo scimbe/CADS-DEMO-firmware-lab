@@ -248,6 +248,19 @@ describe("A9.2 what an objective can reach at all", () => {
     assert.equal(without.limitedByLlm, true);
   });
 
+  it("tells a missing pointer from a pointer whose target has no recall prompt", () => {
+    // m1-02-reflect is pointed at from m2 and its `reflect` task carries a
+    // recallPrompt, so the recall is real.
+    const ready = objectiveCeiling(course, "firmware-safety", true);
+    assert.equal(ready.noLaterRecall, false);
+    assert.equal(ready.recallTargetMissing, false);
+    // Nothing points back at m0-02-build at all: that is the course's structure,
+    // and it is the only one of the two a student may be told about.
+    const structural = objectiveCeiling(course, "firmware-how-to-build", true);
+    assert.equal(structural.noLaterRecall, true);
+    assert.equal(structural.recallTargetMissing, false);
+  });
+
   it("calls an objective of the last module terminal, not a gap (R11a.7c)", () => {
     // firmware-tooling lives only in m2, the example course's last module.
     const terminal = objectiveCeiling(course, "firmware-tooling", true);

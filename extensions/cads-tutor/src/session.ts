@@ -547,8 +547,14 @@ export interface ObjectiveCeiling {
   withLlm: CompetenceLevel;
   /** The ceiling is lower than it would be with a model: the gap is the deployment's, not the student's. */
   limitedByLlm: boolean;
-  /** Even with a model the course has no graded recall for this objective from a later module (K8). */
+  /** No step in a later module points back at this objective at all (K8) - a gap in the course's structure. */
   noLaterRecall: boolean;
+  /**
+   * A later module does point back, but the step it points at carries no task with
+   * a `recallPrompt` and a rubric (A9.2a). The card would render nothing. This is an
+   * authoring defect, not something to tell the student about their own progress.
+   */
+  recallTargetMissing: boolean;
   /**
    * R11a.7c: the objective is taught only in the course's last module, so there is
    * no later module to recall it from. That is a property of where it sits, not a
@@ -569,12 +575,16 @@ function taskCeiling(task: TaskSpec, hasLlm: boolean): { strong: number; medium:
 }
 
 /**
- * A graded recall for this objective is possible only if some step in a LATER
- * module points back at one of its steps, and that step carries a task the card
- * may ask (`recallPrompt`) and a rubric to judge the answer by (A9.2a).
+ * Two different answers, deliberately kept apart. `pointer` says whether some step
+ * in a LATER module points back at one of this objective's steps at all - that is
+ * the course's structure, and the student may be told about it. `askable` says
+ * whether the step it points at carries a task the card may ask (`recallPrompt`)
+ * and a rubric to judge it by (A9.2a) - a pointer without one is an authoring
+ * defect, which belongs in the evidence sheet and in front of a teacher, never on
+ * a student's card as "this course never asks again".
  */
-function laterRecallPossible(course: Course, objectiveSteps: Set<string>): boolean {
-  const askable = (stepId: string): boolean => {
+function laterRecall(course: Course, objectiveSteps: Set<string>): { pointer: boolean; askable: boolean } {
+  const canAsk = (stepId: string): boolean => {
     const step = course.steps.get(stepId);
     return (step?.variants.en?.meta.tasks ?? []).some((t) => {
       const prompt = recallPromptOf(t.check);
@@ -582,16 +592,18 @@ function laterRecallPossible(course: Course, objectiveSteps: Set<string>): boole
       return prompt !== undefined && !!rubric;
     });
   };
+  const out = { pointer: false, askable: false };
   for (const step of orderedSteps(course)) {
     const here = moduleIndex(course, step.moduleId);
     for (const source of step.variants.en?.meta.recallFrom ?? []) {
       if (!objectiveSteps.has(source)) continue;
       const from = course.steps.get(source);
-      if (!from) continue;
-      if (here > moduleIndex(course, from.moduleId) && askable(source)) return true;
+      if (!from || here <= moduleIndex(course, from.moduleId)) continue;
+      out.pointer = true;
+      if (canAsk(source)) out.askable = true;
     }
   }
-  return false;
+  return out;
 }
 
 export function objectiveCeiling(course: Course, objectiveId: string, hasLlm: boolean): ObjectiveCeiling {
@@ -612,7 +624,7 @@ export function objectiveCeiling(course: Course, objectiveId: string, hasLlm: bo
       totals.withLlm.medium += b.medium;
     }
   }
-  const recall = laterRecallPossible(course, steps);
+  const recall = laterRecall(course, steps);
   const levelOf = (t: { strong: number; medium: number }, recallGraded: boolean): CompetenceLevel => {
     if (t.strong >= 1 && recallGraded) return "demonstrated";
     if (t.strong >= 1 || t.medium >= 2) return "practised";
@@ -620,8 +632,8 @@ export function objectiveCeiling(course: Course, objectiveId: string, hasLlm: bo
     return "none";
   };
   // Grading a recall needs a model too, so without one the recall is never evidence.
-  const level = levelOf(totals.here, recall && hasLlm);
-  const withLlm = levelOf(totals.withLlm, recall);
+  const level = levelOf(totals.here, recall.askable && hasLlm);
+  const withLlm = levelOf(totals.withLlm, recall.askable);
   // R11a.7c: an objective the last module alone teaches has no later module by
   // construction. A course pack of projects consists entirely of them.
   const terminal = steps.size > 0 && lastModule >= 0 && lastModule === course.manifest.modules.length - 1;
@@ -629,7 +641,8 @@ export function objectiveCeiling(course: Course, objectiveId: string, hasLlm: bo
     level,
     withLlm,
     limitedByLlm: COMPETENCE_ORDER[level] < COMPETENCE_ORDER[withLlm],
-    noLaterRecall: !recall,
+    noLaterRecall: !recall.pointer,
+    recallTargetMissing: recall.pointer && !recall.askable,
     terminal,
   };
 }
