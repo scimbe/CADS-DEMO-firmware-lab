@@ -54,15 +54,11 @@ s += "toe";             // add-assign takes a &str
 
 ## The counting problem
 
-```text
-hello:        5 bytes,  5 chars
-Cyrillic:    24 bytes, 12 chars
-Devanagari:  18 bytes,  6 chars
-```
+Three greetings make it visible: `hello`, a Cyrillic greeting of twelve letters, and a Devanagari greeting a reader would see as four signs.
 
-`len()` counts **bytes**. `chars().count()` counts **Unicode scalar values**. For ASCII they agree; for anything else they do not, and the Devanagari case shows a third number - what a reader would call four letters is six scalar values, because two of them are combining marks. The book's position is worth taking seriously: there is no single correct answer to "how long is this string", so Rust makes you say which one you mean.
+`len()` counts **bytes**. `chars().count()` counts **Unicode scalar values**. For ASCII they agree; for anything else they do not, and the Devanagari case brings a third number into play, because combining marks appear in it: what a reader sees as one sign may be several scalar values. The book's position is worth taking seriously: there is no single correct answer to "how long is this string", so Rust makes you say which one you mean.
 
-`examples/m4_string_bytes.rs` prints exactly this. Predict all of it first.
+`examples/m4_string_bytes.rs` prints both numbers for all three. Predict them before you run it.
 
 ## Why indexing is refused
 

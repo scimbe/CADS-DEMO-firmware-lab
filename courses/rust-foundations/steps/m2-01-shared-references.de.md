@@ -64,13 +64,7 @@ fn change(some_string: &String) {
 }
 ```
 
-Sage das Ergebnis vorher, bevor du übersetzt. Die Antwort lautet:
-
-```text
-error[E0596]: cannot borrow `*some_string` as mutable, as it is behind a `&` reference
-```
-
-Achte darauf, *welche* Zeile unterstrichen wird: das `push_str` in `change`, nicht der Aufruf. Der Vertrag wurde dort beanstandet, wo er verletzt wurde, nicht dort, wo er geschlossen wurde.
+Sage das Ergebnis vorher, bevor du übersetzt. Wenn die Diagnose danach erscheint, achte darauf, *welche* Zeile sie unterstreicht - diese Frage sagt mehr über den Vertrag aus als der Fehlercode selbst, denn ein Vertrag wird dort beanstandet, wo er verletzt wird, und nicht dort, wo er geschlossen wurde.
 
 ## `&str` ist der bessere Parameter
 
