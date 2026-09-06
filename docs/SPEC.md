@@ -531,6 +531,17 @@ Daraus drei Stufen je Lernziel: **berührt** (mindestens ein Beleg), **geübt** 
 abgeschlossen, wenn jedes seiner Lernziele mindestens *geübt* ist; *nachgewiesen* kann definitionsgemäß erst
 später eintreten. Selbstauskunft schaltet nichts frei (E8, K7).
 
+**Der Modulabschluss ist eine Aussage, kein Tor** (Entscheidung 2026-09-06, belegt). Die Freischaltung läuft
+weiter ausschließlich über `requires` und die Kurs-Voraussetzungen. Grund: In `cads-zero-foundations` tragen
+vier Lernziele (`cz.gui.dirty-rects`, `cz.net.arbitration`, `cz.quality.cleanroom-pr`,
+`firmware-explanation-clean-room`) ausschließlich `question`-Aufgaben. Ohne Sprachmodell fällt jede davon auf
+Selbstauskunft zurück und trägt nach R11a.8 nichts bei — als Tor gelesen käme eine Studierende ohne
+konfiguriertes Sprachmodell in den Modulen 5, 7 und 8 nicht weiter, aus einem Grund, an dem sie nichts ändern
+kann. Hinzu kommt: `requires` bildet die fachliche Abhängigkeit ab, nicht die Lesereihenfolge (R9.3), und die
+Manifeste kennen Schritte, die über Modulgrenzen hinweg fordern — ein Modultor zöge eine Struktur ein, die die
+Kurse nicht haben. Wer das später ändern will, muss zeigen, dass jedes Lernziel des Moduls einen starken Beleg
+überhaupt erreichen kann.
+
 ### A9.3 Gamifizierung — was wir bauen und was ausdrücklich nicht
 
 Zulässig, weil an Kompetenz gebunden (E9):
