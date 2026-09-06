@@ -92,19 +92,7 @@ Sag [`examples/m7-pipeline.js`](file:examples/m7-pipeline.js) vorher und führe 
 
 ## So führst du diesen Step aus
 
-::: do palette="> Terminal: Create New Terminal"
-Öffne ein Terminal. Von Hand: Menü **Terminal > New Terminal**, oder **F1** und der oben genannte Befehl.
-> expect: Am unteren Fensterrand öffnet sich ein Panel mit einem Prompt darin, und der Prompt endet auf `javascript-foundations`.
-> recover: Antwortet die Palette *No matching results*, fehlt das führende `>`; ohne dieses Zeichen sucht die Palette nach Dateinamen statt nach Befehlen. Öffnet sich gar nichts, nimm **F1** statt Strg+Umschalt+P, das der Browser für sich behalten kann. Endet der Prompt auf einem anderen Ordner, tippe `cd javascript-foundations` ins Terminal.
-:::
-
-Führe dann aus:
-
-```bash
-node examples/m7-pipeline.js
-```
-
-Der Befehl ist fertig, wenn der Prompt zurückkommt; die Zähler am Ende der Ausgabe sind das Urteil, und `fail 0` heißt Erfolg. `Cannot find module` heißt, dass das Terminal im falschen Ordner steht - führe `cd javascript-foundations` aus und versuch es erneut. Ändere nur Dateien unter `src/`; die Dateien unter `test/` sind das Prüfschema. Die vollständige Tour durch die Oberfläche steht in [Die Oberfläche bedienen](step:m0-01-using-the-ide).
+Für diesen Step tippst du nichts. Schreib deine Vorhersage in die Vorhersage-Aufgabe im Panel und drücke deren Prüfknopf: der Tutor führt das Beispiel für dich aus und zeigt die Ausgabe neben dem, was du aufgeschrieben hast. Beides nebeneinander zu halten ist die Übung, und das geht nur in dieser Reihenfolge. Die vollständige Tour durch die Oberfläche steht in [Die Oberfläche bedienen](step:m0-01-using-the-ide).
 
 ## Woran du erkennst, dass es geklappt hat
 

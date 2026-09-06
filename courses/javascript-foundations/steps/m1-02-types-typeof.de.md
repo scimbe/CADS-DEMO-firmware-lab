@@ -15,7 +15,7 @@ links:
 sources: [src/m1/describe.js, test/m1-02-types-typeof.test.js, examples/m1-typeof.js]
 tasks:
   - id: guess-typeof
-    title: Sag alle acht typeof-Ergebnisse vorher, dann führe das Beispiel aus
+    title: Sag alle acht typeof-Ergebnisse vorher
     check: { type: predict, prompt: { en: "examples/m1-typeof.js prints typeof for eight values, among them null, an array, a function and a BigInt. Write down all eight answers before running it.", de: "examples/m1-typeof.js gibt typeof für acht Werte aus, darunter null, ein Array, eine Funktion und ein BigInt. Schreib alle acht Antworten auf, bevor du es ausführst." }, then: { type: command, command: "node examples/m1-typeof.js", expectExitCode: 0, expectStdout: "bigint" }, rubric: "Stellt die acht Vorhersagen den acht ausgegebenen Wörtern gegenüber und nennt, welche davon falsch waren. Besteht nicht: eine bloße Trefferzahl, oder eine Antwort, die die Ausgabe wiedergibt, ohne die umgestoßene Erwartung zu nennen.", bloom: evaluate }
   - id: type-name
     title: Beide typeName-Tests sind grün
@@ -69,11 +69,7 @@ Ein drittes Detail, das man früh kennen sollte: **JavaScript hat genau einen Za
 
 ## Erst vorhersagen
 
-Öffne [`examples/m1-typeof.js`](file:examples/m1-typeof.js), schreib alle acht Antworten auf und führe es dann aus:
-
-```bash
-node examples/m1-typeof.js
-```
+Öffne [`examples/m1-typeof.js`](file:examples/m1-typeof.js) und schreib alle acht Antworten auf. Trag sie in die Vorhersage-Aufgabe im Panel ein; sie führt das Beispiel aus, sobald deine Antworten erfasst sind, und nicht vorher.
 
 Zähl, wie viele der acht du richtig hattest. Die zwei, die du vermutlich nicht hattest, sind genau die, um die es in der Übung geht.
 
@@ -100,8 +96,9 @@ Führe dann aus:
 
 ```bash
 node --test test/m1-02-types-typeof.test.js
-node examples/m1-typeof.js
 ```
+
+Das Beispiel ist der Befehl der Vorhersage-Aufgabe: der Tutor führt es aus, sobald deine Vorhersage erfasst ist, hier tippst du dafür also nichts.
 
 Der Befehl ist fertig, wenn der Prompt zurückkommt; die Zähler am Ende der Ausgabe sind das Urteil, und `fail 0` heißt Erfolg. `Cannot find module` heißt, dass das Terminal im falschen Ordner steht - führe `cd javascript-foundations` aus und versuch es erneut. Ändere nur Dateien unter `src/`; die Dateien unter `test/` sind das Prüfschema. Die vollständige Tour durch die Oberfläche steht in [Die Oberfläche bedienen](step:m0-01-using-the-ide).
 

@@ -62,11 +62,7 @@ The interesting bugs live at the boundaries. `>` and `>=` differ for exactly one
 
 MDN's [Control flow](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Control_flow_and_error_handling) chapter is blunt about this: a `case` does not end on its own. When a case matches, execution jumps there and **keeps going** into the following case bodies until it meets a `break` or the end of the switch.
 
-Predict what this prints before you run it - written down first, the way [predicting output](step:m0-05-predict-output) had you do it - then run [`examples/m2-switch-fallthrough.js`](file:examples/m2-switch-fallthrough.js):
-
-```bash
-node examples/m2-switch-fallthrough.js
-```
+Predict what this prints - written down first, the way [predicting output](step:m0-05-predict-output) had you do it - and put the prediction into the panel's prediction task. It runs [`examples/m2-switch-fallthrough.js`](file:examples/m2-switch-fallthrough.js) once the prediction is recorded, and not before.
 
 Asking for apples prints two lines. That is fall-through, and it is not a defect in the language: stacking labels with no body between them is how you say "these cases share an answer".
 
@@ -102,8 +98,9 @@ Then run:
 
 ```bash
 node --test test/m2-01-if-switch.test.js
-node examples/m2-switch-fallthrough.js
 ```
+
+The example is the prediction task's own command: the tutor runs it once your prediction is recorded, so there is nothing to type for it here.
 
 The command has finished when the prompt comes back; the counts at the end of the output are the verdict, and `fail 0` is success. `Cannot find module` means the terminal is in the wrong folder - run `cd javascript-foundations` and try again. Change only files under `src/`; the files under `test/` are the marking scheme. The whole tour of the interface is in [operating the interface](step:m0-01-using-the-ide).
 

@@ -72,11 +72,7 @@ Zwei Dinge lohnen Genauigkeit. Erstens sind nur die Anweisungen **innerhalb** de
 
 `finally` läuft, wenn der Block verlassen wird, ganz gleich wie: normal, per `return` oder weil ein Fehler weiterreist. Damit ist es der Ort für Aufräumarbeiten - eine Datei schließen, eine Sperre freigeben, festhalten, dass ein Versuch beendet ist.
 
-Die Feinheit ist, was passiert, wenn `finally` selbst etwas zurückgibt. Sag [`examples/m2-finally-order.js`](file:examples/m2-finally-order.js) zuerst vorher, dann führe es aus:
-
-```bash
-node examples/m2-finally-order.js
-```
+Die Feinheit ist, was passiert, wenn `finally` selbst etwas zurückgibt. Sag [`examples/m2-finally-order.js`](file:examples/m2-finally-order.js) in der Vorhersage-Aufgabe im Panel vorher; sie führt die Datei aus, sobald deine Vorhersage erfasst ist, und nicht vorher.
 
 Der `catch`-Block entscheidet sich, `true` zurückzugeben; der `finally`-Block gibt danach `false` zurück, und `false` ist das, was der Aufrufer sieht. Ein `return` in `finally` überschreibt den Wert, den die Funktion schon zurückgeben wollte - und würde ebenso einen hinausreisenden Fehler verschlucken. MDN dokumentiert dieses Verhalten, und der praktische Rat folgt daraus: **Aufräumarbeit in `finally`, niemals ein `return`**.
 
@@ -110,8 +106,9 @@ Führe dann aus:
 
 ```bash
 node --test test/m2-03-try-catch-finally.test.js
-node examples/m2-finally-order.js
 ```
+
+Das Beispiel ist der Befehl der Vorhersage-Aufgabe: der Tutor führt es aus, sobald deine Vorhersage erfasst ist, hier tippst du dafür also nichts.
 
 Der Befehl ist fertig, wenn der Prompt zurückkommt; die Zähler am Ende der Ausgabe sind das Urteil, und `fail 0` heißt Erfolg. `Cannot find module` heißt, dass das Terminal im falschen Ordner steht - führe `cd javascript-foundations` aus und versuch es erneut. Ändere nur Dateien unter `src/`; die Dateien unter `test/` sind das Prüfschema. Die vollständige Tour durch die Oberfläche steht in [Die Oberfläche bedienen](step:m0-01-using-the-ide).
 

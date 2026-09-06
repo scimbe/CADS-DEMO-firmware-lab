@@ -64,6 +64,13 @@ is domain vocabulary rather than a leaked answer. Treat a number above roughly
 to the line. The stop list below removes function words only, in both languages.
 """
 import importlib.util, os, re, glob, sys
+
+# A9.1 instruction blocks are operating boilerplate, repeated near-verbatim in
+# every step, and they share vocabulary with rubrics: file, folder, command,
+# output, prompt. Leaving them in the body inflates `ovl` for every step at once
+# without any rubric answer having become liftable - measured on
+# javascript-foundations, converting its 31 steps moved 5 rubrics over the limit
+# on its own. Fenced code is dropped for the same reason, one layer down.
 spec=importlib.util.spec_from_file_location("v","scripts/validate-courses.py")
 V=importlib.util.module_from_spec(spec); spec.loader.exec_module(V)
 
@@ -138,17 +145,22 @@ for f in sorted(glob.glob(f"{D}/*.{lang}.md")):
                 hs=s0.get("hints") or []
                 if len(hs)>=3: h3=(hs[2] or {}).get(lang,"")
         h3ov=len(toks(h3)&rt)/len(rt)*100 if rt and h3 else 0
-        lim=35 if fm["bloom"] in ("analyze","evaluate") else 50
-        rows.append((sid,t["id"],fm["bloom"],len(re.findall(r"\S+",pr)),pr.count("?"),round(ov,1),lim,
+        # R4.2: the rubric grades the answer to THIS check, so the check's own
+        # bloom sets the limit. The step's level is the fallback for a check
+        # that does not carry one, and the two disagree often enough to matter.
+        cb = c.get("bloom") or fm["bloom"]
+        lim=35 if cb in ("analyze","evaluate") else 50
+        rows.append((sid,t["id"],cb + ("*" if c.get("bloom") and c["bloom"]!=fm["bloom"] else ""),len(re.findall(r"\S+",pr)),pr.count("?"),round(ov,1),lim,
                      round(h3ov,1), bool(REJECTS.search(ru)), t["id"] in trig,
                      round(qr,1), round(jac,1), (pack,sid,t["id"]) in EXCEPT_R42))
 print(f"pack={pack} lang={lang}" + ("  (--raw: stop list off)" if raw else ""))
-print(f"{'step':26} {'task':18} {'bloom':10} pw q? ovl/lim   q/r   jac  h3ovl notpass ladder")
+print(f"{'step':26} {'task':18} {'bloom*':11} pw q? ovl/lim   q/r   jac  h3ovl notpass ladder")
+print("  bloom is the CHECK's level, which sets the limit; * marks a check whose level differs from its step's")
 for r in rows:
     over = r[5]>r[6] and not r[12]
     if onlyover and not (over or not r[8] or not r[9]): continue
     verdict = "EXC " if r[12] and r[5]>r[6] else ("OVER" if over else "  ok")
-    print(f"{r[0]:26} {r[1]:18} {r[2]:10} {r[3]:3} {r[4]}  {r[5]:5}/{r[6]:2} {verdict} {r[10]:5}% {r[11]:5}% {r[7]:5}% {str(r[8]):5} {str(r[9]):5}")
+    print(f"{r[0]:26} {r[1]:18} {r[2]:11} {r[3]:3} {r[4]}  {r[5]:5}/{r[6]:2} {verdict} {r[10]:5}% {r[11]:5}% {r[7]:5}% {str(r[8]):5} {str(r[9]):5}")
 n=len(rows)
 print()
 excepted=[r for r in rows if r[12] and r[5]>r[6]]

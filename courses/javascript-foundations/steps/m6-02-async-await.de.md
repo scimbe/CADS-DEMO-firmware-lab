@@ -94,11 +94,7 @@ Wenn der Wert bei einer Assertion ankommt, sagt es der Diff unmissverständlich:
 
 ## Reihenfolge
 
-Sag [`examples/m6-await-order.js`](file:examples/m6-await-order.js) vorher, bevor du es ausführst:
-
-```bash
-node examples/m6-await-order.js
-```
+Sag [`examples/m6-await-order.js`](file:examples/m6-await-order.js) in der Vorhersage-Aufgabe im Panel vorher; sie führt die Datei aus, sobald deine Vorhersage erfasst ist, und nicht vorher.
 
 Zwei Regeln erklären die gesamte Ausgabe. Ein `async`-Rumpf läuft **synchron bis zu seinem ersten `await`**; alles danach wird für später eingereiht. Und eingereihte Promise-Callbacks - Microtasks - laufen vor jedem `setTimeout`-Callback, selbst bei einer Verzögerung von 0.
 
@@ -132,8 +128,9 @@ Führe dann aus:
 
 ```bash
 node --test test/m6-02-async-await.test.js
-node examples/m6-await-order.js
 ```
+
+Das Beispiel ist der Befehl der Vorhersage-Aufgabe: der Tutor führt es aus, sobald deine Vorhersage erfasst ist, hier tippst du dafür also nichts.
 
 Der Befehl ist fertig, wenn der Prompt zurückkommt; die Zähler am Ende der Ausgabe sind das Urteil, und `fail 0` heißt Erfolg. `Cannot find module` heißt, dass das Terminal im falschen Ordner steht - führe `cd javascript-foundations` aus und versuch es erneut. Ändere nur Dateien unter `src/`; die Dateien unter `test/` sind das Prüfschema. Die vollständige Tour durch die Oberfläche steht in [Die Oberfläche bedienen](step:m0-01-using-the-ide).
 

@@ -62,11 +62,7 @@ Die interessanten Fehler wohnen an den Grenzen. `>` und `>=` unterscheiden sich 
 
 MDNs Kapitel [Control flow](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Control_flow_and_error_handling) sagt es unumwunden: ein `case` endet nicht von selbst. Passt ein Fall, springt die Ausführung dorthin und **läuft weiter** in die folgenden case-Rümpfe, bis sie auf ein `break` oder das Ende des switch trifft.
 
-Sag vorher, was das ausgibt - erst aufgeschrieben, so wie es das [Vorhersagen von Ausgaben](step:m0-05-predict-output) verlangt hat -, und führe dann [`examples/m2-switch-fallthrough.js`](file:examples/m2-switch-fallthrough.js) aus:
-
-```bash
-node examples/m2-switch-fallthrough.js
-```
+Sag vorher, was das ausgibt - erst aufgeschrieben, so wie es das [Vorhersagen von Ausgaben](step:m0-05-predict-output) verlangt hat -, und trag die Vorhersage in die Vorhersage-Aufgabe im Panel ein. Sie führt [`examples/m2-switch-fallthrough.js`](file:examples/m2-switch-fallthrough.js) aus, sobald die Vorhersage erfasst ist, und nicht vorher.
 
 Die Frage nach Äpfeln gibt zwei Zeilen aus. Das ist Durchfallen, und es ist kein Mangel der Sprache: gestapelte Marken ohne Rumpf dazwischen sind die Art zu sagen „diese Fälle teilen sich eine Antwort".
 
@@ -102,8 +98,9 @@ Führe dann aus:
 
 ```bash
 node --test test/m2-01-if-switch.test.js
-node examples/m2-switch-fallthrough.js
 ```
+
+Das Beispiel ist der Befehl der Vorhersage-Aufgabe: der Tutor führt es aus, sobald deine Vorhersage erfasst ist, hier tippst du dafür also nichts.
 
 Der Befehl ist fertig, wenn der Prompt zurückkommt; die Zähler am Ende der Ausgabe sind das Urteil, und `fail 0` heißt Erfolg. `Cannot find module` heißt, dass das Terminal im falschen Ordner steht - führe `cd javascript-foundations` aus und versuch es erneut. Ändere nur Dateien unter `src/`; die Dateien unter `test/` sind das Prüfschema. Die vollständige Tour durch die Oberfläche steht in [Die Oberfläche bedienen](step:m0-01-using-the-ide).
 

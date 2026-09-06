@@ -14,7 +14,7 @@ links:
 sources: [examples/m0-console.js, README.md]
 tasks:
   - id: guess-console
-    title: Predict the output of the example, then run it
+    title: Predict the output of the example
     check: { type: predict, prompt: { en: "examples/m0-console.js prints six lines. Write down, line by line, what you expect - including the exact shape of the last one, which prints an object.", de: "examples/m0-console.js gibt sechs Zeilen aus. Schreib Zeile für Zeile auf, was du erwartest - einschließlich der genauen Form der letzten Zeile, die ein Objekt ausgibt." }, then: { type: command, command: "node examples/m0-console.js", expectExitCode: 0, expectStdout: "Hello, JavaScript" }, rubric: "Holds the written guess beside what appeared and names one place they parted, together with the belief that turned out false. Does not pass: a verdict on oneself with nothing identified, or a transcript of what appeared with no belief revised.", bloom: evaluate }
   - id: two-arguments
     title: Why the first line has a space in it
@@ -69,11 +69,7 @@ Six lines will be printed. Write down all six, exactly as you expect them - incl
 - `typeof year` produces a **string**, not a type.
 - `{ name, year }` uses shorthand property names, so the printed object has two properties. How does Node print an object - with quotes on the keys, on the values, or on neither?
 
-Then run it:
-
-```bash
-node examples/m0-console.js
-```
+Write your line-by-line prediction into the prediction task in the panel; it runs the example once your prediction is recorded, and puts the output beside it.
 
 ![The predict task showing the written prediction beside what the script actually printed, with a reflection question underneath](tutor-predict-card.png)
 *What the panel does with a prediction: your text on the left, the real output on the right, and one question underneath asking where the two parted company.*
@@ -84,19 +80,7 @@ Do not just note that you were wrong; name **which rule** you had wrong. "I thou
 
 ## Running this step
 
-::: do palette="> Terminal: Create New Terminal"
-Open a terminal. By hand: menu **Terminal > New Terminal**, or **F1** and the command named above.
-> expect: A panel opens at the bottom of the window with a prompt in it, and the prompt ends in `javascript-foundations`.
-> recover: If the palette answers *No matching results*, the leading `>` is missing; without that character the palette searches file names instead of commands. If nothing opens at all, use **F1** rather than Ctrl+Shift+P, which a browser may keep for itself. If the prompt ends in a different folder, type `cd javascript-foundations` in the terminal.
-:::
-
-Then run:
-
-```bash
-node examples/m0-console.js
-```
-
-The command has finished when the prompt comes back; the counts at the end of the output are the verdict, and `fail 0` is success. `Cannot find module` means the terminal is in the wrong folder - run `cd javascript-foundations` and try again. Change only files under `src/`; the files under `test/` are the marking scheme. The whole tour of the interface is in [operating the interface](step:m0-01-using-the-ide).
+There is nothing to type for this step. Write your prediction into the prediction task in the panel and press its check button: the tutor runs the example for you and shows the output beside what you wrote. Holding the two side by side is the exercise, and it only works in that order. The whole tour of the interface is in [operating the interface](step:m0-01-using-the-ide).
 
 ## How you know it worked
 

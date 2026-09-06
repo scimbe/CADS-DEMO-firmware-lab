@@ -94,11 +94,7 @@ When the value reaches an assertion, the diff says it plainly:
 
 ## Ordering
 
-Predict [`examples/m6-await-order.js`](file:examples/m6-await-order.js) before you run it:
-
-```bash
-node examples/m6-await-order.js
-```
+Predict [`examples/m6-await-order.js`](file:examples/m6-await-order.js) in the panel's prediction task; it runs the file once your prediction is recorded, and not before.
 
 Two rules explain the whole output. An `async` body runs **synchronously up to its first `await`**; everything after that await is queued for later. And queued promise callbacks - microtasks - run before any `setTimeout` callback, even one with a delay of 0.
 
@@ -132,8 +128,9 @@ Then run:
 
 ```bash
 node --test test/m6-02-async-await.test.js
-node examples/m6-await-order.js
 ```
+
+The example is the prediction task's own command: the tutor runs it once your prediction is recorded, so there is nothing to type for it here.
 
 The command has finished when the prompt comes back; the counts at the end of the output are the verdict, and `fail 0` is success. `Cannot find module` means the terminal is in the wrong folder - run `cd javascript-foundations` and try again. Change only files under `src/`; the files under `test/` are the marking scheme. The whole tour of the interface is in [operating the interface](step:m0-01-using-the-ide).
 

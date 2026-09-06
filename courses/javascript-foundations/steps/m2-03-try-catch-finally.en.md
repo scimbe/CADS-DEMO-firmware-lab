@@ -72,11 +72,7 @@ Two things are worth being precise about. First, only the statements **inside** 
 
 `finally` runs when the block is left, no matter how: normally, through a `return`, or because an error is travelling on. That makes it the place for cleanup - closing a file, releasing a lock, recording that an attempt finished.
 
-The subtlety is what happens when `finally` itself returns. Predict [`examples/m2-finally-order.js`](file:examples/m2-finally-order.js) first, then run it:
-
-```bash
-node examples/m2-finally-order.js
-```
+The subtlety is what happens when `finally` itself returns. Predict [`examples/m2-finally-order.js`](file:examples/m2-finally-order.js) in the panel's prediction task; it runs the file once your prediction is recorded, and not before.
 
 The `catch` block decides to return `true`; the `finally` block then returns `false`, and `false` is what the caller sees. A `return` inside `finally` overrides the value the function was already about to hand back - and would equally swallow an error that was travelling out. MDN documents the behaviour, and the practical advice follows from it: **put cleanup in `finally`, never a `return`**.
 
@@ -110,8 +106,9 @@ Then run:
 
 ```bash
 node --test test/m2-03-try-catch-finally.test.js
-node examples/m2-finally-order.js
 ```
+
+The example is the prediction task's own command: the tutor runs it once your prediction is recorded, so there is nothing to type for it here.
 
 The command has finished when the prompt comes back; the counts at the end of the output are the verdict, and `fail 0` is success. `Cannot find module` means the terminal is in the wrong folder - run `cd javascript-foundations` and try again. Change only files under `src/`; the files under `test/` are the marking scheme. The whole tour of the interface is in [operating the interface](step:m0-01-using-the-ide).
 
