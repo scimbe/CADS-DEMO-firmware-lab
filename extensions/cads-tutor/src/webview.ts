@@ -158,6 +158,10 @@ export interface RecallView {
   answer?: string;
   /** True once answered or skipped; the card then shows only an acknowledgement. */
   settled: boolean;
+  /** A9.2: the rubric verdict, when a model graded the answer. Undefined means ungraded, which is not evidence. */
+  outcome?: "passed" | "failed";
+  /** The grader's sentence on the answer, shown instead of a bare acknowledgement. */
+  feedback?: string;
 }
 
 export interface ReflectionView {
@@ -288,7 +292,12 @@ export function renderPredict(t: TaskView, lang: Lang): string {
 export function renderRecall(r: RecallView, lang: Lang): string {
   const s = ui(lang);
   if (r.settled) {
-    return `<div class="card recall settled"><div class="card-head">${escapeHtml(s.recallTitle)}</div><div>${escapeHtml(s.recallThanks)}</div></div>`;
+    // A9.2: the verdict is named, because this card is the one thing that can
+    // carry an objective to "nachgewiesen" - the student should see it happen.
+    const verdict = r.outcome === "passed" ? s.recallPassed : r.outcome === "failed" ? s.recallFailed : s.recallThanks;
+    return `<div class="card recall settled"><div class="card-head">${escapeHtml(s.recallTitle)}</div><div>${escapeHtml(verdict)}</div>${
+      r.feedback ? `<div class="card-sub">${escapeHtml(r.feedback)}</div>` : ""
+    }</div>`;
   }
   return `<div class="card recall"><div class="card-head">${escapeHtml(s.recallTitle)}</div>
     <div class="card-sub">${escapeHtml(s.recallFrom(r.fromTitle))}</div>

@@ -113,6 +113,14 @@ describe("recall card", () => {
     assert.match(html, /Noted/);
     assert.doesNotMatch(html, /id="recall-submit"/);
   });
+  it("names the rubric verdict once a model graded the answer", () => {
+    const passed = renderRecall({ ...card, settled: true, outcome: "passed", feedback: "Names the move." }, "en");
+    assert.match(passed, /counts as evidence/);
+    assert.match(passed, /Names the move\./);
+    assert.match(renderRecall({ ...card, settled: true, outcome: "failed" }, "en"), /Not yet/);
+    // Ungraded stays a repetition prompt: no verdict is claimed.
+    assert.match(renderRecall({ ...card, settled: true }, "en"), /Noted/);
+  });
   it("escapes the recalled prompt", () => {
     assert.doesNotMatch(renderRecall({ ...card, prompt: "<img onerror=x>" }, "en"), /<img/);
   });

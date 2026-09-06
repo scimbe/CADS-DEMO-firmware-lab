@@ -639,6 +639,8 @@ export class TutorController implements vscode.Disposable {
         prompt: loc(task.check.prompt, lang),
         answer: existing.answer,
         settled: existing.answer !== undefined || existing.dismissed === true,
+        outcome: existing.outcome,
+        feedback: existing.feedback,
       };
     }
     // Only completed steps can be recalled: asking about material the student
@@ -874,12 +876,18 @@ export class TutorController implements vscode.Disposable {
       const result = await runCheck(task.check, taskId, ctx);
       this.confirmedNow.delete(key);
       const wasDone = stepStatus(this.session, cur.course, cur.step, this.courses) === "done";
+      // A9.2: both flags decide whether this pass is evidence, and both are
+      // properties of this run - whether a model was configured now, not whether
+      // one is configured when the competence card is drawn. So they are stored.
+      const verified = this.isVerifiedPass(task, this.platformFor(cur.course));
       const rec = recordTaskResult(this.session, cur.course, cur.step, taskId, result.status, result.message, this.courses, new Date(), {
         output: result.output,
         tests: result.tests,
         prediction: result.prediction,
         predictionOutcome: result.predictionOutcome,
         predictionFeedback: result.predictionOutcome !== undefined ? result.detail : undefined,
+        selfReported: result.status === "passed" ? !verified : false,
+        predictionGraded: task.check.type === "predict" ? result.predictionOutcome !== undefined : undefined,
       });
       this.saveSession();
       this.recordLearningEvent(cur.course, cur.step, task, result.status, rec.state.hintTier);
@@ -1056,6 +1064,8 @@ export class TutorController implements vscode.Disposable {
     if (text === "__self:correct" || text === "__self:deviated") {
       const state = getTaskState(progress, taskId);
       state.predictionOutcome = text === "__self:correct" ? "correct" : "deviated";
+      // A9.2: the student's own verdict is self-assessment, not a graded comparison.
+      delete state.predictionGraded;
       progress.tasks[taskId] = state;
       this.saveSession();
       this.emit({ type: "predict.compared", data: { taskId, verdict: state.predictionOutcome, graded: false } });
@@ -1069,6 +1079,7 @@ export class TutorController implements vscode.Disposable {
     // A new prediction invalidates the previous comparison.
     delete state.predictionOutcome;
     delete state.predictionFeedback;
+    delete state.predictionGraded;
     progress.tasks[taskId] = state;
     this.saveSession();
     // The text is kept either way so the student does not lose it, but a
@@ -1212,9 +1223,15 @@ export class TutorController implements vscode.Disposable {
     const record = this.session.recall?.[key];
     if (!record) return;
     const answer = text?.trim();
+    // A9.2: a recall is the only evidence that a learning objective survived a
+    // delay, and it is the difference between "geübt" and "nachgewiesen". So the
+    // answer is graded against the original task's rubric - the same rubric that
+    // judged it the first time. Without a model nothing is graded and the card
+    // stays what it was: a repetition prompt that carries no weight (R11a.8).
+    const graded = answer ? await this.gradeRecall(cur.course, record.fromStepId, record.taskId, answer) : undefined;
     this.session.recall = {
       ...(this.session.recall ?? {}),
-      [key]: { ...record, ...(answer ? { answer } : { dismissed: true }) },
+      [key]: { ...record, ...(answer ? { answer, ...graded } : { dismissed: true }) },
     };
     this.saveSession();
     this.emit({
@@ -1224,12 +1241,33 @@ export class TutorController implements vscode.Disposable {
         taskId: record.taskId,
         skipped: !answer,
         answer,
+        verdict: graded?.outcome,
+        graded: graded?.graded === true,
         // A2: recall exercises retrieval, so it is recorded at the lower Bloom levels.
         bloom: "remember",
       },
     });
     const view = this.recallView(cur.course, cur.step, this.lang);
     if (view) this.panel.post({ type: "recall", html: renderRecall(view, this.lang) });
+  }
+
+  /**
+   * A9.2: judges a recall answer with the rubric of the question it repeats.
+   * Returns nothing gradeable when the source task is not a rubric question or
+   * when no language model answered - an ungraded recall is not evidence.
+   */
+  private async gradeRecall(
+    course: Course,
+    fromStepId: string,
+    taskId: string,
+    answer: string,
+  ): Promise<{ outcome?: "passed" | "failed"; graded?: boolean; feedback?: string } | undefined> {
+    const from = course.steps.get(fromStepId);
+    const check = from?.variants.en?.meta.tasks.find((t) => t.id === taskId)?.check;
+    if (!from || check?.type !== "question" || !check.rubric) return undefined;
+    const verdict = await this.platformFor(course).gradeAnswer(loc(check.prompt, this.lang), check.rubric, answer, check.bloom);
+    if (verdict.kind !== "pass" && verdict.kind !== "fail") return { feedback: verdict.feedback };
+    return { outcome: verdict.kind === "pass" ? "passed" : "failed", graded: true, feedback: verdict.feedback };
   }
 
   /** A3: stores the module reflection and records it as a learning event. */

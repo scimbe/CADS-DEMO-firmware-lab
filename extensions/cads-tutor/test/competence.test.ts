@@ -16,6 +16,8 @@ import {
   objectiveEvidence,
 } from "../src/session";
 import { stepKey, type Evidence, type EvidenceKind, type SessionState, type TaskState } from "../src/types";
+import { getStepProgress, recordTaskResult } from "../src/session";
+import { orderedSteps } from "../src/loader";
 
 const EXAMPLE = path.resolve(__dirname, "..", "..", "courses", "_example");
 const course = loadCoursePack(EXAMPLE, "test").course!;
@@ -160,5 +162,30 @@ describe("A9.2 module competence", () => {
     const record = courseCompetence(course, newSession());
     assert.deepEqual(record.map((m) => m.moduleId), ["m0", "m1", "m2"]);
     assert.equal(record.every((m) => m.objectives.every((o) => o.level === "none")), true);
+  });
+});
+
+describe("A9.2 what recordTaskResult stores", () => {
+  const all = [course];
+
+  it("marks a self-confirmed pass and clears the mark when a model grades it later", () => {
+    const s = newSession();
+    const step = orderedSteps(course).find((x) => x.id === "m1-02-reflect")!;
+    recordTaskResult(s, course, step, "reflect", "passed", "ok", all, new Date(), { selfReported: true });
+    assert.equal(getStepProgress(s, CID, step.id)!.tasks.reflect.selfReported, true);
+    assert.deepEqual(objectiveEvidence(course, s, "firmware-safety"), []);
+    recordTaskResult(s, course, step, "reflect", "passed", "ok", all, new Date(), { selfReported: false });
+    assert.equal(getStepProgress(s, CID, step.id)!.tasks.reflect.selfReported, undefined);
+    assert.deepEqual(objectiveEvidence(course, s, "firmware-safety").map((e) => e.kind), ["question"]);
+  });
+
+  it("keeps a self-assessed prediction verdict out of the evidence", () => {
+    const s = newSession();
+    const step = orderedSteps(course).find((x) => x.id === "m2-02-predict")!;
+    recordTaskResult(s, course, step, "guess-margin", "passed", "ok", all, new Date(), {
+      predictionOutcome: "correct",
+      predictionGraded: false,
+    });
+    assert.deepEqual(objectiveEvidence(course, s, "firmware-tooling").map((e) => e.kind), ["checkFirstTry"]);
   });
 });

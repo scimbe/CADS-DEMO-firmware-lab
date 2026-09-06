@@ -139,6 +139,10 @@ export interface TaskRunExtras {
   prediction?: string;
   predictionOutcome?: PredictionOutcome;
   predictionFeedback?: string;
+  /** A9.2: nobody but the student verified this pass; it finishes the step but is not evidence. */
+  selfReported?: boolean;
+  /** A9.2: a language model compared prediction and output (a self-assessed verdict is not evidence). */
+  predictionGraded?: boolean;
 }
 
 export function recordTaskResult(
@@ -170,6 +174,12 @@ export function recordTaskResult(
   if (extra.prediction !== undefined) state.prediction = extra.prediction;
   if (extra.predictionOutcome !== undefined) state.predictionOutcome = extra.predictionOutcome;
   if (extra.predictionFeedback !== undefined) state.predictionFeedback = extra.predictionFeedback;
+  // Explicit false clears the flag: a `question` re-run that a model graded this
+  // time must stop being reported as self-confirmed, and the other way round.
+  if (extra.selfReported === true) state.selfReported = true;
+  else if (extra.selfReported === false) delete state.selfReported;
+  if (extra.predictionGraded === true) state.predictionGraded = true;
+  else if (extra.predictionGraded === false) delete state.predictionGraded;
   progress.tasks[taskId] = state;
   session.updatedAt = now.toISOString();
 
