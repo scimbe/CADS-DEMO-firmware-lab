@@ -4,9 +4,9 @@
  */
 import { randomBytes } from "node:crypto";
 import { ui } from "./i18n";
-import { escapeHtml, tutorLinkAttrs, type TutorLink } from "./markdown";
+import { escapeHtml, tutorLinkAttrs, type DoBlockView, type TutorLink } from "./markdown";
 import type { Citation } from "./platform";
-import type { ActionKind } from "./actions";
+import { actionForDo, actionLabels, doRouteText, type ActionKind } from "./actions";
 import type { BloomLevel, CheckType, Lang, Scaffold, StepStatus, TaskStatus } from "./types";
 
 export interface HintView {
@@ -187,7 +187,8 @@ export type FromWebview =
   | { type: "recallAnswer"; text: string }
   | { type: "recallSkip" }
   | { type: "reflection"; answers: string[] }
-  | { type: "action"; taskId: string; kind: ActionKind; arg?: string; cwd?: string }
+  /** `taskId` is absent for a `::: do` card, which belongs to the step body, not to a task. */
+  | { type: "action"; taskId?: string; kind: ActionKind; arg?: string; cwd?: string; line?: number }
   | { type: "dismissOrientation" };
 
 /**
@@ -304,6 +305,46 @@ export function renderActions(t: TaskView, lang: Lang): string {
     .map((a) => `<div class="action-manual">${escapeHtml(a.manual)}</div>`)
     .join("");
   return `<div class="actions"><div class="row">${buttons}</div>${notes}</div>`;
+}
+
+/**
+ * A9.1: the instruction card for a `::: do` block. One action, the literal route
+ * printed beside the button, what success looks like, and the way back when it
+ * did not happen.
+ *
+ * The button demonstrates the route, it does not replace it: the route stays on
+ * screen in the form the student would type, because the click is over in a
+ * second and the route has to survive it. Its button is deliberately secondary -
+ * the page's one primary button is the next action in the header (R11a.5).
+ */
+export function renderDoCard(block: DoBlockView, lang: Lang): string {
+  const s = ui(lang);
+  const action = block.action;
+  const performed = action ? actionForDo(action) : undefined;
+  const labels = performed ? actionLabels(performed, lang) : undefined;
+  const button = performed && labels
+    ? `<div class="row"><button class="btn action do-action" data-kind="${escapeHtml(performed.kind)}"${
+        performed.arg !== undefined ? ` data-arg="${escapeHtml(performed.arg)}"` : ""
+      }${performed.cwd ? ` data-cwd="${escapeHtml(performed.cwd)}"` : ""}${
+        performed.line ? ` data-line="${performed.line}"` : ""
+      }>${escapeHtml(labels.label)}</button></div>${labels.manual ? `<div class="action-manual">${escapeHtml(labels.manual)}</div>` : ""}`
+    : "";
+  const routeLabel = action?.kind === "keys" ? s.doKeys : s.doRoute;
+  const route = action
+    ? `<div class="do-route"><span class="do-label">${escapeHtml(routeLabel)}:</span> <code>${escapeHtml(doRouteText(action))}</code></div>`
+    : "";
+  const problems = block.problems.length
+    ? `<div class="do-problem">${escapeHtml(s.doProblem)} ${escapeHtml(block.problems.join("; "))}</div>`
+    : "";
+  return `<div class="card do">
+    <div class="card-head">${escapeHtml(s.doTitle)}</div>
+    <div class="do-instruction">${block.instructionHtml}</div>
+    ${route}
+    ${button}
+    ${block.expectHtml ? `<div class="do-expect"><span class="do-label">${escapeHtml(s.doExpect)}:</span> ${block.expectHtml}</div>` : ""}
+    ${block.recoverHtml ? `<div class="do-recover"><span class="do-label">${escapeHtml(s.doRecover)}:</span> ${block.recoverHtml}</div>` : ""}
+    ${problems}
+  </div>`;
 }
 
 /** The three manual routes, spelled out once per step, collapsed by default. */
@@ -457,6 +498,15 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
   .selfcheck-rubric { font-family: var(--vscode-editor-font-family); }
   .actions { margin-top: 0.5em; }
   .action-manual { font-size: 0.88em; opacity: 0.75; margin-top: 0.25em; }
+  /* A9.1: the instruction card. Set off from the prose so an instruction is never mistaken for narration. */
+  .card.do { border-left: 4px solid var(--vscode-textLink-foreground); }
+  .card.do .do-instruction > p:first-child { margin-top: 0.2em; } .card.do .do-instruction > p:last-child { margin-bottom: 0.4em; }
+  .do-label { font-weight: 600; opacity: 0.8; }
+  .do-route { margin: 0.3em 0; font-size: 0.92em; }
+  .do-route code { font-size: 0.95em; }
+  .do-expect, .do-recover { margin-top: 0.4em; font-size: 0.94em; }
+  .do-recover { opacity: 0.9; }
+  .do-problem { margin-top: 0.4em; padding: 0.3em 0.5em; border-radius: 3px; background: var(--vscode-inputValidation-warningBackground); border: 1px solid var(--vscode-inputValidation-warningBorder); font-size: 0.9em; }
   .howto { margin: 0.9em 0; border: 1px solid var(--vscode-panel-border); border-radius: 4px; padding: 0.4em 0.7em; }
   .howto > summary { cursor: pointer; font-weight: 600; }
   .howto-body ol { margin: 0.4em 0 0.2em 1.2em; padding: 0; }
@@ -593,7 +643,10 @@ function clientScript(view: StepView): string {
     else if (b.classList.contains("predict-self")) { post({ type: "predict", taskId, text: b.getAttribute("data-outcome") === "correct" ? "__self:correct" : "__self:deviated" }); }
     else if (b.classList.contains("action")) {
       const kind = b.getAttribute("data-kind");
-      post({ type: "action", taskId, kind, arg: b.getAttribute("data-arg") || undefined });
+      // A ::: do card carries its own cwd and line and belongs to no task, so
+      // taskId is absent there; the controller keys off the attributes instead.
+      const line = b.getAttribute("data-line");
+      post({ type: "action", taskId: taskId || undefined, kind, arg: b.getAttribute("data-arg") || undefined, cwd: b.getAttribute("data-cwd") || undefined, line: line ? Number(line) : undefined });
       if (kind === "copyCommand") { b.textContent = S.copied; setTimeout(() => { b.textContent = S.copyLabel; }, 1500); }
     }
     else if (b.id === "orientation-dismiss") {

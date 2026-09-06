@@ -11,7 +11,7 @@ import { loadCoursePack, loadCourses, orderedSteps } from "../src/loader";
 import { createRenderer } from "../src/markdown";
 import { TutorPlatform } from "../src/platform";
 import { newSession, stepStatus } from "../src/session";
-import { renderStepHtml, type StepView } from "../src/webview";
+import { renderDoCard, renderStepHtml, type StepView } from "../src/webview";
 
 const COURSES = path.resolve(__dirname, "..", "..", "..", "..", "courses");
 const PACKS = path.resolve(__dirname, "..", "..", "node_modules", "@cads", "tutor-platform", "content-packs");
@@ -26,9 +26,9 @@ describe("real course packs", { skip: REAL.length === 0 ? "courses/ not present"
       assert.ok(course);
       const listed = course!.manifest.modules.flatMap((m) => m.steps);
       assert.equal(course!.steps.size, listed.length, "every listed step loaded");
-      const render = createRenderer({ resolveAsset: (p) => `asset:${p}` });
       for (const step of orderedSteps(course!)) {
         for (const lang of ["en", "de"] as const) {
+          const render = createRenderer({ resolveAsset: (p) => `asset:${p}`, renderDo: (b) => renderDoCard(b, lang) });
           const content = step.variants[lang];
           assert.ok(content, `${step.id} has ${lang}`);
           const html = render(content!.body);

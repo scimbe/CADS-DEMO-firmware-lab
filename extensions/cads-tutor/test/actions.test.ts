@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import * as path from "node:path";
 import { describe, it } from "node:test";
-import { actionLabels, actionsForCheck, allowedActions, courseCapabilities, isBoardAction, type TaskAction } from "../src/actions";
+import { actionForDo, actionLabels, actionsForCheck, allowedActions, courseCapabilities, doRouteText, isBoardAction, type TaskAction } from "../src/actions";
 import { loadCoursePack } from "../src/loader";
 import type { CheckSpec, Course } from "../src/types";
 
@@ -142,7 +142,8 @@ describe("action labels teach the manual route", () => {
   it("gives every action kind a label in both languages", () => {
     const all: TaskAction[] = [
       { kind: "runTask", arg: "t" }, { kind: "runInTerminal", arg: "c" }, { kind: "copyCommand", arg: "c" },
-      { kind: "openFile", arg: "f" }, { kind: "boardConnect" }, { kind: "boardFlash" },
+      { kind: "openFile", arg: "f" }, { kind: "openPalette", arg: "> Tasks: Run Task" },
+      { kind: "boardConnect" }, { kind: "boardFlash" },
       { kind: "boardConsole" }, { kind: "debugStart" },
     ];
     for (const a of all) {
@@ -153,5 +154,37 @@ describe("action labels teach the manual route", () => {
   });
   it("leaves the copy button without a manual route, because there is none", () => {
     assert.equal(actionLabels({ kind: "copyCommand", arg: "x" }, "de").manual, "");
+  });
+});
+
+describe("A9.1: a ::: do block acts through the same action system", () => {
+  it("maps every action attribute to an existing action kind", () => {
+    assert.deepEqual(actionForDo({ kind: "task", label: "CaDS: Build" }), { kind: "runTask", arg: "CaDS: Build" });
+    assert.deepEqual(actionForDo({ kind: "command", command: "npm test", cwd: "w" }), { kind: "runInTerminal", arg: "npm test", cwd: "w" });
+    assert.deepEqual(actionForDo({ kind: "palette", entry: "> Tasks: Run Task" }), { kind: "openPalette", arg: "> Tasks: Run Task" });
+    assert.deepEqual(actionForDo({ kind: "file", path: "a.c", line: 3 }), { kind: "openFile", arg: "a.c", line: 3 });
+  });
+
+  it("gives a keystroke no button, because pressing it for the student teaches nothing", () => {
+    assert.equal(actionForDo({ kind: "keys", keys: "F1" }), undefined);
+  });
+
+  it("cannot produce a board action, so a language course can never grow one", () => {
+    const kinds = ([
+      { kind: "task", label: "t" }, { kind: "command", command: "c" }, { kind: "palette", entry: "> p" },
+      { kind: "file", path: "f" }, { kind: "keys", keys: "k" },
+    ] as const).map((a) => actionForDo(a)).filter((a): a is TaskAction => !!a);
+    assert.ok(!kinds.some((a) => isBoardAction(a.kind)));
+  });
+
+  it("prints the literal route the student would take by hand", () => {
+    assert.equal(doRouteText({ kind: "task", label: "CaDS: RAM budget" }), "CaDS: RAM budget");
+    assert.equal(doRouteText({ kind: "command", command: "npm test", cwd: "workspaces/js" }), "npm test   (workspaces/js)");
+    assert.equal(doRouteText({ kind: "file", path: "src/main.c", line: 42 }), "src/main.c:42");
+  });
+
+  it("names the palette prefix in the manual route, in both languages", () => {
+    assert.match(actionLabels({ kind: "openPalette", arg: "> Tasks: Run Task" }, "de").manual, /F1.*&gt;|F1.*> Tasks: Run Task/);
+    assert.match(actionLabels({ kind: "openPalette", arg: "> Tasks: Run Task" }, "en").manual, /F1.*> Tasks: Run Task/);
   });
 });
