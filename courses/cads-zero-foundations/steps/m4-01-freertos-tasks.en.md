@@ -79,7 +79,13 @@ At the M2 hardware gate those marks converged at ui 224 B, input 132 B and conso
 
 ## Your task
 
-**Step 1 — open the board console so you can read along.** Press **`F1`**, type `CaDS Board: Konsole öffnen`, Enter. **At the bottom** of the terminal area a terminal named `CaDS Board Console` appears, the board's serial console at 115200 baud. That area sits at the bottom and carries the tabs `PROBLEMS`, `OUTPUT`, `DEBUG CONSOLE`, `TERMINAL`, `PORTS`, `MEMORY`, `XRTOS`; `Ctrl`/`Cmd`+`J` folds it open and shut. It takes a second, and you know it worked from the terminal's blue header line.
+**Step 1 — open the board console so you can read along.**
+
+::: do palette="> CaDS Board: Konsole öffnen"
+Press **`F1`**, type `CaDS Board: Konsole öffnen` and confirm with `Enter`. It takes a second.
+> expect: **At the bottom** of the terminal area a terminal named `CaDS Board Console` appears — the board's serial console at 115200 baud — recognisable by its blue header line.
+> recover: If you cannot see the terminal area at all, it is folded away: `Ctrl`/`Cmd`+`J` folds it open and shut, and it carries the tabs `PROBLEMS`, `OUTPUT`, `DEBUG CONSOLE`, `TERMINAL`, `PORTS`, `MEMORY`, `XRTOS`. If the console stays silent, the serial port is not granted in the browser — call `CaDS Board: Verbinden` again.
+:::
 
 <!-- SHOT: m4-board-console-terminal | Der Terminal-Bereich unten mit dem geoeffneten Terminal CaDS Board Console und seiner blauen Kopfzeile | HARDWARE -->
 
@@ -101,4 +107,4 @@ The working directory is the project root, it takes under a second, and afterwar
 - **You closed the terminal and ended the running process with it.** The cross on a terminal kills the process inside it and drops the console — use `Ctrl`/`Cmd`+`J` to fold the area away instead, which leaves it running.
 - **The palette does not react to the shortcut.** The browser swallowed `Ctrl`/`Cmd`+`Shift`+`P` — press `F1` instead, or go through **☰ → `Terminal`**.
 
-**Where you work:** open a file `Ctrl`/`Cmd`+`P` · terminal area `Ctrl`/`Cmd`+`J` · command palette `F1` · menu **☰** at the top left · board console `F1` → `CaDS Board: Konsole öffnen` · check with **Check** on the task or **Run all checks** at the top of the step text. The interface is in English while the course text is German, so the menu entry reads `New Terminal`.
+**Where you work:** open a file `Ctrl`/`Cmd`+`P` · terminal area `Ctrl`/`Cmd`+`J` · command palette `F1` · menu **☰** at the top left · the board console from step 1 · checking is **Check** on the task or **Run all checks** at the top of the step text. The interface is in English while the course text is German, so the menu entry reads `New Terminal`.

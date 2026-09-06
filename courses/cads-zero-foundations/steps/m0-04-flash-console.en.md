@@ -33,45 +33,33 @@ Put your build onto the real board and pass the hardware gate — the moment a c
 
 ## Handgrip 1: flashing
 
-You trigger the flash yourself; this step's check only looks at whether it happened since the step was opened. Press **`F1`** for the command palette (`Ctrl`/`Cmd`+`Shift`+`P` does the same, but a browser often swallows it) and type:
+You trigger the flash yourself; this step's check only looks at whether it happened since the step was opened.
 
-```
-CaDS Board: Flash
-```
-
-The full entry reads `CaDS Board: Flash (build/itsboard/cads-zero.bin)`; `Enter` writes the most recently built image to the board.
-
-**Without a keyboard:** the status bar at the bottom left reads `Board: verbunden · läuft`. One click on it opens the board menu with `Flash (build/itsboard/cads-zero.bin)`, `Reset`, `Anhalten`, `Konsole öffnen`, `Log anzeigen`, `Trennen`.
+::: do palette="> CaDS Board: Flash (build/itsboard/cads-zero.bin)"
+Press **`F1`**, type `CaDS Board: Flash` and pick the full entry `CaDS Board: Flash (build/itsboard/cads-zero.bin)` with `Enter`; it writes the most recently built image to the board. Without a keyboard the status bar at the bottom left reads `Board: verbunden · läuft`, and one click on it opens the board menu with `Flash (build/itsboard/cads-zero.bin)`. To rebuild and flash in one go, take **☰ → `Terminal` → `Run Task...` → `CaDS: Build + Flash`** instead; that route runs as a task in its own terminal at the bottom.
+> expect: The output does *not* appear in a terminal. A progress notification runs at the bottom right, and the status bar then shows the result — in the picture, `Flash ok: 327088 Bytes in 15973 ms`. Writing takes a few seconds.
+> recover: If the write breaks off mid-progress, you closed the task's terminal with its cross and ended the process — use `Ctrl`/`Cmd`+`J` to tuck it away instead, and flash again. If the status bar reports that there is no image, `CaDS: Build` has not run yet: fetch the board build from the previous step. If no input line drops down at all, the browser swallowed `Ctrl`/`Cmd`+`Shift`+`P` — use `F1`, or the board menu in the status bar.
+:::
 
 ![The board menu while connected: Flash, Reset, Anhalten, Konsole öffnen, Log anzeigen, Trennen](board-menu-connected.png)
 
-**What you see:** the output does *not* appear in a terminal. A progress notification runs at the bottom right, and the status bar then shows the result. Writing takes a few seconds — in the picture, 327088 bytes in 15973 ms.
 
 ![The progress notification CaDS: Flash cads-zero.bin: program 60%](flash-progress.png)
 
 ![The status bar after the write: Flash ok: 327088 Bytes in 15973 ms](flash-ok.png)
 
-**A third route, rebuilding first:** **☰ → `Terminal` → `Run Task...` → `CaDS: Build + Flash`** builds first (about a minute the first time) and flashes afterwards. That route runs as a task in its own terminal at the bottom, named after the task — do not close it while it runs: the cross on a terminal ends the process in the middle of the write. Use `Ctrl`/`Cmd`+`J` to tuck it away instead.
 
 ## Handgrip 2: opening the board console
 
-**`F1`**, then:
-
-```
-CaDS Board: Konsole öffnen
-```
-
-A terminal named `CaDS Board Console` opens at the bottom. Its first line is a cyan notice; after that the text the board sends of its own accord over the serial line arrives (115200 baud, see m0-02). Without a keyboard, the same route runs through the status bar and `Konsole öffnen`.
+::: do palette="> CaDS Board: Konsole öffnen"
+Press **`F1`**, type `CaDS Board: Konsole öffnen` and confirm with `Enter`. Without a keyboard the same route runs through the status bar at the bottom left and its entry `Konsole öffnen`.
+> expect: A terminal named `CaDS Board Console` opens at the bottom. Its first line is a cyan notice; after that the text the board sends of its own accord over the serial line arrives (115200 baud, see m0-02).
+> recover: If the console stays silent and shows a yellow notice, the serial port has not been granted in the browser yet — run `CaDS Board: Verbinden` once more and confirm in the browser dialog. If a terminal appears but no self test, it was opened too late: the palette command `CaDS Board: Reset` triggers a fresh start, and the self test runs on every boot.
+:::
 
 ![The board console showing the self test: banner, 1..10, ten ok lines and RESULT: PASS](board-console-boot.png)
 
-After the write the board restarts and runs the self test immediately. If the console was opened too late, trigger a fresh start with the palette command
-
-```
-CaDS Board: Reset
-```
-
-— the self test runs on every boot. If the console stays silent and shows a yellow notice, the serial port has not been granted in the browser yet: run `CaDS Board: Verbinden` once more and confirm in the browser dialog.
+After the write the board restarts and runs the self test immediately; it runs on every boot.
 
 ![The console with the yellow notice that no serial port has been granted](board-console-no-serial-grant.png)
 
@@ -111,4 +99,4 @@ The second check types nothing: it listens on the console for up to 60 seconds a
 
 ## Your task
 
-Flash the board (`F1` → `CaDS Board: Flash`), open the console (`F1` → `CaDS Board: Konsole öffnen`), then press **Check** on the first two tasks. After that, work out in the third task's field how long one full screen takes at the measured rate, and press **Submit answer**. The next step opens the diagnostic console you just used.
+Board flashed, console open — both from the two blocks above — then press **Check** on the first two tasks. After that, work out in the third task's field how long one full screen takes at the measured rate, and press **Submit answer**. The next step opens the diagnostic console you just used.

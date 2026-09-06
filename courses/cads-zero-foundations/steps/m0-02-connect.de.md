@@ -30,16 +30,11 @@ Bringe das Board dazu, vom Labor erkannt zu werden, und verstehe, was die eine U
 
 Für das Verbinden gibt es keinen Knopf im Fenster. Der Befehl liegt in der **Befehlspalette** — der Eingabezeile, über die diese Umgebung jeden ihrer Befehle anbietet. Die Bedienoberfläche ist englisch, dieser Kurstext deutsch; unsere eigenen Board-Befehle heißen trotzdem deutsch, weil sie aus unserer Extension kommen.
 
-1. Drücke **`F1`**. Oben in der Mitte des Fensters klappt eine Eingabezeile auf. (`Strg`/`Cmd`+`Umschalt`+`P` tut dasselbe, wird im Browser aber oft abgefangen — nimm `F1`.)
-2. Tippe in diese Zeile:
-
-```
-CaDS Board: Verbinden
-```
-
-Der vollständige Eintrag heißt `CaDS Board: Verbinden (USB/Serial freigeben)`; sobald er in der Liste steht, wähle ihn mit `Enter`.
-
-3. Ganz ohne Tastatur geht derselbe Befehl über die **Statusleiste unten links**: dort steht `Board: getrennt`. Ein Klick darauf öffnet ein kleines Menü mit `Board verbinden (USB/Serial freigeben)` und `Log anzeigen`.
+::: do palette="> CaDS Board: Verbinden (USB/Serial freigeben)"
+Drücke **`F1`**, tippe `CaDS Board: Verbinden` und wähle mit `Enter` den vollständigen Eintrag `CaDS Board: Verbinden (USB/Serial freigeben)`. Ohne Tastatur führt derselbe Weg über die **Statusleiste unten links**, wo `Board: getrennt` steht: ein Klick darauf öffnet ein Menü mit `Board verbinden (USB/Serial freigeben)`. Danach fragt der Browser selbst, welches USB-Gerät er freigeben darf — wähle in seinem Dialog die ST-Link und bestätige.
+> expect: Der Eintrag in der Statusleiste unten links liest sich nach wenigen Sekunden `Board: verbunden · läuft`, und der Tooltip darauf nennt die gefundene Probe und den Chip.
+> recover: Klappt oben gar keine Eingabezeile auf, hat der Browser `Strg`/`Cmd`+`Umschalt`+`P` abgefangen — nimm `F1` oder den Weg über die Statusleiste, der ohne Tastatur auskommt. Steht in der Geräteliste des Browsers keine ST-Link, hängt das USB-Kabel am falschen Anschluss des Nucleo oder ein anderer Tab dieses Labors hält die Probe noch: schließe die übrigen Tabs und ruf den Befehl erneut auf.
+:::
 
 ![Die Statusleiste unten links mit dem Eintrag Board: getrennt](board-statusbar-disconnected.png)
 

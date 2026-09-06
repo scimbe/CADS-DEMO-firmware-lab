@@ -34,17 +34,19 @@ socratic:
 
 Run the project's host unit-test suite and understand why a firmware whose display bus cannot be read back still tests most of itself on a laptop.
 
-**The first move:** start the task `CaDS: Host tests`. The next section gives the path, click by click.
+**The first move** is the task `CaDS: Host tests`. The next section spells out its full operating path.
 
 ## Starting the task
 
 The user interface is in English while this course text is not, so the menu item is called `Run Task...`.
 
-Press **`F1`**, type `Tasks: Run Task`, Enter, then pick **`CaDS: Host tests`** from the list. Without the keyboard: the three-line symbol (**☰**) at the very top left, then **`Terminal` → `Run Task...` → `CaDS: Host tests`**. (`Ctrl`/`Cmd`+`Shift`+`P` opens the palette too, but a browser often swallows it; `F1` is the reliable way.)
+::: do task="CaDS: Host tests"
+Press **`F1`**, type `Tasks: Run Task`, Enter, then pick **`CaDS: Host tests`** from the list. Without the keyboard: the three-line symbol (**☰**) at the very top left, then **`Terminal` → `Run Task...` → `CaDS: Host tests`**. It takes about half a minute.
+> expect: A terminal of its own named `CaDS: Host tests` opens at the bottom. In it CMake configures the `host` preset first, then the compiler runs, then one line per test subject, and finally the closing line from ctest.
+> recover: If no input line drops down, the browser swallowed `Ctrl`/`Cmd`+`Shift`+`P` — `F1` is the reliable way. If you see no terminal at all, the area is folded away: `Ctrl`/`Cmd`+`J` folds it open and shut, and it carries the tabs `PROBLEMS`, `OUTPUT`, `DEBUG CONSOLE`, `TERMINAL`, `PORTS`, `MEMORY`, `XRTOS`.
+:::
 
-A terminal of its own opens in the terminal area at the bottom, named `CaDS: Host tests`. If that area is folded away, `Ctrl`/`Cmd`+`J` opens it and closes it again; it carries the tabs `PROBLEMS`, `OUTPUT`, `DEBUG CONSOLE`, `TERMINAL`, `PORTS`, `MEMORY`, `XRTOS`.
-
-**What you see:** first CMake configuring the `host` preset, then the compiler, then one line per test subject. **How long:** about half a minute. **Done** when no new lines appear and a prompt is back. **Success** is ctest's closing line:
+On success, ctest's closing line looks like this:
 
 ```
 100% tests passed, 0 tests failed out of 35
@@ -95,7 +97,7 @@ What the host cannot prove — that the clock tree is right, that DMA reaches th
 
 Three tasks, each with its own **Prüfen** button at the bottom of the step text; the **Run all checks** button at the top of the `CaDS Tutor: Unit tests on the host` tab checks all of them at once. If one stays red, the **Hinweis anzeigen** button on that task helps.
 
-1. **The suite runs.** Start `CaDS: Host tests` as described above: **`F1`** → `Tasks: Run Task` → Enter → **`CaDS: Host tests`**, or **☰ → `Terminal` → `Run Task...` → `CaDS: Host tests`**.
+1. **The suite is green.** The task `CaDS: Host tests` from the first section must have finished without a failure.
 2. **Count the subjects.** First predict the number of registered test subjects and write it down. The comparison then runs this command itself:
 
 ```

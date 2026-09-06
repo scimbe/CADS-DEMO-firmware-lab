@@ -69,15 +69,17 @@ Grob: 75 KB Framebuffer (480×320 bei 4 bpp), 30 KB RGB565-Staging, die Pools vo
 
 ## Aufgabe 1 — den Größenbericht erzeugen
 
-Starte den Task **`CaDS: Build`**. Der bequemste Weg: **`F1`**, dann `Tasks: Run Task` tippen, Enter, dann **`CaDS: Build`** aus der Liste wählen. Ohne Tastatur: das Symbol mit den drei Strichen (**☰**) ganz oben links — eine sichtbare Menüleiste gibt es nicht —, dann **`Terminal` → `Run Task...` → `CaDS: Build`**. Die Bedienoberfläche ist englisch, der Kurstext deutsch; der Menüpunkt heißt also `Run Task...`, nicht etwa etwas Deutsches.
+::: do task="CaDS: Build"
+Starte den Task. Der bequemste Weg: **`F1`**, dann `Tasks: Run Task` tippen, Enter, dann **`CaDS: Build`** aus der Liste wählen. Ohne Tastatur: das Symbol mit den drei Strichen (**☰**) ganz oben links — eine sichtbare Menüleiste gibt es nicht —, dann **`Terminal` → `Run Task...` → `CaDS: Build`**. Die Bedienoberfläche ist englisch, der Kurstext deutsch; der Menüpunkt heißt also `Run Task...`, nicht etwa etwas Deutsches.
+> expect: Unten öffnet sich ein eigenes Terminal mit dem Namen `CaDS: Build`. Beim ersten Mal dauert der Bau etwa eine Minute, danach Sekunden; am Ende steht die Tabelle, die `--print-memory-usage` druckt, und darin die Zeile `RAM`.
+> recover: Ist der Terminal-Bereich zugeklappt und du siehst nichts, klappt ihn `Strg`/`Cmd`+`J` auf. Fehlt am Ende die Tabelle, ist der Lauf nicht durchgelaufen — die Fehlerzeilen stehen im selben Terminal und zusätzlich im Reiter `PROBLEMS`.
+:::
 
 ![Das Menue hinter dem Drei-Striche-Symbol, Terminal aufgeklappt, mit New Terminal und Run Task](menu-run-task.png)
 
 ![Die Liste aller Tasks des Projekts, aus der du CaDS: Build waehlst](task-picker.png)
 
 `Strg`/`Cmd`+`Umschalt`+`P` öffnet die Palette auch, wird im Browser aber oft abgefangen; `F1` ist der zuverlässige Weg.
-
-**Was du siehst:** unten im Terminal-Bereich öffnet sich ein eigenes Terminal mit dem Namen `CaDS: Build`. Ist der Bereich zugeklappt, klappt ihn `Strg`/`Cmd`+`J` auf und wieder zu. Beim ersten Mal dauert der Bau etwa eine Minute, danach Sekunden. **Fertig** ist er, wenn keine neuen Zeilen mehr kommen und wieder eine Eingabeaufforderung dasteht; ganz am Ende steht die Tabelle, die `--print-memory-usage` druckt. Lies dort die Zeile für `RAM`.
 
 <!-- SHOT: m4-build-memory-usage-table | Das Terminal CaDS: Build am Ende des Baus, mit der Tabelle von --print-memory-usage und der Zeile fuer RAM -->
 

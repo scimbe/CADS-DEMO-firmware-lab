@@ -79,7 +79,13 @@ Am M2-Hardware-Gate konvergierten diese Marken bei ui 224 B, input 132 B und con
 
 ## Deine Aufgabe
 
-**Schritt 1 — die Board-Konsole öffnen, damit du mitliest.** Drücke **`F1`**, tippe `CaDS Board: Konsole öffnen`, Enter. **Unten** im Terminal-Bereich erscheint ein Terminal mit dem Namen `CaDS Board Console`, die serielle Konsole des Boards mit 115200 Baud. Dieser Bereich sitzt unten und trägt die Reiter `PROBLEMS`, `OUTPUT`, `DEBUG CONSOLE`, `TERMINAL`, `PORTS`, `MEMORY`, `XRTOS`; `Strg`/`Cmd`+`J` klappt ihn auf und wieder zu. Es dauert eine Sekunde, und du erkennst den Erfolg an der blauen Kopfzeile des Terminals.
+**Schritt 1 — die Board-Konsole öffnen, damit du mitliest.**
+
+::: do palette="> CaDS Board: Konsole öffnen"
+Drücke **`F1`**, tippe `CaDS Board: Konsole öffnen` und bestätige mit `Enter`. Es dauert eine Sekunde.
+> expect: **Unten** im Terminal-Bereich erscheint ein Terminal mit dem Namen `CaDS Board Console` — die serielle Konsole des Boards mit 115200 Baud —, kenntlich an seiner blauen Kopfzeile.
+> recover: Siehst du den Terminal-Bereich gar nicht, ist er zugeklappt: `Strg`/`Cmd`+`J` klappt ihn auf und wieder zu; er trägt die Reiter `PROBLEMS`, `OUTPUT`, `DEBUG CONSOLE`, `TERMINAL`, `PORTS`, `MEMORY`, `XRTOS`. Bleibt die Konsole stumm, ist der serielle Port im Browser nicht freigegeben — ruf `CaDS Board: Verbinden` erneut auf.
+:::
 
 <!-- SHOT: m4-board-console-terminal | Der Terminal-Bereich unten mit dem geoeffneten Terminal CaDS Board Console und seiner blauen Kopfzeile | HARDWARE -->
 
@@ -101,4 +107,4 @@ Das Arbeitsverzeichnis ist die Projektwurzel, es dauert unter einer Sekunde, und
 - **Das Terminal geschlossen und damit den Vorgang beendet.** Das Kreuz am Terminal beendet den Prozess darin und trennt die Konsole — zum Wegklappen `Strg`/`Cmd`+`J` nehmen, das lässt sie weiterlaufen.
 - **Die Palette reagiert nicht auf das Tastenkürzel.** Der Browser hat `Strg`/`Cmd`+`Umschalt`+`P` abgefangen — nimm `F1`, oder den Weg über **☰ → `Terminal`**.
 
-**Wo du arbeitest:** Datei öffnen `Strg`/`Cmd`+`P` · Terminal-Bereich `Strg`/`Cmd`+`J` · Befehlspalette `F1` · Menü **☰** oben links · Board-Konsole `F1` → `CaDS Board: Konsole öffnen` · prüfen mit **Prüfen** an der Aufgabe oder **Run all checks** oben im Steptext. Die Bedienoberfläche ist englisch, der Kurstext deutsch — der Menüpunkt heißt also `New Terminal`.
+**Wo du arbeitest:** Datei öffnen `Strg`/`Cmd`+`P` · Terminal-Bereich `Strg`/`Cmd`+`J` · Befehlspalette `F1` · Menü **☰** oben links · die Board-Konsole aus Schritt 1 · geprüft wird mit **Prüfen** an der Aufgabe oder **Run all checks** oben im Steptext. Die Bedienoberfläche ist englisch, der Kurstext deutsch — der Menüpunkt heißt also `New Terminal`.

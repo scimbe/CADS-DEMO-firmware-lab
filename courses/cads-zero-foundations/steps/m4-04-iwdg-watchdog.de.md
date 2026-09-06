@@ -65,7 +65,13 @@ Derselbe Kommentar nennt als Nennfrequenz des LSI 32 kHz. Aus 32 kHz und `/64` f
 
 ## Aufgabe 1 — die Reset-Ursache dieses Boots lesen
 
-**Schritt 1 — die Board-Konsole öffnen.** Drücke **`F1`**, tippe `CaDS Board: Konsole öffnen`, Enter. **Unten** im Terminal-Bereich erscheint ein Terminal namens `CaDS Board Console`, die serielle Konsole des Boards mit 115200 Baud. Der Bereich trägt die Reiter `PROBLEMS`, `OUTPUT`, `DEBUG CONSOLE`, `TERMINAL`, `PORTS`, `MEMORY`, `XRTOS`; `Strg`/`Cmd`+`J` klappt ihn auf und wieder zu. Es dauert eine Sekunde.
+**Schritt 1 — die Board-Konsole öffnen.**
+
+::: do palette="> CaDS Board: Konsole öffnen"
+Drücke **`F1`**, tippe `CaDS Board: Konsole öffnen` und bestätige mit `Enter`. Es dauert eine Sekunde.
+> expect: **Unten** im Terminal-Bereich erscheint ein Terminal namens `CaDS Board Console`, die serielle Konsole des Boards mit 115200 Baud.
+> recover: Siehst du den Terminal-Bereich gar nicht, ist er zugeklappt: `Strg`/`Cmd`+`J` klappt ihn auf und wieder zu; er trägt die Reiter `PROBLEMS`, `OUTPUT`, `DEBUG CONSOLE`, `TERMINAL`, `PORTS`, `MEMORY`, `XRTOS`. Bleibt die Konsole stumm, ist der serielle Port im Browser nicht freigegeben — ruf `CaDS Board: Verbinden` erneut auf.
+:::
 
 <!-- SHOT: m4-palette-board-console | Die geoeffnete Befehlspalette mit eingetipptem CaDS Board und der gefilterten Liste der Board-Befehle -->
 

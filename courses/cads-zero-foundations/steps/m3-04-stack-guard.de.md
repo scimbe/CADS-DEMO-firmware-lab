@@ -41,9 +41,11 @@ Erkenne einen Stack-Überlauf an seiner Registersignatur und verstehe, wie der S
 
 Die Bedienoberfläche ist englisch, der Kurstext deutsch - der Menüpunkt heißt also `Run Task...`. Eine Menüleiste ist nicht sichtbar: die Menüs stecken hinter dem Symbol mit den drei Strichen (**☰**) ganz oben links, das `File`, `Edit`, `Selection`, `View`, `Go`, `Run`, `Terminal` und `Help` öffnet.
 
-Starte den Task: **`F1`**, dann `Tasks: Run Task` tippen, Enter, dann **`CaDS: Build`** aus der Liste wählen. Ohne Tastatur: **☰ → `Terminal` → `Run Task...` → `CaDS: Build`**.
-
-Unten im Terminal-Bereich öffnet sich ein eigenes Terminal `CaDS: Build`; ist der Bereich zugeklappt, klappt ihn `Strg`/`Cmd`+`J` auf und zu. Der Bau dauert beim ersten Mal etwa eine Minute, danach Sekunden. Fertig ist er, wenn keine neuen Zeilen mehr kommen und wieder eine Eingabeaufforderung dasteht; erfolgreich, wenn die letzte Zeile vom Build-Werkzeug stammt und keine Fehlermeldung darübersteht.
+::: do task="CaDS: Build"
+Starte den Task: **`F1`**, dann `Tasks: Run Task` tippen, Enter, dann **`CaDS: Build`** aus der Liste wählen. Ohne Tastatur: **☰ → `Terminal` → `Run Task...` → `CaDS: Build`**. Der Bau dauert beim ersten Mal etwa eine Minute, danach Sekunden.
+> expect: Unten im Terminal-Bereich öffnet sich ein eigenes Terminal `CaDS: Build`. Fertig ist der Lauf, wenn keine neuen Zeilen mehr kommen und wieder eine Eingabeaufforderung dasteht; erfolgreich, wenn die letzte Zeile vom Build-Werkzeug stammt und keine Fehlermeldung darübersteht.
+> recover: Ist der Terminal-Bereich zugeklappt und du siehst gar nichts, klappt ihn `Strg`/`Cmd`+`J` auf; rechts im Bereich wählst du das Terminal des Tasks. Klappt keine Eingabezeile auf, hat der Browser das Tastenkürzel abgefangen — nimm `F1` oder den Weg über **☰**.
+:::
 
 <!-- SHOT: m3-build-task-terminal | Das Terminal CaDS: Build unten nach einem erfolgreichen Lauf, letzte Zeile vom Build-Werkzeug, darueber keine Fehlermeldung -->
 
@@ -105,4 +107,4 @@ Kostenlos ist CCM nicht: `targets/itsboard/linker/cads_itsboard.ld` schneidet de
 
 ## Deine Aufgabe
 
-Führe den Task **`CaDS: Build`** aus (**`F1`** → `Tasks: Run Task` → `CaDS: Build`, oder **☰ → `Terminal` → `Run Task...`**) und lies die Wächtertabelle und `vApplicationIdleHook()` in `apps/bringup/tasks.c`. Begründe dann, warum die kerneleigene Prüfung nicht reichte, und rechne aus, was die Korrektur an CCM kostete. Geprüft wird mit **Prüfen** an der Aufgabe oder **Run all checks** oben im Steptext-Reiter in der Mitte.
+Der Task aus dem ersten Abschnitt muss gelaufen sein; lies dann die Wächtertabelle und `vApplicationIdleHook()` in `apps/bringup/tasks.c`. Begründe dann, warum die kerneleigene Prüfung nicht reichte, und rechne aus, was die Korrektur an CCM kostete. Geprüft wird mit **Prüfen** an der Aufgabe oder **Run all checks** oben im Steptext-Reiter in der Mitte.

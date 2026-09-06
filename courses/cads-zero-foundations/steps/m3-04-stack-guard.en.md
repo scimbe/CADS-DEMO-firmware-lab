@@ -41,9 +41,11 @@ Recognise a stack overflow from its register signature, and understand how this 
 
 The user interface is in English while this course text is in German - so the menu entry really is called `Run Task...`. No menu bar is visible: the menus hide behind the three-line icon (**☰**) at the very top left, which opens `File`, `Edit`, `Selection`, `View`, `Go`, `Run`, `Terminal` and `Help`.
 
-Start the task: **`F1`**, then type `Tasks: Run Task`, Enter, then pick **`CaDS: Build`** from the list. Without the keyboard: **☰ → `Terminal` → `Run Task...` → `CaDS: Build`**.
-
-A terminal of its own named `CaDS: Build` opens in the terminal area at the bottom; if that area is folded away, `Ctrl`/`Cmd`+`J` opens and closes it. The build takes about a minute the first time, seconds after that. It is finished when no new lines appear and a prompt is back; it succeeded if the last line came from the build tool with no error above it.
+::: do task="CaDS: Build"
+Start the task: **`F1`**, then type `Tasks: Run Task`, Enter, then pick **`CaDS: Build`** from the list. Without the keyboard: **☰ → `Terminal` → `Run Task...` → `CaDS: Build`**. The build takes about a minute the first time, seconds after that.
+> expect: A terminal of its own named `CaDS: Build` opens in the terminal area at the bottom. The run is finished when no new lines appear and a prompt is back; it succeeded if the last line came from the build tool with no error above it.
+> recover: If the terminal area is folded away and you see nothing at all, `Ctrl`/`Cmd`+`J` opens it; you pick the task's terminal on the right-hand side of the area. If no input line drops down, the browser swallowed the shortcut — use `F1`, or the route through **☰**.
+:::
 
 <!-- SHOT: m3-build-task-terminal | Das Terminal CaDS: Build unten nach einem erfolgreichen Lauf, letzte Zeile vom Build-Werkzeug, darueber keine Fehlermeldung -->
 
@@ -105,4 +107,4 @@ CCM is not free: `targets/itsboard/linker/cads_itsboard.ld` carves the main stac
 
 ## Your task
 
-Run the task **`CaDS: Build`** (**`F1`** → `Tasks: Run Task` → `CaDS: Build`, or **☰ → `Terminal` → `Run Task...`**) and read the sentinel table and `vApplicationIdleHook()` in `apps/bringup/tasks.c`. Then argue why the kernel's own check was not enough, and compute what the fix cost in CCM. Checking is the **Check** button on the task, or **Run all checks** at the top of the step-text tab in the middle.
+The task from the first section has to have run; then read the sentinel table and `vApplicationIdleHook()` in `apps/bringup/tasks.c`. Then argue why the kernel's own check was not enough, and compute what the fix cost in CCM. Checking is the **Check** button on the task, or **Run all checks** at the top of the step-text tab in the middle.

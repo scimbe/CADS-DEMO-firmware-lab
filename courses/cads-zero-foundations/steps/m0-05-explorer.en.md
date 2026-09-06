@@ -85,4 +85,10 @@ The script's answer appears in that very terminal; the board's answer afterwards
 
 ## Your task
 
-Open the board console (`F1` → `CaDS Board: Konsole öffnen`) and, if needed, return to the prompt as described above. The first two tasks you do **not** type yourself: the **Check** button sends `?` and `k` to the board on its own and waits up to 15 seconds for the answering line. All you do is keep the console open and the board at the prompt — and read along with what comes back. Then argue, in the third task's field, why of the two commands for finding a button only one reveals the pin. The next module opens up how the firmware is actually structured.
+::: do palette="> CaDS Board: Konsole öffnen"
+Press **`F1`**, type `CaDS Board: Konsole öffnen` and confirm with `Enter`. If the board is still in the app tree, bring it back to the prompt as described above.
+> expect: A terminal named `CaDS Board Console` sits at the bottom, and the board answers single letters typed there.
+> recover: If it answers nothing at all, it is still in the touchscreen app tree and mishears single letters — run `python3 scripts/board_key.py quit` in an ordinary terminal first, not in the board console. If the console shows a yellow notice, the serial port is not granted in the browser: call `CaDS Board: Verbinden` again.
+:::
+
+The first two tasks you do **not** type yourself: the **Check** button sends `?` and `k` to the board on its own and waits up to 15 seconds for the answering line. All you do is keep the console open and the board at the prompt — and read along with what comes back. Then argue, in the third task's field, why of the two commands for finding a button only one reveals the pin. The next module opens up how the firmware is actually structured.

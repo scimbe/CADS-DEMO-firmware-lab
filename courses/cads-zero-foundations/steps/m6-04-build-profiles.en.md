@@ -66,4 +66,10 @@ The second verdict is not about the file but about the **image the file would pr
 
 ## Your task
 
-First run `python3 scripts/check_profile.py profiles/minimal.profile` and read both verdict lines. Then write a profile of your own, `profiles/lab.profile` — your selection, but a reasoned one: which apps does a lab image actually need? — and put it through the same checker. If you have time, add `--build` and read the RAM-budget line it produces. Finally answer the question on what the capacity check catches. The next module leaves storage for the network.
+::: do command="python3 scripts/check_profile.py profiles/minimal.profile" cwd="."
+Open a terminal (**☰ → `Terminal` → `New Terminal`**; the working directory is the project root) and run `python3 scripts/check_profile.py profiles/minimal.profile`. Read both verdict lines.
+> expect: Two lines appear in the terminal: one about the validity of the profile's lines and one about capacity. Both start with a verdict, not with a stack trace.
+> recover: If Python reports `No such file or directory`, your terminal is not in the project root — `cd` there, or open a new terminal, which starts there. If the output names an unknown app, you mistyped a line in the profile: the checker names the line number.
+:::
+
+Then write a profile of your own, `profiles/lab.profile` — your selection, but a reasoned one: which apps does a lab image actually need? — and put it through the same checker. If you have time, add `--build` and read the RAM-budget line it produces. Finally answer the question on what the capacity check catches. The next module leaves storage for the network.

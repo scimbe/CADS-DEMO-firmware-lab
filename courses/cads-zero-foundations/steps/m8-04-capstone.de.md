@@ -68,9 +68,23 @@ So oder so: eine ausführbare Datei je Subjekt, sechzig Sekunden Timeout, Unity-
 
 ## Beweisen, wie CI es tut
 
-**Den Test laufen lassen.** Drücke **`F1`**, tippe `Tasks: Run Task`, Enter, dann **`CaDS: Host tests`** aus der Liste wählen. Ohne Tastatur: das Symbol mit den drei Strichen (**☰**) ganz oben links, dann **`Terminal` → `Run Task...` → `CaDS: Host tests`**. (`Strg`/`Cmd`+`Umschalt`+`P` öffnet die Palette auch, wird im Browser aber oft abgefangen; `F1` ist der zuverlässige Weg.) Unten öffnet sich ein Terminal mit dem Namen des Tasks. Du siehst CMake, den Compiler und eine Zeile je Subjekt; es dauert etwa eine halbe Minute. **Erfolg:** deine Testdatei steht mit `Passed` in der Liste, und die Schlusszeile lautet `100% tests passed, 0 tests failed out of N` mit einem N, das um eins größer ist als vorher, falls du ein neues Subjekt angelegt hast.
+**Den Test laufen lassen.**
 
-**Das Image bauen.** Danach **`F1`** → `Tasks: Run Task` → Enter → **`CaDS: Build`**, oder **☰ → `Terminal` → `Run Task...` → `CaDS: Build`**. Beim ersten Mal dauert das etwa eine Minute, danach Sekunden. Ein reiner Host-Test fügt dem Firmware-Image kein Objekt hinzu, sodass Größenbericht und `__cads_heap_size` — das Symbol, das `scripts/check_ram_budget.py` liest, um den 48-KB-Boden mit seiner 256-Byte-Marge abzusichern — unverändert bleiben. Nachrechnen kannst du das mit **`F1`** → `Tasks: Run Task` → **`CaDS: RAM budget`**, unter einer Sekunde. Sag das Ergebnis in deinem Review; ein Reviewer sollte es nicht erschließen müssen.
+::: do task="CaDS: Host tests"
+Drücke **`F1`**, tippe `Tasks: Run Task`, Enter, dann **`CaDS: Host tests`** aus der Liste wählen. Ohne Tastatur: das Symbol mit den drei Strichen (**☰**) ganz oben links, dann **`Terminal` → `Run Task...` → `CaDS: Host tests`**. Es dauert etwa eine halbe Minute.
+> expect: Unten öffnet sich ein Terminal mit dem Namen des Tasks. Deine Testdatei steht mit `Passed` in der Liste, und die Schlusszeile lautet `100% tests passed, 0 tests failed out of N` — mit einem N, das um eins größer ist als vorher, falls du ein neues Subjekt angelegt hast.
+> recover: Fehlt deine Datei in der Liste, ist sie nicht in `tests/unit/CMakeLists.txt` registriert — ohne Registrierung übersetzt sie niemand, und ctest kennt sie nicht. Steht sie mit `Failed` da, ist nicht die Bedienung schuld: die Zeilen darüber nennen die Zusicherung, die nicht hielt.
+:::
+
+**Das Image bauen.**
+
+::: do task="CaDS: Build"
+Starte den Task über **`F1`** → `Tasks: Run Task` → `Enter` → `CaDS: Build`, ohne Tastatur über **☰ → `Terminal` → `Run Task...` → `CaDS: Build`**. Beim ersten Mal dauert das etwa eine Minute, danach Sekunden.
+> expect: Am Ende des Terminals steht der Größenbericht. Ein reiner Host-Test fügt dem Firmware-Image kein Objekt hinzu, also bleiben Bericht und `__cads_heap_size` unverändert.
+> recover: Verändert sich der Bericht doch, ist deine Änderung nicht rein auf den Host beschränkt — sieh nach, ob du versehentlich eine Datei außerhalb von `tests/unit` angefasst hast. Die Marge selbst rechnet der Task `CaDS: RAM budget` in unter einer Sekunde nach.
+:::
+
+`__cads_heap_size` ist das Symbol, das `scripts/check_ram_budget.py` liest, um den 48-KB-Boden mit seiner 256-Byte-Marge abzusichern. Sag das Ergebnis in deinem Review; ein Reviewer sollte es nicht erschließen müssen.
 
 **Sehen, was der Check sieht.** Der erste Check liest die *hinzugefügten Zeilen* unter `tests/unit`, nicht die Dateiliste. Öffne dafür ein Terminal mit **☰ → `Terminal` → `New Terminal`** und führe aus:
 
@@ -95,7 +109,7 @@ Steht dort nichts, ist deine Änderung entweder woanders gelandet oder schon com
 ## Deine Aufgabe
 
 1. **Den Test hinzufügen.** Der erste Check sieht nach, dass unter `tests/unit` hinzugefügte Zeilen mit `RUN_TEST(` und `TEST_ASSERT` liegen — ein Kommentar zählt nicht.
-2. **Die Suite grün halten.** Starte `CaDS: Host tests` wie oben: **`F1`** → `Tasks: Run Task` → Enter → **`CaDS: Host tests`**.
+2. **Die Suite grün halten.** Der Task `CaDS: Host tests` aus dem Abschnitt oben muss weiterhin fehlerfrei enden.
 3. **Das Selbst-Review.** Beantworte, welche dokumentierte Zusicherung dein Fall neu abdeckt.
 
 Schreibe zuletzt die PR-förmige Zusammenfassung nach `docs/how-to/agent-workflow.md`: Titel in der Form `[M<n>] ...`, ein Text, der die Datei, den geprüften Vertrag und die beiden grünen Läufe nennt, und der Satz zum unveränderten RAM-Budget. Damit ist der Grundlagenkurs abgeschlossen; der Projektkurs baut auf genau dieser Disziplin auf.

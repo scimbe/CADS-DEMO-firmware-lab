@@ -77,7 +77,13 @@ Im Labor erreichen die Skripte das Board über den Konsolen-PTY des Bridge; find
 python3 scripts/board_key.py quit --port /home/coder/board-console
 ```
 
-Willst du beim Senden zusehen, öffne zusätzlich die Board-Konsole: drücke **`F1`**, tippe `CaDS Board: Konsole öffnen` und drücke Enter. `Strg`/`Cmd`+`Umschalt`+`P` öffnet die Palette auch, wird im Browser aber oft abgefangen; `F1` ist der zuverlässige Weg. **Reagiert die Palette gar nicht, hat der Browser das Tastenkürzel abgefangen** — nimm `F1` oder den Weg über **☰ → `Terminal`**.
+Willst du beim Senden zusehen, öffne zusätzlich die Board-Konsole.
+
+::: do palette="> CaDS Board: Konsole öffnen"
+Drücke **`F1`**, tippe `CaDS Board: Konsole öffnen` und bestätige mit `Enter`.
+> expect: Unten steht ein Terminal mit dem Namen `CaDS Board Console`, in dem die Meldungen des Boards einlaufen.
+> recover: Reagiert die Palette gar nicht, hat der Browser `Strg`/`Cmd`+`Umschalt`+`P` abgefangen — `F1` ist der zuverlässige Weg. Bleibt die Konsole leer, ist der serielle Port im Browser nicht freigegeben: `CaDS Board: Verbinden` erneut aufrufen und im Browserdialog bestätigen.
+:::
 
 Klicke dann **Prüfen**. Das Gate bringt das netif hoch, pollt zehn Sekunden und meldet zwei Zeilen, die mit `# net: link=` und `# net: mmc delta rx_unicast=` beginnen: Link-Zustand, Geschwindigkeit, Paket- und Byte-Zähler. Rechne mit zehn bis fünfzehn Sekunden; grün wird die Aufgabe, sobald die erste Zeile kommt.
 

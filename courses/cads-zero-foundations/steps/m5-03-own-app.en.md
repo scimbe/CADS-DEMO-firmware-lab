@@ -36,7 +36,7 @@ socratic:
 
 Create a complete app of your own — a view with a widget, registered with the dispatcher and reachable as a row in the main menu — and wire it into the build so it ships in the firmware.
 
-**Concretely:** create three new files, change two CMake files and one menu file, run the task `CaDS: Build`, flash, and open the new row on the panel. Each step is spelled out below with its full operating path.
+**Concretely:** three new files, two CMake files and one menu file changed, a build, a flash, and the new row open on the panel. Each step is spelled out below with its full operating path.
 
 ## Creating and opening files
 
@@ -87,17 +87,37 @@ The dispatcher table has 28 slots and the app tree registers 26 views today, so 
 
 ## Build, host tests, flash
 
-Start the task **`CaDS: Build`**: press **`F1`**, type `Tasks: Run Task`, press Enter, then pick **`CaDS: Build`** from the list. Without the keyboard: **☰ → `Terminal` → `Run Task...` → `CaDS: Build`**. A terminal of its own named `CaDS: Build` opens at the bottom; the first run takes about a minute, later ones seconds. It is finished when no new lines appear and a prompt is back; it worked when the last line is the build tool's and the `PROBLEMS` tab at the bottom stays empty.
+::: do task="CaDS: Build"
+Start the task through **`F1`** → `Tasks: Run Task` → `Enter` → `CaDS: Build`, or without the keyboard through **☰ → `Terminal` → `Run Task...` → `CaDS: Build`**. The first run takes about a minute, later ones seconds.
+> expect: A terminal of its own named `CaDS: Build` opens at the bottom; at the end the last line is the build tool's and the `PROBLEMS` tab at the bottom stays empty.
+> recover: If the linker reports an undefined `cads_hello_init`, your directory is missing from the CMake file — add it and start again. If the `PROBLEMS` tab holds a compiler error in `apps/hello/`, you did not save before building (`Ctrl`/`Cmd`+`S`) or you forgot a header.
+:::
 
-Everything above the HAL has to compile for both targets, so run the host build too: **`F1`**, `Tasks: Run Task`, Enter, **`CaDS: Host tests`** — or **☰ → `Terminal` → `Run Task...` → `CaDS: Host tests`**. That takes about half a minute and ends with the `ctest` summary.
+Everything above the HAL has to compile for both targets, so the host build belongs here too.
 
-To flash: **`F1`**, `Tasks: Run Task`, Enter, **`CaDS: Build + Flash`** — or **☰ → `Terminal` → `Run Task...` → `CaDS: Build + Flash`**. The flash takes about 15 seconds.
+::: do task="CaDS: Host tests"
+Start the task through **`F1`** → `Tasks: Run Task` → `Enter` → `CaDS: Host tests`, or without the keyboard through **☰ → `Terminal` → `Run Task...` → `CaDS: Host tests`**.
+> expect: The run takes about half a minute and ends with the `ctest` summary counting tests passed and failed.
+> recover: If it breaks off while compiling, your app builds for the board only — usually because it includes a file under `targets/` that the host does not have. That is exactly what this task is for; the error line names the `#include`.
+:::
+
+::: do palette="> CaDS Board: Flash (build/itsboard/cads-zero.bin)"
+Press **`F1`**, type `CaDS Board: Flash` and pick the full entry with `Enter`. Building and flashing in one go runs through **☰ → `Terminal` → `Run Task...` → `CaDS: Build + Flash`**. The flash takes about 15 seconds.
+> expect: A progress notification runs at the bottom right, after which the status bar names the byte count and the duration of the last flash.
+> recover: If the status bar reports that there is no image, the board build cannot have succeeded — look in the `CaDS: Build` terminal. If the write breaks off, the board is no longer released: call `CaDS Board: Verbinden` and confirm in the browser dialog.
+:::
 
 ![The flash progress shown as a notification while the task runs](flash-progress.png)
 
 ## Opening your row on the panel
 
-Open the board console: press **`F1`**, type `CaDS Board: Konsole öffnen`, press Enter. Type `d` there and press Enter — that starts the app tree on the panel; from then on the board ignores single typed letters. Navigation happens from a terminal (**☰ → `Terminal` → `New Terminal`**):
+::: do palette="> CaDS Board: Konsole öffnen"
+Press **`F1`**, type `CaDS Board: Konsole öffnen`, confirm with `Enter`, and send `d` there followed by Enter.
+> expect: The app tree starts on the panel; from then on the board ignores single typed letters.
+> recover: If nothing happens on the panel, the board is already in the app tree and ignores `d` — carry straight on navigating. If the console shows a yellow notice, the serial port is not granted in the browser: call `CaDS Board: Verbinden` again.
+:::
+
+Navigation happens from a terminal (**☰ → `Terminal` → `New Terminal`**):
 
 ```bash
 python3 scripts/board_key.py ok
@@ -125,4 +145,6 @@ python3 scripts/board_key.py quit
 
 ## Your task
 
-Build the app following the five points above, let `CaDS: Build` and `CaDS: Host tests` run through, flash, and open the row on the panel. The checks confirm that the menu calls `cads_hello_init`, that the symbol is linked into the ELF, and that the build succeeds — one at a time with **Prüfen** on the task, all of them with **Run all checks** at the top of the step text.
+The app follows the five points above; `CaDS: Build` and `CaDS: Host tests` both have to finish clean, then the flash, then the row on the panel.
+
+The checks confirm that the menu calls `cads_hello_init`, that the symbol is linked into the ELF, and that the build succeeds — one at a time with **Prüfen** on the task, all of them with **Run all checks** at the top of the step text.

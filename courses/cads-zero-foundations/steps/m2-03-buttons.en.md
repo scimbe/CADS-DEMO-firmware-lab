@@ -102,8 +102,10 @@ Two of those six events cannot come from a button press. Which ones, and how you
 
 ## Your task
 
-Open the board console (`F1`, then `CaDS Board: Open console`) and send `w 10`. Press a button right away while the window is open, and note which port and bit move. Then try `s 10` and `i`.
-
-If nothing comes back: a freshly flashed board boots into the touchscreen app tree and ignores single letters. Open a terminal (menu *Terminal → New Terminal*) and run `python3 scripts/board_key.py quit` there once — in the terminal, not in the board console.
+::: do palette="> CaDS Board: Konsole öffnen"
+Press **`F1`**, type `CaDS Board: Konsole öffnen`, confirm with `Enter`, and send `w 10` there. Press a button right away while the window is open, and note which port and bit move. Then try `s 10` and `i`.
+> expect: The port watcher prints every change it sees for ten seconds, and your button press appears as a line naming the port and the bit number.
+> recover: If nothing comes back from the board at all, it is still in the touchscreen app tree and ignores single letters — run `python3 scripts/board_key.py quit` once in an ordinary terminal (**☰ → `Terminal` → `New Terminal`**), not in the board console. If the same bit moves on a port you did not expect, you caught an INT line rather than a button: the buttons sit on GPIOF.
+:::
 
 Then work through the transcript above, and finally derive the two bit operations with which the HAL turns the IDR into its byte. Checking happens via the **Check** button on each task.

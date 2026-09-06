@@ -65,6 +65,12 @@ All three are free-text questions. They are at the bottom of the step text, the 
 2. **The consequence.** Which traffic class cannot take the blackout, and what rule do you derive from that for protocols of your own?
 3. **The decision.** Would you swap the solder bridges? Agreeing is not required — using the facts is, and so is naming a condition under which the other choice wins.
 
-To jump to another step in between, press **`F1`**, type `Zu Schritt springen` and press Enter. `Ctrl`/`Cmd`+`Shift`+`P` opens the palette too, but a browser often swallows it; **if it does not react at all, the browser swallowed the shortcut** — press `F1`. The course tree on the left in the side bar, behind the graduation-cap icon of the outermost bar, does the same with the mouse.
+To jump to another step in between:
+
+::: do palette="> CaDS Tutor: Zu Schritt springen"
+Press **`F1`**, type `Zu Schritt springen` and confirm with `Enter`.
+> expect: The palette lists this course's steps, and picking one opens that step text as a tab in the middle.
+> recover: If the palette does not react at all, the browser swallowed `Ctrl`/`Cmd`+`Shift`+`P` — `F1` always works. With the mouse, the course tree on the left in the side bar does the same, behind the graduation-cap icon of the outermost bar.
+:::
 
 The interface is in English while the course text is German; the tutor's own commands, by contrast, are German, so `Zu Schritt springen` really is spelled that way.

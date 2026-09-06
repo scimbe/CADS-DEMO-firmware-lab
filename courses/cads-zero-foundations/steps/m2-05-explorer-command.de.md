@@ -109,9 +109,16 @@ Die Funktion ist absichtlich nicht `static`: so steht ihr Name in jedem Fall in 
 ## Wo du arbeitest
 
 - **Datei öffnen:** `Strg`/`Cmd`+`P`, dann `explorer.c` tippen und mit Enter öffnen. Speichern nicht vergessen (`Strg`/`Cmd`+`S`).
-- **Bauen:** Menü *Terminal → Run Task…*, Eintrag **CaDS: Build**. Das Protokoll erscheint im Panel *Terminal*.
 - **Prüfen:** der Knopf **Prüfen** an der jeweiligen Aufgabe.
 - **Terminal für `grep`:** Menü *Terminal → New Terminal*. Das ist ein Shell-Fenster im Arbeitsverzeichnis, nicht die Board-Konsole.
+
+Gebaut wird über den Task:
+
+::: do task="CaDS: Build"
+Starte den Task über **`F1`** → `Tasks: Run Task` → `Enter` → `CaDS: Build`, ohne Tastatur über **☰ → `Terminal` → `Run Task...` → `CaDS: Build`**.
+> expect: Unten öffnet sich ein Terminal mit dem Namen des Tasks; am Ende steht dort der Größenbericht des Linkers und wieder eine Eingabeaufforderung.
+> recover: Meldet der Compiler einen Fehler in `explorer.c`, hast du wahrscheinlich vor dem Bauen nicht gespeichert — `Strg`/`Cmd`+`S` und erneut starten. Scheitert danach der Symbol-Check statt des Baus, fehlt der `case` im Dispatcher: der Linker läuft mit `--gc-sections` und wirft eine Funktion weg, die niemand aufruft.
+:::
 
 Der Link läuft mit `--gc-sections`: eine Funktion, die niemand aufruft, wird beim Linken entfernt, und der Symbol-Check schlüge fehl. Der `case` aus Stück 2 ist deshalb nicht optional.
 

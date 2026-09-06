@@ -34,17 +34,19 @@ socratic:
 
 Führe die Host-Unit-Testsuite des Projekts aus und verstehe, warum eine Firmware, deren Displaybus nicht zurückgelesen werden kann, sich dennoch größtenteils auf einem Laptop testet.
 
-**Der erste Handgriff:** starte den Task `CaDS: Host tests`. Wie das geht, steht im nächsten Abschnitt, Klick für Klick.
+**Der erste Handgriff** ist der Task `CaDS: Host tests`. Wie das geht, steht im nächsten Abschnitt, Klick für Klick.
 
 ## Den Task starten
 
 Die Bedienoberfläche ist englisch, der Kurstext deutsch — der Menüpunkt heißt also `Run Task...`.
 
-Drücke **`F1`**, tippe `Tasks: Run Task`, Enter, dann **`CaDS: Host tests`** aus der Liste wählen. Ohne Tastatur: das Symbol mit den drei Strichen (**☰**) ganz oben links, dann **`Terminal` → `Run Task...` → `CaDS: Host tests`**. (`Strg`/`Cmd`+`Umschalt`+`P` öffnet die Palette auch, wird im Browser aber oft abgefangen; `F1` ist der zuverlässige Weg.)
+::: do task="CaDS: Host tests"
+Drücke **`F1`**, tippe `Tasks: Run Task`, Enter, dann **`CaDS: Host tests`** aus der Liste wählen. Ohne Tastatur: das Symbol mit den drei Strichen (**☰**) ganz oben links, dann **`Terminal` → `Run Task...` → `CaDS: Host tests`**. Es dauert etwa eine halbe Minute.
+> expect: Unten öffnet sich ein eigenes Terminal mit dem Namen `CaDS: Host tests`. Darin läuft zuerst CMake mit dem Preset `host`, dann der Compiler, dann eine Zeile je Testsubjekt, und zuletzt die Schlusszeile von ctest.
+> recover: Klappt keine Eingabezeile auf, hat der Browser `Strg`/`Cmd`+`Umschalt`+`P` abgefangen — `F1` ist der zuverlässige Weg. Siehst du gar kein Terminal, ist der Bereich zugeklappt: `Strg`/`Cmd`+`J` klappt ihn auf und wieder zu; er trägt die Reiter `PROBLEMS`, `OUTPUT`, `DEBUG CONSOLE`, `TERMINAL`, `PORTS`, `MEMORY`, `XRTOS`.
+:::
 
-Unten im Terminal-Bereich öffnet sich ein eigenes Terminal mit dem Namen `CaDS: Host tests`. Ist der Bereich zugeklappt, klappt ihn `Strg`/`Cmd`+`J` auf und wieder zu; er trägt die Reiter `PROBLEMS`, `OUTPUT`, `DEBUG CONSOLE`, `TERMINAL`, `PORTS`, `MEMORY`, `XRTOS`.
-
-**Was du siehst:** zuerst CMake, das das Preset `host` konfiguriert, dann den Compiler, dann eine Zeile je Testsubjekt. **Wie lange:** etwa eine halbe Minute. **Fertig** ist der Task, wenn keine neuen Zeilen mehr kommen und wieder eine Eingabeaufforderung dasteht. **Erfolg** erkennst du an der Schlusszeile von ctest:
+Die Schlusszeile von ctest sieht bei Erfolg so aus:
 
 ```
 100% tests passed, 0 tests failed out of 35
@@ -95,7 +97,7 @@ Was der Host nicht beweisen kann — dass der Takt stimmt, dass DMA das Panel er
 
 Drei Aufgaben, jede mit ihrem eigenen Knopf **Prüfen** unten im Steptext; der Knopf **Run all checks** oben im Reiter `CaDS Tutor: Unit-Tests auf dem Host` prüft alle auf einmal. Bleibt eine rot, hilft der Knopf **Hinweis anzeigen** an der Aufgabe.
 
-1. **Die Suite läuft.** Starte `CaDS: Host tests` wie oben beschrieben: **`F1`** → `Tasks: Run Task` → Enter → **`CaDS: Host tests`**, oder **☰ → `Terminal` → `Run Task...` → `CaDS: Host tests`**.
+1. **Die Suite läuft.** Der Task `CaDS: Host tests` aus dem ersten Abschnitt muss durchgelaufen sein.
 2. **Zähle die Subjekte.** Sage zuerst die Zahl der registrierten Testsubjekte voraus und schreibe sie hin. Der Vergleich führt dann selbst dieses Kommando aus:
 
 ```

@@ -36,9 +36,11 @@ Read the STM32's own registers on the live board through the debugger, so you ca
 
 The user interface is in English while this course text is in German, and there is no visible menu bar: the menus hide behind the three-line icon (**☰**) at the very top left, which opens `File`, `Edit`, `Selection`, `View`, `Go`, `Run`, `Terminal` and `Help`.
 
-Click the **bug icon** in the bar on the far left, which opens the **Run and Debug** view. Pick **`Debug CaDS Zero (Board im Browser)`** in the configuration list at the top and press **`F5`**; without the keyboard, **☰ → `Run` → `Start Debugging`**. In the terminal area at the bottom, `CaDS: Build + Flash` runs first in terminals of its own - about a minute plus 15 seconds the first time. Execution then halts at `main()`, which you can tell from the debug toolbar at the top and from `Paused on breakpoint` in `CALL STACK`.
-
-You can only read registers on a **halted** target. If it is running, press the pause button on the debug toolbar at the top.
+::: do palette="> Debug: Start Debugging"
+Click the **bug icon** in the bar on the far left, which opens the **Run and Debug** view, pick **`Debug CaDS Zero (Board im Browser)`** in the configuration list at the top, and press **`F5`**; without the keyboard, **☰ → `Run` → `Start Debugging`**. The first time this takes about a minute plus 15 seconds, because `CaDS: Build + Flash` runs first in terminals of its own.
+> expect: Execution halts at `main()`. You can tell from the debug toolbar at the top and from `Paused on breakpoint` in `CALL STACK`.
+> recover: If the target runs instead of halting, press the pause button on the debug toolbar — registers can only be read on a **halted** target. If the start breaks off with an error from the probe, the board is not released: call `CaDS Board: Verbinden` and confirm in the browser dialog.
+:::
 
 ## Core registers
 

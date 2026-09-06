@@ -48,9 +48,19 @@ apps/about/CMakeLists.txt
 apps/menu/cads_menu_app.c
 ```
 
-**Bauen:** drücke **`F1`**, tippe `Tasks: Run Task`, Enter, dann **`CaDS: Build`** aus der Liste wählen. Ohne Tastatur: **☰ → `Terminal` → `Run Task...` → `CaDS: Build`**. (`Strg`/`Cmd`+`Umschalt`+`P` öffnet die Palette auch, wird im Browser aber oft abgefangen; `F1` ist der zuverlässige Weg.) Unten im Terminal-Bereich öffnet sich ein eigenes Terminal mit dem Namen des Tasks; ist der Bereich zugeklappt, klappt ihn `Strg`/`Cmd`+`J` auf und wieder zu. Du siehst CMake und dann den Compiler Datei für Datei. **Wie lange:** beim ersten Mal etwa eine Minute, danach Sekunden. **Erfolg:** die letzte Zeile stammt vom Build-Werkzeug, nicht vom Compiler, und unter `build/itsboard/` liegt eine frische `cads-zero.elf`.
+::: do task="CaDS: Build"
+Starte den Board-Build über **`F1`** → `Tasks: Run Task` → `Enter` → `CaDS: Build`; ohne Tastatur über **☰ → `Terminal` → `Run Task...` → `CaDS: Build`**. Beim ersten Mal dauert er etwa eine Minute, danach Sekunden.
+> expect: Unten öffnet sich ein eigenes Terminal mit dem Namen des Tasks. Du siehst CMake und dann den Compiler Datei für Datei; am Ende stammt die letzte Zeile vom Build-Werkzeug und nicht vom Compiler, und unter `build/itsboard/` liegt eine frische `cads-zero.elf`.
+> recover: Klappt keine Eingabezeile auf, hat der Browser `Strg`/`Cmd`+`Umschalt`+`P` abgefangen — `F1` ist der zuverlässige Weg. Siehst du kein Terminal, ist der Bereich zugeklappt: `Strg`/`Cmd`+`J` klappt ihn auf und wieder zu. Meldet der Linker ein undefiniertes `cads_project_app_init`, fehlt dein Verzeichnis in der CMake-Datei.
+:::
 
-**Aufs Board bringen** (nur wenn du es selbst ansehen willst; die Abnahme verlangt es nicht): **`F1`** → `Tasks: Run Task` → **`CaDS: Build + Flash`**, etwa eine Minute plus rund 15 Sekunden fürs Flashen.
+**Aufs Board bringen** — nur wenn du es selbst ansehen willst, die Abnahme verlangt es nicht:
+
+::: do palette="> CaDS Board: Flash (build/itsboard/cads-zero.bin)"
+Drücke **`F1`**, tippe `CaDS Board: Flash` und wähle den vollständigen Eintrag mit `Enter`. Bauen und Flashen in einem Zug geht über **☰ → `Terminal` → `Run Task...` → `CaDS: Build + Flash`**, etwa eine Minute plus rund 15 Sekunden fürs Flashen.
+> expect: Rechts unten läuft eine Fortschrittsmeldung, danach nennt die Statusleiste Bytes und Dauer des letzten Flash.
+> recover: Meldet die Statusleiste, dass kein Image da ist, hat der Board-Build nicht gelingen können — sieh im Terminal des Build-Tasks nach. Bricht das Schreiben ab, ist das Board nicht freigegeben: `CaDS Board: Verbinden` aufrufen und im Browserdialog bestätigen.
+:::
 
 **Prüfen:** im Steptext, dem Reiter in der Mitte namens `CaDS Tutor: Projekt: eigene App mit Widget`. Jede Aufgabe unten hat einen Knopf **Prüfen** und einen Knopf **Hinweis anzeigen**; **Run all checks** oben im Reiter prüft alles auf einmal.
 
@@ -76,7 +86,7 @@ apps/menu/cads_menu_app.c
 
 ## Abnahme
 
-Die Substanz-Checks lesen nicht den Quelltext, sondern die **gebauten Objektdateien** unter `build/itsboard`. Ein Kommentar erzeugt keine Symbolreferenz und besteht deshalb keinen von ihnen. **Baue also nach jeder Änderung neu**, bevor du prüfst: **`F1`** → `Tasks: Run Task` → Enter → **`CaDS: Build`**.
+Die Substanz-Checks lesen nicht den Quelltext, sondern die **gebauten Objektdateien** unter `build/itsboard`. Ein Kommentar erzeugt keine Symbolreferenz und besteht deshalb keinen von ihnen. **Nach jeder Änderung gehört deshalb ein neuer Build davor**, mit dem Block oben.
 
 1. **Registrierung und Verdrahtung.** Zuerst baut das Board-Image. Danach sucht der Check die Übersetzungseinheit, die `cads_project_app_init` *definiert*, und verlangt in genau dieser Einheit unaufgelöste Referenzen auf `cads_view_dispatcher_add` und `cads_view_set_softkeys` (`nm -u`). Die Objektdatei von `apps/menu/cads_menu_app.c` muss `cads_project_app_init` als undefiniertes Symbol führen — das entsteht nur, wenn das Menü die Funktion wirklich aufruft. Zuletzt muss das Symbol in der ELF stehen.
 2. **Schadensdisziplin.** Dieselbe Übersetzungseinheit muss `cads_view_dirty_rect` oder `cads_canvas_damage` referenzieren. Das ist die maschinelle Fassung der Anforderung „zeichne nie den ganzen Bildschirm neu".

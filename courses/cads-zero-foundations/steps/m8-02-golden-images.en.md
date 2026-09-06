@@ -32,15 +32,19 @@ socratic:
 
 Understand how a firmware whose panel cannot be read back still tests what it draws, and learn to read a golden-image failure without mistaking a rounding artefact for a bug.
 
-**The first move:** start the task `CaDS: Host tests`, then the task `CaDS: Golden images (informativ)`. Both paths are in the next section.
+**The first move** is two tasks: `CaDS: Host tests`, then `CaDS: Golden images (informativ)`. Both paths are in the next section.
 
 ## Starting the two tasks
 
 The user interface is in English while this course text is not, so the menu item is called `Run Task...`.
 
-Press **`F1`**, type `Tasks: Run Task`, Enter, then pick **`CaDS: Host tests`** from the list. Without the keyboard: the three-line symbol (**☰**) at the very top left, then **`Terminal` → `Run Task...` → `CaDS: Host tests`**. (`Ctrl`/`Cmd`+`Shift`+`P` opens the palette too, but a browser often swallows it; `F1` is the reliable way.) A terminal named after the task opens in the terminal area at the bottom; if that area is folded away, `Ctrl`/`Cmd`+`J` opens and closes it. About half a minute, and on success the closing line is `100% tests passed, 0 tests failed out of 35`.
+::: do task="CaDS: Host tests"
+Press **`F1`**, type `Tasks: Run Task`, Enter, then pick **`CaDS: Host tests`** from the list. Without the keyboard: the three-line symbol (**☰**) at the very top left, then **`Terminal` → `Run Task...` → `CaDS: Host tests`**. It takes about half a minute.
+> expect: A terminal named after the task opens at the bottom; on success its closing line reads `100% tests passed, 0 tests failed out of 35`.
+> recover: If no input line drops down, the browser swallowed `Ctrl`/`Cmd`+`Shift`+`P` — `F1` is the reliable way. If you see no terminal, the area is folded away: `Ctrl`/`Cmd`+`J` opens and closes it.
+:::
 
-**This task does not contain the golden scenes.** Its command ends in `-E '^golden_'`, which excludes them explicitly. The scenes run in the second task: **`F1`** → `Tasks: Run Task` → Enter → **`CaDS: Golden images (informativ)`**, or **☰ → `Terminal` → `Run Task...` → `CaDS: Golden images (informativ)`**. It also builds the host preset first, so it takes about half a minute, and runs `ctest` with `-R '^golden_'`: two lines, `golden_splash` and `golden_boot_desktop`, each `Passed` or `Failed`.
+**This task does not contain the golden scenes.** Its command ends in `-E '^golden_'`, which excludes them explicitly. The scenes live in the second task `CaDS: Golden images (informativ)`, reachable from the same task list. It also builds the host preset first, so it takes about half a minute, and runs `ctest` with `-R '^golden_'`: two lines, `golden_splash` and `golden_boot_desktop`, each `Passed` or `Failed`.
 
 The word **(informativ)** is meant literally: the SDL2 version in this container rounds edge pixels ±1 differently from the machine that captured the references. A failure here is therefore no verdict on your code — which is why the first task checks the host-test task.
 
@@ -84,7 +88,7 @@ For the second question: the panel works in RGB565, so a channel has 5 or 6 bits
 
 Three tasks, each with its own **Prüfen** button at the bottom of the step text; **Run all checks** at the top of the `CaDS Tutor: Golden images for a write-only display` tab checks all of them at once.
 
-1. **The host-test task runs clean.** Start it as above: **`F1`** → `Tasks: Run Task` → Enter → **`CaDS: Host tests`**.
+1. **The host-test task is clean.** The task `CaDS: Host tests` from the first section must finish without a failure.
 2. **Read a diff.** Judge the failure the task describes — its numbers differ from the 2026-08-30 case, the method is the same; work out the neighbour distance of the affected channel before you classify the delta.
 3. **The regeneration rule.** Answer when a golden may be regenerated.
 

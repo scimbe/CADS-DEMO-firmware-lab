@@ -72,7 +72,13 @@ python3 scripts/board_key.py quit --port /home/coder/board-console
 
 **Schließe dieses Terminal nicht, solange etwas darin läuft.** Das Kreuz am Terminal beendet den Prozess darin; zum Wegklappen nimm `Strg`/`Cmd`+`J`, das lässt ihn weiterlaufen.
 
-Willst du beim Senden zusehen, öffne zusätzlich die Board-Konsole: drücke **`F1`**, tippe `CaDS Board: Konsole öffnen` und drücke Enter. **Reagiert die Palette gar nicht, hat der Browser `Strg`/`Cmd`+`Umschalt`+`P` abgefangen** — nimm `F1`, oder den Weg über **☰ → `Terminal`**.
+Willst du beim Senden zusehen, öffne zusätzlich die Board-Konsole.
+
+::: do palette="> CaDS Board: Konsole öffnen"
+Drücke **`F1`**, tippe `CaDS Board: Konsole öffnen` und bestätige mit `Enter`.
+> expect: Unten steht ein Terminal mit dem Namen `CaDS Board Console`, in dem die Meldungen des Boards einlaufen.
+> recover: Reagiert die Palette gar nicht, hat der Browser `Strg`/`Cmd`+`Umschalt`+`P` abgefangen — `F1` ist der zuverlässige Weg. Bleibt die Konsole leer, ist der serielle Port im Browser nicht freigegeben: `CaDS Board: Verbinden` erneut aufrufen und im Browserdialog bestätigen.
+:::
 
 Klicke dann **Prüfen**. Innerhalb weniger Sekunden kommt genau eine Zeile zurück, die mit `# tasks  ui_free=` beginnt und `input_free=`, `console_free=`, `tasks=`, `events=` und `last_key=` nachreicht. Die drei `*_free`-Zahlen sind **freier Spielraum in Byte**, nicht verbrauchte Byte: die kleine Zahl ist die beunruhigende. Auf dem Host-Build meldet der Befehl gar nichts — dort gibt es keine Tasks, über die zu berichten wäre.
 

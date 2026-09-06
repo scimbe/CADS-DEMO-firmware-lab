@@ -56,11 +56,13 @@ Task stacks live in CCM (`CADS_CCM_SECTION`, M4-01) — the region invisible to 
 
 Three places in this firmware say something about stack depth: the console command `k` reports the free high-water marks of all three tasks, the stack-guard sentinel in the idle hook trips before the damage is final, and the forensic ring records which task last misbehaved. Which of them helps you *before* a crash and which only afterwards is the difference between sizing and autopsy.
 
-**If you want to see `k` yourself** — this step does not require it, but it helps you argue: press **`F1`**, type `CaDS Board: Konsole öffnen`, Enter. **At the bottom** of the terminal area a terminal named `CaDS Board Console` opens at 115200 baud; `Ctrl`/`Cmd`+`J` folds that area open and shut. If the board is sitting in the touchscreen app tree it mishears single letters — then open a terminal first (**☰ → `Terminal` → `New Terminal`**; ☰ is the three-line icon at the very top left, there is no visible menu bar) and run once:
+**Do you want to see `k` yourself?** This step does not require it, but it helps you argue.
 
-```bash
-python3 scripts/board_key.py quit
-```
+::: do palette="> CaDS Board: Konsole öffnen"
+Press **`F1`**, type `CaDS Board: Konsole öffnen`, confirm with `Enter`, and send `k` there.
+> expect: **At the bottom** of the terminal area sits a terminal named `CaDS Board Console` at 115200 baud, and `k` prints the stack report in it, with the free high-water marks of the three tasks.
+> recover: If you cannot see the terminal area, `Ctrl`/`Cmd`+`J` folds it open and shut. If the board does not answer `k` at all, it is sitting in the touchscreen app tree and mishears single letters — open an ordinary terminal first (**☰ → `Terminal` → `New Terminal`**; ☰ is the three-line icon at the very top left, there is no visible menu bar) and run `python3 scripts/board_key.py quit` there once, not in the board console.
+:::
 
 Afterwards click into the terminal `CaDS Board Console`, type `k` there yourself and press Enter. The answer arrives in under a second and starts with `# tasks`.
 

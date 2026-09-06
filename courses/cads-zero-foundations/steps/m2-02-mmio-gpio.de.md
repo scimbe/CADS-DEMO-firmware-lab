@@ -76,7 +76,11 @@ Denk an den Stolperstein aus M0: ein Board im App-Baum ignoriert einfache Befehl
 
 ## Deine Aufgabe
 
-Öffne die Board-Konsole (`F1`, dann `CaDS Board: Konsole öffnen`) und sende `o 0301`. Der Tutor liest die Antwort des Boards mit; am Adapter siehst du zugleich, welche Lampen angehen. Probier danach `o ff`, `o ff00`, `o ffff` und `o 0` sowie ein paar `l`-Muster aus, um ein Gefühl für die Maske zu bekommen.
+::: do palette="> CaDS Board: Konsole öffnen"
+Drücke **`F1`**, tippe `CaDS Board: Konsole öffnen`, bestätige mit `Enter` und sende dort `o 0301`. Probier danach `o ff`, `o ff00`, `o ffff` und `o 0` sowie ein paar `l`-Muster aus, um ein Gefühl für die Maske zu bekommen.
+> expect: Die Konsole antwortet mit `# outputs = 0301`, und am Adapter leuchten genau die Lampen, die zu dieser Maske gehören.
+> recover: Kommt vom Board gar nichts zurück, steht es noch im Touchscreen-App-Baum und überhört einzelne Buchstaben — führ dann in einem gewöhnlichen Terminal (**☰ → `Terminal` → `New Terminal`**) einmal `python3 scripts/board_key.py quit` aus, nicht in der Board-Konsole. Zeigt die Konsole einen gelben Hinweis, ist der serielle Port im Browser nicht freigegeben: `CaDS Board: Verbinden` erneut aufrufen.
+:::
 
 Rechne dann die Maske `0x0301` selbst in Pins um, und beurteile zuletzt, warum die HAL das BSRR benutzt und nicht das ODR.
 

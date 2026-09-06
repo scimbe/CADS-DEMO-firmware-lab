@@ -34,7 +34,7 @@ socratic:
 
 Draw on the canvas the way every app in this firmware does, and see why every drawing call also records *damage* so only what changed reaches the panel.
 
-**Concretely:** add one drawing call to `gui/cads_splash.c`, run the task `CaDS: Build`, flash, and open the test pattern on the panel. Each of those four steps is spelled out below with its full operating path.
+**Concretely:** one drawing call added to `gui/cads_splash.c`, a build, a flash, and the test pattern open on the panel. Each of those four steps is spelled out below with its full operating path.
 
 ## The surface: 480×320 at 4 bits per pixel
 
@@ -75,19 +75,29 @@ The first check runs the file through the C preprocessor and only then looks for
 
 ## Step 2 — build
 
-Start the task **`CaDS: Build`**: press **`F1`**, type `Tasks: Run Task`, press Enter, then pick **`CaDS: Build`** from the list. Without the keyboard: the three-line icon (**☰**) at the very top left, then **`Terminal` → `Run Task...` → `CaDS: Build`**. The user interface is in English while this course is in German — the menu entry really is called `Run Task...`.
-
-A terminal named `CaDS: Build` opens in the terminal area at the bottom, with the compiler lines scrolling through it. The first time takes about a minute, after that seconds. It is finished when no new lines appear and a prompt is back. It worked when the last line is the build tool's and not a compiler error, and the `PROBLEMS` tab stays empty.
+::: do task="CaDS: Build"
+Start the task through **`F1`** → `Tasks: Run Task` → `Enter` → `CaDS: Build`; without the keyboard through the three-line icon (**☰**) at the very top left, then **`Terminal` → `Run Task...` → `CaDS: Build`**. The user interface is in English while this course is in German — the menu entry really is called `Run Task...`. The first time takes about a minute, after that seconds.
+> expect: A terminal named `CaDS: Build` opens at the bottom, with the compiler lines scrolling through it. At the end the last line is the build tool's and not a compiler error, and the `PROBLEMS` tab stays empty.
+> recover: If the `PROBLEMS` tab holds an error about `gui/cads_splash.c`, you added the drawing call wrongly or did not save before building — `Ctrl`/`Cmd`+`S` and start again. If no terminal appears at all, the palette never opened: use `F1` rather than the shortcut.
+:::
 
 ## Step 3 — flash
 
-Start the task **`CaDS: Build + Flash`**: press **`F1`**, type `Tasks: Run Task`, press Enter, then pick **`CaDS: Build + Flash`**. Without the keyboard: **☰ → `Terminal` → `Run Task...` → `CaDS: Build + Flash`**. It builds first and then flashes; the flash takes about 15 seconds. You see it worked in the status bar at the bottom.
+::: do palette="> CaDS Board: Flash (build/itsboard/cads-zero.bin)"
+Press **`F1`**, type `CaDS Board: Flash` and pick the full entry with `Enter`. To build and flash in one go, take **☰ → `Terminal` → `Run Task...` → `CaDS: Build + Flash`** instead. The flash takes about 15 seconds.
+> expect: The status bar at the bottom then names the byte count and the duration of the last flash, for instance `Flash ok: 327088 Bytes in 15973 ms`.
+> recover: If the status bar reports that there is no image, step 2 did not build — look in the `CaDS: Build` terminal for the error. If the write breaks off, the board is no longer released: call `CaDS Board: Verbinden` and confirm in the browser dialog.
+:::
 
 ![Flashed successfully: the status bar names the byte count and the duration of the last flash](flash-ok.png)
 
 ## Step 4 — open the test pattern on the panel
 
-Open the board console: press **`F1`**, type `CaDS Board: Konsole öffnen`, press Enter. Type `d` there and press Enter — that starts the app tree on the panel, and from then on the board no longer reacts to single typed letters.
+::: do palette="> CaDS Board: Konsole öffnen"
+Press **`F1`**, type `CaDS Board: Konsole öffnen`, confirm with `Enter`, and send `d` there followed by Enter.
+> expect: The app tree starts on the panel. From then on the board no longer reacts to single typed letters — that is intended, and the reason navigation comes from a terminal in a moment.
+> recover: If nothing happens on the panel, the board did not hear `d`: if it is already in the app tree it ignores single letters — then there is nothing to do, carry straight on navigating. If the console shows a yellow notice, the serial port is not granted in the browser: call `CaDS Board: Verbinden` again.
+:::
 
 Navigation happens from a terminal. Open one with **☰ → `Terminal` → `New Terminal`**; if the terminal area is folded away, `Ctrl`/`Cmd`+`J` opens and closes it. The working directory is the project root:
 

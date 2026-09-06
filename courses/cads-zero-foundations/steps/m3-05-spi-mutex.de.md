@@ -86,8 +86,4 @@ Damit hast du die Zahlen für die zweite Aufgabe — und eine Zutat mehr, denn d
 
 Lies den Doc-Kommentar über `cads_hal_spi_claim_bus()` und den ROADMAP-Eintrag vom 2026-08-26. Leite dann her, woher die 307 200 MAC-Zyklen des alten Treibers kommen, und erkläre, warum `BASEPRI = 0x50` zwar alle drei Handler sperrte, aber nur die Display-DMA einen Hänger erzeugte. Der dritte Check lässt dich die Absicherung in `hal_spi.c` selbst finden. M4 greift die Scheduler-Seite derselben Geschichte auf.
 
-**Wo du das machst:**
-- Datei öffnen: `Strg`/`Cmd`+`P`.
-- Terminal öffnen: Menü *Terminal → New Terminal*.
-- Board-Konsole öffnen: `F1`, dann *CaDS Board: Konsole öffnen*.
-- Bauen: Menü *Terminal → Run Build Task…*.
+**Wo du das machst:** Dieser Step baut nichts und spricht nicht mit dem Board — du liest Dateien und schreibst Antworten. Eine Datei öffnest du mit `Strg`/`Cmd`+`P` und dem getippten Pfad; geprüft wird mit **Prüfen** an der jeweiligen Aufgabe oder **Run all checks** oben im Steptext.
