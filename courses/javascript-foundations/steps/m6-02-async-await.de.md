@@ -51,6 +51,8 @@ misconceptions:
 
 Schreib asynchronen Code, der sich von oben nach unten liest, und erkenne den stillen Fehlschlag, den ein fehlendes `await` erzeugt.
 
+Aus [m5-04](step:m5-04-transformations) mitgenommen: `map` über eine asynchrone Funktion liefert ein Array von Promises statt eines Arrays von Werten - die Kette ist dieselbe, ihr Inhalt nicht.
+
 ## Zwei Schlüsselwörter über einem Mechanismus
 
 ```js

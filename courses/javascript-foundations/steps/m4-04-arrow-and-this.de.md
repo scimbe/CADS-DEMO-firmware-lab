@@ -45,6 +45,8 @@ misconceptions:
 
 Erkläre, was `this` setzt, erkenne den Fehler, den eine losgelöste Methode erzeugt, und wähle einen Entwurf, in dem die Frage gar nicht erst aufkommt.
 
+Aus [m2-04](step:m2-04-error-objects) mitgenommen: eine abgelöste Methode scheitert mit einem `TypeError`, und herauszulesen, welches Objekt darin fehlte, ist dieselbe Fähigkeit wie bei deiner eigenen Fehlerklasse.
+
 ## `this` kommt vom Aufruf, nicht vom Code
 
 In einer normalen Funktion ist `this` das, was **im Moment des Aufrufs** vor dem Punkt stand:

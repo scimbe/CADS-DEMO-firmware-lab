@@ -42,6 +42,8 @@ misconceptions:
 
 Wähle Array-Operationen danach, was sie mit den Daten des Aufrufers machen, und lies `length` als Eigenschaft, die sich nicht nur lesen, sondern auch schreiben lässt.
 
+Aus [m3-02](step:m3-02-off-by-one) mitgenommen: die Grenze, die du dort aufgeschrieben hast, ist jetzt ein Argument für `slice` und `splice` - eins daneben entscheidet, wessen Daten du beschädigst.
+
 ## length ist keine beobachtete Anzahl
 
 MDNs Kapitel [Indexed collections](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Indexed_collections) macht einen Punkt, mit dem Einsteiger selten rechnen: `length` ist eine schreibbare Eigenschaft, und eine Zuweisung daran verändert das Array.

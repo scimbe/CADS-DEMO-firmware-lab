@@ -51,6 +51,8 @@ misconceptions:
 
 Pick the iteration form by what you need out of it - keys or values - and know why `for...in` is the wrong tool for an array.
 
+Carried over from [m3-02](step:m3-02-off-by-one): the index arithmetic these forms save you from - and the one form that hands it back to you as text.
+
 ## Two loops that look alike and are not
 
 ```js

@@ -45,6 +45,8 @@ misconceptions:
 
 Read an out-of-range symptom back to the loop condition that caused it, and fix boundaries by writing them down rather than by trying operators.
 
+Both earlier steps are in play: the loop shapes of [m3-01](step:m3-01-for-and-while), and the boundary conditions of [m2-01](step:m2-01-if-switch) - an off-by-one is a boundary written down wrongly.
+
 ## Indices end one before the length
 
 An array of length 3 has indices 0, 1, 2. There is no index 3. But JavaScript does not stop you from asking:

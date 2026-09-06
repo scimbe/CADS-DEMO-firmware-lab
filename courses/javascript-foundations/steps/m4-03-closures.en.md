@@ -51,6 +51,8 @@ misconceptions:
 
 Explain what a returned function still has access to, and predict which binding a closure captured when the surrounding loop has long finished.
 
+Carried over from [m4-02](step:m4-02-parameters): a parameter is a binding too, and a closure captures bindings - which is why the argument a function was called with can outlive the call.
+
 ## A closure is a function plus the scope it was born in
 
 MDN's [Functions](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Functions) chapter defines it directly: a nested function keeps access to the variables of the function that created it, even after that outer function has returned.

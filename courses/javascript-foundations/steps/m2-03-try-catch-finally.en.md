@@ -54,6 +54,8 @@ misconceptions:
 
 Decide deliberately whether an error stops at your function or travels on, and use `finally` for the work that has to happen either way.
 
+You need the falsy values of [m2-02](step:m2-02-truthy-falsy) to see why a fallback can swallow a real result, and the block scope of [m1-01](step:m1-01-let-const) to know where a name declared inside `try` still exists.
+
 ## Throwing and catching
 
 `throw` sends a value up the call stack until something catches it. `try`/`catch` is what catches it:

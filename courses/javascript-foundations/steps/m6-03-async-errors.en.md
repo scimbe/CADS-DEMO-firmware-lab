@@ -45,6 +45,8 @@ misconceptions:
 
 Catch a failure that has not happened yet, and pass an error upward without destroying the evidence.
 
+Carried over from [m6-02](step:m6-02-async-await): the missing `await` you learned to spot is the same omission that lets a `try` block finish before the failure arrives.
+
 ## try/catch only catches a throw
 
 `try`/`catch` from [m2-03](step:m2-03-try-catch-finally) catches a **synchronous** throw. A function that returns a rejected promise does not throw at the call site - it returns normally, with an object that will fail later.

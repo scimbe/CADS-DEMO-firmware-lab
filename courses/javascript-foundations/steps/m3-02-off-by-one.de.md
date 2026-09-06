@@ -45,6 +45,8 @@ misconceptions:
 
 Lies ein Symptom außerhalb des Bereichs auf die verursachende Schleifenbedingung zurück und korrigiere Grenzen, indem du sie aufschreibst, statt Operatoren durchzuprobieren.
 
+Beide früheren Steps spielen mit: die Schleifenformen aus [m3-01](step:m3-01-for-and-while) und die Grenzbedingungen aus [m2-01](step:m2-01-if-switch) - ein Off-by-one ist eine falsch aufgeschriebene Grenze.
+
 ## Indizes enden eins vor der Länge
 
 Ein Array der Länge 3 hat die Indizes 0, 1, 2. Einen Index 3 gibt es nicht. JavaScript hindert dich aber nicht daran zu fragen:

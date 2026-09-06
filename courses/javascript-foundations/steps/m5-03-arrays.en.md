@@ -42,6 +42,8 @@ misconceptions:
 
 Choose array operations by what they do to the caller's data, and read `length` as a property that can be written as well as read.
 
+Carried over from [m3-02](step:m3-02-off-by-one): the boundary you wrote down there is now an argument to `slice` and `splice`, where being one out decides whose data you damaged.
+
 ## length is not a count you observe
 
 MDN's [Indexed collections](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Indexed_collections) chapter makes a point beginners rarely expect: `length` is a writable property, and assigning to it changes the array.

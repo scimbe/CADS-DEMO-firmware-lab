@@ -42,6 +42,8 @@ misconceptions:
 
 Read an object as a set of named references, and know exactly how much of a structure a copy actually copies.
 
+Carried over from [m4-04](step:m4-04-arrow-and-this): a method reaches its object through the receiver, so the identity of that object is exactly what a copy does or does not preserve.
+
 ## Objects hold references
 
 An object property holds a value. When that value is an array or another object, what is stored is a **reference** to it, not the thing itself. Two properties can therefore name the same array:

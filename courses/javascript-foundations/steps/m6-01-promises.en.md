@@ -45,6 +45,8 @@ misconceptions:
 
 Read a promise as a value that has not arrived yet, produce one, and chain work onto it without pretending the result is available immediately.
 
+Carried over from [m5-04](step:m5-04-transformations): the pipeline you built there is what you will soon build over values that have not arrived yet.
+
 ## Why the result is not simply returned
 
 JavaScript runs your code on one thread. A function that waited for a timer, a file or a network reply by blocking would stop everything else. So functions that take time return **now**, with an object representing the eventual result.

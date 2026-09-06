@@ -42,6 +42,8 @@ misconceptions:
 
 Tell "this value is empty" apart from "this value was never given", and pick the operator that asks the question you actually mean.
 
+Two threads meet here: the branching of [m2-01](step:m2-01-if-switch), and the silent conversions of [m1-03](step:m1-03-coercion-nan) - truthiness is conversion wearing a different hat.
+
 ## The eight falsy values
 
 Anywhere JavaScript needs a boolean - an `if` condition, `||`, `&&`, a ternary - it converts the value it was given. MDN's [Control flow](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Control_flow_and_error_handling) chapter lists the values that convert to `false`:

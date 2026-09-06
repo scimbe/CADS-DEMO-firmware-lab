@@ -42,6 +42,8 @@ misconceptions:
 
 Verlasse eine Schleife im richtigen Moment: einen Durchlauf mit `continue` überspringen, eine Schleife mit `break` beenden, und zwei mit einer Marke oder einem `return`.
 
+Aus [m2-01](step:m2-01-if-switch) mitgenommen: früh aussteigen ist dieselbe Entscheidung wie einen Zweig nehmen, und `break` heißt hier, was es im `switch` hieß.
+
 ## continue und break
 
 ```js
