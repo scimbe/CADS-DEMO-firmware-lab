@@ -19,7 +19,7 @@ tasks:
     check: { type: testSuite, runner: node-test, expectPass: ["m5-01 readSettings copies the fields", "m5-01 readSettings copies the tags instead of sharing them", "m5-01 listEntries renders key=value in insertion order"], minPass: 3 }
   - id: shared-or-copied
     title: Was wirklich kopiert wurde
-    check: { type: question, prompt: { en: "The first test passed and the second failed on the same function. What did the copy not copy?", de: "Der erste Test bestand, der zweite scheiterte, gleiche Funktion. Was hat die Kopie nicht kopiert?" }, rubric: "Says the property held a reference rather than the collection itself, so both objects ended up naming one collection, and states how deep a copy of that kind reaches. Does not pass: an answer that says the function forgot a property, or one that uses the word copy without saying what was shared.", bloom: analyze, minChars: 50 }
+    check: { type: question, prompt: { en: "The first test passed and the second failed on the same function. What did the copy not copy?", de: "Der erste Test bestand, der zweite scheiterte, gleiche Funktion. Was hat die Kopie nicht kopiert?" }, rubric: "Sagt, dass die Eigenschaft eine Referenz statt der Sammlung selbst enthielt, sodass beide Objekte am Ende auf eine einzige Sammlung zeigten, und gibt an, wie tief eine Kopie dieser Art reicht. Besteht nicht: eine Antwort, die sagt, die Funktion habe eine Eigenschaft vergessen, oder eine, die das Wort Kopie benutzt, ohne zu sagen, was geteilt wurde.", bloom: analyze, minChars: 50 }
 socratic:
   - trigger: "task:settings:failed"
     question: { en: "Is the failure about the shared collection, or about the key=value strings?", de: "Geht es um die geteilte Sammlung oder um die key=value-Zeichenketten?" }

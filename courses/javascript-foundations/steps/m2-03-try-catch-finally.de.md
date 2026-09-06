@@ -16,13 +16,13 @@ sources: [src/m2/safe-parse.js, test/m2-03-try-catch-finally.test.js, examples/m
 tasks:
   - id: guess-finally
     title: Sag vorher, was das finally-Beispiel zurückgibt
-    check: { type: predict, prompt: { en: "Read examples/m2-finally-order.js. Write down the numbers it prints, in order, and the value it returns.", de: "Lies examples/m2-finally-order.js. Schreib die ausgegebenen Zahlen in Reihenfolge auf und den Rückgabewert." }, then: { type: command, command: "node examples/m2-finally-order.js", expectExitCode: 0, expectStdout: "false" }, rubric: "Sets the predicted order and final value against the printed ones, and names which block had the last word. Does not pass: an answer that reports the output without saying which block decided the value.", bloom: evaluate }
+    check: { type: predict, prompt: { en: "Read examples/m2-finally-order.js. Write down the numbers it prints, in order, and the value it returns.", de: "Lies examples/m2-finally-order.js. Schreib die ausgegebenen Zahlen in Reihenfolge auf und den Rückgabewert." }, then: { type: command, command: "node examples/m2-finally-order.js", expectExitCode: 0, expectStdout: "false" }, rubric: "Stellt die vorhergesagte Reihenfolge und den vorhergesagten Endwert den ausgegebenen gegenüber und nennt den Block, der das letzte Wort hatte. Besteht nicht: eine Antwort, die die Ausgabe wiedergibt, ohne den entscheidenden Block zu nennen.", bloom: evaluate }
   - id: safe-parse
     title: Beide Fehlerbehandlungs-Tests sind grün
     check: { type: testSuite, runner: node-test, expectPass: ["m2-03 safeParse returns the parsed value or the fallback", "m2-03 withCleanup always runs the cleanup, even when work throws"], minPass: 2 }
   - id: catch-or-travel
     title: Fangen oder weiterreisen lassen
-    check: { type: question, prompt: { en: "One function catches, the other does not. Give the rule you would use, in one sentence.", de: "Eine Funktion fängt, die andere nicht. Nenne die Regel, nach der du entscheidest, in einem Satz." }, rubric: "A rule that turns on whether the function can still produce a meaningful result despite the failure. Does not pass: a rule based on how likely the error is, or on which version looks tidier, and any rule that would have both functions catch.", bloom: analyze, minChars: 40 }
+    check: { type: question, prompt: { en: "One function catches, the other does not. Give the rule you would use, in one sentence.", de: "Eine Funktion fängt, die andere nicht. Nenne die Regel, nach der du entscheidest, in einem Satz." }, rubric: "Eine Regel, die daran hängt, ob die Funktion trotz des Fehlschlags noch ein sinnvolles Ergebnis liefern kann. Besteht nicht: eine Regel nach der Wahrscheinlichkeit des Fehlers oder danach, welche Fassung aufgeräumter aussieht, sowie jede Regel, nach der beide Funktionen fangen würden.", bloom: analyze, minChars: 40 }
 socratic:
   - trigger: "task:guess-finally:failed"
     question: { en: "What did you predict the function returns, and what did it return?", de: "Was hast du als Rückgabewert vorhergesagt, und was kam zurück?" }

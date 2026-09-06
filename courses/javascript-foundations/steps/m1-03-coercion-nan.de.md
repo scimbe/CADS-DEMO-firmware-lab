@@ -19,7 +19,7 @@ tasks:
     check: { type: testSuite, runner: node-test, expectPass: ["m1-03 sumStrings adds numeric strings as numbers", "m1-03 isValidNumber rejects text that converts to NaN"], minPass: 2 }
   - id: why-silent
     title: Warum keiner der beiden Fehler geworfen hat
-    check: { type: question, prompt: { en: "Neither bug threw. For each, name the single step where a wrong type slipped through.", de: "Keiner der Fehler warf. Nenne für jeden die eine Stelle, an der ein falscher Typ durchkam." }, rubric: "Points at one operator in each function: in the first, the one whose behaviour depends on what it is handed; in the second, the one whose verdict is settled in advance. Does not pass: pointing at a printed result rather than an operator, or arguing that either case should have stopped the program.", bloom: analyze, minChars: 60 }
+    check: { type: question, prompt: { en: "Neither bug threw. For each, name the single step where a wrong type slipped through.", de: "Keiner der Fehler warf. Nenne für jeden die eine Stelle, an der ein falscher Typ durchkam." }, rubric: "Zeigt in jeder Funktion auf einen Operator: in der ersten auf den, dessen Verhalten von den übergebenen Werten abhängt; in der zweiten auf den, dessen Urteil von vornherein feststeht. Besteht nicht: auf ein ausgegebenes Ergebnis statt auf einen Operator zu zeigen, oder zu behaupten, einer der beiden Fälle hätte das Programm anhalten müssen.", bloom: analyze, minChars: 60 }
 socratic:
   - trigger: "task:numbers:failed"
     question: { en: "Look at the actual value the test printed. Is it a wrong number, or not a number at all?", de: "Sieh dir den tatsächlichen Wert an. Ist es eine falsche Zahl, oder gar keine Zahl?" }

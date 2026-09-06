@@ -22,7 +22,7 @@ tasks:
     check: { type: command, command: "node --test --test-reporter=tap test/m7-02-capstone-build.mine.test.js", expectExitCode: 0, expectStdout: "# pass ([2-9]|[1-9][0-9]+)", timeoutMs: 60000 }
   - id: what-your-tests-found
     title: Wozu deine eigenen Tests da waren
-    check: { type: question, prompt: { en: "Which cases did you add, and why does the given suite miss them? One sentence each.", de: "Welche Fälle hast du ergänzt, und warum fehlen sie der vorgegebenen Suite? Je ein Satz." }, rubric: "At least two concrete cases, each with a reason the given suite does not reach it, and an honest outcome, whether a bug appeared or the implementation already held. Does not pass: a case the given suite already covers, or a claim that a test found something without saying what changed.", bloom: evaluate, minChars: 80 }
+    check: { type: question, prompt: { en: "Which cases did you add, and why does the given suite miss them? One sentence each.", de: "Welche Fälle hast du ergänzt, und warum fehlen sie der vorgegebenen Suite? Je ein Satz." }, rubric: "Mindestens zwei konkrete Fälle, je mit einem Grund, warum die vorgegebene Suite sie nicht erreicht, und ein ehrliches Ergebnis, ob ein Fehler auftauchte oder die Implementierung bereits hielt. Besteht nicht: ein Fall, den die vorgegebene Suite schon abdeckt, oder die Behauptung, ein Test habe etwas gefunden, ohne zu sagen, was sich änderte.", bloom: evaluate, minChars: 80 }
 socratic:
   - trigger: "task:contract:failed"
     question: { en: "Which of the seven fails, and is it about reading, aggregating, formatting or waiting?", de: "Welcher der sieben scheitert, und geht es um Lesen, Aggregieren, Formatieren oder Warten?" }

@@ -16,13 +16,13 @@ sources: [src/m4/counter-factory.js, test/m4-03-closures.test.js, examples/m4-cl
 tasks:
   - id: guess-capture
     title: Sag vorher, was die Schleifen-Closures liefern
-    check: { type: predict, prompt: { en: "Read examples/m4-closure-loop.js. Write down the two arrays and the three numbers it prints.", de: "Lies examples/m4-closure-loop.js. Schreib die zwei Arrays und die drei Zahlen auf, die es ausgibt." }, then: { type: command, command: "node examples/m4-closure-loop.js", expectExitCode: 0, expectStdout: "3, 3, 3" }, rubric: "Sets both predicted arrays against the printed ones and names what differs between the two loops. Does not pass: reporting the output without saying why the two arrays differ.", bloom: evaluate }
+    check: { type: predict, prompt: { en: "Read examples/m4-closure-loop.js. Write down the two arrays and the three numbers it prints.", de: "Lies examples/m4-closure-loop.js. Schreib die zwei Arrays und die drei Zahlen auf, die es ausgibt." }, then: { type: command, command: "node examples/m4-closure-loop.js", expectExitCode: 0, expectStdout: "3, 3, 3" }, rubric: "Stellt beide vorhergesagten Arrays den ausgegebenen gegenüber und nennt, was die beiden Schleifen unterscheidet. Besteht nicht: die Ausgabe wiedergeben, ohne zu sagen, warum sich die beiden Arrays unterscheiden.", bloom: evaluate }
   - id: counters
     title: Alle drei Closure-Tests sind grün
     check: { type: testSuite, runner: node-test, expectPass: ["m4-03 a counter keeps its own state", "m4-03 two counters do not share state", "m4-03 every adder captures its own number"], minPass: 3 }
   - id: closure-cost
     title: Was eine Closure am Leben hält
-    check: { type: question, prompt: { en: "Give one case where keeping a captured variable alive is the point, and one where it is the bug.", de: "Nenne einen Fall, in dem eine festgehaltene Variable der Zweck ist, und einen, in dem sie der Fehler ist." }, rubric: "Two cases that turn on the same mechanism in opposite directions. Does not pass: two cases that are both about state you wanted, or a bug case that is really about a typo rather than about what was captured.", bloom: analyze, minChars: 50 }
+    check: { type: question, prompt: { en: "Give one case where keeping a captured variable alive is the point, and one where it is the bug.", de: "Nenne einen Fall, in dem eine festgehaltene Variable der Zweck ist, und einen, in dem sie der Fehler ist." }, rubric: "Zwei Fälle, die denselben Mechanismus in entgegengesetzte Richtungen drehen. Besteht nicht: zwei Fälle, in denen es beide Male um gewollten Zustand geht, oder ein Fehlerfall, in dem es in Wahrheit um einen Tippfehler geht statt um das Festgehaltene.", bloom: analyze, minChars: 50 }
 socratic:
   - trigger: "task:guess-capture:failed"
     question: { en: "Did the two arrays match your prediction, and did you expect them to differ?", de: "Passten die zwei Arrays zu deiner Vorhersage, und hast du einen Unterschied erwartet?" }

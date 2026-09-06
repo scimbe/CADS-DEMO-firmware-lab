@@ -19,7 +19,7 @@ tasks:
     check: { type: testSuite, runner: node-test, expectPass: ["m4-02 joinWords uses the default separator when none is given", "m4-02 describeCall reports count and values from the rest parameter"], minPass: 2 }
   - id: default-trigger
     title: Wann ein Standardwert wirklich greift
-    check: { type: question, prompt: { en: "For which single argument value does a default fire, and what does joinWords(null, \\\"a\\\") return?", de: "Bei welchem einzigen Argumentwert greift ein Standardwert, und was liefert joinWords(null, \\\"a\\\")?" }, rubric: "Names the one value a parameter default reacts to, and gives the return for the null call with a reason that follows from it. Does not pass: naming more than one triggering value, or a return value that would require the default to have fired.", bloom: analyze, minChars: 40 }
+    check: { type: question, prompt: { en: "For which single argument value does a default fire, and what does joinWords(null, \\\"a\\\") return?", de: "Bei welchem einzigen Argumentwert greift ein Standardwert, und was liefert joinWords(null, \\\"a\\\")?" }, rubric: "Nennt den einen Wert, auf den ein Parameterstandard reagiert, und gibt den Rückgabewert des null-Aufrufs mit einer Begründung an, die daraus folgt. Besteht nicht: mehr als ein auslösender Wert genannt, oder ein Rückgabewert, der ein Greifen des Standards voraussetzen würde.", bloom: analyze, minChars: 40 }
 socratic:
   - trigger: "task:format:failed"
     question: { en: "Is the separator wrong, or the number of collected arguments?", de: "Stimmt das Trennzeichen nicht oder die Anzahl gesammelter Argumente?" }

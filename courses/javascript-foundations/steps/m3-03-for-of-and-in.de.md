@@ -16,13 +16,13 @@ sources: [src/m3/iterate.js, test/m3-03-for-of-and-in.test.js, examples/m3-loop-
 tasks:
   - id: guess-loop-order
     title: Sag vorher, was jede Schleife liefert
-    check: { type: predict, prompt: { en: "Read examples/m3-loop-order.js. Write down every line it prints, in order, before you run it.", de: "Lies examples/m3-loop-order.js. Schreib jede ausgegebene Zeile in Reihenfolge auf, bevor du es ausführst." }, then: { type: command, command: "node examples/m3-loop-order.js", expectExitCode: 0, expectStdout: "not an element|extra" }, rubric: "Sets the predicted lines against the printed ones and names at least one place where the two loops differed, or where the extra property or the final loop behaved unexpectedly. Does not pass: reporting the output without naming which expectation it corrected.", bloom: evaluate }
+    check: { type: predict, prompt: { en: "Read examples/m3-loop-order.js. Write down every line it prints, in order, before you run it.", de: "Lies examples/m3-loop-order.js. Schreib jede ausgegebene Zeile in Reihenfolge auf, bevor du es ausführst." }, then: { type: command, command: "node examples/m3-loop-order.js", expectExitCode: 0, expectStdout: "not an element|extra" }, rubric: "Stellt die vorhergesagten Zeilen den ausgegebenen gegenüber und nennt mindestens eine Stelle, an der sich die beiden Schleifen unterschieden oder an der die zusätzliche Eigenschaft oder die letzte Schleife unerwartet handelte. Besteht nicht: die Ausgabe wiedergeben, ohne die berichtigte Erwartung zu nennen.", bloom: evaluate }
   - id: iterate
     title: Alle drei Iterations-Tests sind grün
     check: { type: testSuite, runner: node-test, expectPass: ["m3-03 ownValues returns values, not keys", "m3-03 firstMatch yields elements, not index strings", "m3-03 firstMatch does not visit elements after the match"], minPass: 3 }
   - id: which-iteration
     title: Die Iterationsform wählen
-    check: { type: question, prompt: { en: "Name what each of the four ways to walk a collection hands you. One line each.", de: "Nenne, was jeder der vier Wege durch eine Sammlung dir gibt. Je eine Zeile." }, rubric: "Four lines that differ from one another, each saying what lands in the variable rather than what the form is for. Does not pass: two lines that amount to the same thing, or a line describing a use case instead of the contents.", bloom: understand, minChars: 60 }
+    check: { type: question, prompt: { en: "Name what each of the four ways to walk a collection hands you. One line each.", de: "Nenne, was jeder der vier Wege durch eine Sammlung dir gibt. Je eine Zeile." }, rubric: "Vier Zeilen, die sich voneinander unterscheiden und je sagen, was in der Variablen landet, statt wozu die Form da ist. Besteht nicht: zwei Zeilen, die auf dasselbe hinauslaufen, oder eine Zeile, die einen Anwendungsfall statt des Inhalts beschreibt.", bloom: understand, minChars: 60 }
 socratic:
   - trigger: "task:guess-loop-order:failed"
     question: { en: "How many lines did you predict, and did any of them surprise you?", de: "Wie viele Zeilen hast du vorhergesagt, und hat dich eine überrascht?" }

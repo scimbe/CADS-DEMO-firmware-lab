@@ -21,7 +21,7 @@ tasks:
     check: { type: testSuite, runner: node-test, expectPass: ["m0-01 the workspace is ready"], minPass: 1 }
   - id: where-things-are
     title: Sag, wo die Ausgabe erschienen ist
-    check: { type: question, prompt: { en: "Name the route you used, where the output appeared, and the file you edited. One sentence each.", de: "Nenne den benutzten Weg, wo die Ausgabe erschien, und die geänderte Datei. Je ein Satz." }, rubric: "Three sentences, one per part: which of the three ways was taken, which region of the window carried the result, and which of the two folders the edit landed in. Does not pass: an edit placed in the folder holding the marking scheme, fewer than three parts answered, or a region named so loosely it could be the whole window.", bloom: understand, minChars: 60 }
+    check: { type: question, prompt: { en: "Name the route you used, where the output appeared, and the file you edited. One sentence each.", de: "Nenne den benutzten Weg, wo die Ausgabe erschien, und die geänderte Datei. Je ein Satz." }, rubric: "Drei Sätze, je einer pro Teil: welcher der drei Wege genommen wurde, welcher Bereich des Fensters das Ergebnis trug und in welchem der beiden Ordner die Änderung landete. Besteht nicht: eine Änderung im Ordner mit dem Prüfschema, weniger als drei beantwortete Teile, oder ein Bereich so ungenau benannt, dass er das ganze Fenster sein könnte.", bloom: understand, minChars: 60 }
 socratic:
   - trigger: "task:node-runs:failed"
     question: { en: "Nothing came back. Is a terminal open, and does its prompt end in the exercise folder?", de: "Es kam nichts zurück. Ist ein Terminal offen, und endet sein Prompt auf den Übungsordner?" }

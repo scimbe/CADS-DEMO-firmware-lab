@@ -20,7 +20,7 @@ tasks:
     check: { type: testSuite, runner: node-test, expectPass: ["m0-02 greet returns the greeting"], minPass: 1 }
   - id: what-i-see
     title: Sag, was du vor dir hast
-    check: { type: question, prompt: { en: "What did the first failure tell you, and how will you know the step is done? Two sentences.", de: "Was sagte dir der erste Fehlschlag, und woran erkennst du, dass der Step fertig ist? Zwei Sätze." }, rubric: "Sentence one names the thrown TODO error and the file and function the stack trace pointed at. Sentence two gives a checkable finish condition: the step's own test reporting fail 0. Does not pass: 'it was red, now it is green' with no file named, or a finish condition that is a feeling rather than an output.", bloom: remember, minChars: 50 }
+    check: { type: question, prompt: { en: "What did the first failure tell you, and how will you know the step is done? Two sentences.", de: "Was sagte dir der erste Fehlschlag, und woran erkennst du, dass der Step fertig ist? Zwei Sätze." }, rubric: "Satz eins nennt den geworfenen TODO-Fehler sowie Datei und Funktion, auf die der Stacktrace zeigte. Satz zwei nennt eine prüfbare Abschlussbedingung: der Test des Steps meldet fail 0. Besteht nicht: „war rot, ist jetzt grün“ ohne genannte Datei, oder eine Abschlussbedingung, die ein Gefühl statt einer Ausgabe ist.", bloom: remember, minChars: 50 }
 socratic:
   - trigger: "task:greet:failed"
     question: { en: "Is it still the error the exercise shipped with, or is it now two strings being compared?", de: "Ist es noch der ausgelieferte Fehler, oder werden jetzt zwei Zeichenketten verglichen?" }
