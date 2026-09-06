@@ -3,6 +3,7 @@ id: m7-01-lwip-netif
 title: Das lwIP-netif und die statische Adressierung
 bloom: understand
 objectives: [cz.net.lwip]
+recallFrom: [m1-03-sim-vs-board]
 requires: [m6-04-build-profiles]
 estimatedMinutes: 20
 scaffold: worked
@@ -34,6 +35,10 @@ socratic:
 ## Lernziel
 
 Verstehe, wie CaDS Zero seine Netzwerkschnittstelle hochbringt, warum ein Aufrufer den Link-Zustand pollen muss, und welche Adresse das Board benutzt, wenn nichts konfiguriert wurde.
+
+## Der ehrliche Stub aus M1
+
+In **M1-03** hast du vorhergesagt, was der Netz-Stub des Simulators meldet, und nachgelesen, warum er nie einen Link meldet. Hier steht die andere Implementierung desselben Headers: `cads_net_board.c` mit einem echten lwIP-netif über den RMII-MAC.
 
 ## Der Hardware-Vorteil in einem Modul
 

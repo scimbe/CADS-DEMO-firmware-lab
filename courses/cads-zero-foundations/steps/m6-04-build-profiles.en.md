@@ -3,6 +3,7 @@ id: m6-04-build-profiles
 title: Build profiles
 bloom: analyze
 objectives: [cz.storage.profiles]
+recallFrom: [m4-02-ram-budget]
 requires: [m6-03-config-option]
 estimatedMinutes: 15
 scaffold: independent
@@ -33,6 +34,10 @@ socratic:
 ## Learning goal
 
 Select which apps go into an image with a build profile, and understand why that decision lives in a different file from the runtime configuration.
+
+## The M4 margin is the argument
+
+More RAM headroom from a smaller image is not a feeling but the margin you predicted and measured in **M4-02**: the distance above the 48 KB floor that `scripts/check_ram_budget.py` guards. A profile is the cheapest lever on it.
 
 ## Feature selection at configure time
 

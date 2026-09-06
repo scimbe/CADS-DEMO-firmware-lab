@@ -6,7 +6,7 @@ objectives: [cz.debug.registers-svd]
 requires: [m3-01-gdb-breakpoints]
 estimatedMinutes: 15
 scaffold: faded
-recallFrom: [m2-00-mmio-primer]
+recallFrom: [m2-00-mmio-primer, m2-02-mmio-gpio]
 links:
   - { step: m3-03-fault-forensics }
   - { file: "targets/itsboard/STM32F429.svd" }
@@ -31,6 +31,10 @@ socratic:
 ## Learning goal
 
 Read the STM32's own registers on the live board through the debugger, so you can answer hardware questions - is the clock right, what does an output pin hold - by looking rather than guessing.
+
+## The same register, now from outside
+
+In **M2-02** you wrote `GPIOD->ODR` through the HAL and converted the mask into pins. Here you read that same register back on the running board — and see whether the store actually arrived.
 
 ## Opening the session you will read in
 

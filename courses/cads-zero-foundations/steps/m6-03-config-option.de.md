@@ -3,6 +3,7 @@ id: m6-03-config-option
 title: Eine Einstellung am laufenden Board ändern
 bloom: apply
 objectives: [cz.storage.config]
+recallFrom: [m5-02-view-dispatcher]
 requires: [m6-02-config-file]
 estimatedMinutes: 15
 scaffold: faded
@@ -30,6 +31,10 @@ socratic:
 ## Lernziel
 
 Ändere eine Einstellung eines laufenden Boards von deinem Rechner aus, wende sie ohne Neustart an und wisse genau, welche Schlüssel sich so verhalten.
+
+## Settings ist eine View aus M5
+
+Der Weg **Settings → Reload config**, den dieser Step benutzt, ist genau das, was **M5-02** beschrieben hat: eine Menüzeile bildet auf eine View-Id ab, und sie zu aktivieren heißt, diese View auf den Stapel zu schieben. Die Konfiguration ändert sich also über dieselbe Mechanik wie jede andere App.
 
 ## Zwei Wege, ein laufendes Board zu ändern
 

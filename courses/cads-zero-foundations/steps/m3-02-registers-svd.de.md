@@ -6,7 +6,7 @@ objectives: [cz.debug.registers-svd]
 requires: [m3-01-gdb-breakpoints]
 estimatedMinutes: 15
 scaffold: faded
-recallFrom: [m2-00-mmio-primer]
+recallFrom: [m2-00-mmio-primer, m2-02-mmio-gpio]
 links:
   - { step: m3-03-fault-forensics }
   - { file: "targets/itsboard/STM32F429.svd" }
@@ -31,6 +31,10 @@ socratic:
 ## Lernziel
 
 Lies die Register des STM32 auf dem laufenden Board durch den Debugger, damit du Hardwarefragen - stimmt der Takt, was hält ein Ausgangspin - durch Hinsehen statt durch Raten beantwortest.
+
+## Dasselbe Register, jetzt von außen
+
+In **M2-02** hast du `GPIOD->ODR` über die HAL beschrieben und die Maske in Pins umgerechnet. Hier liest du dasselbe Register am laufenden Board zurück — und siehst, ob der Store wirklich angekommen ist.
 
 ## Die Sitzung öffnen, in der du liest
 

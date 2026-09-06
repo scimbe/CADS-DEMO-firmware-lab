@@ -3,6 +3,7 @@ id: m8-01-unit-tests
 title: Unit-Tests auf dem Host
 bloom: apply
 objectives: [cz.quality.unit-tests]
+recallFrom: [m6-01-littlefs, m7-01-lwip-netif, m7-04-recon-tools]
 requires: [m7-05-pa7-network-eval]
 estimatedMinutes: 15
 scaffold: worked
@@ -35,6 +36,10 @@ socratic:
 Führe die Host-Unit-Testsuite des Projekts aus und verstehe, warum eine Firmware, deren Displaybus nicht zurückgelesen werden kann, sich dennoch größtenteils auf einem Laptop testet.
 
 **Der erste Handgriff** ist der Task `CaDS: Host tests`. Wie das geht, steht im nächsten Abschnitt, Klick für Klick.
+
+## Was hier eigentlich getestet wird
+
+Die Subjekte dieser Suite sind die Module, die du längst kennst: der Flash- und Dateisystemcode aus **M6-01**, die Netzhelfer um das netif aus **M7-01**, und die passiven Wachen aus **M7-04** — `test_arpwatch.c`, `test_dhcpwatch.c`, `test_mactable.c`, `test_l2discover.c`. Genau deshalb läuft der größte Teil dieser Firmware auf einem Laptop.
 
 ## Den Task starten
 

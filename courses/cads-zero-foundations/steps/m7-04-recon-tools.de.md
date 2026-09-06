@@ -3,6 +3,7 @@ id: m7-04-recon-tools
 title: Passive Aufklärungswerkzeuge
 bloom: analyze
 objectives: [cz.net.recon]
+recallFrom: [m2-05-explorer-command]
 requires: [m7-03-dhcp-stack-lesson]
 estimatedMinutes: 20
 scaffold: independent
@@ -33,6 +34,10 @@ socratic:
 ## Lernziel
 
 Analysiere, wie die passiven Aufklärungsbefehle des Explorers unterhalb der IP-Schicht arbeiten, und was genau jeder aus den beobachteten Frames schließen darf.
+
+## Es sind deine Kommandos
+
+Jeder Befehl in der Tabelle unten ist genau das, was du in **M2-05** selbst gebaut hast: ein Zeichen im `switch` des Dispatchers, ein Handler dahinter, die Ausgabe über `cads_probe_puts()`. Nur die Sache dahinter ist größer.
 
 ## Was das Board sehen kann, ohne etwas zu senden
 

@@ -3,6 +3,7 @@ id: m1-01-module-layout
 title: Das Modul-Layout
 bloom: understand
 objectives: [firmware-reference-module-layout]
+recallFrom: [m0-00-workbench]
 requires: [m0-05-explorer]
 estimatedMinutes: 15
 scaffold: worked
@@ -30,6 +31,10 @@ socratic:
 ## Lernziel
 
 Lies den Quellbaum der Firmware als **Abhängigkeitsgraphen** — als Bild davon, wer wen benutzt — und verstehe, warum die Grenzen zwischen den Teilen vom Build erzwungen werden statt nur vereinbart zu sein.
+
+## Woher du das schon kennst
+
+In **M0-00** hast du gelernt, wo die Ausgabe eines Tasks landet: unten im Terminal-Bereich, in einem Terminal mit dem Namen des Tasks. Dieser Step dreht das um — seine Prüfungen schreiben ihre Ausgabe **an die Aufgabe im Steptext**, nicht in ein Terminal. Wer sie unten sucht, findet nichts.
 
 ## Wo du in diesem Step arbeitest
 

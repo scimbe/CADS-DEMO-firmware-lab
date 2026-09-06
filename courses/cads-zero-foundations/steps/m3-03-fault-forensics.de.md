@@ -3,6 +3,7 @@ id: m3-03-fault-forensics
 title: Einen Fault lesen, und der Forensik-Ring
 bloom: analyze
 objectives: [cz.debug.forensics]
+recallFrom: [m2-01-memory-map]
 requires: [m3-02-registers-svd]
 estimatedMinutes: 20
 scaffold: faded
@@ -35,6 +36,10 @@ socratic:
 ## Lernziel
 
 Mache aus einem Fault-Dump und dem Absturz-Ring des Boards eine Diagnose: welcher Fault, welche Instruktion und wo im Quelltext.
+
+## Die Speicherkarte aus M2 entscheidet mit
+
+Ob eine Adresse im Dump plausibel ist, entscheidest du gegen die Speicherkarte aus **M2-01**: Flash ab `0x08000000`, SRAM ab `0x20000000`, CCM ab `0x10000000`. Ein `PC`, der in keinen dieser Bereiche fällt, ist deshalb schon vor jeder weiteren Analyse ein Befund.
 
 ## Zuerst: das Board an den Konsolen-Prompt bringen
 

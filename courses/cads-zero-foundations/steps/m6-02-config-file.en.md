@@ -3,6 +3,7 @@ id: m6-02-config-file
 title: The configuration file
 bloom: apply
 objectives: [cz.storage.config]
+recallFrom: [m5-03-own-app]
 requires: [m6-01-littlefs]
 estimatedMinutes: 15
 scaffold: faded
@@ -33,6 +34,10 @@ socratic:
 ## Learning goal
 
 Read the one file a running board is configured by, and understand how you can edit it from your computer even though the board has no USB drive.
+
+## Where you know the build path from
+
+That a change only reaches the firmware once it is compiled **and** linked is something you learned in **M5-03** on your own app. For configuration the opposite holds: it is a file on the volume and needs no new build.
 
 ## One text file on the volume
 

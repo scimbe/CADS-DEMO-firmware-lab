@@ -3,6 +3,7 @@ id: m6-04-build-profiles
 title: Build-Profile
 bloom: analyze
 objectives: [cz.storage.profiles]
+recallFrom: [m4-02-ram-budget]
 requires: [m6-03-config-option]
 estimatedMinutes: 15
 scaffold: independent
@@ -33,6 +34,10 @@ socratic:
 ## Lernziel
 
 Wähle mit einem Build-Profil aus, welche Apps in ein Image kommen, und verstehe, warum diese Entscheidung in einer anderen Datei lebt als die Laufzeitkonfiguration.
+
+## Die Marge aus M4 ist das Argument
+
+Mehr RAM-Reserve durch ein kleineres Image ist kein Gefühl, sondern die Marge, die du in **M4-02** vorhergesagt und gemessen hast: der Abstand über der 48-KB-Untergrenze, den `scripts/check_ram_budget.py` bewacht. Ein Profil ist der billigste Hebel darauf.
 
 ## Feature-Auswahl zur Configure-Zeit
 

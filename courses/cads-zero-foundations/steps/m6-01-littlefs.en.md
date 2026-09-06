@@ -3,6 +3,7 @@ id: m6-01-littlefs
 title: Where the filesystem lives
 bloom: understand
 objectives: [cz.storage.littlefs]
+recallFrom: [m0-05-explorer, m4-04-iwdg-watchdog]
 requires: [m5-04-dirty-rect-eval]
 estimatedMinutes: 15
 scaffold: worked
@@ -36,6 +37,10 @@ socratic:
 ## Learning goal
 
 Locate the on-board filesystem in the flash map and understand why a firmware update, done the way this lab does it, cannot touch it.
+
+## Two old acquaintances
+
+The storage gate is a bring-up explorer command like the ones in **M0-05**: one character, one verdict line. And whether a format trips the watchdog is decided by the period from **M4-04** — a question this step puts to you as a prediction in a moment.
 
 ## There is no card
 

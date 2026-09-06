@@ -6,7 +6,7 @@ objectives: [cz.rtos.watchdog]
 requires: [m4-03-mutex-spi-bus]
 estimatedMinutes: 14
 scaffold: independent
-recallFrom: [m3-03-fault-forensics]
+recallFrom: [m3-03-fault-forensics, m3-02-registers-svd]
 links:
   - { step: m4-05-stack-sizing }
   - { step: m3-03-fault-forensics }
@@ -32,6 +32,10 @@ socratic:
 ## Lernziel
 
 Verstehe, wie der unabhängige Watchdog aus „das Board hängt mit roter LED“ ein „das Board erholt sich selbst, und die Ursache ist danach noch lesbar“ macht.
+
+## Gelesen wird wie in M3
+
+`RCC->CSR`, aus dem dieser Step die Reset-Ursache dekodiert, ist ein Peripherieregister wie jedes andere: über die SVD im Debugger sichtbar, so wie du es in **M3-02** für `RCC->CR` und `GPIOD->ODR` geübt hast.
 
 ## Zwei Hälften eines Features
 

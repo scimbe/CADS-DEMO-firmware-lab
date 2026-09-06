@@ -3,6 +3,7 @@ id: m8-03-clean-room-pr
 title: Eine Änderung beurteilen, bevor sie ein PR wird
 bloom: evaluate
 objectives: [cz.quality.cleanroom-pr, firmware-explanation-clean-room]
+recallFrom: [m1-01-module-layout, m7-02-udp-hello, m7-05-pa7-network-eval]
 requires: [m8-02-golden-images]
 estimatedMinutes: 20
 scaffold: independent
@@ -33,6 +34,10 @@ socratic:
 Wende die vier stehenden Regeln des Projekts — Clean Room, beide Targets, Sicherheit und der Beitragsworkflow — so an, wie ein Reviewer es täte, auf eine Änderung, die alle vier auf einmal verletzt.
 
 **Der erste Handgriff:** öffne `docs/explanation/clean-room.md` und `docs/SAFETY.md`. Wie das geht, steht gleich hier.
+
+## Drei Maßstäbe, die du schon hast
+
+Du beurteilst diese Änderung mit dem, was du schon gemessen hast: der Schichtregel aus **M1-01**, an der ein `#include "stm32f4xx.h"` im falschen Verzeichnis scheitert; der Beide-Targets-Regel, an der deine eigene Netzänderung aus **M7-02** sich messen lassen musste; und der Frage aus **M7-05**, was eine Pinentscheidung das Netzwerk kostet.
 
 ## Wo du in diesem Step arbeitest
 

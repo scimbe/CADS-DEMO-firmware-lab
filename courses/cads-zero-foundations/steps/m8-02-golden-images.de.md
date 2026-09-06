@@ -3,6 +3,7 @@ id: m8-02-golden-images
 title: Golden Images für ein nur beschreibbares Display
 bloom: analyze
 objectives: [cz.quality.golden]
+recallFrom: [m5-01-canvas-draw]
 requires: [m8-01-unit-tests]
 estimatedMinutes: 15
 scaffold: faded
@@ -33,6 +34,10 @@ socratic:
 Verstehe, wie eine Firmware, deren Panel nicht zurückgelesen werden kann, dennoch prüft, was sie zeichnet, und lerne, einen Golden-Image-Fehlschlag zu lesen, ohne ein Rundungsartefakt für einen Bug zu halten.
 
 **Der erste Handgriff** sind zwei Tasks: `CaDS: Host tests`, danach `CaDS: Golden images (informativ)`. Beide Wege stehen im nächsten Abschnitt.
+
+## Aufgenommen wird dein Canvas
+
+Ein Golden Image ist nichts anderes als der Puffer aus **M5-01**, durch die Palette expandiert und als PNG festgehalten. Deshalb entscheidet die Frage, ob ein abweichendes Pixel aus einer flachen Palettenfläche oder von einer geglätteten Kante stammt, über Regression oder Artefakt.
 
 ## Die zwei Tasks starten
 

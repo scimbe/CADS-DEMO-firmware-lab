@@ -6,7 +6,7 @@ objectives: [cz.rtos.stack-sizing]
 requires: [m4-04-iwdg-watchdog]
 estimatedMinutes: 15
 scaffold: independent
-recallFrom: [m3-04-stack-guard]
+recallFrom: [m3-04-stack-guard, m3-01-gdb-breakpoints]
 links:
   - { step: m5-01-canvas-draw }
   - { step: m3-04-stack-guard }
@@ -29,6 +29,10 @@ socratic:
 ## Learning goal
 
 Learn to size a FreeRTOS task stack from evidence rather than habit — from the two overflows this firmware actually suffered, and the memory layout that made the fixes cheap.
+
+## The M3 call stack is the tool
+
+Sizing a stack means knowing its deepest call chain — and you read that in the `CALL STACK` pane you first expanded in **M3-01**. The console command `k` tells you the result; the debugger tells you the route to it.
 
 ## The wrong assumption
 
