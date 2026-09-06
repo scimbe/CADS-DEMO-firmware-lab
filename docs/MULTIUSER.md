@@ -141,7 +141,45 @@ Nicht das ganze `code-server`-Verzeichnis — dort liegen auch `extensions/` (hu
 - **Sauberere Variante, aber ungeprüft:** Voreinstellungen des Images nach `Machine/settings.json`
   (nicht gemountet), persönliche Überschreibungen nach `User/settings.json` (gemountet). Damit wandern
   Image-Voreinstellungen weiter mit, und Persönliches bleibt. **Die Vorrangregeln zwischen `Machine`
-  und `User` habe ich nicht gemessen** — vor einer Umsetzung nachprüfen.
+  und `User` habe ich nicht gemessen.** Der Ordner `Machine/` existiert im Container
+  (`~/.local/share/code-server/Machine/`); ob code-server ihn in unserem Aufbau ausliest und wer bei
+  einem Konflikt gewinnt, ist offen. Die Messung dafür steht unten — sie kostet zwanzig Minuten und
+  muss nicht neu erfunden werden.
+
+### Die Messung, die die `Machine`/`User`-Variante entscheidet
+
+Drei Fragen, ein Aufbau. Wegwerf-Container aus unserem Bild, eine Wegwerf-Erweiterung, die
+`vscode.workspace.getConfiguration().inspect(key)` und den effektiven Wert nach `/tmp` schreibt.
+
+**Aufbau.** In den Container legen:
+
+```jsonc
+// ~/.local/share/code-server/Machine/settings.json   (im Image, NICHT gemountet)
+{ "editor.fontSize": 11, "editor.wordWrap": "on" }
+
+// ~/.local/share/code-server/User/settings.json      (gemountet, "die Studierende")
+{ "editor.fontSize": 13 }
+```
+
+**Frage 1 — Wird `Machine/` überhaupt gelesen?** `editor.wordWrap` steht nur dort. Ist der effektive
+Wert `"on"`, liest code-server den Ordner aus; ist er `"off"` (die Voreinstellung von VS Code), ist die
+ganze Variante hinfällig und es bleibt beim zweiten Volume mit seinem Preis.
+
+**Frage 2 — Wer gewinnt bei einem Konflikt?** `editor.fontSize` steht in beiden. Erwartet wird **13**
+(User schlägt Machine); nur dann kann eine studierende Person unsere Voreinstellung überschreiben.
+Kommt **11** heraus, ist die Variante unbrauchbar, weil sie das Gegenteil von dem täte, was sie soll.
+
+**Frage 3 — Wohin schreibt die Oberfläche?** In der Einstellungsansicht die Schriftgröße ändern, dann
+`User/settings.json` und `Machine/settings.json` vergleichen. Nur wenn die Änderung in `User/` landet,
+liegt Persönliches im gemounteten Volume. Gegenprobe mit einer Einstellung, die VS Code als
+`scope: machine` führt (z. B. `terminal.integrated.defaultProfile.linux`) — solche Schlüssel behandelt
+VS Code anders, und wir sollten wissen, ob sie durchs Raster fallen.
+
+**Zusatzprobe, unabhängig von der Variante:** Bevor irgendetwas gebaut wird, den heutigen Zustand
+belegen — Container aus dem Image erzeugen, eine Einstellung ändern, Container **löschen und mit
+demselben Volume neu erzeugen** (nicht `restart` — das ist der Rollout-Fall), und nachsehen, dass die
+Änderung fort ist. Das ist die Messung, die die Dringlichkeit dieses Abschnitts belegt; ich habe sie
+aus der Mount-Liste geschlossen, nicht durchgespielt.
 
 **Nicht empfohlen:** Persönliches in den Workspace legen. Es wäre für die studierende Person sichtbar,
 landete in `git status` und vermischte Kursinhalt mit Werkzeugzustand.
