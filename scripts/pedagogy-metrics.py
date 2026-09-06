@@ -195,6 +195,15 @@ rows=[]; ladders_missing=0; tasks_total=0
 # R4.2 figure by four rubrics the day the pack was converted, which would have
 # read as a regression that never happened.
 DO_BLOCK_RE = re.compile(r"^:::[ \t]+do\b.*?^:::[ \t]*$", re.M | re.S)
+# A markdown link TARGET is machinery, not prose: `](step:m3-01-for-and-while)`
+# tokenises to "while", and a step that merely points at that step then shares a
+# word with any rubric using it. Found the day R11a.7a's cross-references were
+# added - one recall sentence pushed m3-02 from 33.3 to 35.7 against a limit of
+# 35, on the token "while", contributed by a link target and by nothing anyone
+# wrote. Removing targets changes exactly ONE figure in the whole repository,
+# that one; all four packs are otherwise unmoved, which is the profile a fix for
+# an artefact should have.
+LINK_TARGET_RE = re.compile(r"\]\((?:step|file|https?):[^)]*\)")
 
 # The body's IDENTIFIERS - anything it puts in backticks or a code block, plus
 # the test names a check waits for - are removed from both sides of `ovl` before
@@ -253,7 +262,7 @@ def identifiers(body, tasks):
 
 for f in sorted(glob.glob(f"{D}/*.{lang}.md")):
     sid=os.path.basename(f)[:-6]; fm,body=V.load_step(f)[:2]   # load_step also returns a parse error
-    prose=DO_BLOCK_RE.sub("", body)
+    prose=LINK_TARGET_RE.sub("](-)", DO_BLOCK_RE.sub("", body))
     idents=identifiers(prose, fm.get("tasks") or []) if prose_only else set()
     btok=toks(prose) - idents; soc=fm.get("socratic") or []
     trig=set()
