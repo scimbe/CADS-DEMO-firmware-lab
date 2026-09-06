@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { validateStepFrontMatter } from "../src/schema";
-import { selectInsight, selectOutputInsight, selectTestInsight } from "../src/socratic";
+import { selectCause, selectInsight, selectOutputInsight, selectTestInsight } from "../src/socratic";
 import type { StepFrontMatter } from "../src/types";
 
 /** Builds a real StepFrontMatter through the schema, so the tests exercise what a pack produces. */
@@ -124,5 +124,48 @@ describe("insight precedence", () => {
   });
   it("returns nothing when a step authored no insights at all", () => {
     assert.equal(selectInsight(meta({}), { output: "anything", failedTests: ["x"], failures: 1, lang: "en" }), undefined);
+  });
+});
+
+/**
+ * R11a.4. The tool's own message is the second thing a student reads, not the
+ * first: the compiler names the symptom, the course names the cause.
+ */
+describe("the sentence that goes before the tool output", () => {
+  const m = meta({
+    misconceptions: [
+      {
+        pattern: "error\\[E0382\\]",
+        question: { en: "Who owns the value now?", de: "Wem gehört der Wert jetzt?" },
+        hints: [
+          { en: "The value was moved out of `s`, so `s` no longer owns anything.", de: "Der Wert wurde aus `s` herausbewegt, `s` besitzt also nichts mehr." },
+          { en: "tier two" },
+        ],
+      },
+    ],
+    socratic: [
+      { trigger: "output:No such file or directory", question: { en: "Which step produces that file?" }, hints: [{ en: "The build produces it; nothing works before it has run once." }] },
+    ],
+  });
+
+  it("takes the misconception's plainest hint, not the escalated one", () => {
+    assert.match(selectCause(m, RUST_MOVE, "en")!, /moved out of/);
+  });
+
+  it("speaks the language of the course", () => {
+    assert.match(selectCause(m, RUST_MOVE, "de")!, /herausbewegt/);
+  });
+
+  it("falls back to an output: trigger when no misconception matches", () => {
+    assert.match(selectCause(m, "cat: x: No such file or directory", "en")!, /The build produces it/);
+  });
+
+  it("says nothing rather than something invented when nothing matches", () => {
+    assert.equal(selectCause(m, "some unrelated failure", "en"), undefined);
+    assert.equal(selectCause(m, undefined, "en"), undefined);
+  });
+
+  it("does not escalate with the number of failures: the cause line never changes", () => {
+    assert.equal(selectCause(m, RUST_MOVE, "en"), selectCause(m, RUST_MOVE, "en"));
   });
 });
