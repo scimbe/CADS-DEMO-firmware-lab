@@ -405,6 +405,14 @@ klären — sonst bricht der deutsche Kurs, der heute korrekt die deutschen Tite
 *Herkunft: 34 deutsche Wörter in englischen Kursrümpfen, geprüft 2026-09-06 — bis auf einen zerstörten
 Transliterationsrest waren alle korrekte Zitate echter Bedienelemente.*
 
+**R11a.7c — Lernziele des letzten Moduls sind keine Lücke.** Ein Lernziel, das nur das letzte Modul eines
+Kurses tragt, kann definitionsgemäß nicht zeitversetzt abgerufen werden — es gibt kein späteres Modul. Solche
+Ziele werden als *terminal* ausgewiesen, nicht als Lücke gemeldet, und bleiben auf der Stufe „geübt"; A9.2 sagt
+selbst, dass „nachgewiesen" erst später eintreten kann. Gemessen: `rust-project-cli` ist ein solcher Fall, und
+`cads-zero-projects` besteht **vollständig** aus ihnen (0 von 6) — ein Projektpack hat konstruktionsbedingt kein
+späteres Modul. Die Ausnahme gilt nur für diese Klasse; jede andere unbelegte Abdeckung bleibt eine Lücke.
+*Herkunft: Abrufmessung über alle vier Packs, 2026-09-06.* **[Validator]**
+
 **R11a.8 — Selbstauskunft ist kein Nachweis.** Ohne Sprachmodell bestätigte Antworten zählen als `selfReported`
 und tragen nichts zur Kompetenzstufe bei; sie schalten nichts frei. *E8; K7.*
 
