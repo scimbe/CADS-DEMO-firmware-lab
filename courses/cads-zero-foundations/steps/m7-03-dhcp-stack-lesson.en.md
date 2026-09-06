@@ -72,7 +72,13 @@ python3 scripts/board_key.py quit --port /home/coder/board-console
 
 **Do not close this terminal while something is running in it.** The cross on a terminal kills the process inside it; use `Ctrl`/`Cmd`+`J` to fold it away instead, which leaves it running.
 
-To watch while it sends, also open the board console: press **`F1`**, type `CaDS Board: Konsole öffnen` and press Enter. **If the palette does not react at all, the browser swallowed `Ctrl`/`Cmd`+`Shift`+`P`** — press `F1`, or go through **☰ → `Terminal`**.
+To watch while it sends, also open the board console.
+
+::: do palette="> CaDS Board: Konsole öffnen"
+Press **`F1`**, type `CaDS Board: Konsole öffnen` and confirm with `Enter`.
+> expect: A terminal named `CaDS Board Console` sits at the bottom, with the board's messages arriving in it.
+> recover: If the palette does not react at all, the browser swallowed `Ctrl`/`Cmd`+`Shift`+`P` — `F1` is the reliable way. If the console stays empty, the serial port is not granted in the browser: call `CaDS Board: Verbinden` again and confirm in the browser dialog.
+:::
 
 Then click **Check**. Within a few seconds exactly one line comes back, starting `# tasks  ui_free=` and following with `input_free=`, `console_free=`, `tasks=`, `events=` and `last_key=`. The three `*_free` numbers are **free headroom in bytes**, not bytes used: the small number is the alarming one. On the host build the command reports nothing at all — there are no tasks there to report about.
 

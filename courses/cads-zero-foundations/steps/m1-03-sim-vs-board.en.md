@@ -58,7 +58,12 @@ The maintainer's own onboarding file states it plainly: a feature that only work
 
 ## Your task
 
-1. Run the host build and its tests: either with **Check** on the first task, or by hand from **Terminal → Run Task…** and **CaDS: Host tests**.
+::: do task="CaDS: Host tests"
+Run the host build and its tests: either with **Check** on the first task, or by hand through **`F1`** → `Tasks: Run Task` → `Enter` → `CaDS: Host tests`, or without a keyboard through **☰ → `Terminal` → `Run Task...` → `CaDS: Host tests`**.
+> expect: A terminal named after the task opens at the bottom; after about half a minute it holds the closing line of `ctest` with the number of tests passed and failed.
+> recover: If no terminal appears, the palette never opened — use `F1` rather than `Ctrl`/`Cmd`+`Shift`+`P`, which a browser often swallows. If a test fails, the operating path is not at fault: the lines above the closing line name the failing subject.
+:::
+
 2. On the second task, write down in one sentence what the simulator's net stub reports, *before* you look. Only then does the check show you the places in `modules/net/src/cads_net_sim.c`, and you compare.
 3. Finally, answer why the standstill in the simulator is intended.
 

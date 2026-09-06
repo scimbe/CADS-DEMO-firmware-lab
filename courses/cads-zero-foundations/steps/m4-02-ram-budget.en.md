@@ -69,15 +69,17 @@ Roughly: 75 KB framebuffer (480×320 at 4 bpp), 30 KB RGB565 staging, lwIP's poo
 
 ## Task 1 — produce the size report
 
-Start the task **`CaDS: Build`**. The most convenient way: **`F1`**, then type `Tasks: Run Task`, Enter, then pick **`CaDS: Build`** from the list. Without the keyboard: the icon with three lines (**☰**) at the very top left — there is no visible menu bar — then **`Terminal` → `Run Task...` → `CaDS: Build`**. The interface is in English while the course text is German, so the menu entry reads `Run Task...` and not something German.
+::: do task="CaDS: Build"
+Start the task. The most convenient way: **`F1`**, then type `Tasks: Run Task`, Enter, then pick **`CaDS: Build`** from the list. Without the keyboard: the icon with three lines (**☰**) at the very top left — there is no visible menu bar — then **`Terminal` → `Run Task...` → `CaDS: Build`**. The interface is in English while the course text is German, so the menu entry reads `Run Task...` and not something German.
+> expect: A terminal of its own named `CaDS: Build` opens at the bottom. The first build takes about a minute, later ones seconds; right at the end sits the table `--print-memory-usage` prints, and in it the `RAM` line.
+> recover: If the terminal area is folded away and you see nothing, `Ctrl`/`Cmd`+`J` opens it. If the table is missing at the end, the run did not finish — the error lines are in the same terminal and in the `PROBLEMS` tab as well.
+:::
 
 ![Das Menue hinter dem Drei-Striche-Symbol, Terminal aufgeklappt, mit New Terminal und Run Task](menu-run-task.png)
 
 ![Die Liste aller Tasks des Projekts, aus der du CaDS: Build waehlst](task-picker.png)
 
 `Ctrl`/`Cmd`+`Shift`+`P` opens the palette too, but a browser often swallows it; `F1` is the reliable way.
-
-**What you see:** a terminal of its own named `CaDS: Build` opens in the terminal area at the bottom. If that area is folded away, `Ctrl`/`Cmd`+`J` folds it open and shut. The first build takes about a minute, later ones seconds. It is **finished** when no new lines appear and a prompt is back; right at the end sits the table `--print-memory-usage` prints. Read the `RAM` line there.
 
 <!-- SHOT: m4-build-memory-usage-table | Das Terminal CaDS: Build am Ende des Baus, mit der Tabelle von --print-memory-usage und der Zeile fuer RAM -->
 

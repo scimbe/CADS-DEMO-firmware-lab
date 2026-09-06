@@ -58,7 +58,12 @@ Die Onboarding-Datei des Maintainers sagt es unverblümt: ein Feature, das nur a
 
 ## Deine Aufgabe
 
-1. Lass Host-Build und Tests laufen: entweder mit **Prüfen** bei der ersten Aufgabe oder von Hand über **Terminal → Run Task…** und **CaDS: Host tests**.
+::: do task="CaDS: Host tests"
+Lass Host-Build und Tests laufen: entweder mit **Prüfen** bei der ersten Aufgabe, oder von Hand über **`F1`** → `Tasks: Run Task` → `Enter` → `CaDS: Host tests`, oder ohne Tastatur über **☰ → `Terminal` → `Run Task...` → `CaDS: Host tests`**.
+> expect: Unten öffnet sich ein Terminal mit dem Namen des Tasks; nach etwa einer halben Minute steht darin die Schlusszeile von `ctest` mit der Zahl der bestandenen und der fehlgeschlagenen Tests.
+> recover: Kommt kein Terminal, hat die Palette nie aufgemacht — nimm `F1` statt `Strg`/`Cmd`+`Umschalt`+`P`, das der Browser oft abfängt. Schlägt ein Test fehl, ist nicht die Bedienung schuld: die Zeilen über der Schlusszeile nennen das fehlgeschlagene Subjekt.
+:::
+
 2. Schreib bei der zweiten Aufgabe in einem Satz auf, was der Netz-Stub des Simulators meldet, *bevor* du nachsiehst. Erst danach zeigt dir der Check die Stellen in `modules/net/src/cads_net_sim.c`, und du vergleichst.
 3. Beantworte zuletzt, warum der Stillstand im Simulator Absicht ist.
 

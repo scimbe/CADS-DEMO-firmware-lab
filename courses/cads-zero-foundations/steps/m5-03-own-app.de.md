@@ -87,17 +87,37 @@ Die Dispatcher-Tabelle hat 28 Plätze und der App-Baum registriert heute 26 View
 
 ## Bauen, Host-Tests, flashen
 
-Starte den Task **`CaDS: Build`**: **`F1`**, dann `Tasks: Run Task` tippen, Enter, dann **`CaDS: Build`** aus der Liste wählen. Ohne Tastatur: **☰ → `Terminal` → `Run Task...` → `CaDS: Build`**. Unten öffnet sich ein eigenes Terminal mit dem Namen `CaDS: Build`; der erste Lauf dauert etwa eine Minute, spätere Sekunden. Fertig ist er, wenn keine neuen Zeilen mehr kommen und wieder eine Eingabeaufforderung dasteht; Erfolg heißt, die letzte Zeile stammt vom Build-Werkzeug und der Reiter `PROBLEMS` unten bleibt leer.
+::: do task="CaDS: Build"
+Starte den Task über **`F1`** → `Tasks: Run Task` → `Enter` → `CaDS: Build`, ohne Tastatur über **☰ → `Terminal` → `Run Task...` → `CaDS: Build`**. Der erste Lauf dauert etwa eine Minute, spätere Sekunden.
+> expect: Unten öffnet sich ein eigenes Terminal mit dem Namen `CaDS: Build`; am Ende stammt die letzte Zeile vom Build-Werkzeug, und der Reiter `PROBLEMS` unten bleibt leer.
+> recover: Meldet der Linker ein undefiniertes `cads_hello_init`, fehlt dein Verzeichnis in der CMake-Datei — trag es nach und starte erneut. Steht im Reiter `PROBLEMS` ein Compilerfehler in `apps/hello/`, hast du vor dem Bauen nicht gespeichert (`Strg`/`Cmd`+`S`) oder einen Header vergessen.
+:::
 
-Alles oberhalb der HAL muss für beide Targets kompilieren, also lauf auch der Host-Build: **`F1`**, `Tasks: Run Task`, Enter, **`CaDS: Host tests`** — oder **☰ → `Terminal` → `Run Task...` → `CaDS: Host tests`**. Das dauert etwa eine halbe Minute und endet mit der Zusammenfassung von `ctest`.
+Alles oberhalb der HAL muss für beide Targets kompilieren, also gehört der Host-Build dazu.
 
-Zum Flashen: **`F1`**, `Tasks: Run Task`, Enter, **`CaDS: Build + Flash`** — oder **☰ → `Terminal` → `Run Task...` → `CaDS: Build + Flash`**. Das Flashen braucht etwa 15 Sekunden.
+::: do task="CaDS: Host tests"
+Starte den Task über **`F1`** → `Tasks: Run Task` → `Enter` → `CaDS: Host tests`, ohne Tastatur über **☰ → `Terminal` → `Run Task...` → `CaDS: Host tests`**.
+> expect: Der Lauf dauert etwa eine halbe Minute und endet mit der Zusammenfassung von `ctest`, die bestandene und fehlgeschlagene Tests zählt.
+> recover: Bricht er schon beim Übersetzen ab, baut deine App nur für das Board — meist, weil sie eine Datei unter `targets/` einbindet, die der Host nicht hat. Genau dafür ist dieser Task da; die Fehlerzeile nennt den `#include`.
+:::
+
+::: do palette="> CaDS Board: Flash (build/itsboard/cads-zero.bin)"
+Drücke **`F1`**, tippe `CaDS Board: Flash` und wähle den vollständigen Eintrag mit `Enter`. Bauen und Flashen in einem Zug geht über **☰ → `Terminal` → `Run Task...` → `CaDS: Build + Flash`**. Das Flashen braucht etwa 15 Sekunden.
+> expect: Rechts unten läuft eine Fortschrittsmeldung, danach nennt die Statusleiste Bytes und Dauer des letzten Flash.
+> recover: Meldet die Statusleiste, dass kein Image da ist, hat der Board-Build nicht gelingen können — sieh im Terminal `CaDS: Build` nach. Bricht das Schreiben ab, ist das Board nicht mehr freigegeben: `CaDS Board: Verbinden` aufrufen und im Browserdialog bestätigen.
+:::
 
 ![Der Fortschritt beim Flashen als Meldung, waehrend der Task laeuft](flash-progress.png)
 
 ## Deine Zeile auf dem Panel öffnen
 
-Öffne die Board-Konsole: **`F1`**, dann `CaDS Board: Konsole öffnen` tippen, Enter. Tippe dort `d` und Enter — das startet den App-Baum auf dem Panel; ab da überhört das Board einzeln getippte Buchstaben. Navigiert wird aus einem Terminal (**☰ → `Terminal` → `New Terminal`**):
+::: do palette="> CaDS Board: Konsole öffnen"
+Drücke **`F1`**, tippe `CaDS Board: Konsole öffnen`, bestätige mit `Enter` und sende dort `d` mit Enter.
+> expect: Auf dem Panel startet der App-Baum; ab da überhört das Board einzeln getippte Buchstaben.
+> recover: Passiert auf dem Panel nichts, steht das Board schon im App-Baum und überhört `d` — dann navigier direkt weiter. Zeigt die Konsole einen gelben Hinweis, ist der serielle Port im Browser nicht freigegeben: `CaDS Board: Verbinden` erneut aufrufen.
+:::
+
+Navigiert wird aus einem Terminal (**☰ → `Terminal` → `New Terminal`**):
 
 ```bash
 python3 scripts/board_key.py ok
@@ -125,4 +145,6 @@ python3 scripts/board_key.py quit
 
 ## Deine Aufgabe
 
-Bau die App nach den fünf Punkten oben, lass `CaDS: Build` und `CaDS: Host tests` durchlaufen, flashe und öffne die Zeile auf dem Panel. Die Checks bestätigen, dass das Menü `cads_hello_init` aufruft, dass das Symbol in die ELF gelinkt ist und dass der Build gelingt — einzeln mit **Prüfen** an der Aufgabe, alle mit **Run all checks** oben im Steptext.
+Die App folgt den fünf Punkten oben; `CaDS: Build` und `CaDS: Host tests` müssen beide durchlaufen, danach das Flashen, danach die Zeile auf dem Panel.
+
+Die Checks bestätigen, dass das Menü `cads_hello_init` aufruft, dass das Symbol in die ELF gelinkt ist und dass der Build gelingt — einzeln mit **Prüfen** an der Aufgabe, alle mit **Run all checks** oben im Steptext.

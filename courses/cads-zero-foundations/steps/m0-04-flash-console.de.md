@@ -33,45 +33,33 @@ Bringe deinen Build auf das echte Board und bestehe das Hardware-Gate — der Mo
 
 ## Handgriff 1: flashen
 
-Das Flashen löst du selbst aus; der Check dieses Steps sieht nur nach, ob es seit dem Öffnen des Steps geschehen ist. Drücke **`F1`** für die Befehlspalette (`Strg`/`Cmd`+`Umschalt`+`P` tut dasselbe, wird im Browser aber oft abgefangen) und tippe:
+Das Flashen löst du selbst aus; der Check dieses Steps sieht nur nach, ob es seit dem Öffnen des Steps geschehen ist.
 
-```
-CaDS Board: Flash
-```
-
-Der vollständige Eintrag heißt `CaDS Board: Flash (build/itsboard/cads-zero.bin)`; `Enter` schreibt das zuletzt gebaute Image auf das Board.
-
-**Ohne Tastatur:** in der Statusleiste unten links steht `Board: verbunden · läuft`. Ein Klick darauf öffnet das Board-Menü mit `Flash (build/itsboard/cads-zero.bin)`, `Reset`, `Anhalten`, `Konsole öffnen`, `Log anzeigen`, `Trennen`.
+::: do palette="> CaDS Board: Flash (build/itsboard/cads-zero.bin)"
+Drücke **`F1`**, tippe `CaDS Board: Flash` und wähle mit `Enter` den vollständigen Eintrag `CaDS Board: Flash (build/itsboard/cads-zero.bin)`; er schreibt das zuletzt gebaute Image auf das Board. Ohne Tastatur steht in der Statusleiste unten links `Board: verbunden · läuft`, und ein Klick darauf öffnet das Board-Menü mit `Flash (build/itsboard/cads-zero.bin)`. Willst du in einem Zug neu bauen und flashen, nimm stattdessen **☰ → `Terminal` → `Run Task...` → `CaDS: Build + Flash`**; dieser Weg läuft als Task in einem eigenen Terminal unten.
+> expect: Die Ausgabe steht *nicht* in einem Terminal. Rechts unten läuft eine Fortschrittsmeldung, danach zeigt die Statusleiste das Ergebnis — im Bild `Flash ok: 327088 Bytes in 15973 ms`. Das Schreiben dauert einige Sekunden.
+> recover: Bricht das Schreiben mitten im Fortschritt ab, hast du das Terminal des Tasks mit dem Kreuz geschlossen und damit den Vorgang beendet — zum Wegklappen `Strg`/`Cmd`+`J` nehmen und erneut flashen. Meldet die Statusleiste, dass kein Image da ist, lief `CaDS: Build` noch nicht: hol den Board-Build aus dem vorigen Step nach. Klappt keine Eingabezeile auf, hat der Browser `Strg`/`Cmd`+`Umschalt`+`P` abgefangen — nimm `F1` oder das Board-Menü in der Statusleiste.
+:::
 
 ![Das Board-Menü im verbundenen Zustand mit Flash, Reset, Anhalten, Konsole öffnen, Log anzeigen, Trennen](board-menu-connected.png)
 
-**Was du dabei siehst:** die Ausgabe steht *nicht* in einem Terminal. Rechts unten läuft eine Meldung mit dem Fortschritt, danach zeigt die Statusleiste das Ergebnis. Das Schreiben dauert einige Sekunden — im Bild 327088 Bytes in 15973 ms.
 
 ![Die Fortschrittsmeldung CaDS: Flash cads-zero.bin: program 60%](flash-progress.png)
 
 ![Die Statusleiste nach dem Schreiben: Flash ok: 327088 Bytes in 15973 ms](flash-ok.png)
 
-**Dritter Weg, mit Neubau:** **☰ → `Terminal` → `Run Task...` → `CaDS: Build + Flash`** baut zuerst (beim ersten Mal etwa eine Minute) und flasht danach. Dieser Weg läuft als Task in einem eigenen Terminal unten, das seinen Namen trägt — schließe es nicht, solange es läuft: das Kreuz am Terminal beendet den Vorgang mitten im Schreiben. Zum Wegklappen `Strg`/`Cmd`+`J` nehmen.
 
 ## Handgriff 2: die Board-Konsole öffnen
 
-**`F1`**, dann:
-
-```
-CaDS Board: Konsole öffnen
-```
-
-Unten öffnet sich ein Terminal mit dem Namen `CaDS Board Console`. Seine erste Zeile ist ein Hinweis in Cyan, danach läuft der Text ein, den das Board von sich aus über die serielle Leitung schickt (115200 Baud, siehe m0-02). Ohne Tastatur führt derselbe Weg über die Statusleiste und `Konsole öffnen`.
+::: do palette="> CaDS Board: Konsole öffnen"
+Drücke **`F1`**, tippe `CaDS Board: Konsole öffnen` und bestätige mit `Enter`. Ohne Tastatur führt derselbe Weg über die Statusleiste unten links und den Eintrag `Konsole öffnen`.
+> expect: Unten öffnet sich ein Terminal mit dem Namen `CaDS Board Console`. Seine erste Zeile ist ein Hinweis in Cyan, danach läuft der Text ein, den das Board von sich aus über die serielle Leitung schickt (115200 Baud, siehe m0-02).
+> recover: Bleibt die Konsole still und zeigt einen gelben Hinweis, ist der serielle Port im Browser noch nicht freigegeben — ruf `CaDS Board: Verbinden` noch einmal auf und bestätige im Browserdialog. Kommt zwar ein Terminal, aber kein Selbsttest, war es zu spät offen: der Palettenbefehl `CaDS Board: Reset` löst einen neuen Start aus, und der Selbsttest läuft bei jedem Start.
+:::
 
 ![Die Board-Konsole mit dem Selbsttest: Banner, 1..10, zehn ok-Zeilen und RESULT: PASS](board-console-boot.png)
 
-Nach dem Schreiben startet das Board neu und führt den Selbsttest sofort aus. War die Konsole zu spät offen, löse mit dem Palettenbefehl
-
-```
-CaDS Board: Reset
-```
-
-einen neuen Start aus — der Selbsttest läuft bei jedem Start. Bleibt die Konsole still und zeigt einen gelben Hinweis, ist der serielle Port im Browser noch nicht freigegeben: dann noch einmal `CaDS Board: Verbinden` und im Browserdialog bestätigen.
+Nach dem Schreiben startet das Board neu und führt den Selbsttest sofort aus; er läuft bei jedem Start.
 
 ![Die Konsole mit dem gelben Hinweis, dass kein serieller Port freigegeben ist](board-console-no-serial-grant.png)
 
@@ -111,4 +99,4 @@ Der zweite Check tippt nichts: er hört bis zu 60 Sekunden auf der Konsole mit u
 
 ## Deine Aufgabe
 
-Flashe das Board (`F1` → `CaDS Board: Flash`), öffne die Konsole (`F1` → `CaDS Board: Konsole öffnen`) und drücke dann an den ersten beiden Aufgaben **Prüfen**. Rechne danach im Feld der dritten Aufgabe aus, wie lange ein Vollbild bei der gemessenen Rate dauert, und drücke **Antwort abgeben**. Der nächste Step öffnet die Diagnosekonsole, die du gerade benutzt hast.
+Board geflasht, Konsole offen — beides mit den zwei Blöcken oben —, dann an den ersten beiden Aufgaben **Prüfen** drücken. Rechne danach im Feld der dritten Aufgabe aus, wie lange ein Vollbild bei der gemessenen Rate dauert, und drücke **Antwort abgeben**. Der nächste Step öffnet die Diagnosekonsole, die du gerade benutzt hast.

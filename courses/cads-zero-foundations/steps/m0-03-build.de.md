@@ -32,42 +32,29 @@ Erzeuge beide Bauergebnisse aus einem Quellbaum: das echte Firmware-Image für d
 
 ## Handgriff 1: den Board-Build starten
 
-Es gibt im Fenster keinen Knopf mit der Aufschrift `CaDS: Build`. Ein **Task** ist ein fertig hinterlegter Befehl mit einem Namen; du startest ihn über seinen Namen. Drei Wege führen zum selben Ergebnis, nimm einen:
+Es gibt im Fenster keinen Knopf mit der Aufschrift `CaDS: Build`. Ein **Task** ist ein fertig hinterlegter Befehl mit einem Namen; du startest ihn über seinen Namen.
 
-- **Über den Tutor:** scroll in diesem Steptext nach unten zur Aufgabe *Die Firmware baut für das Board* und drücke **Prüfen**. Der Tutor startet den Task selbst und wertet seinen Rückgabewert aus.
-- **Über die Befehlspalette:** **`F1`** drücken (das Tastenkürzel `Strg`/`Cmd`+`Umschalt`+`P` tut dasselbe, wird im Browser aber oft abgefangen), dann tippen:
-
-```
-Tasks: Run Task
-```
-
-`Enter`, dann aus der Liste `CaDS: Build` wählen.
-
-- **Ohne Tastatur:** Es gibt keine sichtbare Menüleiste; die Menüs stecken hinter dem Symbol mit den drei Strichen (**☰**) ganz oben links. Klick darauf, dann **`Terminal`**, dann **`Run Task...`**, dann `CaDS: Build`.
+::: do task="CaDS: Build"
+Starte den Task. Drei Wege führen zum selben Ergebnis, nimm einen: über den Tutor — scroll in diesem Steptext nach unten zur Aufgabe *Die Firmware baut für das Board* und drücke **Prüfen**; über die Befehlspalette — **`F1`**, dann `Tasks: Run Task` tippen, `Enter`, dann `CaDS: Build` aus der Liste wählen; oder ohne Tastatur über **☰ → `Terminal` → `Run Task...` → `CaDS: Build`**, denn eine sichtbare Menüleiste gibt es nicht, das Symbol mit den drei Strichen sitzt ganz oben links. Beim ersten Mal dauert der Bau etwa eine Minute, danach nur Sekunden.
+> expect: Unten klappt der Terminal-Bereich auf, und der Task bekommt ein eigenes Terminal mit seinem Namen. Am Ende stehen darin keine roten Zeilen, sondern der Größenbericht des Linkers und wieder eine Eingabeaufforderung; der Check der Aufgabe wird grün.
+> recover: Siehst du gar keine Ausgabe, suchst du im falschen Fenster — sie steht weder in diesem Steptext noch im Editor, sondern unten im Terminal mit dem Namen des Tasks; `Strg`/`Cmd`+`J` klappt den Bereich auf, rechts wählst du das Terminal. Endet der Lauf ohne Größenbericht, hast du das Terminal mit dem Kreuz geschlossen und damit den Prozess darin beendet — zum Wegklappen `Strg`/`Cmd`+`J` nehmen und neu starten. Klappt gar keine Eingabezeile auf, hat der Browser das Tastenkürzel abgefangen: nimm `F1` oder den Weg über **☰**.
+:::
 
 ![Das Menü hinter dem Drei-Striche-Symbol, Terminal aufgeklappt, mit New Terminal und Run Task](menu-run-task.png)
 
 ![Die Liste aller Tasks des Projekts, von CaDS: Build bis CaDS: RAM budget](task-picker.png)
 
-**Was du dabei siehst:** unten klappt der Terminal-Bereich auf, und der Task bekommt **sein eigenes Terminal, das seinen Namen trägt**. Dort scrollen die Zeilen des Compilers durch. `Strg`/`Cmd`+`J` klappt den Bereich auf und zu; rechts stehen alle offenen Terminals untereinander.
-
-**Wie lange:** beim ersten Mal etwa eine Minute, danach nur Sekunden, weil nur Geändertes neu übersetzt wird.
-
-**Woran du Erfolg erkennst:** keine roten Zeilen, am Ende der Größenbericht des Linkers (unten erklärt), und wieder eine Eingabeaufforderung. Der Check der Aufgabe wird grün.
+Im Terminal des Tasks scrollen die Zeilen des Compilers durch; rechts im Bereich stehen alle offenen Terminals untereinander. Neu übersetzt wird nur Geändertes, deshalb ist jeder spätere Lauf so viel kürzer. Den Größenbericht am Ende liest der übernächste Abschnitt.
 
 <!-- SHOT: build-terminal-size-report | Das Terminal des Tasks CaDS: Build am Ende eines erfolgreichen Laufs, mit der Tabelle Memory region / Used Size / Region Size und ohne Fehlerzeilen -->
 
 ## Handgriff 2: den Host-Build starten
 
-Derselbe Weg, anderer Name: **`F1`** → `Tasks: Run Task` → `Enter` → aus der Liste
-
-```
-CaDS: Host tests
-```
-
-Ohne Tastatur: **☰ → `Terminal` → `Run Task...` → `CaDS: Host tests`**. Oder über den Tutor: **Prüfen** an der dritten Aufgabe.
-
-Auch dieser Task bekommt sein eigenes Terminal unten. Er baut erst und führt danach die Tests aus, dauert beim ersten Mal deshalb länger als der Board-Build. Fertig ist er, wenn keine neuen Zeilen mehr kommen; die letzten Zeilen nennen, wie viele Tests bestanden und wie viele fehlgeschlagen sind.
+::: do task="CaDS: Host tests"
+Starte den Task auf demselben Weg wie eben, nur mit anderem Namen: **`F1`** → `Tasks: Run Task` → `Enter` → `CaDS: Host tests` aus der Liste. Ohne Tastatur **☰ → `Terminal` → `Run Task...` → `CaDS: Host tests`**, über den Tutor **Prüfen** an der dritten Aufgabe.
+> expect: Auch dieser Task bekommt unten ein eigenes Terminal mit seinem Namen. Er baut erst und führt danach die Tests aus; die letzten Zeilen nennen, wie viele Tests bestanden und wie viele fehlgeschlagen sind.
+> recover: Dauert er länger als der Board-Build, ist das richtig so — er übersetzt zusätzlich die Testsuite. Endet er mit fehlgeschlagenen Tests, ist nicht die Bedienung schuld: die Zeilen darüber nennen das fehlgeschlagene Testsubjekt beim Namen. Kommt gar kein Terminal, hat die Palette nie aufgemacht — nimm `F1` statt des Tastenkürzels.
+:::
 
 ## Drei Bedienfehler an dieser Stelle
 
@@ -106,4 +93,4 @@ Lies im Terminal die **erste** rote Zeile, nicht die letzte: die letzte sagt nur
 
 ## Deine Aufgabe
 
-Lass beide Builds laufen, den für das Board (`CaDS: Build`) und den für den Host (`CaDS: Host tests`), jeweils auf einem der drei Wege oben. Die Checks bestätigen, dass beide gelingen und dass der Board-Build eine ELF mit `main` erzeugt hat. Der nächste Step bringt dieses Image auf echtes Silizium.
+Beide Builds müssen gelingen, der für das Board (`CaDS: Build`) und der für den Host (`CaDS: Host tests`); die Wege dorthin stehen in den beiden Blöcken oben. Die Checks bestätigen, dass beide gelingen und dass der Board-Build eine ELF mit `main` erzeugt hat. Der nächste Step bringt dieses Image auf echtes Silizium.

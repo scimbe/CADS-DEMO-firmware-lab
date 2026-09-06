@@ -92,8 +92,4 @@ Zwei Grenzen bleiben, auch wenn alles richtig konfiguriert ist. Erstens ist die 
 
 Lies die drei `cads_thread_start`-Aufrufe am Ende von `apps/bringup/tasks.c`, den Rumpf von `cads_ui_task()` darüber und die Prioritätsstufen in `modules/kernel/include/cads/kernel/kernel.h`. Begründe dann, wodurch die Wartezeit von `input` auf diesem Board begrenzt ist und was diese Schranke beseitigen würde, und nenne die Eigenschaft, an der die Gegenmaßnahme hängt. Der dritte Check belegt sie im Kernel-Quelltext. Der nächste Step wendet sich dem zu, was passiert, wenn gar nichts mehr läuft: dem Watchdog.
 
-**Wo du das machst:**
-- Datei öffnen: `Strg`/`Cmd`+`P`.
-- Terminal öffnen: Menü *Terminal → New Terminal*.
-- Board-Konsole öffnen: `F1`, dann *CaDS Board: Konsole öffnen*.
-- Bauen: Menü *Terminal → Run Build Task…*.
+**Wo du das machst:** Dieser Step baut nichts und spricht nicht mit dem Board — du liest Dateien und schreibst Antworten. Eine Datei öffnest du mit `Strg`/`Cmd`+`P` und dem getippten Pfad; geprüft wird mit **Prüfen** an der jeweiligen Aufgabe oder **Run all checks** oben im Steptext.

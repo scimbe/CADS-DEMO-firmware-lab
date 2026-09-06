@@ -73,10 +73,12 @@ Der Explorer-Befehl `u` ist das M4-Hardware-Gate: auf einem frischen Volume form
 
 ## Deine Aufgabe
 
-Öffne die Board-Konsole, damit du mitliest — senden musst du nichts: der Knopf **Prüfen** an dieser Aufgabe schickt `u` selbst und wartet auf die Antwort. Steht das Board im App-Baum, führe vorher einmal `python3 scripts/board_key.py quit` in einem Terminal aus. Sage dann voraus, ob ein Format den Watchdog auslöst, und vergleiche mit den beiden Konstanten im Quelltext. Zuletzt die Frage, warum ein Reflash das Volume unversehrt lässt. Der nächste Step öffnet die eine Datei, die du in diesem Volume bearbeiten wirst.
+::: do palette="> CaDS Board: Konsole öffnen"
+Drücke **`F1`**, tippe `CaDS Board: Konsole öffnen` und bestätige mit `Enter`, damit du mitliest. Senden musst du nichts: der Knopf **Prüfen** an dieser Aufgabe schickt `u` selbst und wartet auf die Antwort.
+> expect: Unten steht ein Terminal mit dem Namen `CaDS Board Console`, und nach dem Druck auf **Prüfen** läuft dort die Ausgabe des Gates bis zu seiner Urteilszeile ein.
+> recover: Bleibt die Konsole stumm, steht das Board im App-Baum und überhört einzelne Buchstaben — führ einmal `python3 scripts/board_key.py quit` in einem gewöhnlichen Terminal aus (**☰ → `Terminal` → `New Terminal`**), nicht in der Board-Konsole. Zeigt sie einen gelben Hinweis, ist der serielle Port im Browser nicht freigegeben: `CaDS Board: Verbinden` erneut aufrufen.
+:::
 
-**Wo du das machst:**
-- Datei öffnen: `Strg`/`Cmd`+`P`.
-- Terminal öffnen: Menü *Terminal → New Terminal*.
-- Board-Konsole öffnen: `F1`, dann *CaDS Board: Konsole öffnen*.
-- Bauen: Menü *Terminal → Run Build Task…*.
+Sage dann voraus, ob ein Format den Watchdog auslöst, und vergleiche mit den beiden Konstanten im Quelltext. Zuletzt die Frage, warum ein Reflash das Volume unversehrt lässt. Der nächste Step öffnet die eine Datei, die du in diesem Volume bearbeiten wirst.
+
+**Wo du das machst:** Eine Datei öffnest du mit `Strg`/`Cmd`+`P` und dem getippten Pfad, ein gewöhnliches Terminal über **☰ → `Terminal` → `New Terminal`**; geprüft wird mit **Prüfen** an der jeweiligen Aufgabe.

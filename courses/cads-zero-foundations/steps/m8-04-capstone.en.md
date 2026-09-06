@@ -68,9 +68,23 @@ Either way: one executable per subject, sixty-second timeout, Unity assertions, 
 
 ## Proving it the way CI does
 
-**Running the test.** Press **`F1`**, type `Tasks: Run Task`, Enter, then pick **`CaDS: Host tests`** from the list. Without the keyboard: the three-line symbol (**☰**) at the very top left, then **`Terminal` → `Run Task...` → `CaDS: Host tests`**. (`Ctrl`/`Cmd`+`Shift`+`P` opens the palette too, but a browser often swallows it; `F1` is the reliable way.) A terminal named after the task opens at the bottom. You see CMake, the compiler, and one line per subject; it takes about half a minute. **Success:** your test file appears in the list with `Passed`, and the closing line reads `100% tests passed, 0 tests failed out of N`, with an N one larger than before if you added a new subject.
+**Running the test.**
 
-**Building the image.** Then **`F1`** → `Tasks: Run Task` → Enter → **`CaDS: Build`**, or **☰ → `Terminal` → `Run Task...` → `CaDS: Build`**. About a minute the first time, seconds after that. A pure host test adds no object to the firmware image, so the size report and `__cads_heap_size` — the symbol `scripts/check_ram_budget.py` reads to guard the 48 KB floor with its 256-byte margin — stay unchanged. You can confirm that with **`F1`** → `Tasks: Run Task` → **`CaDS: RAM budget`**, under a second. Say the result in your review; a reviewer should not have to infer it.
+::: do task="CaDS: Host tests"
+Press **`F1`**, type `Tasks: Run Task`, Enter, then pick **`CaDS: Host tests`** from the list. Without the keyboard: the three-line symbol (**☰**) at the very top left, then **`Terminal` → `Run Task...` → `CaDS: Host tests`**. It takes about half a minute.
+> expect: A terminal named after the task opens at the bottom. Your test file appears in the list with `Passed`, and the closing line reads `100% tests passed, 0 tests failed out of N`, with an N one larger than before if you added a new subject.
+> recover: If your file is missing from the list, it is not registered in `tests/unit/CMakeLists.txt` — without that registration nobody compiles it and ctest does not know it. If it shows `Failed`, the operating path is not at fault: the lines above name the assertion that did not hold.
+:::
+
+**Building the image.**
+
+::: do task="CaDS: Build"
+Start the task through **`F1`** → `Tasks: Run Task` → `Enter` → `CaDS: Build`, or without the keyboard through **☰ → `Terminal` → `Run Task...` → `CaDS: Build`**. About a minute the first time, seconds after that.
+> expect: The size report sits at the end of the terminal. A pure host test adds no object to the firmware image, so the report and `__cads_heap_size` stay unchanged.
+> recover: If the report does change, your change is not confined to the host — check whether you touched a file outside `tests/unit` by accident. The margin itself is recomputed by the task `CaDS: RAM budget` in under a second.
+:::
+
+`__cads_heap_size` is the symbol `scripts/check_ram_budget.py` reads to guard the 48 KB floor with its 256-byte margin. Say the result in your review; a reviewer should not have to infer it.
 
 **Seeing what the check sees.** The first check reads the *added lines* under `tests/unit`, not the file list. Open a terminal with **☰ → `Terminal` → `New Terminal`** and run:
 
@@ -95,7 +109,7 @@ If that prints nothing, your change either landed somewhere else or is already c
 ## Your task
 
 1. **Add the test.** The first check looks for added lines under `tests/unit` carrying `RUN_TEST(` and `TEST_ASSERT` — a comment does not count.
-2. **Keep the suite green.** Start `CaDS: Host tests` as above: **`F1`** → `Tasks: Run Task` → Enter → **`CaDS: Host tests`**.
+2. **Keep the suite green.** The task `CaDS: Host tests` from the section above must still finish without a failure.
 3. **The self-review.** Answer which documented promise your case newly covers.
 
 Finally write the PR-shaped summary per `docs/how-to/agent-workflow.md`: a title of the form `[M<n>] ...`, a body naming the file, the contract tested and the two green runs, and the sentence about the unchanged RAM budget. That completes the foundations course; the projects course builds on exactly this discipline.

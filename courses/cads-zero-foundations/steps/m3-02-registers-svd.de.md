@@ -36,9 +36,11 @@ Lies die Register des STM32 auf dem laufenden Board durch den Debugger, damit du
 
 Die Bedienoberfläche ist englisch, der Kurstext deutsch, und eine sichtbare Menüleiste gibt es nicht: die Menüs stecken hinter dem Symbol mit den drei Strichen (**☰**) ganz oben links, das `File`, `Edit`, `Selection`, `View`, `Go`, `Run`, `Terminal` und `Help` öffnet.
 
-Klick auf das **Käfer-Symbol** in der Leiste ganz links, das die Ansicht **Run and Debug** öffnet. Wähle in der Konfigurationsliste oben **`Debug CaDS Zero (Board im Browser)`** und drücke **`F5`**; ohne Tastatur **☰ → `Run` → `Start Debugging`**. Unten im Terminal-Bereich läuft zuerst `CaDS: Build + Flash` in eigenen Terminals - beim ersten Mal etwa eine Minute plus 15 Sekunden. Danach hält die Ausführung bei `main()`, erkennbar an der Debug-Werkzeugleiste oben und an `Paused on breakpoint` im Bereich `CALL STACK`.
-
-Register kannst du nur bei **angehaltenem** Target lesen. Läuft es, drücke den Pause-Knopf in der Debug-Werkzeugleiste oben.
+::: do palette="> Debug: Start Debugging"
+Klick auf das **Käfer-Symbol** in der Leiste ganz links, das die Ansicht **Run and Debug** öffnet, wähle in der Konfigurationsliste oben **`Debug CaDS Zero (Board im Browser)`** und drücke **`F5`**; ohne Tastatur **☰ → `Run` → `Start Debugging`**. Beim ersten Mal dauert das etwa eine Minute plus 15 Sekunden, weil zuerst `CaDS: Build + Flash` in eigenen Terminals läuft.
+> expect: Die Ausführung hält bei `main()`. Du erkennst es an der Debug-Werkzeugleiste oben und an `Paused on breakpoint` im Bereich `CALL STACK`.
+> recover: Läuft das Target statt anzuhalten, drück den Pause-Knopf in der Debug-Werkzeugleiste — Register kannst du nur bei **angehaltenem** Target lesen. Bricht der Start mit einem Fehler der Probe ab, ist das Board nicht freigegeben: `CaDS Board: Verbinden` aufrufen und im Browserdialog bestätigen.
+:::
 
 ## Kernregister
 

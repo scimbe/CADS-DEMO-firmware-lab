@@ -75,19 +75,29 @@ Der erste Check schickt die Datei erst durch den C-Präprozessor und sucht den S
 
 ## Schritt 2 — bauen
 
-Starte den Task **`CaDS: Build`**: **`F1`**, dann `Tasks: Run Task` tippen, Enter, dann **`CaDS: Build`** aus der Liste wählen. Ohne Tastatur: das Symbol mit den drei Strichen (**☰**) ganz oben links, dann **`Terminal` → `Run Task...` → `CaDS: Build`**. Die Bedienoberfläche ist englisch, der Kurstext deutsch — der Menüpunkt heißt also `Run Task...`.
-
-Unten im Terminal-Bereich öffnet sich ein eigenes Terminal mit dem Namen `CaDS: Build`; darin laufen die Compilerzeilen durch. Beim ersten Mal dauert das etwa eine Minute, danach Sekunden. Fertig ist der Task, wenn keine neuen Zeilen mehr kommen und wieder eine Eingabeaufforderung dasteht. Erfolg erkennst du daran, dass die letzte Zeile die des Build-Werkzeugs ist und keine Compilerfehlermeldung, und dass der Reiter `PROBLEMS` unten leer bleibt.
+::: do task="CaDS: Build"
+Starte den Task über **`F1`** → `Tasks: Run Task` → `Enter` → `CaDS: Build`; ohne Tastatur über das Symbol mit den drei Strichen (**☰**) ganz oben links, dann **`Terminal` → `Run Task...` → `CaDS: Build`**. Die Bedienoberfläche ist englisch, der Kurstext deutsch — der Menüpunkt heißt also `Run Task...`. Beim ersten Mal dauert das etwa eine Minute, danach Sekunden.
+> expect: Unten öffnet sich ein eigenes Terminal mit dem Namen `CaDS: Build`, in dem die Compilerzeilen durchlaufen. Am Ende stammt die letzte Zeile vom Build-Werkzeug und nicht vom Compiler, und der Reiter `PROBLEMS` unten bleibt leer.
+> recover: Steht im Reiter `PROBLEMS` eine Fehlermeldung zu `gui/cads_splash.c`, hast du den Zeichenaufruf falsch ergänzt oder vor dem Bauen nicht gespeichert — `Strg`/`Cmd`+`S` und erneut starten. Kommt gar kein Terminal, hat die Palette nie aufgemacht: nimm `F1` statt des Tastenkürzels.
+:::
 
 ## Schritt 3 — flashen
 
-Starte den Task **`CaDS: Build + Flash`**: **`F1`**, dann `Tasks: Run Task` tippen, Enter, dann **`CaDS: Build + Flash`** wählen. Ohne Tastatur: **☰ → `Terminal` → `Run Task...` → `CaDS: Build + Flash`**. Er baut zuerst und flasht dann; das Flashen braucht etwa 15 Sekunden. Erfolg erkennst du in der Statusleiste unten.
+::: do palette="> CaDS Board: Flash (build/itsboard/cads-zero.bin)"
+Drücke **`F1`**, tippe `CaDS Board: Flash` und wähle den vollständigen Eintrag mit `Enter`. Willst du bauen und flashen in einem Zug, nimm stattdessen **☰ → `Terminal` → `Run Task...` → `CaDS: Build + Flash`**. Das Flashen braucht etwa 15 Sekunden.
+> expect: Die Statusleiste unten nennt danach Bytes und Dauer des letzten Flash, etwa `Flash ok: 327088 Bytes in 15973 ms`.
+> recover: Meldet die Statusleiste, dass kein Image da ist, hat Schritt 2 nicht gebaut — sieh im Terminal `CaDS: Build` nach der Fehlermeldung. Bricht das Schreiben ab, ist das Board nicht mehr freigegeben: `CaDS Board: Verbinden` aufrufen und im Browserdialog bestätigen.
+:::
 
 ![Erfolgreich geflasht: die Statusleiste nennt Bytes und Dauer des letzten Flash](flash-ok.png)
 
 ## Schritt 4 — das Testmuster auf dem Panel öffnen
 
-Öffne die Board-Konsole: **`F1`**, dann `CaDS Board: Konsole öffnen` tippen, Enter. Tippe dort `d` und Enter — das startet den App-Baum auf dem Panel, und das Board reagiert ab jetzt nicht mehr auf einzeln getippte Buchstaben.
+::: do palette="> CaDS Board: Konsole öffnen"
+Drücke **`F1`**, tippe `CaDS Board: Konsole öffnen`, bestätige mit `Enter` und sende dort `d` mit Enter.
+> expect: Auf dem Panel startet der App-Baum. Ab jetzt reagiert das Board nicht mehr auf einzeln getippte Buchstaben — das ist gewollt und der Grund, warum die Navigation gleich aus einem Terminal kommt.
+> recover: Passiert auf dem Panel nichts, hat das Board `d` nicht gehört: steht es schon im App-Baum, überhört es einzelne Buchstaben — dann ist nichts zu tun, navigier direkt weiter. Zeigt die Konsole einen gelben Hinweis, ist der serielle Port im Browser nicht freigegeben: `CaDS Board: Verbinden` erneut aufrufen.
+:::
 
 Navigiert wird von einem Terminal aus. Öffne es mit **☰ → `Terminal` → `New Terminal`**; ist der Terminal-Bereich zugeklappt, klappt ihn `Strg`/`Cmd`+`J` auf und zu. Arbeitsverzeichnis ist die Projektwurzel:
 

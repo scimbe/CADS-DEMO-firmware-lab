@@ -86,8 +86,4 @@ That gives you the numbers the second task needs — and one ingredient more, be
 
 Read the doc comment above `cads_hal_spi_claim_bus()` and the 2026-08-26 ROADMAP entry. Then derive where the old driver's 307,200 MAC cycles come from, and explain why `BASEPRI = 0x50` blocked all three handlers yet only the display DMA produced a hang. The third check has you locate the guard in `hal_spi.c` yourself. M4 picks up the scheduler side of the same story.
 
-**Where you do this:**
-- Open a file: `Ctrl`/`Cmd`+`P`.
-- Open a terminal: menu *Terminal → New Terminal*.
-- Open the board console: `F1`, then *CaDS Board: Konsole öffnen*.
-- Build: menu *Terminal → Run Build Task…*.
+**Where you do this:** this step builds nothing and does not talk to the board — you read files and write answers. A file opens with `Ctrl`/`Cmd`+`P` and the typed path; checking is the **Check** button on each task, or **Run all checks** at the top of the step text.

@@ -92,8 +92,4 @@ Two limits remain even when everything is configured correctly. First, inheritan
 
 Read the three `cads_thread_start` calls at the end of `apps/bringup/tasks.c`, the body of `cads_ui_task()` above them, and the priority levels in `modules/kernel/include/cads/kernel/kernel.h`. Then argue what bounds `input`'s wait on this board and what would remove that bound, and name the property the remedy depends on. The third check evidences it in the kernel source. The next step turns to what happens when nothing runs at all: the watchdog.
 
-**Where you do this:**
-- Open a file: `Ctrl`/`Cmd`+`P`.
-- Open a terminal: menu *Terminal → New Terminal*.
-- Open the board console: `F1`, then *CaDS Board: Konsole öffnen*.
-- Build: menu *Terminal → Run Build Task…*.
+**Where you do this:** this step builds nothing and does not talk to the board — you read files and write answers. A file opens with `Ctrl`/`Cmd`+`P` and the typed path; checking is the **Check** button on each task, or **Run all checks** at the top of the step text.

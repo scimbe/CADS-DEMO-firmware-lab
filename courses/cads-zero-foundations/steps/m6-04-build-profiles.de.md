@@ -66,4 +66,10 @@ Das zweite Urteil betrifft nicht die Datei, sondern das **Image, das die Datei e
 
 ## Deine Aufgabe
 
-Führe zuerst `python3 scripts/check_profile.py profiles/minimal.profile` aus und lies beide Urteilszeilen. Schreibe dann ein eigenes Profil `profiles/lab.profile` — deine Auswahl, aber begründet: welche Apps braucht ein Laborimage wirklich? — und lass es von demselben Prüfer abnehmen. Wenn du Zeit hast, ergänze `--build` und lies die RAM-Budget-Zeile, die es erzeugt. Beantworte zuletzt die Frage, was die Kapazitätsprüfung abfängt. Das nächste Modul verlässt den Speicher in Richtung Netzwerk.
+::: do command="python3 scripts/check_profile.py profiles/minimal.profile" cwd="."
+Öffne ein Terminal (**☰ → `Terminal` → `New Terminal`**; Arbeitsverzeichnis ist die Projektwurzel) und führ `python3 scripts/check_profile.py profiles/minimal.profile` aus. Lies beide Urteilszeilen.
+> expect: Im Terminal stehen zwei Zeilen: eine über die Gültigkeit der Profilzeilen und eine über die Kapazität. Beide beginnen mit einem Urteil, nicht mit einem Stacktrace.
+> recover: Meldet Python `No such file or directory`, steht dein Terminal nicht in der Projektwurzel — `cd` dorthin oder öffne ein neues Terminal, das dort startet. Nennt die Ausgabe einen unbekannten App-Namen, hast du eine Zeile im Profil vertippt: der Prüfer nennt die Zeilennummer.
+:::
+
+Schreibe dann ein eigenes Profil `profiles/lab.profile` — deine Auswahl, aber begründet: welche Apps braucht ein Laborimage wirklich? — und lass es von demselben Prüfer abnehmen. Wenn du Zeit hast, ergänze `--build` und lies die RAM-Budget-Zeile, die es erzeugt. Beantworte zuletzt die Frage, was die Kapazitätsprüfung abfängt. Das nächste Modul verlässt den Speicher in Richtung Netzwerk.

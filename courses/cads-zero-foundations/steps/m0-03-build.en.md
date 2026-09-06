@@ -32,42 +32,30 @@ Produce both build results from one source tree: the real firmware image for the
 
 ## Handgrip 1: starting the board build
 
-There is no button in the window labelled `CaDS: Build`. A **task** is a stored command with a name; you start it by that name. Three routes lead to the same result, take one:
+There is no button in the window labelled `CaDS: Build`.
+A **task** is a stored command with a name, and its name is how you reach it.
 
-- **Through the tutor:** scroll down in this step text to the task *The firmware builds for the board* and press **Check**. The tutor starts the task itself and judges its exit code.
-- **Through the command palette:** press **`F1`** (the shortcut `Ctrl`/`Cmd`+`Shift`+`P` does the same, but a browser often swallows it), then type:
-
-```
-Tasks: Run Task
-```
-
-`Enter`, then pick `CaDS: Build` from the list.
-
-- **Without a keyboard:** there is no visible menu bar; the menus hide behind the three-line icon (**☰**) at the very top left. Click it, then **`Terminal`**, then **`Run Task...`**, then `CaDS: Build`.
+::: do task="CaDS: Build"
+Start the task. Three routes lead to the same result, take one: through the tutor — scroll down in this step text to the task *The firmware builds for the board* and press **Check**; through the command palette — **`F1`**, then type `Tasks: Run Task`, `Enter`, then pick `CaDS: Build` from the list; or without a keyboard through **☰ → `Terminal` → `Run Task...` → `CaDS: Build`**, since there is no visible menu bar and the three-line icon sits at the very top left. The build takes about a minute the first time, seconds afterwards.
+> expect: The terminal area opens at the bottom and the task gets its own terminal, named after the task. At the end it holds no red lines but the linker's size report and a prompt back again; the task's check turns green.
+> recover: If you see no output at all, you are looking in the wrong window — it is neither in this step text nor in the editor, but at the bottom in the terminal named after the task; `Ctrl`/`Cmd`+`J` opens that area and you pick the terminal on its right-hand side. If the run ends without a size report, you closed the terminal with its cross and killed the process inside it — use `Ctrl`/`Cmd`+`J` to tuck it away instead, and start again. If no input line drops down at all, the browser swallowed the shortcut: use `F1`, or the route through **☰**.
+:::
 
 ![The menu behind the three-line icon, Terminal expanded, showing New Terminal and Run Task](menu-run-task.png)
 
 ![The list of all project tasks, from CaDS: Build to CaDS: RAM budget](task-picker.png)
 
-**What you see:** the terminal area opens at the bottom, and the task gets **its own terminal, named after the task**. The compiler's lines scroll past in it. `Ctrl`/`Cmd`+`J` opens and closes that area; all open terminals are listed on its right-hand side.
-
-**How long:** about a minute the first time, seconds afterwards, because only what changed is recompiled.
-
-**How you know it worked:** no red lines, the linker's size report at the end (explained below), and a prompt back again. The task's check turns green.
+The compiler's lines scroll past in the task's terminal; all open terminals are listed on the right-hand side of the area. Only what changed is recompiled, which is why every later run is so much shorter. The size report at the end is read in the section after next.
 
 <!-- SHOT: build-terminal-size-report | Das Terminal des Tasks CaDS: Build am Ende eines erfolgreichen Laufs, mit der Tabelle Memory region / Used Size / Region Size und ohne Fehlerzeilen -->
 
 ## Handgrip 2: starting the host build
 
-Same route, different name: **`F1`** → `Tasks: Run Task` → `Enter` → from the list
-
-```
-CaDS: Host tests
-```
-
-Without a keyboard: **☰ → `Terminal` → `Run Task...` → `CaDS: Host tests`**. Or through the tutor: **Check** on the third task.
-
-This task, too, gets its own terminal at the bottom. It builds first and runs the tests afterwards, so the first run takes longer than the board build. It is finished when no new lines appear; the closing lines state how many tests passed and how many failed.
+::: do task="CaDS: Host tests"
+Start the task the same way as before, only with a different name: **`F1`** → `Tasks: Run Task` → `Enter` → `CaDS: Host tests` from the list. Without a keyboard **☰ → `Terminal` → `Run Task...` → `CaDS: Host tests`**, through the tutor **Check** on the third task.
+> expect: This task, too, gets its own terminal at the bottom, named after it. It builds first and runs the tests afterwards; the closing lines state how many tests passed and how many failed.
+> recover: If it takes longer than the board build, that is correct — it compiles the test suite as well. If it ends with failed tests, the operating path is not at fault: the lines above name the failing test subject. If no terminal appears at all, the palette never opened — use `F1` instead of the shortcut.
+:::
 
 ## Three operating mistakes right here
 
@@ -106,4 +94,4 @@ Read the **first** red line in the terminal, not the last: the last one only say
 
 ## Your task
 
-Run both builds, the one for the board (`CaDS: Build`) and the one for the host (`CaDS: Host tests`), each on one of the three routes above. The checks confirm that both succeed and that the board build produced an ELF containing `main`. The next step puts that image onto real silicon.
+Both builds have to succeed, the one for the board (`CaDS: Build`) and the one for the host (`CaDS: Host tests`); the two blocks above carry the routes. The checks confirm that both succeed and that the board build produced an ELF containing `main`. The next step puts that image onto real silicon.

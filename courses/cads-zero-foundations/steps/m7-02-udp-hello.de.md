@@ -60,7 +60,11 @@ Die dritte ist der Aufruf selbst. Seine Signatur steht oben; Port `41234` ist wi
 
 ## Schritt 2 — für beide Targets bauen
 
-Board-Build: drücke **`F1`**, tippe `Tasks: Run Task`, drücke Enter, wähle **`CaDS: Build`** aus der Liste. Ohne Tastatur: das Symbol mit den drei Strichen (**☰**) ganz oben links, dann **`Terminal` → `Run Task...` → `CaDS: Build`**. Unten im Terminal-Bereich öffnet sich ein eigenes Terminal mit dem Namen `CaDS: Build`. Beim ersten Mal dauert es etwa eine Minute, danach Sekunden. Fertig ist er, wenn keine neuen Zeilen mehr kommen und wieder eine Eingabeaufforderung dasteht; Compilerfehler stehen zusätzlich im Reiter `PROBLEMS`.
+::: do task="CaDS: Build"
+Starte den Board-Build über **`F1`** → `Tasks: Run Task` → `Enter` → `CaDS: Build`; ohne Tastatur über das Symbol mit den drei Strichen (**☰**) ganz oben links, dann **`Terminal` → `Run Task...` → `CaDS: Build`**. Beim ersten Mal dauert es etwa eine Minute, danach Sekunden.
+> expect: Unten im Terminal-Bereich öffnet sich ein eigenes Terminal mit dem Namen `CaDS: Build`; fertig ist der Lauf, wenn keine neuen Zeilen mehr kommen und wieder eine Eingabeaufforderung dasteht.
+> recover: Steht im Reiter `PROBLEMS` ein Compilerfehler zu `explorer_ping_demo.c`, fehlt dem Aufruf ein Argument oder du hast vor dem Bauen nicht gespeichert — `Strg`/`Cmd`+`S` und erneut starten. Kommt kein Terminal, hat die Palette nie aufgemacht: `F1` statt des Tastenkürzels.
+:::
 
 **Reagiert die Palette gar nicht auf `F1` oder `Strg`/`Cmd`+`Umschalt`+`P`, hat der Browser das Tastenkürzel abgefangen** — `F1` ist der zuverlässige Weg, sonst nimm **☰ → `Terminal`**.
 
@@ -76,7 +80,11 @@ Beide müssen sauber durchlaufen. Der Host-Build linkt einen Stub, der nie sende
 
 ## Schritt 3 — flashen
 
-Drücke **`F1`**, tippe `Tasks: Run Task`, drücke Enter, wähle **`CaDS: Flash`** aus der Liste. Ohne Tastatur: **☰ → `Terminal` → `Run Task...` → `CaDS: Flash`**. Willst du bauen und flashen in einem Zug, nimm stattdessen **`CaDS: Build + Flash`**; es führt beides hintereinander aus.
+::: do palette="> CaDS Board: Flash (build/itsboard/cads-zero.bin)"
+Drücke **`F1`**, tippe `CaDS Board: Flash` und wähle den vollständigen Eintrag mit `Enter`. Über die Task-Liste geht es ebenso: **☰ → `Terminal` → `Run Task...` → `CaDS: Flash`**, oder **`CaDS: Build + Flash`**, wenn du bauen und flashen in einem Zug willst.
+> expect: Rechts unten läuft eine Fortschrittsmeldung, danach nennt die Statusleiste Bytes und Dauer des letzten Flash.
+> recover: Meldet die Statusleiste, dass kein Image da ist, hat der Board-Build nicht gelingen können — sieh im Terminal `CaDS: Build` nach der Fehlerzeile. Bricht das Schreiben ab, ist das Board nicht mehr freigegeben: `CaDS Board: Verbinden` aufrufen und im Browserdialog bestätigen.
+:::
 
 Während des Flashens erscheint oben rechts eine Fortschrittsmeldung, und es dauert etwa 15 Sekunden.
 
@@ -134,6 +142,8 @@ python3 scripts/board_cmd.py P "c0a8210a 1" --timeout 5
 
 ## Deine Aufgaben
 
-Die drei Aufgaben stehen unten im Steptext, dem Reiter in der Mitte, jede mit einem Knopf **Prüfen**; **Run all checks** oben startet alle drei. Der erste Check sucht den Aufruf mit Argument — eine Deklaration oder ein Kommentar besteht ihn nicht. Der zweite startet den Task `CaDS: Build` selbst; seine Ausgabe erscheint unten im Terminal mit dem Namen des Tasks. Der dritte ist eine Freitextfrage. Bleibt eine Aufgabe rot, hilft der Knopf **Hinweis anzeigen** daneben.
+Die drei Aufgaben stehen unten im Steptext, dem Reiter in der Mitte, jede mit einem Knopf **Prüfen**; **Run all checks** oben startet alle drei.
+
+Der erste Check sucht den Aufruf mit Argument — eine Deklaration oder ein Kommentar besteht ihn nicht. Der zweite startet den Task `CaDS: Build` selbst; seine Ausgabe erscheint unten im Terminal mit dem Namen des Tasks. Der dritte ist eine Freitextfrage. Bleibt eine Aufgabe rot, hilft der Knopf **Hinweis anzeigen** daneben.
 
 Die Bedienoberfläche ist englisch, der Kurstext deutsch — der Menüpunkt heißt also `Run Task...`, nicht „Aufgabe ausführen“.

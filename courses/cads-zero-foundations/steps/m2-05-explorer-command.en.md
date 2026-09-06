@@ -109,9 +109,16 @@ The function is deliberately not `static`: that way its name is in the ELF in an
 ## Where you work
 
 - **Open the file:** `Ctrl`/`Cmd`+`P`, then type `explorer.c` and open it with Enter. Do not forget to save (`Ctrl`/`Cmd`+`S`).
-- **Build:** menu *Terminal → Run Task…*, entry **CaDS: Build**. The log appears in the *Terminal* panel.
 - **Check:** the **Check** button on each task.
 - **Terminal for `grep`:** menu *Terminal → New Terminal*. That is a shell window in the working directory, not the board console.
+
+Building runs through the task:
+
+::: do task="CaDS: Build"
+Start the task through **`F1`** → `Tasks: Run Task` → `Enter` → `CaDS: Build`, or without a keyboard through **☰ → `Terminal` → `Run Task...` → `CaDS: Build`**.
+> expect: A terminal named after the task opens at the bottom; at the end it holds the linker's size report and a prompt back again.
+> recover: If the compiler reports an error in `explorer.c`, you probably did not save before building — `Ctrl`/`Cmd`+`S` and start again. If the symbol check fails afterwards rather than the build, the `case` in the dispatcher is missing: the linker runs with `--gc-sections` and discards a function nobody calls.
+:::
 
 The link runs with `--gc-sections`: a function nobody calls is discarded at link time and the symbol check would fail. Piece 2, the `case`, is therefore not optional.
 

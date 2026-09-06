@@ -30,16 +30,11 @@ Get the board recognised by the lab, and understand what the single USB link bet
 
 There is no button in the window for connecting. The command lives in the **command palette** — the input line through which this environment offers every command it has. The user interface is in English while this course text is in German; our own board commands still carry German titles, because they come from our own extension.
 
-1. Press **`F1`**. An input line drops down at the top centre of the window. (`Ctrl`/`Cmd`+`Shift`+`P` does the same, but a browser often keeps it for itself — use `F1`.)
-2. Type into that line:
-
-```
-CaDS Board: Verbinden
-```
-
-The full entry reads `CaDS Board: Verbinden (USB/Serial freigeben)`; once it shows up in the list, select it with `Enter`.
-
-3. The same command without any keyboard, through the **status bar at the bottom left**: it reads `Board: getrennt`. One click on it opens a small menu with `Board verbinden (USB/Serial freigeben)` and `Log anzeigen`.
+::: do palette="> CaDS Board: Verbinden (USB/Serial freigeben)"
+Press **`F1`**, type `CaDS Board: Verbinden` and select the full entry `CaDS Board: Verbinden (USB/Serial freigeben)` with `Enter`. Without a keyboard the same route runs through the **status bar at the bottom left**, which reads `Board: getrennt`: one click on it opens a menu with `Board verbinden (USB/Serial freigeben)`. The browser then asks for itself which USB device it may release — pick the ST-Link in its dialog and confirm.
+> expect: After a few seconds the entry in the status bar at the bottom left reads `Board: verbunden · läuft`, and its tooltip names the probe it found and the chip.
+> recover: If no input line drops down at all, the browser swallowed `Ctrl`/`Cmd`+`Shift`+`P` — use `F1`, or the status-bar route, which needs no keyboard. If no ST-Link appears in the browser's device list, the USB cable sits on the wrong connector of the Nucleo, or another tab of this lab still holds the probe: close the other tabs and call the command again.
+:::
 
 ![The status bar at the bottom left with the entry Board: getrennt](board-statusbar-disconnected.png)
 

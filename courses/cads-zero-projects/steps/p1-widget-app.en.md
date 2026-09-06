@@ -47,9 +47,27 @@ This project assumes the Foundations module M5, especially the step where you ad
 - Wire it into the launcher: `#include` your header in `apps/menu/cads_menu_app.c`, call `cads_project_app_init(dispatcher)` alongside the other `cads_*_init` calls, add a `cads_menu_item_t` row pointing at your view id, and link your library from `apps/menu/CMakeLists.txt`.
 - Respect the both-targets rule: nothing above the HAL may become board-only, so your app must also build for the host.
 
+## Where you work
+
+::: do task="CaDS: Build"
+Start the board build through **`F1`** → `Tasks: Run Task` → `Enter` → `CaDS: Build`; without a keyboard through **☰ → `Terminal` → `Run Task...` → `CaDS: Build`**. It takes about a minute the first time, seconds after that.
+> expect: A terminal of its own named after the task opens at the bottom. You see CMake and then the compiler file by file; at the end the last line is the build tool's and not the compiler's, and a fresh `cads-zero.elf` sits under `build/itsboard/`.
+> recover: If no input line drops down, the browser swallowed `Ctrl`/`Cmd`+`Shift`+`P` — `F1` is the reliable way. If you see no terminal, the area is folded away: `Ctrl`/`Cmd`+`J` opens and closes it. If the linker reports an undefined `cads_project_app_init`, your directory is missing from the CMake file.
+:::
+
+**Onto the board** — only if you want to look at it yourself; acceptance does not require it:
+
+::: do palette="> CaDS Board: Flash (build/itsboard/cads-zero.bin)"
+Press **`F1`**, type `CaDS Board: Flash` and pick the full entry with `Enter`. Building and flashing in one go runs through **☰ → `Terminal` → `Run Task...` → `CaDS: Build + Flash`**, about a minute plus some 15 seconds for the flash.
+> expect: A progress notification runs at the bottom right, after which the status bar names the byte count and the duration of the last flash.
+> recover: If the status bar reports that there is no image, the board build cannot have succeeded — look in the build task's terminal. If the write breaks off, the board is not released: call `CaDS Board: Verbinden` and confirm in the browser dialog.
+:::
+
+Checking happens in the step text, the tab in the middle. Each task at the bottom has a **Prüfen** button and a **Hinweis anzeigen** button; **Run all checks** at the top of the tab checks everything at once.
+
 ## Acceptance
 
-The substance checks do not read the source text; they read the **built object files** under `build/itsboard`. A comment produces no symbol reference, so it passes none of them.
+The substance checks do not read the source text; they read the **built object files** under `build/itsboard`. A comment produces no symbol reference, so it passes none of them — which is why every change needs a fresh build first, with the block above.
 
 1. **Registration and wiring.** First the board image builds. Then the check looks for the translation unit that *defines* `cads_project_app_init` and requires, in that same unit, unresolved references to `cads_view_dispatcher_add` and `cads_view_set_softkeys` (`nm -u`). The object file of `apps/menu/cads_menu_app.c` must list `cads_project_app_init` as an undefined symbol — which only happens if the menu really calls the function; an `#include` or a comment produces no reference. Finally the symbol must be in the ELF.
 2. **Damage discipline.** That same translation unit must reference `cads_view_dirty_rect` or `cads_canvas_damage`. That is the machine-checkable form of the requirement never to repaint the whole screen.

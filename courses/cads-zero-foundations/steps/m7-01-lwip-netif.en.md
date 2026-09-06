@@ -77,7 +77,13 @@ In the lab the scripts reach the board through the bridge's console PTY; if the 
 python3 scripts/board_key.py quit --port /home/coder/board-console
 ```
 
-To watch while it sends, also open the board console: press **`F1`**, type `CaDS Board: Konsole öffnen` and press Enter. `Ctrl`/`Cmd`+`Shift`+`P` opens the palette too, but a browser often swallows it; `F1` is the reliable way. **If the palette does not react at all, the browser swallowed the shortcut** — press `F1`, or go through **☰ → `Terminal`**.
+To watch while it sends, also open the board console.
+
+::: do palette="> CaDS Board: Konsole öffnen"
+Press **`F1`**, type `CaDS Board: Konsole öffnen` and confirm with `Enter`.
+> expect: A terminal named `CaDS Board Console` sits at the bottom, with the board's messages arriving in it.
+> recover: If the palette does not react at all, the browser swallowed `Ctrl`/`Cmd`+`Shift`+`P` — `F1` is the reliable way. If the console stays empty, the serial port is not granted in the browser: call `CaDS Board: Verbinden` again and confirm in the browser dialog.
+:::
 
 Then click **Check**. The gate brings the netif up, polls for ten seconds and reports two lines starting `# net: link=` and `# net: mmc delta rx_unicast=`: link state, speed, packet and byte counters. Expect ten to fifteen seconds; the task turns green as soon as the first line arrives.
 

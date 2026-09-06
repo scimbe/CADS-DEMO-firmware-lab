@@ -46,7 +46,13 @@ Ein frisch geflashtes Board startet im Touchscreen-App-Baum und überhört einze
 python3 scripts/board_key.py quit
 ```
 
-Das Arbeitsverzeichnis ist die Projektwurzel; der Befehl braucht unter einer Sekunde. Mitlesen kannst du in der Board-Konsole: **`F1`**, dann `CaDS Board: Konsole öffnen` tippen, Enter.
+Das Arbeitsverzeichnis ist die Projektwurzel; der Befehl braucht unter einer Sekunde.
+
+::: do palette="> CaDS Board: Konsole öffnen"
+Drücke **`F1`**, tippe `CaDS Board: Konsole öffnen` und bestätige mit `Enter`, um mitzulesen, was das Board antwortet.
+> expect: Unten steht ein Terminal mit dem Namen `CaDS Board Console`, und das Board antwortet dort auf einzelne Buchstaben.
+> recover: Bleibt es stumm, steht es entweder noch im App-Baum — dann `python3 scripts/board_key.py quit` im gewöhnlichen Terminal wiederholen — oder es ist von einer Debug-Sitzung angehalten: dann Continue oder Stop in der Debug-Werkzeugleiste oben drücken.
+:::
 
 Den Befehl `E` tippst du dort **nicht** selbst: der Prüfknopf sendet ihn, du liest nur die Antwort mit. Ist das Board von einer Debug-Sitzung angehalten, hört es ebenfalls nicht zu - drücke dann Continue oder Stop in der Debug-Werkzeugleiste oben.
 

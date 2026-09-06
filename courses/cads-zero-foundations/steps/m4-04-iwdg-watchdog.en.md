@@ -65,7 +65,13 @@ The same comment gives the LSI's nominal frequency as 32 kHz. But those two numb
 
 ## Task 1 — read this boot's reset cause
 
-**Step 1 — open the board console.** Press **`F1`**, type `CaDS Board: Konsole öffnen`, Enter. **At the bottom** of the terminal area a terminal named `CaDS Board Console` appears, the board's serial console at 115200 baud. That area carries the tabs `PROBLEMS`, `OUTPUT`, `DEBUG CONSOLE`, `TERMINAL`, `PORTS`, `MEMORY`, `XRTOS`; `Ctrl`/`Cmd`+`J` folds it open and shut. It takes a second.
+**Step 1 — open the board console.**
+
+::: do palette="> CaDS Board: Konsole öffnen"
+Press **`F1`**, type `CaDS Board: Konsole öffnen` and confirm with `Enter`. It takes a second.
+> expect: **At the bottom** of the terminal area a terminal named `CaDS Board Console` appears, the board's serial console at 115200 baud.
+> recover: If you cannot see the terminal area at all, it is folded away: `Ctrl`/`Cmd`+`J` folds it open and shut, and it carries the tabs `PROBLEMS`, `OUTPUT`, `DEBUG CONSOLE`, `TERMINAL`, `PORTS`, `MEMORY`, `XRTOS`. If the console stays silent, the serial port is not granted in the browser — call `CaDS Board: Verbinden` again.
+:::
 
 <!-- SHOT: m4-palette-board-console | Die geoeffnete Befehlspalette mit eingetipptem CaDS Board und der gefilterten Liste der Board-Befehle -->
 

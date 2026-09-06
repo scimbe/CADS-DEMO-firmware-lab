@@ -32,15 +32,19 @@ socratic:
 
 Verstehe, wie eine Firmware, deren Panel nicht zurückgelesen werden kann, dennoch prüft, was sie zeichnet, und lerne, einen Golden-Image-Fehlschlag zu lesen, ohne ein Rundungsartefakt für einen Bug zu halten.
 
-**Der erste Handgriff:** starte den Task `CaDS: Host tests`, danach den Task `CaDS: Golden images (informativ)`. Beide Wege stehen im nächsten Abschnitt.
+**Der erste Handgriff** sind zwei Tasks: `CaDS: Host tests`, danach `CaDS: Golden images (informativ)`. Beide Wege stehen im nächsten Abschnitt.
 
 ## Die zwei Tasks starten
 
 Die Bedienoberfläche ist englisch, der Kurstext deutsch — der Menüpunkt heißt also `Run Task...`.
 
-Drücke **`F1`**, tippe `Tasks: Run Task`, Enter, dann **`CaDS: Host tests`** aus der Liste wählen. Ohne Tastatur: das Symbol mit den drei Strichen (**☰**) ganz oben links, dann **`Terminal` → `Run Task...` → `CaDS: Host tests`**. (`Strg`/`Cmd`+`Umschalt`+`P` öffnet die Palette auch, wird im Browser aber oft abgefangen; `F1` ist der zuverlässige Weg.) Unten im Terminal-Bereich öffnet sich ein eigenes Terminal mit dem Namen des Tasks; ist der Bereich zugeklappt, klappt ihn `Strg`/`Cmd`+`J` auf und zu. Dauer etwa eine halbe Minute, Schlusszeile bei Erfolg `100% tests passed, 0 tests failed out of 35`.
+::: do task="CaDS: Host tests"
+Drücke **`F1`**, tippe `Tasks: Run Task`, Enter, dann **`CaDS: Host tests`** aus der Liste wählen. Ohne Tastatur: das Symbol mit den drei Strichen (**☰**) ganz oben links, dann **`Terminal` → `Run Task...` → `CaDS: Host tests`**. Es dauert etwa eine halbe Minute.
+> expect: Unten öffnet sich ein eigenes Terminal mit dem Namen des Tasks; bei Erfolg lautet seine Schlusszeile `100% tests passed, 0 tests failed out of 35`.
+> recover: Klappt keine Eingabezeile auf, hat der Browser `Strg`/`Cmd`+`Umschalt`+`P` abgefangen — `F1` ist der zuverlässige Weg. Siehst du kein Terminal, ist der Bereich zugeklappt: `Strg`/`Cmd`+`J` klappt ihn auf und zu.
+:::
 
-**Dieser Task enthält die Golden-Szenen nicht.** Sein Kommando endet auf `-E '^golden_'`, schließt sie also ausdrücklich aus. Die Szenen laufen im zweiten Task: **`F1`** → `Tasks: Run Task` → Enter → **`CaDS: Golden images (informativ)`**, oder **☰ → `Terminal` → `Run Task...` → `CaDS: Golden images (informativ)`**. Auch er baut zuerst das Host-Preset, dauert also etwa eine halbe Minute, und führt `ctest` mit `-R '^golden_'` aus: zwei Zeilen, `golden_splash` und `golden_boot_desktop`, jede mit `Passed` oder `Failed`.
+**Dieser Task enthält die Golden-Szenen nicht.** Sein Kommando endet auf `-E '^golden_'`, schließt sie also ausdrücklich aus. Die Szenen laufen im zweiten Task `CaDS: Golden images (informativ)`, erreichbar über dieselbe Task-Liste. Auch er baut zuerst das Host-Preset, dauert also etwa eine halbe Minute, und führt `ctest` mit `-R '^golden_'` aus: zwei Zeilen, `golden_splash` und `golden_boot_desktop`, jede mit `Passed` oder `Failed`.
 
 Der Zusatz **(informativ)** ist wörtlich zu nehmen: die SDL2-Version in diesem Container rundet Kantenpixel um ±1 anders als die Aufnahmemaschine. Ein Fehlschlag hier ist deshalb kein Urteil über deinen Code — darum prüft die erste Aufgabe den Host-Test-Task.
 
@@ -84,7 +88,7 @@ Für die zweite Frage: das Panel arbeitet in RGB565, ein Kanal hat 5 oder 6 Bit.
 
 Drei Aufgaben, jede mit ihrem eigenen Knopf **Prüfen** unten im Steptext; **Run all checks** oben im Reiter `CaDS Tutor: Golden Images für ein nur beschreibbares Display` prüft alle auf einmal.
 
-1. **Der Host-Test-Task läuft durch.** Starte ihn wie oben: **`F1`** → `Tasks: Run Task` → Enter → **`CaDS: Host tests`**.
+1. **Der Host-Test-Task läuft durch.** Der Task `CaDS: Host tests` aus dem ersten Abschnitt muss fehlerfrei enden.
 2. **Lies einen Diff.** Beurteile den Fehlschlag, den die Aufgabe beschreibt — er hat andere Zahlen als der Fall von 2026-08-30, das Verfahren ist dasselbe; rechne den Nachbarabstand des betroffenen Kanals aus, bevor du das Delta einordnest.
 3. **Die Regenerationsregel.** Beantworte, wann ein Golden neu erzeugt werden darf.
 

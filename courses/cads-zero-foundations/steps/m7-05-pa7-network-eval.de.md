@@ -65,6 +65,12 @@ Alle drei sind Freitextfragen. Sie stehen unten im Steptext, dem Reiter in der M
 2. **Die Folge.** Welche Verkehrsart übersteht den Ausfall nicht, und welche Regel leitest du daraus für eigene Protokolle ab?
 3. **Die Entscheidung.** Würdest du die Lötbrücken tauschen? Zustimmung ist nicht verlangt — die Nutzung der Fakten schon, und eine Bedingung, unter der die andere Wahl gewinnt.
 
-Willst du zwischendurch in einen anderen Step springen, drücke **`F1`**, tippe `Zu Schritt springen` und drücke Enter. `Strg`/`Cmd`+`Umschalt`+`P` öffnet die Palette auch, wird im Browser aber oft abgefangen; **reagiert sie gar nicht, hat der Browser das Tastenkürzel abgefangen** — nimm `F1`. Der Kursbaum links in der Seitenleiste, hinter dem Doktorhut-Symbol der Leiste ganz außen, tut dasselbe mit der Maus.
+Willst du zwischendurch in einen anderen Step springen:
+
+::: do palette="> CaDS Tutor: Zu Schritt springen"
+Drücke **`F1`**, tippe `Zu Schritt springen` und bestätige mit `Enter`.
+> expect: Die Palette listet die Steps dieses Kurses auf, und die Auswahl öffnet den gewählten Steptext als Reiter in der Mitte.
+> recover: Reagiert die Palette gar nicht, hat der Browser `Strg`/`Cmd`+`Umschalt`+`P` abgefangen — `F1` geht immer. Mit der Maus tut der Kursbaum links in der Seitenleiste dasselbe, hinter dem Doktorhut-Symbol der Leiste ganz außen.
+:::
 
 Die Bedienoberfläche ist englisch, der Kurstext deutsch; die Befehle des Tutors selbst sind dagegen deutsch, `Zu Schritt springen` heißt also wirklich so.
