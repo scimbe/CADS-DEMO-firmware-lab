@@ -928,7 +928,11 @@ export class TutorController implements vscode.Disposable {
         predict: t.check.type === "predict" ? ({} as PredictView) : undefined,
       } as TaskView;
     });
-    this.panel.post({ type: "next", next: this.nextActionView(cur.course, cur.step, tasks, this.lang) });
+    this.panel.post({
+      type: "next",
+      next: this.nextActionView(cur.course, cur.step, tasks, this.lang),
+      moduleProgress: this.moduleProgress(cur.course, cur.step),
+    });
   }
 
   /**

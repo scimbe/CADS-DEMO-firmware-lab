@@ -181,8 +181,12 @@ export type ToWebview =
   /** `html` is produced by renderRecall / renderReflection on the extension side. */
   | { type: "recall"; html: string }
   | { type: "reflection"; html: string }
-  /** The one line in the header saying what to do next; recomputed after each check. */
-  | { type: "next"; next?: NextActionView }
+  /**
+   * The header's own state: the one line saying what to do next, and how far the
+   * module has come. Both are recomputed after every check, so the bar moves at
+   * the moment the step is finished rather than at the next navigation.
+   */
+  | { type: "next"; next?: NextActionView; moduleProgress?: { done: number; total: number } }
   | { type: "ask"; outcome: AskView }
   | { type: "note"; note: NoteView }
   | { type: "stepDone"; unlocked: StepRef[] }
@@ -683,6 +687,7 @@ function clientScript(view: StepView): string {
     running: ui(view.lang).running,
     sources: ui(view.lang).sources,
     causeLabel: ui(view.lang).causeLabel,
+    moduleProgress: ui(view.lang).moduleProgress(0, 0).replace("0", "{d}").replace("0", "{t}"),
     hintTier: ui(view.lang).hintTier(0).replace("0", "{n}"),
     unlocked: ui(view.lang).unlocked("{t}"),
     done: ui(view.lang).done,
@@ -817,6 +822,14 @@ function clientScript(view: StepView): string {
     } else if (m.type === "next") {
       const line = document.getElementById("next-line");
       if (line) line.textContent = m.next ? m.next.text : "";
+      if (m.moduleProgress) {
+        const fill = document.querySelector(".modbar-fill");
+        const bar = document.querySelector(".modbar");
+        const total = m.moduleProgress.total;
+        const pct = total > 0 ? Math.round((Math.min(m.moduleProgress.done, total) / total) * 100) : 0;
+        if (fill) fill.style.width = pct + "%";
+        if (bar) { const label = S.moduleProgress.replace("{d}", m.moduleProgress.done).replace("{t}", total); bar.title = label; bar.setAttribute("aria-label", label); }
+      }
       const slot = document.getElementById("next-button");
       if (slot) {
         const n = m.next;

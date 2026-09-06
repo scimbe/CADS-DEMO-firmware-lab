@@ -208,6 +208,12 @@ describe("A9.4: header, progress and the one next action", () => {
     assert.match(html, /id="orientation-dismiss"/);
   });
 
+  it("teaches the client the module label as a template, so the bar can move without a reload", () => {
+    const html = renderStepHtml(baseView({ moduleProgress: { done: 1, total: 4 } }), "cs", "N");
+    assert.match(html, /"moduleProgress":"Module: \{d\} of \{t\} steps done"/);
+    assert.match(renderStepHtml(baseView({ lang: "de", moduleProgress: { done: 1, total: 4 } }), "cs", "N"), /Modul: \{d\} von \{t\} Schritten fertig/);
+  });
+
   it("puts the recall and reflection cards after the tasks, not before them", () => {
     const html = renderStepHtml(
       baseView({
