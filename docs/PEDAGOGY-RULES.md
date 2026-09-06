@@ -342,6 +342,46 @@ benannt, nicht angedeutet.
 
 ---
 
+## 11a. Nutzerführung, Anleitungen, Kompetenznachweis (2026-09-06)
+
+Belege: [`research/nutzerfuehrung-evidenz.md`](research/nutzerfuehrung-evidenz.md), Format:
+[`SPEC.md`](SPEC.md) A9. Jede Regel nennt den Befund (E…) und das Kriterium (K…), an dem sie gemessen wird.
+
+**R11a.1 — Eine Handlung, ein Block.** Jede Bedienanweisung steht in einem `::: do`-Block mit genau einer
+Handlung. Zwei Handlungen sind zwei Blöcke. *E5, Google/Microsoft Style Guide; K2.* **[Validator]**
+
+**R11a.2 — Kein Bedienweg ohne erwartetes Ergebnis.** Jeder Block sagt, woran die Studierende erkennt, dass es
+geklappt hat, und was sie tut, wenn nicht. Ein Block ohne `expect:`/`recover:` ist unfertig.
+*E5: minimalistische Materialien mit Fehlerbehebung halbierten die Bearbeitungszeit; K3.* **[Validator]**
+
+**R11a.3 — Bedienwege werden nicht erfunden.** Task-, Kommando- und Palettennamen im Kurstext müssen wörtlich
+aus einer Prüfung, aus `tasks.json` oder aus der Befehlsliste der Extension stammen. *A8.3, E1; K4.* **[Validator]**
+
+**R11a.4 — Die Fehlermeldung spricht Kurssprache.** Scheitert eine Prüfung, steht zuerst ein Satz in der Sprache
+des Kurses, der die wahrscheinliche Ursache benennt — bevorzugt aus den `misconceptions` des Steps —, danach
+erst die Werkzeugausgabe. *E3, E4; K5.*
+
+**R11a.5 — Immer genau eine nächste Handlung, immer sichtbar.** Das Panel zeigt in der Kopfzeile Ort und
+Fortschritt und darunter die eine nächste Handlung; es gibt nie zwei primäre Schaltflächen.
+*E6, NN/g „Sichtbarkeit des Systemzustands"; K1.*
+
+**R11a.6 — Bild und Text zeigen dieselbe Nummer.** Bildschirmfotos tragen nummerierte Marken; der Text verweist
+auf die Nummer statt auf „oben rechts". *E6 räumliche Kontiguität.*
+
+**R11a.7 — Jedes Lernziel kehrt zeitversetzt wieder.** Zu jedem Lernziel gibt es mindestens einen Abruf in einem
+späteren Modul. *E7: Praxis-Test und verteilte Wiederholung sind die zwei wirksamsten Verfahren; K8.* **[Validator]**
+
+**R11a.8 — Selbstauskunft ist kein Nachweis.** Ohne Sprachmodell bestätigte Antworten zählen als `selfReported`
+und tragen nichts zur Kompetenzstufe bei; sie schalten nichts frei. *E8; K7.*
+
+**R11a.9 — Keine Punktewährung.** Keine XP, keine Level, keine Serien, keine Ligen, keine Rangliste, kein
+Zeitdruck. Anerkennung entsteht über Kompetenzstufe, Kannkarte und Nachweisheft.
+*E9: Belohnungs- und Statusmechanik wirkt deutlich schwächer als Herausforderung und bedeutsames Ziel;
+Gamifizierung wirkt kaum auf Kompetenz. Marktbeleg: dokumentierte XP-Kritik bei boot.dev; K9.* **[Validator]**
+
+**R11a.10 — Ein Abzeichen ohne Beleg wird nicht vergeben.** Jeder Eintrag im Nachweisheft trägt Lernziel, Stufe,
+Datum, Belegart und Schritt-ID. *E10, Open Badges 3.0; K10.*
+
 ## 12. Was der Validator prüfen soll
 
 Diese Regeln sind maschinell entscheidbar. Umgesetzt ist bisher nur die letzte; die übrigen sind der Auftrag an

@@ -473,3 +473,86 @@ verlinkt ist.
    zu prüfen. Vorhersage- und Reparaturaufgaben brauchen getrennte, schreibgeschützte Zwillinge.
 5. **Lösungsablage:** flacher Spiegel des Projektwurzelverzeichnisses unter `solutions/`, zusätzlich optional eine
    Sicht je Schritt unter `solutions/by-step/<step-id>/`. Der Validator versteht beide Formen.
+
+## A9 Nutzerführung, Anleitungen und Kompetenznachweis (2026-09-06, verbindlich)
+
+Begründung und Belege: [`research/nutzerfuehrung-evidenz.md`](research/nutzerfuehrung-evidenz.md) (E1–E10, K1–K10).
+Dieses Addendum legt die Formate fest; die Kursregeln dazu stehen in `PEDAGOGY-RULES.md` Abschnitt 9.
+
+### A9.1 Anleitungsblock (`::: do`) — das einzige zulässige Format für Bedienanweisungen
+
+Bedienanweisungen stehen nicht mehr im Fließtext, sondern in einem Block, den der Renderer als abgesetzte Karte
+zeichnet und dessen Handlung er ausführen kann. Syntax im Step-Rumpf:
+
+```
+::: do task="CaDS: RAM budget"
+Öffne die Befehlspalette und führe den Task aus.
+> expect: Im Terminal steht am Ende `RAM: … / 192 KiB`.
+> recover: Steht dort `command not found`, ist das Terminal im falschen Ordner — siehe unten.
+:::
+```
+
+Zulässig ist genau **eine** Handlungsangabe je Block, als Attribut:
+
+| Attribut | Bedeutung | Schaltfläche |
+|---|---|---|
+| `task="…"` | VS-Code-Task, Name wörtlich wie in `tasks.json` | führt den Task aus |
+| `command="…"` | Shell-Kommando im Projektordner (`cwd="…"` optional) | führt es im Terminal aus |
+| `palette="…"` | Eintrag der Befehlspalette, **mit** führendem `>` | öffnet die Palette vorbelegt |
+| `file="…"` (`line=`) | Datei, die geöffnet werden soll | öffnet sie an der Stelle |
+| `keys="…"` | Tastenkürzel, plattformneutral notiert | keine (nur Anzeige) |
+
+Pflichtfelder je Block: die Handlungsangabe, ein Satz Anleitung im Imperativ, `expect:` und `recover:`.
+Beides wird zweisprachig geführt wie der übrige Step. **[Validator]**
+
+Regeln, die der Validator durchsetzt:
+1. Genau ein Handlungsattribut je Block; mehrere Handlungen sind mehrere Blöcke (eine Handlung je Schritt).
+2. `expect:` und `recover:` sind Pflicht und dürfen einander nicht wiederholen.
+3. Ein `task=`, `command=` oder `palette=` muss wörtlich in einer Prüfung des Kurses, in `tasks.json` oder in der
+   Befehlsliste der Extension vorkommen. Ein erfundener Bedienweg ist ein Fehler, kein Stilproblem (A8.3).
+4. Text außerhalb eines `::: do`-Blocks darf keine Handlungsaufforderung mehr enthalten, die ein Kommando, einen
+   Task oder einen Palettennamen nennt. Erkennung über Kommando- und Tasknamen des Kurses.
+
+### A9.2 Kompetenzmodell — was als Nachweis zählt
+
+Ein Lernziel (`objective`) trägt Belege. Ein Beleg ist ein Ereignis mit Gewicht:
+
+| Belegart | Gewicht | Quelle |
+|---|---|---|
+| Prüfung im ersten Versuch ohne Hinweis bestanden | stark | `task.passed`, `firstTry`, `hintTier = 0` |
+| Prüfung mit Hinweisen bestanden | mittel | `task.passed`, `hintTier > 0` |
+| Vorhersage traf zu | mittel | `predict` |
+| Frage nach Rubrik durch das Sprachmodell bestanden | mittel | `question`, nicht `selfReported` |
+| Abruf nach zeitlichem Abstand bestanden | stark | `recall`, mindestens ein Modul später |
+| Selbstauskunft (ohne Sprachmodell bestätigt) | **zählt nicht** | `selfReported: true` |
+
+Daraus drei Stufen je Lernziel: **berührt** (mindestens ein Beleg), **geübt** (ein starker oder zwei mittlere),
+**nachgewiesen** (ein starker Beleg *und* ein Abrufbeleg aus einem späteren Modul). Ein Modul gilt erst als
+abgeschlossen, wenn jedes seiner Lernziele mindestens *geübt* ist; *nachgewiesen* kann definitionsgemäß erst
+später eintreten. Selbstauskunft schaltet nichts frei (E8, K7).
+
+### A9.3 Gamifizierung — was wir bauen und was ausdrücklich nicht
+
+Zulässig, weil an Kompetenz gebunden (E9):
+- **Kompetenzkarte** je Modul und je Lernziel mit den drei Stufen und der Belegart, die zur Stufe geführt hat.
+- **Kannkarte** am Modulende: „Du kannst jetzt …" — drei Sätze, aus den Lernzielen erzeugt, mit Verweis auf den
+  Beleg. Sie ersetzt jede Punkteanzeige.
+- **Nachweisheft** (`Kompetenznachweis`), exportierbar, je Eintrag: Lernziel, Stufe, Datum, Belegart, Schritt-ID.
+  Abzeichen nur mit Kriterium und verlinktem Beleg (E10).
+- **Erzählbogen**: der Kurs führt auf ein benanntes Werkstück hin, jedes Modul ist ein Teil davon.
+
+Unzulässig, weil ohne Kompetenzwirkung und für ein Fachstudium unpassend (E9):
+Punktewährung (XP), Level, Serien/Streaks, Ligen, Ranglisten, Wettbewerb zwischen Studierenden, Abzeichen ohne
+Beleg, Zeitdruck als Motivator. **[Validator]** prüft die zugehörigen Begriffe in Kurs- und Oberflächentexten.
+
+### A9.4 Panel-Aufbau (Reihenfolge ist verbindlich)
+
+1. **Kopfzeile**: Kurs › Modul › Schritt, Fortschritt als `Schritt m von n` und Modulbalken (K1, NN/g).
+2. **Nächste Handlung**: eine Zeile, immer sichtbar, immer genau eine — die Schaltfläche dazu ist die einzige
+   primäre Schaltfläche der Seite.
+3. **Lernziel** in einem Satz, dann der Rumpf mit `::: do`-Blöcken.
+4. **Aufgaben** mit Zustand, Hinweisstufe, Fehlermeldung in Kurssprache vor der Werkzeugausgabe (E2–E4).
+5. **Abrufkarte**, wenn fällig; **Reflexionskarte**, wenn das Modul abgeschlossen wurde; **Kannkarte** danach.
+6. **Frage an den Tutor** am Ende.
+
+Bilder tragen nummerierte Marken, und der Text verweist auf dieselben Nummern (räumliche Kontiguität, E6).
