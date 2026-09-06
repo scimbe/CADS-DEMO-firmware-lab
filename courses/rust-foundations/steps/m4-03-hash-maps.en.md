@@ -76,7 +76,7 @@ The reason to learn hash maps properly is this one line:
 for (name, score) in &scores { … }
 ```
 
-The order is unspecified, and Rust deliberately seeds its default hasher randomly, so it also changes between runs of the same binary. This is a defence against algorithmic complexity attacks, and it means any code whose output depends on the order is non-deterministic - a test that passes locally and fails in CI, or the reverse.
+The order is unspecified, and Rust deliberately seeds its default hasher randomly - a defence against algorithmic complexity attacks. Follow that one step further before you answer the question below: if the seed differs, what differs between two runs of the *same* binary, and what does that do to any code whose output depends on the order?
 
 `best_team` is specified with a tie-break on the name for exactly this reason: with two teams on 30 points and no tie-break, the answer would be a coin flip and the test could not assert anything. When you need order, you sort explicitly, which is the next step.
 

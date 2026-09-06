@@ -124,7 +124,7 @@ rows=[]; ladders_missing=0; tasks_total=0
 DO_BLOCK_RE = re.compile(r"^:::[ \t]+do\b.*?^:::[ \t]*$", re.M | re.S)
 
 for f in sorted(glob.glob(f"{D}/*.{lang}.md")):
-    sid=os.path.basename(f)[:-6]; fm,body=V.load_step(f)
+    sid=os.path.basename(f)[:-6]; fm,body=V.load_step(f)[:2]   # load_step also returns a parse error
     btok=toks(DO_BLOCK_RE.sub("", body)); soc=fm.get("socratic") or []
     trig=set()
     for s0 in soc:

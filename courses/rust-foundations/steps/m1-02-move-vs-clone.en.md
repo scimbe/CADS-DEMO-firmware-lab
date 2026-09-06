@@ -58,7 +58,7 @@ pub fn with_suffix(mut s: String, suffix: &str) -> String {
 pub fn duplicate(s: String) -> (String, String) { … }
 ```
 
-The test that pins this down is `duplicates_are_independent`: it pushes onto the first result and asserts the second did not change. No arrangement of moves can satisfy that - one owner, one buffer.
+The test that pins this down is `duplicates_are_independent`. Read it before you answer the question below: what it does to the first result, and what it then demands of the second, is the whole of that question's second half.
 
 ## What clone actually costs
 

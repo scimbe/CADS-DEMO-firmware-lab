@@ -55,8 +55,7 @@ let third = v.get(2);          // Option<&i32>
 
 Sie sind nicht austauschbar, und die Wahl ist eine Entwurfs-, keine Stilfrage:
 
-- Nutze `v[i]`, wenn ein Index außerhalb des Bereichs bedeuten würde, dass das Programm einen Fehler hat. Dann lautstark abzustürzen ist besser, als mit Unsinn weiterzurechnen.
-- Nutze `v.get(i)`, wenn der Index von außen kommt - von einem Nutzer, aus einer Datei, aus einem Argument - und außerhalb des Bereichs zu liegen ein Zustand ist, den dein Aufrufer behandeln soll.
+Die beiden unterscheiden sich darin, was sie bei einem Index außerhalb des Bereichs tun: das eine beendet das Programm, das andere reicht dir ein `None`, mit dem du umgehen musst. Welches von beiden richtig ist, hängt daher davon ab, woher der Index kommt und ob außerhalb des Bereichs ein Fehler oder ein erwarteter Zustand ist - und genau diese Regel so zu formulieren, dass eine Kollegin sie anwenden kann, verlangt die Frage unten.
 
 `get_at` in diesem Step ist der zweite Fall, und seine Signatur sagt das. `.copied()` nach `get` macht aus `Option<&i32>` ein `Option<i32>`, beendet damit die Leihe und erlaubt, einen Wert statt einer Referenz in die Daten des Aufrufers zurückzugeben.
 

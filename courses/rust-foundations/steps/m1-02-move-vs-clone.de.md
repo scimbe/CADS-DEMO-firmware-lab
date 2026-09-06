@@ -58,7 +58,7 @@ pub fn with_suffix(mut s: String, suffix: &str) -> String {
 pub fn duplicate(s: String) -> (String, String) { … }
 ```
 
-Der Test, der das festnagelt, ist `duplicates_are_independent`: er hängt an das erste Ergebnis an und verlangt, dass das zweite unverändert bleibt. Keine Anordnung von Moves erfüllt das - ein Eigentümer, ein Puffer.
+Der Test, der das festnagelt, ist `duplicates_are_independent`. Lies ihn, bevor du die Frage unten beantwortest: was er mit dem ersten Ergebnis tut und was er danach vom zweiten verlangt, ist die ganze zweite Hälfte dieser Frage.
 
 ## Was ein clone tatsächlich kostet
 

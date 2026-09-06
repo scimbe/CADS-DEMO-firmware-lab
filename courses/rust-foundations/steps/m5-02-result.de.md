@@ -67,7 +67,7 @@ Dieser Zweig `Err(e) => return Err(e)` ist die gesamte Fehlerbehandlung von `sum
 s.parse::<u16>().map_err(|_| format!("'{s}' is not a valid port"))
 ```
 
-`map_err` wandelt den Fehler und lässt `Ok` unberührt. Der Closure ignoriert hier den ursprünglichen Fehler, was ein bewusster Handel und Gegenstand der Frageaufgabe ist. Der Gewinn ist eine Meldung, die Eingabe und Fachbegriff nennt, was "invalid digit found in string" nicht kann. Der Verlust ist ebenso real: der Aufrufer kann "keine Zahl" nicht mehr von "außerhalb des Bereichs" unterscheiden und den Fehler nicht per match auswerten. Modul m5-04 holt das mit einem eigenen Fehlertyp zurück.
+`map_err` wandelt den Fehler und lässt `Ok` unberührt. Sieh dir an, was der Closure hier mit seinem Argument tut: er ignoriert es. Das ist ein bewusster Handel mit einem Gewinn und einem Verlust, und beide zu benennen ist die Frageaufgabe dieses Steps - halte für den Gewinn die neue Meldung gegen `invalid digit found in string`, und frage für den Verlust, was ein Aufrufer mit dem weggeworfenen Fehler hätte tun können. Modul m5-04 holt das mit einem eigenen Fehlertyp zurück.
 
 Beachte, dass sowohl `"http"` als auch `"70000"` an demselben Parsen scheitern - das eine ist keine Zahl, das andere passt nicht in ein `u16` - und ein `map_err` beides abdeckt.
 

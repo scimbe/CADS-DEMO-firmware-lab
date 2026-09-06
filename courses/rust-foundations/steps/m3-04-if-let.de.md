@@ -81,7 +81,7 @@ Die Bindung bleibt für den Rest des Blocks sichtbar, es gibt also keine Einrüc
 
 ## Was du aufgibst
 
-`match` prüft, dass du jede Variante abgedeckt hast. `if let` nicht: alles, was nicht dem Muster entspricht, fällt in das `else` - stillschweigend und dauerhaft. Ergänze nächstes Jahr eine zweite textführende Variante in `Command`, und `longest_write` übersetzt weiter, während es sie stillschweigend übergeht.
+`match` prüft, dass du jede Variante abgedeckt hast. `if let` nicht: alles, was nicht dem Muster entspricht, fällt in das `else` - stillschweigend und dauerhaft. Das ist der ganze Handel, und die Frage unten verlangt, ihn an `longest_write` konkret zu machen - der einen Funktion dieses Steps, die sich auf eine einzige Variante festlegt.
 
 Ob dieser Handel vertretbar ist, hängt davon ab, ob die Korrektheit des Codes auf der ganzen Menge der Varianten ruht oder auf einer einzelnen. Die Frageaufgabe verlangt, dieses Argument konkret an dieser Datei zu führen.
 
