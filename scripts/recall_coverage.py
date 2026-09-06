@@ -31,12 +31,32 @@ bar: one later retrieval of any of them is a retrieval of the objective.
    from; a report that calls that a gap accuses a pack for being what it is -
    cads-zero-projects is six of six.
 
-R11a.7a's second half - does the recalling body actually mention the step it
-points at? - is checked when bodies are supplied. Left unchecked it is the kind
-of gap that keeps a number green while nothing happens for the student: the
-pointer exists in the data and the reference never appears on screen. The three
-ways a body may name its target are the step id, the recalled step's title and
-its module label, because all three are used in practice.
+5. R11a.7a's second half - does the recalling body actually mention the step it
+   points at? - is checked when bodies are supplied. Left unchecked it is the
+   kind of gap that keeps a number green while nothing happens for the student:
+   the pointer sits in the data and the reference never appears on screen.
+
+   WHAT COUNTS AS NAMING IT, exactly, because two people counted this pack
+   differently before it was written down. Three forms count, and no others:
+
+     a. the step id in the prose        `m3-01-structs`
+     b. the recalled step's `title`     "Structs: values that belong together"
+     c. its module label                M3, taken from the id before the first
+                                        dash and matched as a whole word
+
+   Form (c) is the one that decides the number, and it decides it by a lot.
+   Requiring (a) or (b) alone would fail a course that writes "the rule from M1"
+   and means exactly that - a metric working against good prose rather than for
+   it. Measured over the packs, unnamed pointers with (c) against without it:
+
+     cads-zero-foundations   10  ->  50
+     javascript-foundations  26  ->  30
+     rust-foundations         0  ->  11
+
+   Most of that difference is honest module references, which is why the form
+   stays. Anything looser than these three - a bare topic word, a coincidental
+   token - would pass on an accident, so the list does not grow without a
+   finding behind it.
 
 WHAT THIS DELIBERATELY DOES NOT DO
 ----------------------------------
@@ -105,10 +125,11 @@ def _has_question(fm) -> bool:
 def _names(body: str, target: str, fm) -> bool:
     """R11a.7a, second half: does this body name the step it recalls?
 
-    Three ways count, because three ways are used in practice: the step id
-    itself, the recalled step's title, or its module label - `m3-01-structs`
-    gives `M3`. Anything looser would pass on a coincidence, and anything
-    stricter would fail a course that writes "the rule from M1" and means it.
+    The three forms that count are listed in the module docstring: the step id,
+    the recalled step's title, or its module label as a whole word. Do not
+    tighten this to the id alone without re-reading that passage - the module
+    label is the form that carries "the rule from M1", and dropping it turns the
+    measurement against the prose it is supposed to protect.
     """
     if not body:
         return True                          # nothing to judge, do not accuse
