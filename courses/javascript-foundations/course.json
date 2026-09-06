@@ -41,8 +41,8 @@
             "en": "You have now been through the same loop four times: read the test, change the code, run the test. Which part of it was new to you, and how did you notice that a test tells you something different from an error message?"
           },
           {
-            "de": "Beschreibe in zwei Sätzen, woran du künftig erkennst, dass eine Datei gar nicht erst geladen werden konnte – im Unterschied zu einer Datei, die lädt und dann eine falsche Antwort gibt.",
-            "en": "In two sentences, describe how you will recognise a file that never loaded at all, as opposed to a file that loads and then answers wrongly."
+            "de": "M0 hat dir zwei Gewohnheiten abverlangt: eine Vorhersage aufschreiben, bevor du etwas ausführst, und nur Dateien unter `src/` ändern. Welche der beiden hat dich mehr Überwindung gekostet, und was ginge verloren, wenn du sie fallen ließest?",
+            "en": "M0 asked two habits of you: write a prediction down before you run anything, and change only files under `src/`. Which of the two cost you the most to keep, and what would you lose by dropping it?"
           }
         ]
       }
@@ -91,8 +91,8 @@
             "en": "`0`, `\"\"` and `false` are falsy but still valid values someone passes on purpose. Where in a program is truthiness the right question, and where do you have to check for `undefined` instead?"
           },
           {
-            "de": "Du hast eine eigene Fehlerklasse gebaut. Was gewinnt der Aufrufer dadurch gegenüber einem `throw \"field is invalid\"`?",
-            "en": "You built your own error class. What does the caller gain from it compared with a plain `throw \"field is invalid\"`?"
+            "de": "Dieses Modul hat Fehlschläge in zwei Arten geteilt: die, die eine Bedingung vorher ausschließen kann, und die, mit denen erst ein `try` hinterher umgehen kann. Wo verläuft die Grenze zwischen ihnen, und was passiert mit einem Programm, das einen Fehlschlag auf die falsche Seite legt?",
+            "en": "This module split failures into two kinds: the ones a condition can rule out beforehand, and the ones only a `try` can deal with afterwards. Where does the line between them run, and what happens to a program that puts a failure on the wrong side of it?"
           }
         ]
       }
@@ -112,8 +112,8 @@
       "reflection": {
         "prompts": [
           {
-            "de": "Der Off-by-one-Fehler in diesem Modul hat sich als TypeError gezeigt, nicht als falsche Zahl. Erkläre, warum das so ist und warum das ein Glücksfall war.",
-            "en": "The off-by-one error in this module showed up as a TypeError, not as a wrong number. Explain why, and why that was lucky."
+            "de": "Jede Schleife dieses Moduls verlangte drei Entscheidungen: wo sie beginnt, wann sie endet, und was sie dem Rumpf zum Arbeiten gibt. Welche der drei hat deine Fehler erzeugt, und welche würdest du in einer fremden Schleife zuerst prüfen?",
+            "en": "Every loop in this module needed three decisions: where it starts, when it stops, and what it gives the body to work with. Which of the three produced your mistakes, and which would you check first in a loop someone else wrote?"
           },
           {
             "de": "Wann würdest du `for...of` nehmen, wann `for...in`, und wann einen klassischen Zählschleifenkopf? Ein Satz pro Fall.",
@@ -137,8 +137,8 @@
       "reflection": {
         "prompts": [
           {
-            "de": "Eine Closure hält eine Variable am Leben, die sonst verschwunden wäre. Nenne einen Fall, in dem das genau das Richtige ist, und einen, in dem es zum Fehler wird.",
-            "en": "A closure keeps alive a variable that would otherwise be gone. Name one case where that is exactly right, and one where it becomes the bug."
+            "de": "In M4 ging es immer wieder darum, ab wann etwas verfügbar ist: ein Name, bevor seine eigene Zeile gelaufen ist, ein Standardwert, bevor ein Argument ankommt, eine Variable, nachdem die Funktion, die sie hielt, zurückgekehrt ist. Nimm das, was dich am meisten überrascht hat, und sag, was du stattdessen angenommen hattest.",
+            "en": "M4 kept turning on when something becomes available: a name before its own line has run, a default before an argument arrives, a variable after the function that held it returned. Pick the one that surprised you most and say what you had assumed instead."
           },
           {
             "de": "`this` hing in diesem Modul davon ab, WIE eine Funktion aufgerufen wurde, nicht davon, wo sie steht. Wie erklärst du das jemandem, der aus einer Sprache mit fest gebundenen Methoden kommt?",
@@ -191,8 +191,8 @@
             "en": "A forgotten `await` produces no error, just a wrong result - usually a `Promise` where a value was expected. What habit will you adopt so you notice it before a test does?"
           },
           {
-            "de": "Sequenziell oder parallel: woran entscheidest du das? Nenne ein Beispiel, in dem `Promise.all` die falsche Wahl wäre.",
-            "en": "Sequential or parallel: how do you decide? Give one example where `Promise.all` would be the wrong choice."
+            "de": "`await` hat asynchronen Code lesbar gemacht wie gewöhnlichen. Was kostet dich diese Lesbarkeit, und wo in diesem Modul ist der Preis tatsächlich sichtbar geworden?",
+            "en": "`await` made asynchronous code read like ordinary code. What does that readability cost you, and where in this module did the cost actually show up?"
           }
         ]
       }
@@ -214,8 +214,8 @@
             "en": "You wrote the tests for your own tool. Which case did you only find while writing the tests, and what does that tell you about writing code first versus tests first?"
           },
           {
-            "de": "Blicke auf alle sieben Module zurück: welcher einzelne Begriff hat sich am meisten geändert, seit du ihn zum ersten Mal gesehen hast?",
-            "en": "Look back over all seven modules: which single concept changed the most between the first time you saw it and now?"
+            "de": "Blicke auf den ganzen Kurs zurück: welcher einzelne Begriff hat sich am meisten geändert, seit du ihn zum ersten Mal gesehen hast?",
+            "en": "Look back over the whole course: which single concept changed the most between the first time you saw it and now?"
           }
         ]
       }
