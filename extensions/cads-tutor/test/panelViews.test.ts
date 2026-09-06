@@ -293,9 +293,12 @@ describe("A9.3 competence card", () => {
 
   it("carries no points currency", () => {
     const html = renderCompetence(card, "de") + renderCanDo({ moduleId: "m1", moduleTitle: "Ownership", can: objectives.slice(0, 2), open: objectives.slice(2) }, "de");
-    for (const forbidden of [/\bXP\b/, /Level \d/, /Serie\b/, /Streak/i, /Liga/, /Rangliste/, /Punkte:/]) {
-      assert.doesNotMatch(html, forbidden, `R11a.9 forbids ${forbidden}`);
+    // The footnote is the one place allowed to name them, because it says there are none.
+    const body = html.replace(/<div class="competence-note">[^<]*<\/div>/g, "");
+    for (const forbidden of [/\bXP\b/, /Level \d/, /Serien/, /Streak/i, /Liga/, /Rangliste/, /Punkte/]) {
+      assert.doesNotMatch(body, forbidden, `R11a.9 forbids ${forbidden}`);
     }
+    assert.match(html, /Keine Punkte, keine Serien/);
   });
 
   it("escapes an objective statement from the pack", () => {

@@ -19,6 +19,7 @@ import { createRenderer, type TutorLink } from "./markdown";
 import { PANEL_VIEW_TYPE, StepPanel } from "./panel";
 import { readLlmConfig, TutorPlatform, type AskOutcome } from "./platform";
 import { ProgressTreeProvider } from "./progressView";
+import { competenceRecordEntries, renderCompetenceRecordMarkdown, type RecordLookups } from "./record";
 import {
   accumulateEdit,
   classifyQuestionText,
@@ -731,6 +732,39 @@ export class TutorController implements vscode.Disposable {
     this.progress.refresh();
     this.updateStatusBar();
     this.renderCurrent(true);
+  }
+
+  /**
+   * A9.3: writes the evidence sheet for the current course next to the session and
+   * opens it. Per course, because a level is a claim about that course's objectives
+   * and its checks; one file for everything would blur whose evidence it is.
+   */
+  async exportCompetenceRecord(): Promise<void> {
+    const s = ui(this.lang);
+    const cur = this.current;
+    if (!cur) {
+      void vscode.window.showInformationMessage(s.recordNoCourse);
+      return;
+    }
+    const lookups: RecordLookups = {
+      lang: this.lang,
+      statementFor: (id) => this.platforms.get(cur.course.manifest.id)?.curriculum?.get(id)?.statement,
+      stepTitleFor: (id) => {
+        const step = cur.course.steps.get(id);
+        return step ? this.contentFor(step).meta.title : undefined;
+      },
+    };
+    const entries = competenceRecordEntries(cur.course, this.session, lookups);
+    const markdown = renderCompetenceRecordMarkdown(cur.course, this.session, entries, lookups);
+    // Next to the session file, which is where the evidence itself lives.
+    const dir = this.sessionFile ? path.dirname(this.sessionFile) : this.context.globalStorageUri.fsPath;
+    const file = path.join(dir, `${cur.course.manifest.id}-kompetenznachweis.md`);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, markdown, "utf8");
+    this.log(`competence record written: ${file} (${entries.length} objectives)`);
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
+    await vscode.window.showTextDocument(doc, { preview: false });
+    void vscode.window.showInformationMessage(s.recordWritten(file));
   }
 
   // ------------------------------------------------------------------------------------------
