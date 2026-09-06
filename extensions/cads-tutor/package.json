@@ -127,6 +127,11 @@
         "command": "cads.tutor.showOrientation",
         "title": "%commands.10.title%",
         "category": "CaDS Tutor"
+      },
+      {
+        "command": "cads.tutor.exportCompetenceRecord",
+        "title": "%commands.11.title%",
+        "category": "CaDS Tutor"
       }
     ],
     "menus": {

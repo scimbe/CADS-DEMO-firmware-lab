@@ -10,7 +10,7 @@ import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { orderedSteps } from "./loader";
-import { stepKey, type Course, type CourseModule, type Lang, type PredictionOutcome, type SessionState, type Step, type StepProgress, type StepStatus, type TaskState, type TaskStatus, type TestCaseResult } from "./types";
+import { EVIDENCE_WEIGHT, recallPromptOf, stepKey, type CompetenceLevel, type Course, type CourseModule, type Evidence, type EvidenceKind, type Lang, type ObjectiveCompetence, type PredictionOutcome, type RecallEvidenceRecord, type SessionState, type Step, type StepProgress, type StepStatus, type TaskSpec, type TaskState, type TaskStatus, type TestCaseResult } from "./types";
 
 export function newSession(now = new Date()): SessionState {
   const iso = now.toISOString();
@@ -68,14 +68,13 @@ export function isStepDone(session: SessionState, step: Step): boolean {
 }
 
 /**
- * A3: the module whose reflection card is due at this step - the step is the module's last one and
- * every step in the module is done. Kept here (not in the controller) so it is testable: the card
- * became due only at the moment the last check passed, which is exactly what went unnoticed.
+ * The module this step just finished - the step is the module's last one and every step in the
+ * module is done. Kept here (not in the controller) so it is testable: the moment it becomes true
+ * is the moment the last check passes, which is exactly what went unnoticed for the reflection card.
  */
-export function moduleReflectionDue(session: SessionState, course: Course, step: Step): CourseModule | undefined {
+export function moduleCompletedAt(session: SessionState, course: Course, step: Step): CourseModule | undefined {
   const mod = course.manifest.modules.find((m) => m.id === step.moduleId);
-  if (!mod?.reflection || mod.reflection.prompts.length === 0) return undefined;
-  if (mod.steps[mod.steps.length - 1] !== step.id) return undefined;
+  if (!mod || mod.steps[mod.steps.length - 1] !== step.id) return undefined;
   const done = mod.steps.every((sid) => {
     const st = course.steps.get(sid);
     return st ? isStepDone(session, st) : true;
@@ -83,11 +82,25 @@ export function moduleReflectionDue(session: SessionState, course: Course, step:
   return done ? mod : undefined;
 }
 
+/** A3: the module whose reflection card is due at this step. Only modules that authored prompts have one. */
+export function moduleReflectionDue(session: SessionState, course: Course, step: Step): CourseModule | undefined {
+  const mod = moduleCompletedAt(session, course, step);
+  return mod?.reflection && mod.reflection.prompts.length > 0 ? mod : undefined;
+}
+
 export function isCourseDone(session: SessionState, course: Course): boolean {
   const steps = orderedSteps(course);
   return steps.length > 0 && steps.every((s) => isStepDone(session, s));
 }
 
+/**
+ * Unlocking runs on `requires` and on the course's prerequisites - deliberately
+ * NOT on the competence level (see isModuleCompetenceComplete). A9.2's "geübt"
+ * needs a strong piece of evidence or two medium ones, and a course whose
+ * objective is served by a single `question` step can never produce that, least
+ * of all without a language model. Making the level a gate would lock such a
+ * student out of the rest of the course for a reason they cannot act on.
+ */
 export function isStepUnlocked(session: SessionState, course: Course, step: Step, allCourses: Course[]): boolean {
   for (const pre of course.manifest.prerequisites) {
     const preCourse = allCourses.find((c) => c.manifest.id === pre);
@@ -131,6 +144,10 @@ export interface TaskRunExtras {
   prediction?: string;
   predictionOutcome?: PredictionOutcome;
   predictionFeedback?: string;
+  /** A9.2: nobody but the student verified this pass; it finishes the step but is not evidence. */
+  selfReported?: boolean;
+  /** A9.2: a language model compared prediction and output (a self-assessed verdict is not evidence). */
+  predictionGraded?: boolean;
 }
 
 export function recordTaskResult(
@@ -162,6 +179,12 @@ export function recordTaskResult(
   if (extra.prediction !== undefined) state.prediction = extra.prediction;
   if (extra.predictionOutcome !== undefined) state.predictionOutcome = extra.predictionOutcome;
   if (extra.predictionFeedback !== undefined) state.predictionFeedback = extra.predictionFeedback;
+  // Explicit false clears the flag: a `question` re-run that a model graded this
+  // time must stop being reported as self-confirmed, and the other way round.
+  if (extra.selfReported === true) state.selfReported = true;
+  else if (extra.selfReported === false) delete state.selfReported;
+  if (extra.predictionGraded === true) state.predictionGraded = true;
+  else if (extra.predictionGraded === false) delete state.predictionGraded;
   progress.tasks[taskId] = state;
   session.updatedAt = now.toISOString();
 
@@ -171,6 +194,22 @@ export function recordTaskResult(
   if (!done && progress.completedAt) delete progress.completedAt;
   const unlocked = orderedSteps(course).filter((s) => lockedBefore.has(s.id) && isStepUnlocked(session, course, s, allCourses));
   return { state, stepCompleted: done && !wasDone, unlocked };
+}
+
+/**
+ * A9.2: appends a graded recall to the course's evidence log. The card state in
+ * `recall` is per step and per day and is overwritten; this is not.
+ */
+export function recordRecallEvidence(
+  session: SessionState,
+  courseId: string,
+  entry: RecallEvidenceRecord,
+  now = new Date(),
+): void {
+  const log = session.recallLog ?? (session.recallLog = {});
+  const existing = log[courseId] ?? (log[courseId] = []);
+  existing.push(entry);
+  session.updatedAt = now.toISOString();
 }
 
 export function setAnswer(session: SessionState, courseId: string, stepId: string, taskId: string, answer: string, now = new Date()): void {
@@ -309,4 +348,301 @@ export function moduleProgress(course: Course, moduleId: string, session: Sessio
     }
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Addendum A9.2: the competence model.
+//
+// A learning objective carries evidence, and the evidence - not the number of
+// steps clicked through - decides the level. Everything here is pure: it reads
+// the course and the session and returns a verdict, so the rule can be tested
+// without a panel, a language model or a board (and so the panel, the progress
+// view and the export cannot drift apart by each computing their own).
+// ---------------------------------------------------------------------------
+
+/** Position of a module in the manifest. "A later module" is decided by this, not by dates. */
+export function moduleIndex(course: Course, moduleId: string): number {
+  return course.manifest.modules.findIndex((m) => m.id === moduleId);
+}
+
+/**
+ * The evidence one finished task contributes. At most two pieces: the pass
+ * itself, and - for a `predict` - the prediction verdict on top of it, because
+ * A9.2 lists "Prüfung bestanden" and "Vorhersage traf zu" as separate rows.
+ *
+ * A self-reported pass contributes nothing (R11a.8). That is the whole point of
+ * the flag: without it the tutor would report competence that nobody checked.
+ */
+function taskEvidence(step: Step, task: TaskSpec, state: TaskState | undefined, index: number): Evidence[] {
+  if (!state || state.status !== "passed" || state.selfReported) return [];
+  const base = { stepId: step.id, moduleId: step.moduleId, moduleIndex: index, taskId: task.id, at: state.checkedAt };
+  const out: Evidence[] = [];
+  // A rubric-graded answer is worth a medium regardless of attempts: A9.2 grades
+  // the question by who judged it, not by how often it was tried.
+  const kind: EvidenceKind =
+    task.check.type === "question" ? "question" : (state.attempts ?? 1) <= 1 && state.hintTier === 0 ? "checkFirstTry" : "checkAssisted";
+  out.push({ ...base, kind, weight: EVIDENCE_WEIGHT[kind] });
+  if (task.check.type === "predict" && state.predictionOutcome === "correct" && state.predictionGraded) {
+    out.push({ ...base, kind: "prediction", weight: EVIDENCE_WEIGHT.prediction });
+  }
+  return out;
+}
+
+/**
+ * Recall evidence: a recall card that was answered and graded as passed, shown
+ * on a step at least one module after the step the question came from. The
+ * distance is the point (E7, verteilte Wiederholung); a card answered inside the
+ * same module is repetition, not retrieval after a delay.
+ */
+function recallEvidence(course: Course, session: SessionState, objectiveSteps: Set<string>): Evidence[] {
+  const out = new Map<string, Evidence>();
+  const add = (onStepId: string, fromStepId: string, taskId: string, date: string): void => {
+    if (!objectiveSteps.has(fromStepId)) return;
+    const shownOn = course.steps.get(onStepId);
+    const from = course.steps.get(fromStepId);
+    if (!shownOn || !from) return;
+    const here = moduleIndex(course, shownOn.moduleId);
+    const there = moduleIndex(course, from.moduleId);
+    if (here < 0 || there < 0 || here <= there) return;
+    // The same question, repeated at the same place, is one piece of evidence
+    // however often the student reopened the step.
+    out.set(`${onStepId}/${fromStepId}/${taskId}`, {
+      kind: "recall",
+      weight: EVIDENCE_WEIGHT.recall,
+      stepId: shownOn.id,
+      moduleId: shownOn.moduleId,
+      moduleIndex: here,
+      taskId,
+      at: date,
+      fromStepId,
+      fromModuleIndex: there,
+    });
+  };
+  for (const r of session.recallLog?.[course.manifest.id] ?? []) {
+    if (r.outcome === "passed") add(r.onStepId, r.fromStepId, r.taskId, r.date);
+  }
+  // Sessions written before the log existed keep their evidence: `recall` still
+  // holds the last card per step, and reading it costs nothing.
+  const prefix = `${course.manifest.id}/`;
+  for (const [key, record] of Object.entries(session.recall ?? {})) {
+    if (record.outcome !== "passed" || !record.graded || !key.startsWith(prefix)) continue;
+    add(key.slice(prefix.length), record.fromStepId, record.taskId, record.date);
+  }
+  return [...out.values()];
+}
+
+/** Every piece of evidence a course's session holds for one objective, oldest first. */
+export function objectiveEvidence(course: Course, session: SessionState, objectiveId: string): Evidence[] {
+  const steps = new Set<string>();
+  const out: Evidence[] = [];
+  for (const step of orderedSteps(course)) {
+    const meta = step.variants.en?.meta;
+    if (!meta || !meta.objectives.includes(objectiveId)) continue;
+    steps.add(step.id);
+    const index = moduleIndex(course, step.moduleId);
+    const progress = getStepProgress(session, course.manifest.id, step.id);
+    for (const task of meta.tasks) out.push(...taskEvidence(step, task, progress?.tasks?.[task.id], index));
+  }
+  out.push(...recallEvidence(course, session, steps));
+  return out.sort((a, b) => (a.at ?? "").localeCompare(b.at ?? ""));
+}
+
+/**
+ * A9.2: berührt = at least one piece of evidence, geübt = one strong or two
+ * medium, nachgewiesen = a strong piece *and* a recall from a later module.
+ *
+ * A recall is itself strong, so "nachgewiesen" deliberately asks for a strong
+ * piece besides it: one event cannot be both the work and the proof that the
+ * work survived a delay.
+ */
+export function competenceLevel(evidence: Evidence[]): CompetenceLevel {
+  if (evidence.length === 0) return "none";
+  const recalls = evidence.filter((e) => e.kind === "recall");
+  const strongBesides = evidence.filter((e) => e.weight === "strong" && e.kind !== "recall");
+  if (recalls.length > 0 && strongBesides.length > 0) return "demonstrated";
+  const strong = evidence.filter((e) => e.weight === "strong").length;
+  const medium = evidence.filter((e) => e.weight === "medium").length;
+  if (strong >= 1 || medium >= 2) return "practised";
+  return "touched";
+}
+
+/** The piece of evidence the competence card names - the one that carried the objective to its level. */
+export function leadingEvidence(evidence: Evidence[], level: CompetenceLevel): Evidence | undefined {
+  if (level === "none") return undefined;
+  if (level === "demonstrated") return evidence.filter((e) => e.kind === "recall").at(-1);
+  if (level === "practised") {
+    // The strong one if there is one; otherwise the second medium, which is the
+    // one that actually reached the level - naming the first would suggest a
+    // single answer was enough.
+    const strong = evidence.find((e) => e.weight === "strong");
+    if (strong) return strong;
+    return evidence.filter((e) => e.weight === "medium")[1];
+  }
+  return evidence[0];
+}
+
+export function objectiveCompetence(course: Course, session: SessionState, objectiveId: string): ObjectiveCompetence {
+  const evidence = objectiveEvidence(course, session, objectiveId);
+  const level = competenceLevel(evidence);
+  const steps = orderedSteps(course)
+    .filter((s) => s.variants.en?.meta.objectives.includes(objectiveId))
+    .map((s) => s.id);
+  return { objectiveId, level, evidence, leading: leadingEvidence(evidence, level), steps };
+}
+
+/** The objectives a module's steps carry, in authored order, each named once. */
+export function moduleObjectiveIds(course: Course, moduleId: string): string[] {
+  const mod = course.manifest.modules.find((m) => m.id === moduleId);
+  const out: string[] = [];
+  for (const sid of mod?.steps ?? []) {
+    for (const o of course.steps.get(sid)?.variants.en?.meta.objectives ?? []) {
+      if (!out.includes(o)) out.push(o);
+    }
+  }
+  return out;
+}
+
+export function moduleCompetence(course: Course, session: SessionState, moduleId: string): ObjectiveCompetence[] {
+  return moduleObjectiveIds(course, moduleId).map((o) => objectiveCompetence(course, session, o));
+}
+
+export const COMPETENCE_ORDER: Readonly<Record<CompetenceLevel, number>> = { none: 0, touched: 1, practised: 2, demonstrated: 3 };
+
+export function atLeast(level: CompetenceLevel, min: CompetenceLevel): boolean {
+  return COMPETENCE_ORDER[level] >= COMPETENCE_ORDER[min];
+}
+
+/**
+ * A9.2: "a module counts as finished only once each of its objectives is at
+ * least *geübt*". This is a statement about competence, not a gate: it is what
+ * the competence card, the can-do card and the progress view report. Step
+ * unlocking still runs on `requires` (see isStepUnlocked) - see the note there.
+ */
+export function isModuleCompetenceComplete(course: Course, session: SessionState, moduleId: string): boolean {
+  const objectives = moduleObjectiveIds(course, moduleId);
+  if (objectives.length === 0) return false;
+  return objectives.every((o) => atLeast(objectiveCompetence(course, session, o).level, "practised"));
+}
+
+/** Every objective of the course with its level, in module order: the source for the record sheet and the progress view. */
+export function courseCompetence(course: Course, session: SessionState): { moduleId: string; objectives: ObjectiveCompetence[] }[] {
+  return course.manifest.modules.map((m) => ({ moduleId: m.id, objectives: moduleCompetence(course, session, m.id) }));
+}
+
+// ---------------------------------------------------------------------------
+// A9.2: what a learning objective can reach at all.
+//
+// "Not reached" and "not reachable" look the same on a card and mean opposite
+// things. An objective whose steps carry only rubric-graded questions cannot get
+// past "berührt" on a deployment without a language model, however well the
+// student works - four objectives of cads-zero-foundations are exactly that. The
+// card has to say so, or the student reads a permanently empty mark as their own
+// failure.
+// ---------------------------------------------------------------------------
+
+export interface ObjectiveCeiling {
+  /** Highest level the course's own tasks and recall pointers can produce here. */
+  level: CompetenceLevel;
+  /** What it would be with a language model configured. */
+  withLlm: CompetenceLevel;
+  /** The ceiling is lower than it would be with a model: the gap is the deployment's, not the student's. */
+  limitedByLlm: boolean;
+  /** No step in a later module points back at this objective at all (K8) - a gap in the course's structure. */
+  noLaterRecall: boolean;
+  /**
+   * A later module does point back, but the step it points at carries no task with
+   * a `recallPrompt` and a rubric (A9.2a). The card would render nothing. This is an
+   * authoring defect, not something to tell the student about their own progress.
+   */
+  recallTargetMissing: boolean;
+  /**
+   * R11a.7c: the objective is taught only in the course's last module, so there is
+   * no later module to recall it from. That is a property of where it sits, not a
+   * gap in the course - and a card must not report it as one.
+   */
+  terminal: boolean;
+}
+
+/** Best case for one task: what it contributes when everything goes right. */
+function taskCeiling(task: TaskSpec, hasLlm: boolean): { strong: number; medium: number } {
+  // A pass nobody verifies is never evidence, whatever the student does.
+  if (task.check.type === "manual") return { strong: 0, medium: 0 };
+  if (task.check.type === "question") return { strong: 0, medium: hasLlm ? 1 : 0 };
+  // A prediction's observed check is never a question or a manual (the schema
+  // forbids it), so its pass is machine-verified; the comparison needs a model.
+  if (task.check.type === "predict") return { strong: 1, medium: hasLlm ? 1 : 0 };
+  return { strong: 1, medium: 0 };
+}
+
+/**
+ * Two different answers, deliberately kept apart. `pointer` says whether some step
+ * in a LATER module points back at one of this objective's steps at all - that is
+ * the course's structure, and the student may be told about it. `askable` says
+ * whether the step it points at carries a task the card may ask (`recallPrompt`)
+ * and a rubric to judge it by (A9.2a) - a pointer without one is an authoring
+ * defect, which belongs in the evidence sheet and in front of a teacher, never on
+ * a student's card as "this course never asks again".
+ */
+function laterRecall(course: Course, objectiveSteps: Set<string>): { pointer: boolean; askable: boolean } {
+  const canAsk = (stepId: string): boolean => {
+    const step = course.steps.get(stepId);
+    return (step?.variants.en?.meta.tasks ?? []).some((t) => {
+      const prompt = recallPromptOf(t.check);
+      const rubric = t.check.type === "question" || t.check.type === "predict" ? t.check.rubric : undefined;
+      return prompt !== undefined && !!rubric;
+    });
+  };
+  const out = { pointer: false, askable: false };
+  for (const step of orderedSteps(course)) {
+    const here = moduleIndex(course, step.moduleId);
+    for (const source of step.variants.en?.meta.recallFrom ?? []) {
+      if (!objectiveSteps.has(source)) continue;
+      const from = course.steps.get(source);
+      if (!from || here <= moduleIndex(course, from.moduleId)) continue;
+      out.pointer = true;
+      if (canAsk(source)) out.askable = true;
+    }
+  }
+  return out;
+}
+
+export function objectiveCeiling(course: Course, objectiveId: string, hasLlm: boolean): ObjectiveCeiling {
+  const steps = new Set<string>();
+  const totals = { withLlm: { strong: 0, medium: 0 }, here: { strong: 0, medium: 0 } };
+  let lastModule = -1;
+  for (const step of orderedSteps(course)) {
+    const meta = step.variants.en?.meta;
+    if (!meta?.objectives.includes(objectiveId)) continue;
+    steps.add(step.id);
+    lastModule = Math.max(lastModule, moduleIndex(course, step.moduleId));
+    for (const task of meta.tasks) {
+      const a = taskCeiling(task, hasLlm);
+      const b = taskCeiling(task, true);
+      totals.here.strong += a.strong;
+      totals.here.medium += a.medium;
+      totals.withLlm.strong += b.strong;
+      totals.withLlm.medium += b.medium;
+    }
+  }
+  const recall = laterRecall(course, steps);
+  const levelOf = (t: { strong: number; medium: number }, recallGraded: boolean): CompetenceLevel => {
+    if (t.strong >= 1 && recallGraded) return "demonstrated";
+    if (t.strong >= 1 || t.medium >= 2) return "practised";
+    if (t.strong + t.medium >= 1) return "touched";
+    return "none";
+  };
+  // Grading a recall needs a model too, so without one the recall is never evidence.
+  const level = levelOf(totals.here, recall.askable && hasLlm);
+  const withLlm = levelOf(totals.withLlm, recall.askable);
+  // R11a.7c: an objective the last module alone teaches has no later module by
+  // construction. A course pack of projects consists entirely of them.
+  const terminal = steps.size > 0 && lastModule >= 0 && lastModule === course.manifest.modules.length - 1;
+  return {
+    level,
+    withLlm,
+    limitedByLlm: COMPETENCE_ORDER[level] < COMPETENCE_ORDER[withLlm],
+    noLaterRecall: !recall.pointer,
+    recallTargetMissing: recall.pointer && !recall.askable,
+    terminal,
+  };
 }

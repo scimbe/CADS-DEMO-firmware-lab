@@ -7,7 +7,7 @@ import { ui } from "./i18n";
 import { escapeHtml, tutorLinkAttrs, type DoBlockView, type TutorLink } from "./markdown";
 import type { Citation } from "./platform";
 import { actionForDo, actionLabels, doRouteText, type ActionKind } from "./actions";
-import type { BloomLevel, CheckType, Lang, Scaffold, StepStatus, TaskStatus } from "./types";
+import type { BloomLevel, CheckType, CompetenceLevel, EvidenceKind, Lang, Scaffold, StepStatus, TaskStatus } from "./types";
 
 export interface HintView {
   tier: number;
@@ -153,11 +153,17 @@ export interface OrientationView {
 export interface RecallView {
   fromStepId: string;
   fromTitle: string;
+  /** A9.2a: the module the question comes from - how far back the student has to reach. */
+  fromModuleTitle?: string;
   taskId: string;
   prompt: string;
   answer?: string;
   /** True once answered or skipped; the card then shows only an acknowledgement. */
   settled: boolean;
+  /** A9.2: the rubric verdict, when a model graded the answer. Undefined means ungraded, which is not evidence. */
+  outcome?: "passed" | "failed";
+  /** The grader's sentence on the answer, shown instead of a bare acknowledgement. */
+  feedback?: string;
 }
 
 export interface ReflectionView {
@@ -181,6 +187,8 @@ export type ToWebview =
   /** `html` is produced by renderRecall / renderReflection on the extension side. */
   | { type: "recall"; html: string }
   | { type: "reflection"; html: string }
+  /** A9.3/A9.4: can-do card and competence card, appended after the reflection card. */
+  | { type: "competence"; html: string }
   /**
    * The header's own state: the one line saying what to do next, and how far the
    * module has come. Both are recomputed after every check, so the bar moves at
@@ -288,10 +296,15 @@ export function renderPredict(t: TaskView, lang: Lang): string {
 export function renderRecall(r: RecallView, lang: Lang): string {
   const s = ui(lang);
   if (r.settled) {
-    return `<div class="card recall settled"><div class="card-head">${escapeHtml(s.recallTitle)}</div><div>${escapeHtml(s.recallThanks)}</div></div>`;
+    // A9.2: the verdict is named, because this card is the one thing that can
+    // carry an objective to "nachgewiesen" - the student should see it happen.
+    const verdict = r.outcome === "passed" ? s.recallPassed : r.outcome === "failed" ? s.recallFailed : s.recallThanks;
+    return `<div class="card recall settled"><div class="card-head">${escapeHtml(s.recallTitle)}</div><div>${escapeHtml(verdict)}</div>${
+      r.feedback ? `<div class="card-sub">${escapeHtml(r.feedback)}</div>` : ""
+    }</div>`;
   }
   return `<div class="card recall"><div class="card-head">${escapeHtml(s.recallTitle)}</div>
-    <div class="card-sub">${escapeHtml(s.recallFrom(r.fromTitle))}</div>
+    <div class="card-sub">${escapeHtml(r.fromModuleTitle ? s.recallFromModule(r.fromTitle, r.fromModuleTitle) : s.recallFrom(r.fromTitle))}</div>
     <div class="card-prompt">${escapeHtml(r.prompt)}</div>
     <textarea id="recall-answer" rows="2" placeholder="${escapeHtml(s.reflectionPlaceholder)}">${escapeHtml(r.answer ?? "")}</textarea>
     <div class="row"><button class="btn primary" id="recall-submit">${escapeHtml(s.recallSubmit)}</button><button class="btn" id="recall-skip">${escapeHtml(s.recallSkip)}</button></div>
@@ -617,6 +630,19 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
   .card textarea, .predict textarea { width: 100%; box-sizing: border-box; font-family: var(--vscode-editor-font-family); background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, var(--vscode-panel-border)); border-radius: 3px; padding: 0.4em; }
   .card.recall.settled { opacity: 0.8; }
   #reflection-state { align-self: center; opacity: 0.85; }
+  /* A9.3 competence and can-do cards. The level is a word, never a number or a bar. */
+  .competence-list, .can-list, .can-open-list { list-style: none; margin: 0.3em 0; padding: 0; }
+  .can-open-list { list-style: disc; margin-left: 1.2em; opacity: 0.85; font-size: 0.92em; }
+  .competence-item, .can-item { margin: 0.45em 0; padding-left: 0.6em; border-left: 3px solid var(--vscode-panel-border); }
+  .competence-row { display: flex; gap: 0.6em; align-items: baseline; justify-content: space-between; }
+  .competence-statement, .can-statement { flex: 1; }
+  .competence-level { font-size: 0.85em; text-transform: lowercase; opacity: 0.9; white-space: nowrap; border: 1px solid var(--vscode-panel-border); border-radius: 3px; padding: 0 0.4em; }
+  .competence-evidence { font-size: 0.86em; opacity: 0.75; margin-top: 0.15em; }
+  .competence-note { font-size: 0.85em; opacity: 0.7; margin-top: 0.5em; }
+  .competence-ceiling { font-size: 0.86em; margin-top: 0.2em; padding-left: 0.5em; border-left: 2px solid var(--vscode-inputValidation-infoBorder, var(--vscode-focusBorder)); opacity: 0.9; }
+  .level-practised { border-left-color: var(--vscode-charts-blue, var(--vscode-focusBorder)); }
+  .level-demonstrated { border-left-color: var(--vscode-testing-iconPassed, var(--vscode-charts-green)); }
+  .level-touched { border-left-color: var(--vscode-charts-yellow, var(--vscode-panel-border)); }
   .answer-box.refused { border-color: var(--vscode-inputValidation-infoBorder); } .answer-box.llm-error, .answer-box.unconfigured { border-color: var(--vscode-inputValidation-warningBorder); }
   .citations { margin-top: 0.5em; font-size: 0.88em; } .citations ol { padding-left: 1.3em; margin: 0.2em 0; } .cite-excerpt { opacity: 0.7; } .citations-title { opacity: 0.7; }
   .note { border: 1px solid var(--vscode-focusBorder); background: var(--vscode-editorWidget-background); border-radius: 4px; padding: 0.6em 0.8em; margin: 0.8em 0; }
@@ -846,6 +872,16 @@ function clientScript(view: StepView): string {
       const area = document.getElementById("reflection-area");
       area.innerHTML = m.html;
       area.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } else if (m.type === "competence") {
+      // A9.4 order: the reflection card first, the can-do card behind it. Appending
+      // rather than replacing keeps whatever the reflection put there.
+      const area = document.getElementById("reflection-area");
+      const box = document.createElement("div");
+      box.id = "competence-area";
+      box.innerHTML = m.html;
+      const old = document.getElementById("competence-area");
+      if (old) old.replaceWith(box); else area.appendChild(box);
+      box.scrollIntoView({ behavior: "smooth", block: "nearest" });
     } else if (m.type === "ask") {
       const box = document.getElementById("answer");
       box.hidden = false; box.className = "answer-box " + m.outcome.kind;
@@ -868,4 +904,143 @@ function clientScript(view: StepView): string {
   });
   post({ type: "ready" });
 })();`;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Addendum A9.3: competence card and can-do card.
+//
+// Deliberately at the end of the file and independent of renderStepHtml: the panel's
+// assembly is being reworked in parallel, and these two cards are pushed into the panel
+// as HTML, so they never have to share a line with it.
+//
+// What is NOT here, and will not be: a points total, a level number, a streak, a league,
+// a rank. A9.3 / R11a.9 forbid them, because reward-and-status mechanics are the part of
+// gamification with the weakest effect on competence (E9). The recognition is the level,
+// the sentence, and the evidence underneath it.
+// ---------------------------------------------------------------------------------------------
+
+export interface CompetenceObjectiveView {
+  objectiveId: string;
+  /** The curriculum's statement of the objective; the id when the pack has none. */
+  statement: string;
+  level: CompetenceLevel;
+  /** The evidence that carried the objective to its level (A9.3 asks for the kind, not a count). */
+  evidenceKind?: EvidenceKind;
+  /** Step the evidence was produced in, for the reference the card has to carry (E10). */
+  evidenceStepId?: string;
+  evidenceStepTitle?: string;
+  /** ISO date or timestamp of that evidence. */
+  evidenceAt?: string;
+  /**
+   * A9.2: the highest level this course can produce for the objective on this
+   * deployment. Below `demonstrated` it means the gap is in the course or the
+   * installation, and the card must say so rather than leave a mark that never fills.
+   */
+  ceiling?: CompetenceLevel;
+  /** The ceiling is lower only because no language model is configured. */
+  limitedByLlm?: boolean;
+  /** No later module asks about this objective again (K8). */
+  noLaterRecall?: boolean;
+  /** R11a.7c: the last module alone teaches it, so there is no later module - not a gap. */
+  terminal?: boolean;
+}
+
+export interface CompetenceCardView {
+  moduleId: string;
+  moduleTitle: string;
+  objectives: CompetenceObjectiveView[];
+  /** A9.2: every objective at least "practised". */
+  complete: boolean;
+}
+
+export interface CanDoCardView {
+  moduleId: string;
+  moduleTitle: string;
+  /** The objectives that reached at least "practised", strongest first, at most three (A9.3: three sentences). */
+  can: CompetenceObjectiveView[];
+  /** What is not there yet - named, not hidden: a card that only praises is a sticker (E10). */
+  open: CompetenceObjectiveView[];
+}
+
+/**
+ * The sentence that tells "not reached" from "not reachable". Shown only where it
+ * changes what the student should conclude - never on an objective that is already
+ * at its ceiling for a reason the student can act on.
+ */
+function ceilingLine(o: CompetenceObjectiveView, lang: Lang): string {
+  const s = ui(lang);
+  const reached = o.level;
+  if (o.limitedByLlm && o.ceiling && reached === o.ceiling) {
+    return `<div class="competence-ceiling">${escapeHtml(s.ceilingLlm(s.competenceLevel[o.ceiling]))}</div>`;
+  }
+  if (o.noLaterRecall && reached === "practised") {
+    // R11a.7c: the last module has no successor. Saying "the course never asks
+    // again" there would report the shape of the course as somebody's failure.
+    return `<div class="competence-ceiling">${escapeHtml(o.terminal ? s.ceilingTerminal : s.ceilingNoRecall)}</div>`;
+  }
+  return "";
+}
+
+/** One line of provenance: which kind of evidence, in which step, when. */
+function evidenceLine(o: CompetenceObjectiveView, lang: Lang): string {
+  const s = ui(lang);
+  if (!o.evidenceKind) return escapeHtml(s.competenceNoEvidence);
+  const where = o.evidenceStepTitle ?? o.evidenceStepId;
+  const when = o.evidenceAt ? o.evidenceAt.slice(0, 10) : "";
+  return [escapeHtml(s.evidenceLabel[o.evidenceKind]), where ? escapeHtml(s.evidenceIn(where)) : "", when ? `· ${escapeHtml(when)}` : ""]
+    .filter(Boolean)
+    .join(" ");
+}
+
+/**
+ * A9.3: one card per module listing every objective with its level and the kind of
+ * evidence that produced it. The evidence is the point - a level without the check it
+ * came from is exactly the badge-without-proof that E10 rules out.
+ */
+export function renderCompetence(view: CompetenceCardView, lang: Lang): string {
+  const s = ui(lang);
+  const rows = view.objectives
+    .map(
+      (o) => `<li class="competence-item level-${o.level}">
+      <div class="competence-row"><span class="competence-statement">${escapeHtml(o.statement)}</span>
+        <span class="competence-level" title="${escapeHtml(s.competenceLevelWhy[o.level])}">${escapeHtml(s.competenceLevel[o.level])}</span></div>
+      <div class="competence-evidence"${o.evidenceStepId ? ` data-step="${escapeHtml(o.evidenceStepId)}"` : ""}>${evidenceLine(o, lang)}</div>
+      ${ceilingLine(o, lang)}
+    </li>`,
+    )
+    .join("");
+  const notPractised = view.objectives.filter((o) => o.level === "none" || o.level === "touched").length;
+  return `<div class="card competence"><div class="card-head">${escapeHtml(s.competenceTitle)}</div>
+    <div class="card-sub">${escapeHtml(s.competenceIntro(view.moduleTitle))}</div>
+    <ul class="competence-list">${rows}</ul>
+    <div class="card-sub">${escapeHtml(view.complete ? s.competenceComplete : s.competenceIncomplete(notPractised))}</div>
+    <div class="competence-note">${escapeHtml(s.competenceNoPoints)}</div>
+  </div>`;
+}
+
+/**
+ * A9.3: the card at the end of a module. "You can now …" in the student's own
+ * objectives, each with the evidence behind it. This is what replaces a score:
+ * three sentences that are true because something was checked.
+ */
+export function renderCanDo(view: CanDoCardView, lang: Lang): string {
+  const s = ui(lang);
+  const can = view.can
+    .map(
+      (o) => `<li class="can-item level-${o.level}"><span class="can-statement">${escapeHtml(o.statement)}</span>
+      <span class="competence-level">${escapeHtml(s.competenceLevel[o.level])}</span>
+      <div class="competence-evidence"${o.evidenceStepId ? ` data-step="${escapeHtml(o.evidenceStepId)}"` : ""}>${evidenceLine(o, lang)}</div></li>`,
+    )
+    .join("");
+  const open = view.open.length
+    ? `<div class="can-open"><div class="card-sub">${escapeHtml(s.canDoOpen)}</div><ul class="can-open-list">${view.open
+        .map((o) => `<li>${escapeHtml(o.statement)} – ${escapeHtml(s.competenceLevel[o.level])}${ceilingLine(o, lang)}</li>`)
+        .join("")}</ul></div>`
+    : "";
+  return `<div class="card can-do"><div class="card-head">${escapeHtml(s.canDoTitle)}</div>
+    <div class="card-sub">${escapeHtml(s.canDoIntro(view.moduleTitle))}</div>
+    ${can ? `<ul class="can-list">${can}</ul>` : `<div class="card-sub">${escapeHtml(s.canDoNone)}</div>`}
+    ${open}
+    <div class="competence-note">${escapeHtml(s.canDoRecordHint)}</div>
+  </div>`;
 }

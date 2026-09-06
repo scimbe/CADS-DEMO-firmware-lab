@@ -25,7 +25,7 @@ export type CheckSpec =
   | { type: "flash"; since?: "stepStart" | "sessionStart" | "any"; file?: string }
   | { type: "serialExpect"; send?: string; pattern: string; timeoutMs?: number }
   | { type: "debugStop"; file?: string; line?: number; timeoutMs?: number }
-  | { type: "question"; prompt: Localized; rubric: string; bloom?: BloomLevel; minChars?: number }
+  | { type: "question"; prompt: Localized; rubric: string; bloom?: BloomLevel; minChars?: number; recallPrompt?: Localized }
   | { type: "manual"; label?: Localized }
   | { type: "all"; checks: CheckSpec[] }
   | { type: "any"; checks: CheckSpec[] }
@@ -72,6 +72,20 @@ export interface PredictCheck {
   rubric?: string;
   bloom?: BloomLevel;
   minChars?: number;
+  /** A9.2a: the question to ask about this later, from memory. See `recallPrompt` on `question`. */
+  recallPrompt?: Localized;
+}
+
+/**
+ * A9.2a: the question a recall card may ask about this task two modules later.
+ * A `prompt` is answered with the file on screen; a recall is answered from
+ * memory, and the recall card draws only a heading, the source step's title and
+ * this text - no body, no code block, no file link. A task without it is not a
+ * valid recall target, and the card stays silent rather than asking a question
+ * whose subject has scrolled away.
+ */
+export function recallPromptOf(check: CheckSpec): Localized | undefined {
+  return check.type === "question" || check.type === "predict" ? check.recallPrompt : undefined;
 }
 
 export type CheckType = CheckSpec["type"];
@@ -252,6 +266,15 @@ export interface TaskState {
   predictionOutcome?: PredictionOutcome;
   /** `predict`: LLM feedback comparing prediction and output. */
   predictionFeedback?: string;
+  /**
+   * A9.2/R11a.8: nobody but the student verified this pass (`manual`, or a
+   * `question` with no language model to grade it). It finishes the step, but it
+   * is not evidence of competence. Persisted, not recomputed: whether a model was
+   * configured is a property of the moment the check ran, not of today's settings.
+   */
+  selfReported?: boolean;
+  /** `predict`: true when a language model compared prediction and output. A verdict the student gave themselves is self-assessment, not evidence. */
+  predictionGraded?: boolean;
 }
 
 export type PredictionOutcome = "correct" | "deviated";
@@ -278,6 +301,26 @@ export interface RecallRecord {
   answer?: string;
   feedback?: string;
   dismissed?: boolean;
+  /** A9.2: rubric verdict on the recall answer. Only a graded pass is evidence; an ungraded card is a repetition prompt, nothing more. */
+  outcome?: "passed" | "failed";
+  /** True when a language model graded the answer against the original task's rubric. */
+  graded?: boolean;
+}
+
+/**
+ * A9.2: a graded recall, kept for good. `recall` holds only the card currently
+ * shown for a step, keyed by that step, and is overwritten the next day - which
+ * would erase the one piece of evidence that can carry an objective to
+ * "nachgewiesen". The log is append-only for exactly that reason.
+ */
+export interface RecallEvidenceRecord {
+  /** ISO date the card was answered. */
+  date: string;
+  /** The step the card was shown on. */
+  onStepId: string;
+  fromStepId: string;
+  taskId: string;
+  outcome: "passed" | "failed";
 }
 
 export interface SessionState {
@@ -294,6 +337,8 @@ export interface SessionState {
   reflections?: Record<string, ReflectionRecord>;
   /** keyed by "<courseId>/<stepId>" (the step that showed the card) */
   recall?: Record<string, RecallRecord>;
+  /** keyed by courseId: every graded recall, in the order they were answered. */
+  recallLog?: Record<string, RecallEvidenceRecord[]>;
   /** The orientation card has been dismissed; it is reachable again by command. */
   orientationSeen?: boolean;
 }
@@ -309,4 +354,68 @@ export function loc(value: Localized | undefined, lang: Lang): string {
   if (value === undefined || value === null) return "";
   if (typeof value === "string") return value;
   return value[lang] ?? value.en ?? value.de ?? "";
+}
+
+// ---------------------------------------------------------------------------------------------
+// Addendum A9.2: the competence model (evidence and levels)
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * What produced a piece of evidence. The kinds and their weights are fixed by
+ * SPEC A9.2; nothing else counts, and self-reported passes produce no evidence
+ * at all (R11a.8).
+ */
+export type EvidenceKind =
+  /** A check that passed on the first attempt with no hint shown. */
+  | "checkFirstTry"
+  /** A check that passed after another attempt or after a hint. */
+  | "checkAssisted"
+  /** A prediction a language model judged to have matched the observed output. */
+  | "prediction"
+  /** A `question` whose answer a language model passed against the rubric. */
+  | "question"
+  /** A recall card from an earlier module, answered and graded as passed. */
+  | "recall";
+
+export type EvidenceWeight = "strong" | "medium";
+
+/** SPEC A9.2, the weight table. Kept as data so the rule is readable in one place. */
+export const EVIDENCE_WEIGHT: Readonly<Record<EvidenceKind, EvidenceWeight>> = {
+  checkFirstTry: "strong",
+  checkAssisted: "medium",
+  prediction: "medium",
+  question: "medium",
+  recall: "strong",
+};
+
+export interface Evidence {
+  kind: EvidenceKind;
+  weight: EvidenceWeight;
+  /** The step the student was on when the evidence was produced. */
+  stepId: string;
+  /** The module that step belongs to. */
+  moduleId: string;
+  /** Position of that module in the manifest, so "a later module" is decidable. */
+  moduleIndex: number;
+  taskId: string;
+  /** ISO timestamp of the event, when the session recorded one. */
+  at?: string;
+  /** `recall` only: the step (and its module) the question came from. */
+  fromStepId?: string;
+  fromModuleIndex?: number;
+}
+
+/** berührt / geübt / nachgewiesen, plus the state before any evidence exists. */
+export type CompetenceLevel = "none" | "touched" | "practised" | "demonstrated";
+export const COMPETENCE_LEVELS: readonly CompetenceLevel[] = ["none", "touched", "practised", "demonstrated"];
+
+export interface ObjectiveCompetence {
+  objectiveId: string;
+  level: CompetenceLevel;
+  /** Every piece of evidence, oldest first. */
+  evidence: Evidence[];
+  /** The one piece of evidence that carried the objective to its level - what the competence card names. */
+  leading?: Evidence;
+  /** Steps of the course that carry this objective, in authored order. */
+  steps: string[];
 }

@@ -19,6 +19,7 @@ import { createRenderer, type TutorLink } from "./markdown";
 import { PANEL_VIEW_TYPE, StepPanel } from "./panel";
 import { readLlmConfig, TutorPlatform, type AskOutcome } from "./platform";
 import { ProgressTreeProvider } from "./progressView";
+import { competenceRecordEntries, renderCompetenceRecordMarkdown, type RecordLookups } from "./record";
 import {
   accumulateEdit,
   classifyQuestionText,
@@ -32,15 +33,21 @@ import {
 } from "./telemetry";
 import {
   adjacentStep,
+  atLeast,
   defaultStart,
   ensureStepProgress,
   getStepProgress,
   getTaskState,
+  isModuleCompetenceComplete,
   isStepDone,
+  moduleCompetence,
+  moduleCompletedAt,
+  objectiveCeiling,
   moduleReflectionDue,
   newSession,
   nextOpenStep,
   readSession,
+  recordRecallEvidence,
   recordTaskResult,
   sessionFilePath,
   setAnswer,
@@ -53,9 +60,9 @@ import {
 import { eventTrigger, hintTierForFailures, selectCause, selectInsight, selectTaskHint, type MatchedInsight } from "./socratic";
 import { TutorTerminal, type TerminalLike } from "./terminal";
 import { CoursesTreeProvider, type TreeNode } from "./tree";
-import { loc, stepKey, type Course, type Lang, type LoadDiagnostic, type SessionState, type Step, type StepContent, type TaskSpec, type TaskState, type TaskStatus } from "./types";
+import { loc, recallPromptOf, stepKey, type Course, type Lang, type LoadDiagnostic, type ObjectiveCompetence, type SessionState, type Step, type StepContent, type TaskSpec, type TaskState, type TaskStatus } from "./types";
 import { DebugStopTracker, ensureBridge, runShellTask, runTaskByLabel } from "./vscodeChecks";
-import { renderDoCard, renderPredict, renderRecall, renderReflection, type AskView, type FromWebview, type HintView, type NextActionView, type LinkView, type NoteView, type PredictView, type RecallView, type ReflectionView, type StepRef, type StepView, type TaskView } from "./webview";
+import { renderCanDo, renderCompetence, renderDoCard, renderPredict, renderRecall, renderReflection, type AskView, type CanDoCardView, type CompetenceCardView, type CompetenceObjectiveView, type FromWebview, type HintView, type NextActionView, type LinkView, type NoteView, type PredictView, type RecallView, type ReflectionView, type StepRef, type StepView, type TaskView } from "./webview";
 
 const SAVE_DEBOUNCE_MS = 2000;
 const NOTIFY_MIN_INTERVAL_MS = 60_000;
@@ -101,6 +108,7 @@ export class TutorController implements vscode.Disposable {
       lang: () => this.lang,
       events: () => this.eventStore?.store,
       objectiveStatement: (courseId, objectiveId) => this.platforms.get(courseId)?.curriculum?.get(objectiveId)?.statement,
+      hasLlm: (courseId) => this.platforms.get(courseId)?.hasLlm ?? false,
     });
     this.statusBar = vscode.window.createStatusBarItem("cadsTutor.status", vscode.StatusBarAlignment.Left, 50);
     this.statusBar.command = "cads.tutor.open";
@@ -482,6 +490,9 @@ export class TutorController implements vscode.Disposable {
         hint,
         needsAnswer: t.check.type === "question",
         manual,
+        // R11a.8: the badge is the student's warning that this pass carries no
+        // competence weight. It reads the stored flag, not today's settings.
+        selfReported: state.selfReported,
         live: isLocalCheck(t.check),
         predict: t.check.type === "predict" ? this.predictView(t, state, lang) : undefined,
         actions: this.actionViews(course, t, lang),
@@ -628,17 +639,14 @@ export class TutorController implements vscode.Disposable {
     const today = new Date().toISOString().slice(0, 10);
     const existing = this.session.recall?.[key];
     if (existing && existing.date === today) {
-      const from = course.steps.get(existing.fromStepId);
-      const src = from ? this.contentFor(from) : undefined;
-      const task = src?.meta.tasks.find((t) => t.id === existing.taskId);
-      if (!src || !task || task.check.type !== "question") return undefined;
+      const view = this.recallCard(course, existing.fromStepId, existing.taskId, lang);
+      if (!view) return undefined;
       return {
-        fromStepId: existing.fromStepId,
-        fromTitle: src.meta.title,
-        taskId: existing.taskId,
-        prompt: loc(task.check.prompt, lang),
+        ...view,
         answer: existing.answer,
         settled: existing.answer !== undefined || existing.dismissed === true,
+        outcome: existing.outcome,
+        feedback: existing.feedback,
       };
     }
     // Only completed steps can be recalled: asking about material the student
@@ -647,22 +655,44 @@ export class TutorController implements vscode.Disposable {
     for (const sid of meta.recallFrom) {
       const from = course.steps.get(sid);
       if (!from || !isStepDone(this.session, from)) continue;
+      // A9.2a: a task is a recall target only if it carries a `recallPrompt`.
+      // The `prompt` of a question or a prediction is written for someone looking
+      // at the file; two modules later it is a question without a subject.
       for (const t of from.variants.en!.meta.tasks) {
-        if (t.check.type === "question") candidates.push({ stepId: sid, taskId: t.id });
+        if (recallPromptOf(t.check) !== undefined) candidates.push({ stepId: sid, taskId: t.id });
       }
     }
     if (candidates.length === 0) return undefined;
     const pick = candidates[hashString(`${key}:${today}`) % candidates.length];
+    const view = this.recallCard(course, pick.stepId, pick.taskId, lang);
+    if (!view) return undefined;
     this.session.recall = { ...(this.session.recall ?? {}), [key]: { date: today, fromStepId: pick.stepId, taskId: pick.taskId } };
     this.saveSession();
-    const src = this.contentFor(course.steps.get(pick.stepId)!);
-    const task = src.meta.tasks.find((t) => t.id === pick.taskId)!;
+    return { ...view, settled: false };
+  }
+
+  /**
+   * A9.2a: the card's own text. It names the step *and the module* it comes from -
+   * a prediction from two modules ago has no code on screen any more, and "from an
+   * earlier step" alone does not tell the student how far back to reach.
+   */
+  private recallCard(course: Course, fromStepId: string, taskId: string, lang: Lang): Omit<RecallView, "settled"> | undefined {
+    const from = course.steps.get(fromStepId);
+    if (!from) return undefined;
+    const src = this.contentFor(from);
+    const task = src.meta.tasks.find((t) => t.id === taskId);
+    const en = from.variants.en?.meta.tasks.find((t) => t.id === taskId);
+    // The prompt is taken from the localized variant, the eligibility from `en`:
+    // a pack that forgot the German `recallPrompt` must not silently drop the card.
+    const prompt = task ? recallPromptOf(task.check) : undefined;
+    if (!en || recallPromptOf(en.check) === undefined) return undefined;
+    const mod = course.manifest.modules.find((m) => m.id === from.moduleId);
     return {
-      fromStepId: pick.stepId,
+      fromStepId,
       fromTitle: src.meta.title,
-      taskId: pick.taskId,
-      prompt: task.check.type === "question" ? loc(task.check.prompt, lang) : "",
-      settled: false,
+      fromModuleTitle: mod ? loc(mod.title, lang) : from.moduleId,
+      taskId,
+      prompt: loc(prompt ?? recallPromptOf(en.check), lang),
     };
   }
 
@@ -726,6 +756,40 @@ export class TutorController implements vscode.Disposable {
     this.renderCurrent(true);
   }
 
+  /**
+   * A9.3: writes the evidence sheet for the current course next to the session and
+   * opens it. Per course, because a level is a claim about that course's objectives
+   * and its checks; one file for everything would blur whose evidence it is.
+   */
+  async exportCompetenceRecord(): Promise<void> {
+    const s = ui(this.lang);
+    const cur = this.current;
+    if (!cur) {
+      void vscode.window.showInformationMessage(s.recordNoCourse);
+      return;
+    }
+    const lookups: RecordLookups = {
+      lang: this.lang,
+      hasLlm: this.platformFor(cur.course).hasLlm,
+      statementFor: (id) => this.platforms.get(cur.course.manifest.id)?.curriculum?.get(id)?.statement,
+      stepTitleFor: (id) => {
+        const step = cur.course.steps.get(id);
+        return step ? this.contentFor(step).meta.title : undefined;
+      },
+    };
+    const entries = competenceRecordEntries(cur.course, this.session, lookups);
+    const markdown = renderCompetenceRecordMarkdown(cur.course, this.session, entries, lookups);
+    // Next to the session file, which is where the evidence itself lives.
+    const dir = this.sessionFile ? path.dirname(this.sessionFile) : this.context.globalStorageUri.fsPath;
+    const file = path.join(dir, `${cur.course.manifest.id}-kompetenznachweis.md`);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, markdown, "utf8");
+    this.log(`competence record written: ${file} (${entries.length} objectives)`);
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
+    await vscode.window.showTextDocument(doc, { preview: false });
+    void vscode.window.showInformationMessage(s.recordWritten(file));
+  }
+
   // ------------------------------------------------------------------------------------------
   // Webview messages
   // ------------------------------------------------------------------------------------------
@@ -733,8 +797,15 @@ export class TutorController implements vscode.Disposable {
   private async handleWebviewMessage(m: FromWebview): Promise<void> {
     try {
       switch (m.type) {
-        case "ready":
+        case "ready": {
+          // A9.4: a re-render rebuilds the page from the StepView, which does not
+          // carry the module cards. Returning to a finished module's last step must
+          // still show what it was worth - and "ready" is the first moment the page
+          // is listening, so pushing it from renderCurrent would race the load.
+          const cur = this.current;
+          if (cur) this.postModuleCards(cur);
           return;
+        }
         case "runCheck":
           await this.runTask(m.taskId);
           return;
@@ -874,12 +945,18 @@ export class TutorController implements vscode.Disposable {
       const result = await runCheck(task.check, taskId, ctx);
       this.confirmedNow.delete(key);
       const wasDone = stepStatus(this.session, cur.course, cur.step, this.courses) === "done";
+      // A9.2: both flags decide whether this pass is evidence, and both are
+      // properties of this run - whether a model was configured now, not whether
+      // one is configured when the competence card is drawn. So they are stored.
+      const verified = this.isVerifiedPass(task, this.platformFor(cur.course));
       const rec = recordTaskResult(this.session, cur.course, cur.step, taskId, result.status, result.message, this.courses, new Date(), {
         output: result.output,
         tests: result.tests,
         prediction: result.prediction,
         predictionOutcome: result.predictionOutcome,
         predictionFeedback: result.predictionOutcome !== undefined ? result.detail : undefined,
+        selfReported: result.status === "passed" ? !verified : false,
+        predictionGraded: task.check.type === "predict" ? result.predictionOutcome !== undefined : undefined,
       });
       this.saveSession();
       this.recordLearningEvent(cur.course, cur.step, task, result.status, rec.state.hintTier);
@@ -960,6 +1037,7 @@ export class TutorController implements vscode.Disposable {
       hint,
       needsAnswer: task.check.type === "question",
       manual: task.check.type === "manual" || (task.check.type === "question" && !platform.hasLlm),
+      selfReported: getTaskState(getStepProgress(this.session, cur.course.manifest.id, cur.step.id), task.id).selfReported,
       live: isLocalCheck(task.check),
       predict,
     };
@@ -994,6 +1072,10 @@ export class TutorController implements vscode.Disposable {
     // otherwise it is never seen: the student is invited to the next step right away.
     const reflection = this.reflectionView(cur.course, cur.step, this.lang);
     if (reflection && !reflection.saved) this.panel.post({ type: "reflection", html: renderReflection(reflection, this.lang) });
+    // A9.4: … and the can-do card directly behind it. It appears even when the
+    // module authored no reflection prompts, which is the case for every module
+    // of the firmware course.
+    this.postModuleCards(cur);
     const next = unlocked[0] ?? adjacentStep(cur.course, cur.step.id, 1);
     const msg = `${s.done} ${cur.content.meta.title}` + (refs.length ? ` – ${s.unlocked(refs.map((r) => r.title).join(", "))}` : "")
       + (reflection && !reflection.saved ? ` – ${s.reflectionDue}` : "");
@@ -1056,6 +1138,8 @@ export class TutorController implements vscode.Disposable {
     if (text === "__self:correct" || text === "__self:deviated") {
       const state = getTaskState(progress, taskId);
       state.predictionOutcome = text === "__self:correct" ? "correct" : "deviated";
+      // A9.2: the student's own verdict is self-assessment, not a graded comparison.
+      delete state.predictionGraded;
       progress.tasks[taskId] = state;
       this.saveSession();
       this.emit({ type: "predict.compared", data: { taskId, verdict: state.predictionOutcome, graded: false } });
@@ -1069,6 +1153,7 @@ export class TutorController implements vscode.Disposable {
     // A new prediction invalidates the previous comparison.
     delete state.predictionOutcome;
     delete state.predictionFeedback;
+    delete state.predictionGraded;
     progress.tasks[taskId] = state;
     this.saveSession();
     // The text is kept either way so the student does not lose it, but a
@@ -1212,10 +1297,27 @@ export class TutorController implements vscode.Disposable {
     const record = this.session.recall?.[key];
     if (!record) return;
     const answer = text?.trim();
+    // A9.2: a recall is the only evidence that a learning objective survived a
+    // delay, and it is the difference between "geübt" and "nachgewiesen". So the
+    // answer is graded against the original task's rubric - the same rubric that
+    // judged it the first time. Without a model nothing is graded and the card
+    // stays what it was: a repetition prompt that carries no weight (R11a.8).
+    const graded = answer ? await this.gradeRecall(cur.course, record.fromStepId, record.taskId, answer) : undefined;
     this.session.recall = {
       ...(this.session.recall ?? {}),
-      [key]: { ...record, ...(answer ? { answer } : { dismissed: true }) },
+      [key]: { ...record, ...(answer ? { answer, ...graded } : { dismissed: true }) },
     };
+    // The card in `recall` is per step and per day and is replaced the next time
+    // the step is opened; a graded verdict is evidence and must outlive that.
+    if (graded?.outcome) {
+      recordRecallEvidence(this.session, cur.course.manifest.id, {
+        date: record.date,
+        onStepId: cur.step.id,
+        fromStepId: record.fromStepId,
+        taskId: record.taskId,
+        outcome: graded.outcome,
+      });
+    }
     this.saveSession();
     this.emit({
       type: "recall.answered",
@@ -1224,12 +1326,108 @@ export class TutorController implements vscode.Disposable {
         taskId: record.taskId,
         skipped: !answer,
         answer,
+        verdict: graded?.outcome,
+        graded: graded?.graded === true,
         // A2: recall exercises retrieval, so it is recorded at the lower Bloom levels.
         bloom: "remember",
       },
     });
     const view = this.recallView(cur.course, cur.step, this.lang);
     if (view) this.panel.post({ type: "recall", html: renderRecall(view, this.lang) });
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // A9.3: competence card and can-do card
+  // ------------------------------------------------------------------------------------------
+
+  /** One objective, as the cards show it: statement, level, and the evidence behind the level. */
+  private competenceObjectiveView(course: Course, c: ObjectiveCompetence): CompetenceObjectiveView {
+    const statement = this.platforms.get(course.manifest.id)?.curriculum?.get(c.objectiveId)?.statement;
+    const step = c.leading ? course.steps.get(c.leading.stepId) : undefined;
+    // A9.2: what this course can produce here at all. A mark that can never fill
+    // has to say why, or the student reads the installation as their own failure.
+    const ceiling = objectiveCeiling(course, c.objectiveId, this.platformFor(course).hasLlm);
+    return {
+      ceiling: ceiling.level,
+      limitedByLlm: ceiling.limitedByLlm,
+      noLaterRecall: ceiling.noLaterRecall,
+      terminal: ceiling.terminal,
+      objectiveId: c.objectiveId,
+      // The id is a poor sentence, but a wrong sentence would be worse: packs
+      // without a curriculum entry get the id and the teacher sees what is missing.
+      statement: statement ?? c.objectiveId,
+      level: c.level,
+      evidenceKind: c.leading?.kind,
+      evidenceStepId: c.leading?.stepId,
+      evidenceStepTitle: step ? this.contentFor(step).meta.title : undefined,
+      evidenceAt: c.leading?.at,
+    };
+  }
+
+  private competenceCardView(course: Course, moduleId: string, lang: Lang): CompetenceCardView {
+    const mod = course.manifest.modules.find((m) => m.id === moduleId);
+    return {
+      moduleId,
+      moduleTitle: mod ? loc(mod.title, lang) : moduleId,
+      objectives: moduleCompetence(course, this.session, moduleId).map((c) => this.competenceObjectiveView(course, c)),
+      complete: isModuleCompetenceComplete(course, this.session, moduleId),
+    };
+  }
+
+  /**
+   * A9.3: "Du kannst jetzt …" - three sentences, the objectives that reached at
+   * least "geübt", strongest first. What did not reach it is listed too: a card
+   * that only praises is the sticker E10 rules out.
+   */
+  private canDoCardView(course: Course, moduleId: string, lang: Lang): CanDoCardView {
+    const card = this.competenceCardView(course, moduleId, lang);
+    const rank = { demonstrated: 0, practised: 1, touched: 2, none: 3 } as const;
+    const can = card.objectives.filter((o) => atLeast(o.level, "practised")).sort((a, b) => rank[a.level] - rank[b.level]);
+    return {
+      moduleId,
+      moduleTitle: card.moduleTitle,
+      can: can.slice(0, 3),
+      open: card.objectives.filter((o) => !atLeast(o.level, "practised")),
+    };
+  }
+
+  /**
+   * A9.4 step 5: the can-do card sits directly behind the module reflection, and
+   * it is pushed for the same reason the reflection card is - the module becomes
+   * complete at the moment the last check passes, long after the page was drawn.
+   * The competence card follows it as the detail behind the three sentences.
+   */
+  private postModuleCards(cur: { course: Course; step: Step }): void {
+    const mod = moduleCompletedAt(this.session, cur.course, cur.step);
+    if (!mod) return;
+    const html =
+      renderCanDo(this.canDoCardView(cur.course, mod.id, this.lang), this.lang) +
+      renderCompetence(this.competenceCardView(cur.course, mod.id, this.lang), this.lang);
+    this.panel.post({ type: "competence", html });
+  }
+
+  /**
+   * A9.2: judges a recall answer with the rubric of the question it repeats.
+   * Returns nothing gradeable when the source task is not a rubric question or
+   * when no language model answered - an ungraded recall is not evidence.
+   */
+  private async gradeRecall(
+    course: Course,
+    fromStepId: string,
+    taskId: string,
+    answer: string,
+  ): Promise<{ outcome?: "passed" | "failed"; graded?: boolean; feedback?: string } | undefined> {
+    const from = course.steps.get(fromStepId);
+    const check = from?.variants.en?.meta.tasks.find((t) => t.id === taskId)?.check;
+    if (!from || (check?.type !== "question" && check?.type !== "predict")) return undefined;
+    // A9.2a: the answer is judged against the question that was actually asked -
+    // the recall prompt - not against the original one, which assumed the file was
+    // on screen. A `predict` without a rubric cannot be judged at all.
+    const prompt = recallPromptOf(check);
+    if (!check.rubric || prompt === undefined) return undefined;
+    const verdict = await this.platformFor(course).gradeAnswer(loc(prompt, this.lang), check.rubric, answer, check.bloom);
+    if (verdict.kind !== "pass" && verdict.kind !== "fail") return { feedback: verdict.feedback };
+    return { outcome: verdict.kind === "pass" ? "passed" : "failed", graded: true, feedback: verdict.feedback };
   }
 
   /** A3: stores the module reflection and records it as a learning event. */

@@ -63,7 +63,7 @@ tasks:
     title: Board connected          # string oder {de,en}; optional description
     check: { type: board, state: connected }
 scaffold: worked                   # worked | faded | independent (Default independent)
-recallFrom: [m0-01-welcome]        # Steps, deren question-Aufgabe als Wiederholungskarte erscheinen darf
+recallFrom: [m0-01-welcome]        # Steps, deren Aufgabe mit recallPrompt als Wiederholungskarte erscheinen darf
 misconceptions:                    # RegExp auf die Ausgabe der Checks dieses Steps
   - pattern: "error\\[E0382\\]"
     question: { en: "…", de: "…" }
@@ -91,12 +91,12 @@ maßgeblich; die `.de.md` liefert Titel/Beschreibungen/Body auf Deutsch.
 | `flash` | `since`: stepStart (default) / sessionStart / any, `file` | Board-Bridge `getStatus().lastFlash` |
 | `serialExpect` | `send`, `pattern`, `timeoutMs` (30 s) | Board-Bridge `waitForSerial` |
 | `debugStop` | `file`, `line`, `timeoutMs` (60 s) | Bridge-Event `debug-stop` **und** DebugAdapterTracker (cortex-debug) |
-| `question` | `prompt` {de,en}, `rubric`, `bloom`, `minChars` (20) | LLM-Rubrik (grounded); ohne LLM → manuelle Bestätigung |
+| `question` | `prompt` {de,en}, `rubric`, `bloom`, `minChars` (20), `recallPrompt` {de,en} (optional) | LLM-Rubrik (grounded); ohne LLM → manuelle Bestätigung |
 | `manual` | `label` | Button „Als erledigt markieren“ |
 | `all` / `any` | `checks: [...]` | Komposition |
 | `command` | `command`, `cwd` (relativ, muss im Projekt-Root bleiben), `expectExitCode` (0), `expectStdout`/`expectStderr` (RegExp, je auf ihrem Strom), `timeoutMs` (120 s) | `/bin/sh -c` im Projekt-Root |
 | `testSuite` | `runner`: cargo \| node-test \| tap \| custom, `command` (Pflicht bei tap/custom), `cwd`, `expectPass`, `expectFail`, `minPass`, `timeoutMs` | Kommando + Parser (siehe unten) |
-| `predict` | `prompt` {de,en}, `then` (der beobachtete Check), `rubric` (optional), `bloom` (Default `evaluate`), `minChars` (10) | Vorhersage, dann `then` |
+| `predict` | `prompt` {de,en}, `then` (der beobachtete Check), `rubric` (optional), `bloom` (Default `evaluate`), `minChars` (10), `recallPrompt` {de,en} (optional) | Vorhersage, dann `then` |
 
 ### `command`
 
@@ -179,17 +179,41 @@ erledigt, sobald er geöffnet wurde.
 Badge und einen Einzeiler dazu. Gedacht als Verlauf **innerhalb eines Moduls**: der erste Step macht vor, der
 letzte lässt machen.
 
-### `recallFrom`
+### `recallFrom` und `recallPrompt`
 
-Beim Öffnen des Steps zeigt das Panel **eine** `question`-Aufgabe aus einem der genannten Steps als kurze
-Wiederholung. Bedingungen, damit die Karte erscheint:
+Beim Öffnen des Steps zeigt das Panel **eine** Aufgabe aus einem der genannten Steps als kurze Wiederholung.
+Bedingungen, damit die Karte erscheint:
 
 - der genannte Step existiert, ist **nicht** dieser Step, und ist **erledigt** (unerledigtes Material
   abzufragen wäre ein Test, keine Wiederholung),
-- er besitzt mindestens eine `question`-Aufgabe (sonst warnt der Validator, dass die Karte nie erscheint).
+- er besitzt mindestens eine Aufgabe mit **`recallPrompt`** (sonst ist der Zeiger tot und die Karte bleibt still).
 
-Die Auswahl ist pro Step und Tag deterministisch, damit ein Reload dieselbe Karte zeigt. Die Karte ist
-überspringbar und blockiert den Step nie; die Antwort wird als LearningEvent (`remember`) gespeichert.
+**`recallPrompt` (SPEC A9.2a)** ist die eigene Abruffrage einer `question`- oder `predict`-Aufgabe,
+zweisprachig wie `prompt`:
+
+```yaml
+  - id: closure-loop
+    check:
+      type: predict
+      prompt: { en: "Read `examples/m4-closure-loop.js`. Write down the two arrays it prints.", de: "…" }
+      recallPrompt:
+        en: "A `for` loop with `var` pushes three arrow functions that return `i`. What do they return afterwards, and why?"
+        de: "Eine `for`-Schleife mit `var` legt drei Pfeilfunktionen ab, die `i` zurückgeben. Was geben sie danach zurück, und warum?"
+      then: { type: testSuite, runner: node-test }
+```
+
+Warum ein zweites Feld und nicht `prompt`: eine Vorhersage wird **mit der Datei vor Augen** beantwortet, ein
+Abruf **aus dem Gedächtnis**. Die Abrufkarte zeichnet nur Überschrift, Herkunft und diesen Text – keinen Rumpf,
+keinen Codeblock, keinen Dateilink. Ein `prompt`, der einen Pfad nennt („Read `examples/…`"), ist zwei Module
+später eine Frage ohne Gegenstand. Dieselbe Falle steckt in `question`-Prompts, die von „the old code" oder
+„the route you used" sprechen. Faustregel: **Der `recallPrompt` muss ohne jede Datei beantwortbar sein und den
+Sachverhalt selbst mitbringen.**
+
+Die Karte nennt Schritt **und Modul** der Herkunft. Die Auswahl ist pro Step und Tag deterministisch, damit ein
+Reload dieselbe Karte zeigt. Die Karte ist überspringbar und blockiert den Step nie; die Antwort wird als
+LearningEvent (`remember`) gespeichert und – wenn ein Sprachmodell sie nach der `rubric` bewertet – als Beleg
+für die Kompetenzstufe geführt. Ein Abruf zählt nur als **starker** Beleg, wenn der Ursprungsschritt in einem
+**früheren Modul** liegt; modulinterne Zeiger dürfen erscheinen, tragen aber nichts bei (SPEC A9.2, A9.2a).
 
 ### `misconceptions` und die neuen Trigger
 

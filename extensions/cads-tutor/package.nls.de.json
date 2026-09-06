@@ -30,5 +30,6 @@
   "walkthroughs.0.steps.4.title": "5. Kurs im Tutor fortsetzen",
   "walkthroughs.0.steps.4.description": "Den geführten Kurs mit Aufgaben und Checks öffnen.\n[Tutor öffnen](command:cads.tutor.open)",
   "commands.10.title": "Orientierung anzeigen",
-  "configuration.properties.cadsTutor.showAllCourses.description": "Alle installierten Kurse anzeigen, auch solche, deren project.root zu keinem geöffneten Arbeitsordner passt."
+  "configuration.properties.cadsTutor.showAllCourses.description": "Alle installierten Kurse anzeigen, auch solche, deren project.root zu keinem geöffneten Arbeitsordner passt.",
+  "commands.11.title": "Kompetenznachweis exportieren"
 }
