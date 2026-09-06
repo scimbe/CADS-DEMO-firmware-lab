@@ -473,6 +473,10 @@ export class TutorController implements vscode.Disposable {
         type: t.check.type,
         status: state.status,
         message: state.message,
+        // R11a.4 survives a reload: a task that was already failing when the
+        // panel opened gets its cause line back from the stored output, rather
+        // than showing only the tool's message the way it did before.
+        cause: state.status === "failed" ? (selectCause(content.meta, state.output, lang) ?? ui(lang).checkFailedCause) : undefined,
         answer: state.answer,
         hint,
         needsAnswer: t.check.type === "question",
