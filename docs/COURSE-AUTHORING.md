@@ -155,7 +155,15 @@ Vorhersage und tatsächliche Ausgabe nebeneinander.
 
 **Bestanden ist der Check, sobald `then` besteht und eine Vorhersage vorliegt.** Ob die Vorhersage stimmte,
 wird als `correct`/`deviated` festgehalten, ist aber nie eine Hürde: falsch zu liegen und zu sehen warum, ist
-der Sinn der Aufgabe. Mit `rubric` und LLM vergleicht das Modell beides, ohne LLM schätzt der Studierende
+der Sinn der Aufgabe.
+
+**Deshalb trägt die Rubrik einer `predict`-Aufgabe keine „Besteht nicht"-Klausel** – anders als bei `question`,
+wo R4.4 sie verlangt. Eine solche Klausel behauptete ein Urteil, das die Prüfung gar nicht fällen kann, und das
+wäre eine Falschaussage über die eigene Prüfung (R3.4), die schwerer wiegt als die fehlende Aufzählung. Was an
+ihre Stelle gehört, ist das **verbreitete falsche Modell**, benannt als das, was es ist: „Eine Vorhersage von 6
+für den inneren Bereich übersieht die zweite Überschattung – eine falsche Vorhersage, und das ist ein nützliches
+Ergebnis, kein Fehlschlag." Ein Rubrikdurchgang, der die Klausel kursweit zählt, muss die `predict`-Aufgaben
+also ausnehmen, sonst meldet er neun Lücken, die keine sind. Mit `rubric` und LLM vergleicht das Modell beides, ohne LLM schätzt der Studierende
 selbst ein. `then` darf kein weiteres `predict` und kein `question`/`manual` sein – dort gäbe es nichts zu
 beobachten.
 
@@ -231,6 +239,27 @@ Je Modul: Steps erledigt, Checks **im Erstversuch** bestanden gegenüber **mit H
 Vorhersagen korrekt/abweichend und ob die Reflexion vorliegt. „Erstversuch" verlangt beides – genau einen
 Versuch **und** keinen gezeigten Hinweis: ein Check, der nach einem Tier-3-Hinweis im ersten Anlauf besteht,
 ist keine eigenständige Leistung.
+
+## Fachwörter: gemessen, nicht geraten
+
+Rubriken, Hinweise, Fehlermeldungen und Aufgabentitel benutzen die Fachwörter, die die **Kursrümpfe derselben
+Sprachfassung** benutzen – nicht die, die im Lehrbuch stehen. Wer unsicher ist, zählt nach, statt zu wählen:
+
+```bash
+grep -o "Trait" courses/<pack>/steps/*.de.md | wc -l
+```
+
+Belegt an genau diesem Fall: für den Rust-Kurs war „Eigentum, Ausleihe, Lebensdauer, Merkmal, Mustervergleich"
+als Terminologie vorgegeben. Gezählt über die 31 deutschen Steps kommen diese Wörter **null** Mal vor, während
+`Trait` 51-mal, `Slice` 48-mal, `Lifetime` 15-mal, `Heap` 11-mal und `Borrow` 11-mal dastehen – neben den
+deutschen Wörtern, die der Kurs tatsächlich führt: `Leihe` 49, `Referenz` 61, `Zeichenkette` 33, `Schranke` 31,
+`Zweig` 31, `Eigentümer` 10. Eine Rubrik, die von „Merkmalen" spricht, während ihr Step durchgehend „Trait"
+sagt, liest sich wie ein anderer Kurs, und die Studierende sucht anschließend nach zwei Begriffen für eine
+Sache – zu einem Zeitpunkt, an dem sie ohne Sprachmodell ohnehin allein mit dem Text dasteht.
+
+Wer die Terminologie eines Kurses ändern will, ändert **Rümpfe und Rubriken im selben Zug**. Eine der beiden
+Hälften allein umzubenennen ist keine Verbesserung, sondern erzeugt genau die Doppelbenennung, die der
+Studierenden schadet.
 
 ## Validieren
 
