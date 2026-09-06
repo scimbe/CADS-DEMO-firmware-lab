@@ -61,7 +61,7 @@ Vergleich das mit [m2-02](step:m2-02-truthy-falsy). Drei Mechanismen, drei versc
 | `x ?? default` | `undefined` und `null` |
 | `x \|\| default` | jeden falsy-Wert, auch `0`, `""`, `false` |
 
-`joinWords(null, "a")` benutzt also **nicht** `", "`. `null` ist nicht `undefined` und wird deshalb als Trennzeichen genommen. Das aussprechen zu können ist die zweite Aufgabe.
+`joinWords(null, "a")` benutzt also **nicht** `", "`. `null` ist nicht `undefined` und wird deshalb als Trennzeichen genommen. Was das mit dem Ergebnis macht, ist eine zweite Frage, und sie hängt an einer Eigenschaft von `join`, nicht an der von Standardwerten: `join` setzt das Trennzeichen **zwischen** Elemente und sonst nirgendwohin, die Zahl der Trennzeichen im Ergebnis ist also immer um eins kleiner als die Zahl der Wörter. Beides aussprechen zu können ist die zweite Aufgabe.
 
 Standardwerte werden zur Aufrufzeit von links nach rechts ausgewertet und dürfen sich auf frühere Parameter beziehen: `function f(a, b = a * 2)` ist gültig und berechnet bei jedem Aufruf ein frisches `b`.
 

@@ -61,7 +61,7 @@ Compare that with [m2-02](step:m2-02-truthy-falsy). Three mechanisms, three diff
 | `x ?? default` | `undefined` and `null` |
 | `x \|\| default` | every falsy value, including `0`, `""`, `false` |
 
-So `joinWords(null, "a")` does **not** use `", "`. `null` is not `undefined`, so it is taken as the separator. Being able to say that out loud is the second task.
+So `joinWords(null, "a")` does **not** use `", "`. `null` is not `undefined`, so it is taken as the separator. What that then does to the result is a second question, and it turns on a property of `join` rather than of defaults: `join` puts the separator **between** elements and nowhere else, so the number of separators in the result is always one fewer than the number of words. Being able to say both out loud is the second task.
 
 Defaults are evaluated at call time, left to right, and may refer to earlier parameters: `function f(a, b = a * 2)` is valid and computes a fresh `b` on every call.
 
