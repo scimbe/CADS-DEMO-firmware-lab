@@ -6,7 +6,7 @@ objectives: [ "rust-ch08-01-vectors" ]
 requires: [ "m3-04-if-let" ]
 estimatedMinutes: 20
 scaffold: worked
-recallFrom: [ "m2-03-aliasing-rule" ]
+recallFrom: [ "m2-03-aliasing-rule", "m2-02-mutable-references" ]
 links:
   - { step: "m4-02-strings" }
   - { file: "src/m4/m4_01_vectors.rs" }
@@ -32,6 +32,8 @@ misconceptions:
 ## Learning goal
 
 Build, read, iterate and mutate a `Vec<T>`, and pick deliberately between indexing that panics and indexing that returns an `Option`.
+
+Every `push` needs the mutable borrow from `m2-02-mutable-references`, and `m2-03-aliasing-rule` says why it may not sit beside another - here both pay off for the first time on a collection that grows.
 
 ## Creating and growing
 
