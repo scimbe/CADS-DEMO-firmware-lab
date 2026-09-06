@@ -3,6 +3,7 @@ id: m5-02-view-dispatcher
 title: Views, der Dispatcher und die Soft-Key-Leiste
 bloom: understand
 objectives: [cz.gui.views]
+recallFrom: [m2-03-buttons]
 requires: [m5-01-canvas-draw]
 estimatedMinutes: 15
 scaffold: worked
@@ -33,6 +34,10 @@ socratic:
 Verstehe die drei Teile, aus denen jede GUI-App besteht — eine View, der Dispatcher, der einen Stapel von Views besitzt, und die Widgets, die zeichnen — und wie ein einziger Ereignisstrom die App erreicht, egal ob die Eingabe von einer Taste oder einem Finger kam.
 
 **Konkret:** eine Datei lesen und drei Aufgaben im Steptext beantworten. In diesem Step wird nichts gebaut und nichts geflasht.
+
+## Woher die Tasten kommen
+
+Die acht Taster, die du in **M2-03** an GPIOF gefunden und deren Invertierung du dort abgeleitet hast, sind die eine Hälfte des Ereignisstroms, der gleich eine App erreicht. Die andere ist der Touchscreen — und die App unterscheidet sie nicht.
 
 ## Wo du arbeitest
 

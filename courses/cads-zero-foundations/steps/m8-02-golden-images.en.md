@@ -3,6 +3,7 @@ id: m8-02-golden-images
 title: Golden images for a write-only display
 bloom: analyze
 objectives: [cz.quality.golden]
+recallFrom: [m5-01-canvas-draw]
 requires: [m8-01-unit-tests]
 estimatedMinutes: 15
 scaffold: faded
@@ -33,6 +34,10 @@ socratic:
 Understand how a firmware whose panel cannot be read back still tests what it draws, and learn to read a golden-image failure without mistaking a rounding artefact for a bug.
 
 **The first move** is two tasks: `CaDS: Host tests`, then `CaDS: Golden images (informativ)`. Both paths are in the next section.
+
+## What gets captured is your canvas
+
+A golden image is nothing but the buffer from **M5-01**, expanded through the palette and held as a PNG. That is why the question of whether a differing pixel comes from a flat palette area or from a smoothed edge decides between regression and artefact.
 
 ## Starting the two tasks
 

@@ -3,6 +3,7 @@ id: m1-01-module-layout
 title: The module layout
 bloom: understand
 objectives: [firmware-reference-module-layout]
+recallFrom: [m0-00-workbench]
 requires: [m0-05-explorer]
 estimatedMinutes: 15
 scaffold: worked
@@ -30,6 +31,10 @@ socratic:
 ## Learning goal
 
 Read the firmware's tree as a **dependency graph** — a picture of who uses whom — and understand why the boundaries between the parts are enforced by the build rather than by convention.
+
+## Where you have met this before
+
+In **M0-00** you learned where a task's output lands: at the bottom, in a terminal named after the task. This step inverts that — its checks write their output **onto the task in the step text**, not into a terminal. Looking for it at the bottom finds nothing.
 
 ## Where you work in this step
 

@@ -3,6 +3,7 @@ id: m6-01-littlefs
 title: Wo das Dateisystem liegt
 bloom: understand
 objectives: [cz.storage.littlefs]
+recallFrom: [m0-05-explorer, m4-04-iwdg-watchdog]
 requires: [m5-04-dirty-rect-eval]
 estimatedMinutes: 15
 scaffold: worked
@@ -36,6 +37,10 @@ socratic:
 ## Lernziel
 
 Verorte das Dateisystem des Boards in der Flash-Karte und verstehe, warum ein Firmware-Update, so wie dieses Labor es durchführt, es nicht berühren kann.
+
+## Zwei alte Bekannte
+
+Das Storage-Gate ist ein Bring-up-Explorer-Befehl wie die aus **M0-05**: ein Zeichen, eine Urteilszeile. Und ob ein Format den Watchdog auslöst, entscheidet die Periode aus **M4-04** — die Frage stellt dieser Step gleich als Vorhersage.
 
 ## Es gibt keine Karte
 

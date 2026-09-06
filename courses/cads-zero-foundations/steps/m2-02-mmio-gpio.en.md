@@ -6,7 +6,7 @@ objectives: [cz.gpio.mmio]
 requires: [m2-01-memory-map]
 estimatedMinutes: 15
 scaffold: faded
-recallFrom: [m2-00-mmio-primer]
+recallFrom: [m2-00-mmio-primer, m1-02-hal-boundary]
 links:
   - { step: m2-03-buttons }
   - { doc: "docs/HARDWARE.md" }
@@ -31,6 +31,10 @@ socratic:
 ## Learning goal
 
 Drive the ITS adapter's sixteen outputs and the Nucleo's three LEDs through the HAL, and see how one portable call maps onto GPIO registers underneath.
+
+## The M1 boundary, at work
+
+**M1-02** introduced `core/cads_hal.h` as the one boundary between portable code and silicon. This step runs straight through it: above, a call that knows no port letter; below, a store to a fixed address.
 
 ## The portable surface
 

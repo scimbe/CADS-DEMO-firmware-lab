@@ -3,6 +3,7 @@ id: m8-01-unit-tests
 title: Unit tests on the host
 bloom: apply
 objectives: [cz.quality.unit-tests]
+recallFrom: [m6-01-littlefs, m7-01-lwip-netif, m7-04-recon-tools]
 requires: [m7-05-pa7-network-eval]
 estimatedMinutes: 15
 scaffold: worked
@@ -35,6 +36,10 @@ socratic:
 Run the project's host unit-test suite and understand why a firmware whose display bus cannot be read back still tests most of itself on a laptop.
 
 **The first move** is the task `CaDS: Host tests`. The next section spells out its full operating path.
+
+## What actually gets tested here
+
+The subjects of this suite are modules you have long known: the flash and file-system code from **M6-01**, the net helpers around the netif from **M7-01**, and the passive watches from **M7-04** — `test_arpwatch.c`, `test_dhcpwatch.c`, `test_mactable.c`, `test_l2discover.c`. That is precisely why most of this firmware runs on a laptop.
 
 ## Starting the task
 

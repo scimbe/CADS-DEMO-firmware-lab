@@ -6,7 +6,7 @@ objectives: [cz.rtos.stack-sizing]
 requires: [m4-04-iwdg-watchdog]
 estimatedMinutes: 15
 scaffold: independent
-recallFrom: [m3-04-stack-guard]
+recallFrom: [m3-04-stack-guard, m3-01-gdb-breakpoints]
 links:
   - { step: m5-01-canvas-draw }
   - { step: m3-04-stack-guard }
@@ -29,6 +29,10 @@ socratic:
 ## Lernziel
 
 Lerne, einen FreeRTOS-Task-Stack aus Evidenz statt aus Gewohnheit zu dimensionieren — anhand der zwei Überläufe, die diese Firmware tatsächlich erlitt, und der Speicheraufteilung, die die Korrekturen billig machte.
+
+## Der Call-Stack aus M3 ist das Werkzeug
+
+Einen Stack zu dimensionieren heißt, seine tiefste Aufrufkette zu kennen — und die liest du im Bereich `CALL STACK`, den du in **M3-01** zum ersten Mal aufgeklappt hast. Der Konsolenbefehl `k` sagt dir das Ergebnis, der Debugger sagt dir den Weg dorthin.
 
 ## Die falsche Annahme
 

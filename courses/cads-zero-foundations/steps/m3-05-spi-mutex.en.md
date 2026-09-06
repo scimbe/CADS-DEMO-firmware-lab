@@ -3,6 +3,7 @@ id: m3-05-spi-mutex
 title: The shared SPI bus - a case study
 bloom: analyze
 objectives: [cz.rtos.mutex]
+recallFrom: [m2-04-safety]
 requires: [m3-04-stack-guard]
 estimatedMinutes: 22
 scaffold: independent
@@ -33,6 +34,10 @@ socratic:
 ## Learning goal
 
 Analyse how one contested pin forced a bus-arbitration design, and why adding a mutex to that design crashed the boot - a case study in shared resources under a scheduler.
+
+## The M2 rule applies here word for word
+
+The safety rules from **M2-04** are not a preamble here: `docs/SAFETY.md` §6 explicitly forbids touching the display or the touch controller outside a claim/release pair. Why that rule exists is the subject of this step.
 
 ## One pin, two owners
 

@@ -3,6 +3,7 @@ id: m7-02-udp-hello
 title: Dein erstes UDP-Datagramm senden
 bloom: apply
 objectives: [firmware-tutorials-lwip-udp-hello]
+recallFrom: [m6-03-config-option]
 requires: [m7-01-lwip-netif]
 estimatedMinutes: 20
 scaffold: faded
@@ -32,6 +33,10 @@ socratic:
 ## Lernziel
 
 Sende ein echtes UDP-Datagramm aus dem lwIP-Stack des Boards und empfange es auf deinem Rechner — mit der Link-Warteschleife, die jeder Netzwerkaufrufer in dieser Codebasis teilt.
+
+## Die Adresse kommt aus M6
+
+Die statische Adresse, unter der das Board gleich sendet, hast du in **M6-03** selbst gesetzt: `net.dhcp = 0`, `net.ip = 192.168.33.99` in `/config.txt`, gepusht und neu geladen. Dieses Tutorial setzt genau diesen Zustand voraus.
 
 ## Ein Aufruf
 

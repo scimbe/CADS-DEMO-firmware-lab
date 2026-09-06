@@ -6,7 +6,7 @@ objectives: [cz.net.dhcp-lesson]
 requires: [m7-02-udp-hello]
 estimatedMinutes: 15
 scaffold: faded
-recallFrom: [m3-04-stack-guard, m4-05-stack-sizing]
+recallFrom: [m3-04-stack-guard, m4-05-stack-sizing, m4-01-freertos-tasks]
 links:
   - { step: m7-04-recon-tools }
   - { step: m3-04-stack-guard }
@@ -29,6 +29,10 @@ socratic:
 ## Lernziel
 
 Erkläre die netzspezifische Hälfte eines echten Absturzes: warum ausgerechnet das Einschalten von DHCP einen Task-Stack tiefer machte, den die statische Adressierung nie belastet hatte.
+
+## Wessen Stack das war
+
+Der Stack, der hier überlief, gehört der Konsolen-Task aus **M4-01** — derselben, deren Höchststand du dort aus dem Bericht des Boards ausgerechnet hast, in Worten gegen Bytes.
 
 ## Was du schon weißt, und was hier neu ist
 

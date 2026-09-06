@@ -3,6 +3,7 @@ id: m6-03-config-option
 title: Change a setting on a running board
 bloom: apply
 objectives: [cz.storage.config]
+recallFrom: [m5-02-view-dispatcher]
 requires: [m6-02-config-file]
 estimatedMinutes: 15
 scaffold: faded
@@ -30,6 +31,10 @@ socratic:
 ## Learning goal
 
 Change one setting on a running board from your computer, apply it without a reboot, and know exactly which keys behave that way.
+
+## Settings is an M5 view
+
+The route **Settings → Reload config** this step uses is exactly what **M5-02** described: a menu row maps to a view id, and activating it means pushing that view onto the stack. Configuration therefore changes through the same mechanics as any other app.
 
 ## Two ways to change a running board
 

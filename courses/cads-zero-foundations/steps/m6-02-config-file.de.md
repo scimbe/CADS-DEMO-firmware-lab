@@ -3,6 +3,7 @@ id: m6-02-config-file
 title: Die Konfigurationsdatei
 bloom: apply
 objectives: [cz.storage.config]
+recallFrom: [m5-03-own-app]
 requires: [m6-01-littlefs]
 estimatedMinutes: 15
 scaffold: faded
@@ -33,6 +34,10 @@ socratic:
 ## Lernziel
 
 Lies die eine Datei, über die ein laufendes Board konfiguriert wird, und verstehe, wie du sie von deinem Rechner aus bearbeiten kannst, obwohl das Board kein USB-Laufwerk hat.
+
+## Woher du den Bauweg kennst
+
+Dass eine Änderung erst dann in der Firmware ankommt, wenn sie übersetzt **und** gelinkt ist, hast du in **M5-03** an deiner eigenen App gelernt. Für die Konfiguration gilt das gerade nicht: sie ist eine Datei auf dem Volume und braucht keinen neuen Build.
 
 ## Eine Textdatei auf dem Volume
 

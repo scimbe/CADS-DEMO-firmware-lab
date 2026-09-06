@@ -3,6 +3,7 @@ id: m3-05-spi-mutex
 title: Der geteilte SPI-Bus - eine Fallstudie
 bloom: analyze
 objectives: [cz.rtos.mutex]
+recallFrom: [m2-04-safety]
 requires: [m3-04-stack-guard]
 estimatedMinutes: 22
 scaffold: independent
@@ -33,6 +34,10 @@ socratic:
 ## Lernziel
 
 Analysiere, wie ein umkämpfter Pin ein Bus-Arbitrierungsdesign erzwang und warum ein Mutex in diesem Design den Boot abstürzen ließ - eine Fallstudie zu geteilten Ressourcen unter einem Scheduler.
+
+## Die Regel aus M2 gilt hier wörtlich
+
+Die Sicherheitsregeln aus **M2-04** sind hier keine Vorrede: `docs/SAFETY.md` §6 verbietet ausdrücklich, Display oder Touch-Controller außerhalb eines Claim/Release-Paars anzufassen. Warum diese Regel existiert, ist der Gegenstand dieses Steps.
 
 ## Ein Pin, zwei Besitzer
 

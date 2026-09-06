@@ -3,6 +3,7 @@ id: m7-04-recon-tools
 title: Passive reconnaissance tools
 bloom: analyze
 objectives: [cz.net.recon]
+recallFrom: [m2-05-explorer-command]
 requires: [m7-03-dhcp-stack-lesson]
 estimatedMinutes: 20
 scaffold: independent
@@ -33,6 +34,10 @@ socratic:
 ## Learning goal
 
 Analyse how the explorer's passive reconnaissance commands work below the IP layer, and what exactly each one is entitled to conclude from the frames it observes.
+
+## These are your commands
+
+Every command in the table below is exactly what you built yourself in **M2-05**: one character in the dispatcher's `switch`, a handler behind it, output through `cads_probe_puts()`. Only the subject matter is bigger.
 
 ## What the board can see without sending anything
 

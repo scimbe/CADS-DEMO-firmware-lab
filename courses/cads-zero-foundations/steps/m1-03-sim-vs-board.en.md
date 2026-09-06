@@ -6,7 +6,7 @@ objectives: [cz.arch.sim-vs-board]
 requires: [m1-02-hal-boundary]
 estimatedMinutes: 12
 scaffold: faded
-recallFrom: [m0-02-connect]
+recallFrom: [m0-02-connect, m0-03-build]
 links:
   - { step: m1-04-splash }
   - { doc: "docs/how-to/port-to-new-board.md" }
@@ -31,6 +31,10 @@ socratic:
 ## Learning goal
 
 Understand what the simulator is, what it is not, and why "builds for both targets" is a completion criterion rather than a nicety.
+
+## You have already run both builds
+
+In **M0-03** you produced both build results from one source tree and argued why they need separate directories. This step tells you why that is not convenience but a completion criterion.
 
 ## The same firmware, no board
 

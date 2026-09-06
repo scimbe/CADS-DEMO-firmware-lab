@@ -3,6 +3,7 @@ id: m8-04-capstone
 title: Capstone - a reviewable change with a passing test
 bloom: create
 objectives: [cz.quality.capstone]
+recallFrom: [m6-04-build-profiles, m7-03-dhcp-stack-lesson]
 requires: [m8-03-clean-room-pr]
 estimatedMinutes: 30
 scaffold: independent
@@ -33,6 +34,14 @@ socratic:
 Ship a small change that would survive the review from the previous step: a new host unit test for a portable module, registered in the build, passing under ctest, and described the way the agent workflow expects.
 
 **The first move:** open `modules/toolbox/include/cads/toolbox/str.h` and `tests/unit/test_str.c` side by side. The next section gives the path.
+
+## A behaviour nobody had asserted
+
+The crash from **M7-03** is why this step asks for a behaviour the suite does not yet assert: there, a single configuration key changed the depth of a call path, and no test would have reported it. Your case is meant to close exactly that kind of gap.
+
+## You decided what goes into the image
+
+That a pure host test adds no object to the firmware image is the flip side of the selection you made in **M6-04**: the profile decides at configure time which apps get built, and nothing under `tests/unit` appears in it.
 
 ## Where you work
 

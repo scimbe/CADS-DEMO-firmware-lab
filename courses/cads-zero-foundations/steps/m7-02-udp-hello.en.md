@@ -3,6 +3,7 @@ id: m7-02-udp-hello
 title: Send your first UDP datagram
 bloom: apply
 objectives: [firmware-tutorials-lwip-udp-hello]
+recallFrom: [m6-03-config-option]
 requires: [m7-01-lwip-netif]
 estimatedMinutes: 20
 scaffold: faded
@@ -32,6 +33,10 @@ socratic:
 ## Learning goal
 
 Send one real UDP datagram from the board's own lwIP stack and receive it on your computer, using the link-wait loop every network caller in this codebase shares.
+
+## The address comes from M6
+
+The static address the board is about to send from is one you set yourself in **M6-03**: `net.dhcp = 0`, `net.ip = 192.168.33.99` in `/config.txt`, pushed and reloaded. This tutorial assumes exactly that state.
 
 ## One call
 

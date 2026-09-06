@@ -3,6 +3,7 @@ id: m8-03-clean-room-pr
 title: Judge a change before it becomes a PR
 bloom: evaluate
 objectives: [cz.quality.cleanroom-pr, firmware-explanation-clean-room]
+recallFrom: [m1-01-module-layout, m7-02-udp-hello, m7-05-pa7-network-eval]
 requires: [m8-02-golden-images]
 estimatedMinutes: 20
 scaffold: independent
@@ -33,6 +34,10 @@ socratic:
 Apply the project's four standing rules — clean room, both targets, safety, and the contribution workflow — as a reviewer would, to a change that violates all of them at once.
 
 **The first move:** open `docs/explanation/clean-room.md` and `docs/SAFETY.md`. The path is right here.
+
+## Three yardsticks you already hold
+
+You judge this change with what you have already measured: the layering rule from **M1-01**, which an `#include "stm32f4xx.h"` in the wrong directory fails; the both-targets rule your own network change from **M7-02** had to answer to; and the question from **M7-05** of what a pin decision costs the network.
 
 ## Where you work in this step
 

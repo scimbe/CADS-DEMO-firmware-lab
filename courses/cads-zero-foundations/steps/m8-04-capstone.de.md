@@ -3,6 +3,7 @@ id: m8-04-capstone
 title: Abschluss - eine begutachtbare Änderung mit bestehendem Test
 bloom: create
 objectives: [cz.quality.capstone]
+recallFrom: [m6-04-build-profiles, m7-03-dhcp-stack-lesson]
 requires: [m8-03-clean-room-pr]
 estimatedMinutes: 30
 scaffold: independent
@@ -33,6 +34,14 @@ socratic:
 Liefere eine kleine Änderung, die das Review aus dem vorigen Step überstehen würde: einen neuen Host-Unit-Test für ein portables Modul, im Build registriert, unter ctest bestehend und so beschrieben, wie der Agenten-Workflow es erwartet.
 
 **Der erste Handgriff:** öffne `modules/toolbox/include/cads/toolbox/str.h` und `tests/unit/test_str.c` nebeneinander. Wie das geht, steht im nächsten Abschnitt.
+
+## Ein Verhalten, das niemand zugesichert hatte
+
+Der Absturz aus **M7-03** ist der Grund, warum dieser Step nach einem Verhalten fragt, das die Suite noch nicht zusichert: dort änderte ein einziger Konfigurationsschlüssel die Tiefe eines Aufrufpfads, und kein Test hätte das gemeldet. Dein Fall soll genau so eine Lücke schließen.
+
+## Was in das Image kommt, hast du entschieden
+
+Dass ein reiner Host-Test dem Firmware-Image kein Objekt hinzufügt, ist die Kehrseite der Auswahl, die du in **M6-04** getroffen hast: das Profil entscheidet zur Configure-Zeit, welche Apps gebaut werden, und nichts unter `tests/unit` steht darin.
 
 ## Wo du arbeitest
 

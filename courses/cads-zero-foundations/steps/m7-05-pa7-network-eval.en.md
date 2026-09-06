@@ -6,7 +6,7 @@ objectives: [cz.net.arbitration]
 requires: [m7-04-recon-tools]
 estimatedMinutes: 15
 scaffold: independent
-recallFrom: [m3-05-spi-mutex, m4-03-mutex-spi-bus]
+recallFrom: [m3-05-spi-mutex, m4-03-mutex-spi-bus, m5-04-dirty-rect-eval]
 links:
   - { step: m8-01-unit-tests }
   - { step: m3-05-spi-mutex }
@@ -32,6 +32,10 @@ socratic:
 ## Learning goal
 
 Evaluate, with the project's own measurements, what the PA7 display/Ethernet time-slice costs the network, and take a defended position on the solder-bridge fix the project chose not to apply.
+
+## The M5 damage decision pays here
+
+In **M5-04** you weighed the single bounding box against a damage list, and read there that a damage decision is at the same time a network decision. How expensive exactly is what you decide now.
 
 ## You already know the constraint
 

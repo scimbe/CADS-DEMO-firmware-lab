@@ -6,7 +6,7 @@ objectives: [cz.arch.sim-vs-board]
 requires: [m1-02-hal-boundary]
 estimatedMinutes: 12
 scaffold: faded
-recallFrom: [m0-02-connect]
+recallFrom: [m0-02-connect, m0-03-build]
 links:
   - { step: m1-04-splash }
   - { doc: "docs/how-to/port-to-new-board.md" }
@@ -31,6 +31,10 @@ socratic:
 ## Lernziel
 
 Verstehe, was der Simulator ist, was er nicht ist, und warum „baut für beide Targets“ ein Fertigstellungskriterium ist und keine Nettigkeit.
+
+## Beide Builds hast du schon gemacht
+
+In **M0-03** hast du beide Bauergebnisse aus einem Quellbaum erzeugt und begründet, warum sie getrennte Verzeichnisse brauchen. Dieser Step sagt dir, warum das nicht Bequemlichkeit ist, sondern ein Fertigstellungskriterium.
 
 ## Dieselbe Firmware, kein Board
 

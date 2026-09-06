@@ -6,7 +6,7 @@ objectives: [cz.net.arbitration]
 requires: [m7-04-recon-tools]
 estimatedMinutes: 15
 scaffold: independent
-recallFrom: [m3-05-spi-mutex, m4-03-mutex-spi-bus]
+recallFrom: [m3-05-spi-mutex, m4-03-mutex-spi-bus, m5-04-dirty-rect-eval]
 links:
   - { step: m8-01-unit-tests }
   - { step: m3-05-spi-mutex }
@@ -32,6 +32,10 @@ socratic:
 ## Lernziel
 
 Bewerte mit den eigenen Messungen des Projekts, was der PA7-Zeitschlitz zwischen Display und Ethernet das Netzwerk kostet, und nimm eine begründete Position zur Lötbrücken-Korrektur ein, die das Projekt bewusst nicht angewendet hat.
+
+## Die Damage-Entscheidung aus M5 zahlt hier
+
+In **M5-04** hast du die einzelne Bounding-Box gegen eine Damage-Liste gerechnet und dort schon gelesen, dass eine Damage-Entscheidung zugleich eine Netzwerkentscheidung ist. Wie teuer genau, entscheidest du jetzt.
 
 ## Den Zwang kennst du
 

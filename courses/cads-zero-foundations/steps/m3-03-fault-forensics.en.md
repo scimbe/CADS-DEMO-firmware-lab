@@ -3,6 +3,7 @@ id: m3-03-fault-forensics
 title: Reading a fault, and the forensic ring
 bloom: analyze
 objectives: [cz.debug.forensics]
+recallFrom: [m2-01-memory-map]
 requires: [m3-02-registers-svd]
 estimatedMinutes: 20
 scaffold: faded
@@ -35,6 +36,10 @@ socratic:
 ## Learning goal
 
 Turn a fault dump and the board's crash ring into a diagnosis: which fault, which instruction, and where in the source.
+
+## The M2 memory map decides here too
+
+Whether an address in the dump is plausible is decided against the memory map from **M2-01**: flash from `0x08000000`, SRAM from `0x20000000`, CCM from `0x10000000`. A `PC` that falls in none of those regions is therefore a finding before any further analysis.
 
 ## First: bring the board to the console prompt
 

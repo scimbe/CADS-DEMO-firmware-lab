@@ -6,7 +6,7 @@ objectives: [cz.net.dhcp-lesson]
 requires: [m7-02-udp-hello]
 estimatedMinutes: 15
 scaffold: faded
-recallFrom: [m3-04-stack-guard, m4-05-stack-sizing]
+recallFrom: [m3-04-stack-guard, m4-05-stack-sizing, m4-01-freertos-tasks]
 links:
   - { step: m7-04-recon-tools }
   - { step: m3-04-stack-guard }
@@ -29,6 +29,10 @@ socratic:
 ## Learning goal
 
 Explain the network-specific half of a real crash: why enabling DHCP in particular deepened a task stack that static addressing had never strained.
+
+## Whose stack that was
+
+The stack that overflowed here belongs to the console task from **M4-01** — the same one whose high-water mark you computed there from the board's report, words against bytes.
 
 ## What you already know, and what is new here
 

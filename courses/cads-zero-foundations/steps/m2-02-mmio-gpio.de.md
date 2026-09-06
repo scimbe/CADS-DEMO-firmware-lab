@@ -6,7 +6,7 @@ objectives: [cz.gpio.mmio]
 requires: [m2-01-memory-map]
 estimatedMinutes: 15
 scaffold: faded
-recallFrom: [m2-00-mmio-primer]
+recallFrom: [m2-00-mmio-primer, m1-02-hal-boundary]
 links:
   - { step: m2-03-buttons }
   - { doc: "docs/HARDWARE.md" }
@@ -31,6 +31,10 @@ socratic:
 ## Lernziel
 
 Treibe die sechzehn Ausgänge des ITS-Adapters und die drei LEDs des Nucleo über die HAL und sieh, wie ein portabler Aufruf darunter auf GPIO-Register abgebildet wird.
+
+## Die Grenze aus M1, bei der Arbeit
+
+**M1-02** hat `core/cads_hal.h` als die eine Grenze zwischen portablem Code und Silizium eingeführt. Dieser Step läuft genau durch sie hindurch: oben ein Aufruf, der keinen Portbuchstaben kennt, unten ein Store an eine feste Adresse.
 
 ## Die portable Oberfläche
 

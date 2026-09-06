@@ -3,6 +3,7 @@ id: m5-02-view-dispatcher
 title: Views, the dispatcher and the soft-key strip
 bloom: understand
 objectives: [cz.gui.views]
+recallFrom: [m2-03-buttons]
 requires: [m5-01-canvas-draw]
 estimatedMinutes: 15
 scaffold: worked
@@ -33,6 +34,10 @@ socratic:
 Understand the three parts every GUI app is made of — a view, the dispatcher that owns a stack of views, and the widgets that draw — and how a single event stream reaches the app whether the input came from a button or a finger.
 
 **Concretely:** read one file and answer three tasks in the step text. Nothing is built and nothing is flashed in this step.
+
+## Where the keys come from
+
+The eight buttons you found on GPIOF in **M2-03**, and whose inversion you derived there, are one half of the event stream that reaches an app in a moment. The other is the touchscreen — and the app does not tell them apart.
 
 ## Where you work
 
