@@ -91,11 +91,13 @@ When you start a task, **a terminal of its own opens at the bottom, carrying the
 
 ## Your task
 
-Run the task **`CaDS: RAM budget`** and read its output.
+::: do task="CaDS: RAM budget"
+Run the task and read its output. It takes under a second. By hand: **`F1`**, type `Tasks: Run Task`, Enter, then pick the task from the list; without the keyboard **☰ → `Terminal` → `Run Task...`**.
+> expect: A terminal carrying the task's name opens at the bottom. It holds four lines; the last starts with `PASS` and gives a margin in bytes.
+> recover: If no terminal opens at all, the command palette never came up — use `F1` rather than the shortcut, the browser often keeps `Ctrl`+`Shift`+`P` for itself. If the terminal says `No such file or directory`, the ELF is missing: run the task `CaDS: Build` first.
+:::
 
-The easiest route: **`F1`**, then type `Tasks: Run Task`, Enter, then pick `CaDS: RAM budget` from the list. Without the keyboard: **☰ → `Terminal` → `Run Task...` → `CaDS: RAM budget`**. It takes under a second.
-
-A terminal carrying the task's name opens at the bottom. It holds four lines; the last starts with `PASS` and gives a margin in bytes. That margin is the room left in working memory for the network stack and the graphics — in M4 you will calculate with it yourself.
+That margin is the room left in working memory for the network stack and the graphics — in M4 you will calculate with it yourself.
 
 Then you answer one question about where the output appeared. If a task stays red, the **Show hint** button on it helps, and its first tier asks about exactly what most often goes wrong.
 

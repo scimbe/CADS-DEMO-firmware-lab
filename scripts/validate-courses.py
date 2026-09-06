@@ -23,7 +23,13 @@ What it checks, per the task brief:
      recursively), `scaffold`, `recallFrom` targets, `misconceptions[].pattern`
      compiles, `socratic` triggers (`test:<name>:failed`, `output:<regex>`), and
      `modules[].reflection.prompts` in course.json.
-  8. `--solutions DIR`: every top-level `testSuite`/`command` check is executed
+  8. SPEC A9.1: every operating instruction sits in a `::: do` block with
+     exactly one action, an `expect:` and a `recover:` line, and names a task,
+     command or palette entry that really exists (in a check of the course, in
+     `.vscode/tasks.json`, or in the palette list of the shipped extensions).
+     Rule 4 - a call to action outside such a block - is a warning until the
+     course packs have been converted.
+  9. `--solutions DIR`: every top-level `testSuite`/`command` check is executed
      twice in a scratch copy of PROJECT_ROOT - without the solution it must FAIL,
      with DIR overlaid it must PASS. DIR may mirror the project root directly, or
      hold one directory per step id (SPEC v1.1 A4), in which case every step
@@ -326,12 +332,292 @@ def runtime_check_types(path=RUNTIME_TYPES_TS):
     return set(re.findall(r'"([A-Za-z]+)"', m.group(1))) or None
 
 
+# --- SPEC A9.1: the `::: do` instruction block -------------------------------
+# Bedienanweisungen als Fließtext werden gelesen, gekürzt und falsch abgetippt.
+# Drei Kurse sind daran gescheitert: eine Paletteneingabe ohne führendes ">", ein
+# Kommando im falschen Ordner, ein Taskname, den es nur im Text gab. Der Block
+# macht jede der drei Fehlerklassen maschinell entscheidbar.
+
+DO_OPEN_RE = re.compile(r"^:::[ \t]+do(?:[ \t]+(.*))?$")
+DO_CLOSE_RE = re.compile(r"^:::[ \t]*$")
+DO_ATTR_RE = re.compile(r'([a-zA-Z]+)[ \t]*=[ \t]*(?:"([^"]*)"|(\S+))')
+DO_MARK_RE = re.compile(r"^>[ \t]*(expect|recover):[ \t]*(.*)$")
+FENCE_RE = re.compile(r"^\s*(```|~~~)")
+DO_ACTION_KEYS = ("task", "command", "palette", "file", "keys")
+DO_MODIFIER_KEYS = ("cwd", "line")
+
+# Palette entries VS Code itself provides. A course may legitimately send a
+# student to one of these; everything else has to come from the packs or the
+# extensions, so an invented route is an error rather than a matter of taste.
+BUILTIN_PALETTE = {
+    "> Tasks: Run Task",
+    "> Tasks: Rerun Last Task",
+    "> Tasks: Terminate Task",
+    "> Tasks: Configure Task",
+    "> Terminal: Create New Terminal",
+    "> View: Toggle Terminal",
+    "> View: Toggle Panel",
+    "> File: Open File...",
+    "> File: Save",
+    "> Developer: Reload Window",
+    "> Preferences: Open Settings (UI)",
+    "> Debug: Start Debugging",
+}
+
+# Rule 4 fires on a call to action outside a block. Verbs only, in both course
+# languages; the route name has to be present too, so "Öffne die Datei" alone is
+# not flagged - only "Öffne ... CaDS: Build".
+CALL_TO_ACTION_RE = re.compile(
+    r"\b(f[üu]hre|[öo]ffne|dr[üu]cke|starte|tippe|klicke|w[äa]hle|klappe|gib|wechsle|"
+    r"run|open|press|start|type|click|select|choose|enter|switch)\b",
+    re.IGNORECASE,
+)
+
+
+def parse_do_attributes(attr_text):
+    """Reads a `::: do` opening line. Returns (attrs, problems)."""
+    problems = []
+    attrs = {}
+    for m in DO_ATTR_RE.finditer(attr_text.strip()):
+        key = m.group(1)
+        value = m.group(2) if m.group(2) is not None else m.group(3)
+        if key in attrs:
+            problems.append(f'attribute "{key}" given twice')
+        attrs[key] = value
+    for key in attrs:
+        if key not in DO_ACTION_KEYS and key not in DO_MODIFIER_KEYS:
+            problems.append(f'unknown attribute "{key}"')
+    present = [k for k in DO_ACTION_KEYS if k in attrs]
+    if not present:
+        problems.append(f"no action attribute; one of {', '.join(DO_ACTION_KEYS)} is required")
+    elif len(present) > 1:
+        problems.append(f"{' and '.join(present)} in one block; A9.1 allows one action per block")
+    if "cwd" in attrs and "command" not in attrs:
+        problems.append("cwd= only applies to command=")
+    if "line" in attrs and "file" not in attrs:
+        problems.append("line= only applies to file=")
+    for key in present:
+        if not attrs[key].strip():
+            problems.append(f"{key}= is empty")
+    if "palette" in attrs and not attrs["palette"].startswith(">"):
+        problems.append(
+            f'palette "{attrs["palette"]}" must carry the leading ">"; without it the palette '
+            "searches file names and answers \"no matching results\""
+        )
+    if "cwd" in attrs and (attrs["cwd"].startswith("/") or ".." in attrs["cwd"].split("/")):
+        problems.append(f'cwd "{attrs["cwd"]}" must stay inside the project')
+    if "line" in attrs and not (attrs["line"].isdigit() and int(attrs["line"]) >= 1):
+        problems.append(f'line "{attrs["line"]}" is not a positive line number')
+    return attrs, problems
+
+
+def parse_do_blocks(body):
+    """Every `::: do` block in a step body, and the lines that lie outside them.
+
+    Returns (blocks, outside_lines). A block is a dict with attrs, problems,
+    instruction, expect, recover and the 1-based line number of its opening.
+    Fenced code is treated as outside-but-inert: it is dropped from
+    outside_lines, so a code sample never trips rule 4.
+    """
+    blocks = []
+    outside = []
+    lines = body.replace("\r\n", "\n").split("\n")
+    i = 0
+    in_fence = False
+    while i < len(lines):
+        line = lines[i]
+        if FENCE_RE.match(line):
+            in_fence = not in_fence
+            i += 1
+            continue
+        if in_fence:
+            i += 1
+            continue
+        m = DO_OPEN_RE.match(line.strip())
+        if not m:
+            outside.append((i + 1, line))
+            i += 1
+            continue
+        attrs, problems = parse_do_attributes(m.group(1) or "")
+        body_lines = []
+        j = i + 1
+        closed = False
+        while j < len(lines):
+            if DO_CLOSE_RE.match(lines[j].strip()):
+                closed = True
+                break
+            body_lines.append(lines[j])
+            j += 1
+        if not closed:
+            problems.append("block is not closed by `:::`")
+        instruction, expect, recover = [], [], []
+        sink = None
+        for raw in body_lines:
+            stripped = raw.strip()
+            marked = DO_MARK_RE.match(stripped)
+            if marked:
+                sink = expect if marked.group(1) == "expect" else recover
+                if sink:
+                    problems.append(f'"{marked.group(1)}:" given twice')
+                sink.append(marked.group(2))
+                continue
+            if stripped.startswith(">") and sink is not None:
+                sink.append(stripped[1:].strip())
+                continue
+            sink = None
+            instruction.append(raw)
+        blocks.append({
+            "line": i + 1,
+            "attrs": attrs,
+            "problems": problems,
+            "instruction": "\n".join(instruction).strip(),
+            "expect": " ".join(expect).strip(),
+            "recover": " ".join(recover).strip(),
+        })
+        i = j + 1 if closed else j
+    return blocks, outside
+
+
+def _words(text):
+    return [w for w in re.findall(r"[\w]+", text.lower()) if len(w) > 2]
+
+
+def _same_sentence(a, b):
+    """True when recover: only repeats expect: instead of saying what to do."""
+    na, nb = " ".join(_words(a)), " ".join(_words(b))
+    if not na or not nb:
+        return False
+    if na == nb:
+        return True
+    sa, sb = set(na.split()), set(nb.split())
+    return len(sa & sb) / max(1, min(len(sa), len(sb))) >= 0.9
+
+
+def palette_entries(repo):
+    """Palette entries the shipped extensions contribute, as the student sees them."""
+    entries = set(BUILTIN_PALETTE)
+    ext_dir = os.path.join(repo, "extensions")
+    if not os.path.isdir(ext_dir):
+        return entries
+    for ext in sorted(os.listdir(ext_dir)):
+        pkg = os.path.join(ext_dir, ext, "package.json")
+        if not os.path.exists(pkg):
+            continue
+        try:
+            with open(pkg, encoding="utf-8") as fh:
+                data = json.load(fh)
+        except (OSError, ValueError):
+            continue
+        nls = {}
+        for nls_name in ("package.nls.json", "package.nls.de.json"):
+            path = os.path.join(ext_dir, ext, nls_name)
+            if os.path.exists(path):
+                try:
+                    with open(path, encoding="utf-8") as fh:
+                        nls.setdefault(nls_name, json.load(fh))
+                except (OSError, ValueError):
+                    pass
+        for cmd in (data.get("contributes") or {}).get("commands") or []:
+            title = cmd.get("title")
+            category = cmd.get("category")
+            titles = []
+            m = re.fullmatch(r"%(.+)%", title or "")
+            if m:
+                titles = [d[m.group(1)] for d in nls.values() if m.group(1) in d]
+            elif title:
+                titles = [title]
+            for t in titles:
+                entries.add(f"> {t}")
+                if category:
+                    entries.add(f"> {category}: {t}")
+    return entries
+
+
+def tasks_json_labels(root):
+    """Task labels from a project's .vscode/tasks.json (JSONC: comments stripped)."""
+    path = os.path.join(root, ".vscode", "tasks.json")
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+    except OSError:
+        return None
+    text = re.sub(r"^\s*//.*$", "", text, flags=re.M)
+    try:
+        data = json.loads(text)
+    except ValueError:
+        return None
+    return {t.get("label") for t in (data.get("tasks") or []) if isinstance(t, dict) and t.get("label")}
+
+
+def collect_routes(check, tasks, commands):
+    """Task labels and shell commands a check actually performs."""
+    ctype = check.get("type")
+    if ctype in ("task", "build") and check.get("label"):
+        tasks.add(check["label"])
+    if ctype == "command" and check.get("command"):
+        commands.add(check["command"])
+    if ctype == "testSuite":
+        cmd = _suite_command(check)
+        if cmd:
+            commands.add(cmd)
+    if ctype in ("all", "any"):
+        for sub in check.get("checks") or []:
+            if isinstance(sub, dict):
+                collect_routes(sub, tasks, commands)
+    if ctype == "predict" and isinstance(check.get("then"), dict):
+        collect_routes(check["then"], tasks, commands)
+
+
+def validate_do_blocks(where, body, root, known, report):
+    """The four A9.1 rules. Rule 4 is a warning until the packs are converted."""
+    blocks, outside = parse_do_blocks(body)
+    report.do_blocks += len(blocks)
+    for block in blocks:
+        at = f"{where}:{block['line']}"
+        for problem in block["problems"]:
+            report.error(at, f"::: do - {problem}")
+        if not block["instruction"]:
+            report.error(at, "::: do - no instruction; the block needs one imperative sentence")
+        # Rule 2: both lines are mandatory, and recover: has to say something new.
+        if not block["expect"]:
+            report.error(at, "::: do - no `> expect:` line; a route without an expected result cannot be checked by the student")
+        if not block["recover"]:
+            report.error(at, "::: do - no `> recover:` line; say what to do when the expected result does not appear")
+        if block["expect"] and block["recover"] and _same_sentence(block["expect"], block["recover"]):
+            report.error(at, "::: do - `recover:` only repeats `expect:` instead of naming a way back")
+
+        # Rule 3: a route nothing defines is an error, not a matter of style (A8.3).
+        attrs = block["attrs"]
+        if "task" in attrs and attrs["task"] and attrs["task"] not in known["tasks"]:
+            report.error(at, f'::: do - task "{attrs["task"]}" is in no check of this course and in no .vscode/tasks.json')
+        if "command" in attrs and attrs["command"] and attrs["command"] not in known["commands"]:
+            report.error(at, f'::: do - command "{attrs["command"]}" is run by no check of this course')
+        if "palette" in attrs and attrs["palette"] and attrs["palette"] not in known["palette"]:
+            report.error(at, f'::: do - palette entry "{attrs["palette"]}" is contributed by no extension of this repository')
+        if "file" in attrs and attrs["file"] and not repo_path_exists(root, attrs["file"]):
+            report.error(at, f'::: do - file "{attrs["file"]}" does not exist under the project root')
+
+    # Rule 4: outside a block, no call to action that names a route. Warning for
+    # now: it fires on every course written before A9.1, and turning it into an
+    # error would block the very commits that fix it.
+    named = sorted(known["tasks"] | known["commands"] | {e[2:] for e in known["palette"]}, key=len, reverse=True)
+    for line_no, line in outside:
+        if not CALL_TO_ACTION_RE.search(line):
+            continue
+        hit = next((n for n in named if n and n in line), None)
+        if hit:
+            report.warn(f"{where}:{line_no}", f'operating instruction outside a `::: do` block names "{hit}" (A9.1 rule 4)')
+
+
 class Report:
     def __init__(self):
         self.errors = []
         self.warnings = []
         self.steps = 0
         self.checks = 0
+        self.do_blocks = 0
 
     def error(self, where, msg):
         self.errors.append(f"{where}: {msg}")
@@ -652,13 +938,31 @@ def validate_course(course_dir, root, symbols, report, probes=None):
         if sid not in de_ids:
             report.error(where, "missing German step (.de.md)")
 
-    # Steps that own a `question` task (valid recallFrom targets).
+    # Steps that own a `question` task (valid recallFrom targets), and - for
+    # A9.1 rule 3 - every route the course itself defines. Both languages are
+    # read: a `::: do` block may name a route that only the German variant's
+    # checks declare, and that route is just as real.
     recall_sources = set()
-    for sid in sorted(en_ids):
-        fm, _ = load_step(os.path.join(steps_dir, f"{sid}.en.md"))
-        for task in (fm or {}).get("tasks") or []:
-            if isinstance(task, dict) and isinstance(task.get("check"), dict) and task["check"].get("type") == "question":
-                recall_sources.add(sid)
+    known_tasks, known_commands = set(), set()
+    for sid in sorted(all_ids):
+        for lang in ("en", "de"):
+            fpath = os.path.join(steps_dir, f"{sid}.{lang}.md")
+            if not os.path.exists(fpath):
+                continue
+            fm, _ = load_step(fpath)
+            for task in (fm or {}).get("tasks") or []:
+                if not isinstance(task, dict) or not isinstance(task.get("check"), dict):
+                    continue
+                if lang == "en" and task["check"].get("type") == "question":
+                    recall_sources.add(sid)
+                collect_routes(task["check"], known_tasks, known_commands)
+    from_tasks_json = tasks_json_labels(root)
+    if from_tasks_json is None:
+        report.warn(name, "no .vscode/tasks.json under the project root; `::: do task=` is checked against the course's own checks only")
+    else:
+        known_tasks |= from_tasks_json
+    repo_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    known = {"tasks": known_tasks, "commands": known_commands, "palette": palette_entries(repo_dir)}
 
     # Validate each language file.
     for sid in sorted(all_ids):
@@ -807,6 +1111,9 @@ def validate_course(course_dir, root, symbols, report, probes=None):
                 _hints_ok(entry, where, what, report)
             if misconceptions and not (step_check_types & {"command", "testSuite"}):
                 report.warn(where, "misconceptions declared but no command/testSuite task produces output to match")
+            # A9.1: instruction blocks, and the call to action that escaped one.
+            validate_do_blocks(where, body, root, known, report)
+
             if lang == "en" and listed_steps and sid not in listed_steps:
                 report.warn(where, "step file is not listed in any module of course.json")
 
@@ -1143,7 +1450,7 @@ def main():
         print(f"ERROR {e}")
 
     print()
-    print(f"courses: {len(course_dirs)}  step-files: {report.steps}  checks: {report.checks}")
+    print(f"courses: {len(course_dirs)}  step-files: {report.steps}  checks: {report.checks}  do-blocks: {report.do_blocks}")
     print(f"warnings: {len(report.warnings)}  errors: {len(report.errors)}")
     if report.errors:
         print("RESULT: FAIL")
