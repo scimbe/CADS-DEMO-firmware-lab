@@ -646,3 +646,42 @@ export function objectiveCeiling(course: Course, objectiveId: string, hasLlm: bo
     terminal,
   };
 }
+
+// ---------------------------------------------------------------------------
+// E7: which recall the card should draw.
+// ---------------------------------------------------------------------------
+
+export interface RecallCandidate {
+  /** The step the question comes from. */
+  stepId: string;
+  taskId: string;
+}
+
+/**
+ * Narrows the recall candidates to the ones that have not been answered
+ * correctly yet, and hands the rest back untouched when everything has.
+ *
+ * Why the preference exists - do not simplify it away: one card is drawn per step
+ * and per day out of every candidate the step's `recallFrom` offers, so a course
+ * with 35 authored recalls showed about 24 of them and never the rest. Distributed
+ * practice works on what has NOT stuck yet (E7); drawing uniformly spends the
+ * repetition on material that is already proven.
+ *
+ * Why it is not a work list: the pool keeps at least two entries whenever the step
+ * has that many, so the daily draw still varies. A card that comes back every
+ * single morning in a fixed order is a chore, and the order becomes the thing
+ * people learn.
+ */
+export function recallDrawPool(session: SessionState, courseId: string, candidates: RecallCandidate[]): RecallCandidate[] {
+  const passed = new Set(
+    (session.recallLog?.[courseId] ?? []).filter((r) => r.outcome === "passed").map((r) => `${r.fromStepId}/${r.taskId}`),
+  );
+  const unproven = candidates.filter((c) => !passed.has(`${c.stepId}/${c.taskId}`));
+  if (unproven.length === 0) return candidates;
+  const pool = [...unproven];
+  for (const c of candidates) {
+    if (pool.length >= 2) break;
+    if (!pool.includes(c)) pool.push(c);
+  }
+  return pool;
+}
