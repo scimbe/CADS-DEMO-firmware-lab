@@ -10,28 +10,74 @@
  * per-student fairness only works when the OpenAI `user` field carries a pseudonymous
  * id, which the packed client has no option to set at all.
  */
+/**
+ * Reported once per HTTP attempt, as soon as headers arrive - well before the
+ * body is read, let alone the retry loop has decided pass/fail - so a caller can
+ * show that a request is in flight before this method's promise ever settles.
+ * queuePosition/queueLength come from the shim's own headers when it sends them;
+ * both stay undefined otherwise, and the caller must work fully without them.
+ */
+export interface LlmProgressInfo {
+  attempt: 1 | 2;
+  queuePosition?: number;
+  queueLength?: number;
+}
+
 export interface RetryingLlmClientOptions {
   baseUrl: string;
   apiKey: string;
   model: string;
   /** OpenAI `user` field for the shim's per-student fairness - the existing pseudonymous studentId, nothing else. */
   studentId: string;
+  onProgress?: (info: LlmProgressInfo) => void;
+}
+
+export interface LlmRateLimitInfo {
+  queuePosition?: number;
+  queueLength?: number;
+  /** Seconds, from the shim's own Retry-After - an estimate of the remaining wait, not a promise. */
+  retryAfterSeconds?: number;
 }
 
 /**
  * Thrown when the model could not be reached because it is overloaded (429 that
- * survived one retry, or our own timeout while a request sat queued) - distinct from
- * every other completion failure so a caller can fall back to a self-check instead of
- * showing a raw error (R11a.8: that fallback is never itself graded evidence).
+ * either could not be retried or survived the one retry that made sense, or our
+ * own timeout while a request sat queued) - distinct from every other completion
+ * failure so a caller can fall back to a self-check instead of showing a raw
+ * error (R11a.8: that fallback is never itself graded evidence). Carries whatever
+ * the shim told us about the queue, so that fallback can be specific instead of
+ * just saying "overloaded" - all fields are optional because an older shim, or a
+ * client-side timeout, may not have any of them.
  */
 export class LlmRateLimitError extends Error {
-  constructor(message: string) {
+  readonly info: LlmRateLimitInfo;
+  constructor(message: string, info: LlmRateLimitInfo = {}) {
     super(message);
     this.name = "LlmRateLimitError";
+    this.info = info;
   }
 }
 
-const RETRY_DELAY_MS = 2000;
+/**
+ * The line between "retry" and "don't": the shim's 429 body names which of two
+ * different situations this is. `per_user` is a per-student limit (a stray
+ * double-click, one request already in flight) that clears in seconds - retrying
+ * once is right, and Retry-After is a fixed 2s. `queue_full` means the queue
+ * itself is too long to answer within the shim's own budget; that does NOT clear
+ * by waiting, and retrying only adds another request to the queue that is the
+ * problem - for every OTHER student waiting behind it, not just this one.
+ * `reason` is authoritative wherever it is present. The Retry-After threshold
+ * below is only a fallback for an older shim that does not send it yet, and
+ * stays cautious on purpose: a wrong guess there costs other students their
+ * place, not just this one a few seconds.
+ */
+const RETRY_AFTER_MAX_SECONDS = 5;
+/** Retry-After the shim sends for `per_user`, used if the header is somehow missing on that reason. */
+const PER_USER_RETRY_SECONDS = 2;
+
+interface RateLimitBody {
+  reason?: "per_user" | "queue_full";
+}
 /** Below the shim's own ~75s cutoff, so this client is the one that speaks first. */
 const REQUEST_TIMEOUT_MS = 60_000;
 
@@ -49,12 +95,23 @@ export class RetryingLlmClient {
   async complete(prompt: string): Promise<string> {
     for (let attempt = 0; ; attempt++) {
       const res = await this.post(prompt);
+      const queue = readQueueHeaders(res);
+      this.options.onProgress?.({ attempt: attempt === 0 ? 1 : 2, ...queue });
       if (res.status === 429) {
-        if (attempt === 0) {
-          await delay(RETRY_DELAY_MS);
+        const retryAfter = parseRetryAfterSeconds(res.headers.get("retry-after"));
+        const reason = await readRateLimitReason(res);
+        // reason decides; the Retry-After threshold only stands in when an older
+        // shim sends no reason at all.
+        const shouldRetry = reason ? reason === "per_user" : retryAfter !== undefined && retryAfter > 0 && retryAfter <= RETRY_AFTER_MAX_SECONDS;
+        if (attempt === 0 && shouldRetry) {
+          await delay((retryAfter ?? PER_USER_RETRY_SECONDS) * 1000);
           continue;
         }
-        throw new LlmRateLimitError(`LLM rate-limited after retry: ${res.status} ${res.statusText}`);
+        throw new LlmRateLimitError(
+          `LLM rate-limited (${reason ?? "unknown reason"}): ${res.status} ${res.statusText}` +
+            (queue.queuePosition !== undefined && queue.queueLength !== undefined ? ` (queue position ${queue.queuePosition} of ${queue.queueLength})` : ""),
+          { ...queue, retryAfterSeconds: retryAfter },
+        );
       }
       if (!res.ok) {
         const body = await res.text();
@@ -97,4 +154,55 @@ export class RetryingLlmClient {
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** 1-indexed, "1 = you're next" - present on every response, including 429s and timeouts, once the shim sends them. */
+function readQueueHeaders(res: Response): { queuePosition?: number; queueLength?: number } {
+  const position = res.headers.get("x-queue-position");
+  const length = res.headers.get("x-queue-length");
+  return {
+    queuePosition: position !== null ? Number(position) : undefined,
+    queueLength: length !== null ? Number(length) : undefined,
+  };
+}
+
+/**
+ * Delay-seconds only. Retry-After may also be an HTTP-date per spec, but an
+ * unparseable value falls back to "no retry" here anyway - the cautious default,
+ * per the comment on RETRY_AFTER_MAX_SECONDS above.
+ */
+function parseRetryAfterSeconds(header: string | null): number | undefined {
+  if (header === null) return undefined;
+  const seconds = Number(header);
+  return Number.isFinite(seconds) ? seconds : undefined;
+}
+
+/** Reads the 429 body's `reason` field; anything unparseable or unexpected is treated as absent, not as a crash. */
+async function readRateLimitReason(res: Response): Promise<"per_user" | "queue_full" | undefined> {
+  try {
+    const data = (await res.clone().json()) as RateLimitBody;
+    return data.reason === "per_user" || data.reason === "queue_full" ? data.reason : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Races `work` against `giveUp` (resolved externally - the panel's "don't wait,
+ * check it yourself" button) and returns `fallback()` if giveUp wins. `work` keeps
+ * running in the background either way: the shim still has to finish accounting
+ * for a request it queued, and the student was never offered control over
+ * cancelling it, only over waiting for it. Its eventual result, and any
+ * rejection, are both discarded rather than left unhandled.
+ */
+export async function raceWithGiveUp<T>(work: Promise<T>, giveUp: Promise<void>, fallback: () => T): Promise<T> {
+  const outcome = await Promise.race([
+    work.then((value) => ({ kind: "done" as const, value })),
+    giveUp.then(() => ({ kind: "gaveUp" as const })),
+  ]);
+  if (outcome.kind === "gaveUp") {
+    work.catch(() => undefined);
+    return fallback();
+  }
+  return outcome.value;
 }

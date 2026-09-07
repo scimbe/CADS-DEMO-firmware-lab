@@ -208,7 +208,16 @@ export type ToWebview =
   | { type: "ask"; outcome: AskView }
   | { type: "note"; note: NoteView }
   | { type: "stepDone"; unlocked: StepRef[] }
-  | { type: "busy"; busy: boolean };
+  | { type: "busy"; busy: boolean }
+  /**
+   * An LLM grading call's lifecycle for one task - the wait display (started),
+   * queue info as soon as an HTTP attempt has an answer (progress, optional
+   * fields), and its end either way, success or failure (done). Never a signal to
+   * change the task's own state; postTask/taskUpdateFields still owns that.
+   */
+  | { type: "grading"; taskId: string; state: "started" }
+  | { type: "grading"; taskId: string; state: "progress"; queuePosition?: number; queueLength?: number }
+  | { type: "grading"; taskId: string; state: "done" };
 
 export interface AskView {
   kind: "unconfigured" | "refused" | "llm-error" | "answer";
@@ -231,6 +240,8 @@ export type FromWebview =
   | { type: "answer"; taskId: string; text: string }
   | { type: "hint"; taskId: string }
   | { type: "predict"; taskId: string; text: string }
+  /** "Don't wait - check it yourself": gives up on an in-flight LLM grading call. */
+  | { type: "giveUp"; taskId: string }
   | { type: "recallAnswer"; text: string }
   | { type: "recallSkip" }
   | { type: "reflection"; answers: string[] }
@@ -524,6 +535,7 @@ function renderTask(t: TaskView, lang: Lang): string {
     ${renderSelfCheck(t, lang)}
     <div class="task-cause">${t.cause ? `<span class="cause-label">${escapeHtml(s.causeLabel)}:</span> ${escapeHtml(t.cause)}` : ""}</div>
     <div class="task-msg">${t.message ? escapeHtml(t.message) : escapeHtml(s.taskStatus[t.status])}</div>
+    <div class="task-waiting" hidden></div>
     ${renderTaskButtons(t, lang)}
     <div class="task-hint">${hint}</div>
   </li>`;
@@ -643,6 +655,10 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
   .selfcheck-title { font-weight: 600; }
   .selfcheck-intro { font-size: 0.92em; opacity: 0.85; margin: 0.2em 0 0.3em; }
   .selfcheck-rubric { font-family: var(--vscode-editor-font-family); }
+  .task-waiting { margin-top: 0.5em; padding: 0.5em 0.7em; border-left: 3px solid var(--vscode-panel-border); background: var(--vscode-textBlockQuote-background); border-radius: 3px; font-size: 0.92em; }
+  .task-waiting[hidden] { display: none; }
+  .waiting-position { opacity: 0.85; margin: 0.15em 0; }
+  .waiting-elapsed { font-family: var(--vscode-editor-font-family); opacity: 0.75; }
   .actions { margin-top: 0.5em; }
   .action-manual { font-size: 0.88em; opacity: 0.75; margin-top: 0.25em; }
   /* A9.1: the instruction card. Set off from the prose so an instruction is never mistaken for narration. */
@@ -779,6 +795,10 @@ function clientScript(view: StepView): string {
     done: ui(view.lang).done,
     icons: STATUS_ICON,
     statusText: ui(view.lang).taskStatus,
+    gradingWait: ui(view.lang).gradingWait,
+    gradingWaitPosition: ui(view.lang).gradingWaitPosition(1, 2).replace("1", "{p}").replace("2", "{t}"),
+    gradingElapsed: ui(view.lang).gradingElapsed(7).replace("7", "{s}"),
+    gradingGiveUp: ui(view.lang).gradingGiveUp,
   });
   return `
 (function () {
@@ -804,6 +824,7 @@ function clientScript(view: StepView): string {
     if (b.classList.contains("run-check")) { setRunning(taskId); post({ type: "runCheck", taskId }); }
     else if (b.classList.contains("confirm")) { setRunning(taskId); post({ type: "confirm", taskId }); }
     else if (b.classList.contains("hint-btn")) post({ type: "hint", taskId });
+    else if (b.classList.contains("give-up")) { stopWaiting(taskId); post({ type: "giveUp", taskId }); }
     else if (b.classList.contains("submit-answer")) {
       const ta = document.querySelector('textarea.answer[data-task="' + CSS.escape(taskId) + '"]');
       setRunning(taskId); post({ type: "answer", taskId, text: ta ? ta.value : "" });
@@ -874,6 +895,53 @@ function clientScript(view: StepView): string {
     li.className = "task status-running";
     li.querySelector(".task-icon").textContent = S.icons.running;
     li.querySelector(".task-msg").textContent = S.running;
+  }
+
+  // The model answers one request at a time; a burst of students (a whole class
+  // checking the same step at once) queues behind it for real seconds, not a
+  // network blip. Never leave that silent: say why, show time actually passing
+  // (a counter, not a bar claiming progress this side does not know), and after
+  // 20s offer a way out that does not depend on the model ever answering - the
+  // same self-check path a question task without one falls back to (R11a.8, no
+  // third state). .task-waiting is owned entirely by this script: postTask's
+  // taskUpdateFields (controller.ts) never touches it, the way it never touches
+  // an in-progress answer textarea, for the same reason.
+  const waiting = {};
+
+  function startWaiting(taskId) {
+    stopWaiting(taskId);
+    const li = document.querySelector('li.task[data-task="' + CSS.escape(taskId) + '"]');
+    const box = li && li.querySelector(".task-waiting");
+    if (!box) return;
+    const start = Date.now();
+    box.hidden = false;
+    box.innerHTML = '<div class="waiting-text">' + esc(S.gradingWait) + '</div><div class="waiting-position"></div><div class="waiting-elapsed"></div>';
+    const tick = () => {
+      const el = box.querySelector(".waiting-elapsed");
+      if (el) el.textContent = S.gradingElapsed.replace("{s}", String(Math.floor((Date.now() - start) / 1000)));
+      if (Date.now() - start >= 20000 && !box.querySelector(".give-up")) {
+        box.insertAdjacentHTML("beforeend", '<div class="row"><button class="btn give-up" data-task="' + esc(taskId) + '">' + esc(S.gradingGiveUp) + '</button></div>');
+      }
+    };
+    tick();
+    waiting[taskId] = setInterval(tick, 1000);
+    li.querySelectorAll(".run-check, .submit-answer").forEach((btn) => { btn.disabled = true; });
+  }
+
+  function stopWaiting(taskId) {
+    if (waiting[taskId]) { clearInterval(waiting[taskId]); delete waiting[taskId]; }
+    const li = document.querySelector('li.task[data-task="' + CSS.escape(taskId) + '"]');
+    if (!li) return;
+    const box = li.querySelector(".task-waiting");
+    if (box) { box.hidden = true; box.innerHTML = ""; }
+    li.querySelectorAll(".run-check, .submit-answer").forEach((btn) => { btn.disabled = false; });
+  }
+
+  function setQueueInfo(taskId, position, length) {
+    if (!waiting[taskId] || position === undefined || length === undefined) return;
+    const li = document.querySelector('li.task[data-task="' + CSS.escape(taskId) + '"]');
+    const el = li && li.querySelector(".waiting-position");
+    if (el) el.textContent = S.gradingWaitPosition.replace("{p}", String(position)).replace("{t}", String(length));
   }
 
   function renderCitations(cs) {
@@ -978,6 +1046,10 @@ function clientScript(view: StepView): string {
       document.getElementById("step-status").textContent = ${JSON.stringify(ui(view.lang).status.done)};
     } else if (m.type === "busy") {
       document.getElementById("tasks").classList.toggle("busy", m.busy);
+    } else if (m.type === "grading") {
+      if (m.state === "started") startWaiting(m.taskId);
+      else if (m.state === "progress") setQueueInfo(m.taskId, m.queuePosition, m.queueLength);
+      else if (m.state === "done") stopWaiting(m.taskId);
     }
   });
   post({ type: "ready" });

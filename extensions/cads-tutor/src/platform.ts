@@ -27,7 +27,8 @@ import * as path from "node:path";
 import type { QuestionVerdict } from "./checks/runner";
 import type { EventStoreLike } from "./events";
 import { questionIsSupported, retrievalQuery } from "./askRouting";
-import { LlmRateLimitError, RetryingLlmClient } from "./llmClient";
+import { ui } from "./i18n";
+import { LlmRateLimitError, RetryingLlmClient, type LlmProgressInfo } from "./llmClient";
 import { withLanguageDirective } from "./prompts";
 import type { Course, Lang } from "./types";
 
@@ -91,6 +92,8 @@ export interface PlatformOptions {
   llmClient?: { complete(prompt: string): Promise<string> };
   /** Current UI language; every prompt is told to answer in it. Read per call. */
   lang?: () => Lang;
+  /** Reported once per LLM HTTP attempt, well before gradeAnswer/ask settle - drives the panel's waiting display. */
+  onLlmProgress?: (info: LlmProgressInfo) => void;
 }
 
 const DEFAULT_THRESHOLD = 5.0;
@@ -206,7 +209,7 @@ export class TutorPlatform {
       base = opts.llmClient;
     } else if (opts.llm) {
       try {
-        base = new RetryingLlmClient({ ...opts.llm, studentId: opts.studentId });
+        base = new RetryingLlmClient({ ...opts.llm, studentId: opts.studentId, onProgress: opts.onLlmProgress });
       } catch (err) {
         this.log(`LLM disabled: ${err instanceof Error ? err.message : String(err)}`);
       }
@@ -368,13 +371,7 @@ export class TutorPlatform {
       // same self-check path as "no LLM configured" (R11a.8, no third state), not a raw
       // error - a queue full of other students' requests is not this student's mistake.
       if (err instanceof LlmRateLimitError) {
-        return {
-          kind: "manual",
-          feedback:
-            this.lang() === "de"
-              ? "Der Tutor ist gerade überlastet – vergleiche deine Antwort selbst mit der Rubrik."
-              : "The tutor is overloaded right now – compare your answer with the rubric yourself.",
-        };
+        return { kind: "manual", feedback: ui(this.lang()).overloadedFeedback(err.info) };
       }
       return { kind: "error", feedback: `grading failed: ${err instanceof Error ? err.message : String(err)}` };
     }

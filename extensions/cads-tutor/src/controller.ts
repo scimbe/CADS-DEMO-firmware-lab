@@ -15,6 +15,7 @@ import { DEFAULT_PREDICTION_MIN_CHARS, isLocalCheck, referencedFiles, runCheck, 
 import { openEventStore, type OpenedEventStore } from "./events";
 import { normalizeLang, ui } from "./i18n";
 import { coursesForFolders, loadCourses, orderedSteps, resolveProjectRoot, type ExtensionCourseContribution } from "./loader";
+import { raceWithGiveUp } from "./llmClient";
 import { createRenderer, type TutorLink } from "./markdown";
 import { PANEL_VIEW_TYPE, StepPanel } from "./panel";
 import { readLlmConfig, TutorPlatform, type AskOutcome } from "./platform";
@@ -366,6 +367,12 @@ export class TutorController implements vscode.Disposable {
         // switch language at any time and the next answer must follow.
         lang: () => this.lang,
         log: (m) => this.log(`[platform:${course.manifest.id}] ${m}`),
+        // Only one grading call is realistically in flight at a time in one panel,
+        // so a single mutable "which task is waiting" is enough to route this to
+        // the right one, without threading a taskId through platform/runner.
+        onLlmProgress: (info) => {
+          if (this.waitingTaskId) this.panel.post({ type: "grading", taskId: this.waitingTaskId, state: "progress", ...info });
+        },
       });
       this.log(`[platform:${course.manifest.id}] LLM ${p.hasLlm ? `configured (${llm?.model})` : "not configured"}`);
       this.platforms.set(course.manifest.id, p);
@@ -826,6 +833,9 @@ export class TutorController implements vscode.Disposable {
         case "hint":
           await this.showHint(m.taskId);
           return;
+        case "giveUp":
+          this.giveUpOnGrading(m.taskId);
+          return;
         case "predict":
           await this.submitPrediction(m.taskId, m.text);
           return;
@@ -899,7 +909,7 @@ export class TutorController implements vscode.Disposable {
   // Checks
   // ------------------------------------------------------------------------------------------
 
-  private checkContext(course: Course, step: Step): CheckContext {
+  private checkContext(course: Course, step: Step, taskId: string): CheckContext {
     const root = resolveProjectRoot(course, this.workspaceRoot) ?? this.workspaceRoot ?? process.cwd();
     const progress = ensureStepProgress(this.session, course.manifest.id, step.id);
     const platform = this.platformFor(course);
@@ -914,7 +924,14 @@ export class TutorController implements vscode.Disposable {
       bridge: this.bridge,
       debugStops: this.debugTracker.stops,
       waitForDebugStop: (match, timeout) => this.debugTracker.waitFor(match, timeout),
-      gradeAnswer: (prompt, rubric, answer, bloom) => platform.gradeAnswer(prompt, rubric, answer, bloom),
+      gradeAnswer: (prompt, rubric, answer, bloom) => {
+        this.waitingTaskId = taskId;
+        this.panel.post({ type: "grading", taskId, state: "started" });
+        return platform.gradeAnswer(prompt, rubric, answer, bloom).finally(() => {
+          if (this.waitingTaskId === taskId) this.waitingTaskId = undefined;
+          this.panel.post({ type: "grading", taskId, state: "done" });
+        });
+      },
       answerFor: (taskId) => getTaskState(progress, taskId).answer,
       manualConfirmed: (taskId) => getTaskState(progress, taskId).status === "passed" || this.confirmedNow.has(stepKey(course.manifest.id, step.id) + "/" + taskId),
       buildTaskLabel: cfg.get<string>("buildTaskLabel", "CaDS: Build"),
@@ -925,6 +942,10 @@ export class TutorController implements vscode.Disposable {
   }
 
   private readonly confirmedNow = new Set<string>();
+  /** The task whose gradeAnswer call is in flight right now, if any - see platformFor's onLlmProgress. */
+  private waitingTaskId: string | undefined;
+  /** Resolvers for "don't wait - check it yourself", keyed like `running`/`confirmedNow`. */
+  private readonly giveUpSignals = new Map<string, () => void>();
 
   private findTask(step: Step, taskId: string): TaskSpec | undefined {
     return step.variants.en!.meta.tasks.find((t) => t.id === taskId);
@@ -942,12 +963,24 @@ export class TutorController implements vscode.Disposable {
     const key = `${stepKey(cur.course.manifest.id, cur.step.id)}/${taskId}`;
     if (this.running.has(key)) return undefined;
     this.running.add(key);
+    let giveUpResolve: (() => void) | undefined;
     try {
-      const ctx = this.checkContext(cur.course, cur.step);
+      const ctx = this.checkContext(cur.course, cur.step, taskId);
       const before = getTaskState(getStepProgress(this.session, cur.course.manifest.id, cur.step.id), taskId);
       const startedAt = Date.now();
       this.emit({ type: "check.run", data: { taskId, checkType: task.check.type, attempt: (before.attempts ?? 0) + 1 } });
-      const result = await runCheck(task.check, taskId, ctx);
+      const giveUp = new Promise<void>((resolve) => { giveUpResolve = resolve; });
+      this.giveUpSignals.set(key, giveUpResolve!);
+      // "Don't wait - check it yourself" only ever appears on the panel after a
+      // "grading" message started the wait (see checkContext's gradeAnswer), so a
+      // give-up signal on a fast local check (a command, a test suite) simply
+      // never arrives - this race is a no-op cost for every check type but the
+      // one it exists for.
+      const result = await raceWithGiveUp(runCheck(task.check, taskId, ctx), giveUp, () => ({
+        status: "pending" as const,
+        message: ui(this.lang).gradingGivenUp,
+        graded: false,
+      }));
       this.confirmedNow.delete(key);
       const wasDone = stepStatus(this.session, cur.course, cur.step, this.courses) === "done";
       // A9.2: both flags decide whether this pass is evidence, and both are
@@ -987,6 +1020,7 @@ export class TutorController implements vscode.Disposable {
       return result.status;
     } finally {
       this.running.delete(key);
+      if (this.giveUpSignals.get(key) === giveUpResolve) this.giveUpSignals.delete(key);
     }
   }
 
@@ -1131,6 +1165,13 @@ export class TutorController implements vscode.Disposable {
     if (!cur) return;
     this.confirmedNow.add(`${stepKey(cur.course.manifest.id, cur.step.id)}/${taskId}`);
     await this.runTask(taskId);
+  }
+
+  /** "Don't wait - check it yourself": resolves the give-up race in runTask, if one is in flight for this task. */
+  private giveUpOnGrading(taskId: string): void {
+    const cur = this.current;
+    if (!cur) return;
+    this.giveUpSignals.get(`${stepKey(cur.course.manifest.id, cur.step.id)}/${taskId}`)?.();
   }
 
   /**

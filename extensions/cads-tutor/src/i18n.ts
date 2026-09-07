@@ -136,6 +136,20 @@ export const UI = {
     selfCheckConfirm: "I have compared my answer with this",
     selfReportedBadge: "self-assessed",
     selfReportedNote: "Self-assessed tasks count towards finishing the step, but not towards the mastery shown in Progress.",
+    // The model answers one request at a time; a burst of students land in its queue.
+    gradingWait: "Grading is queued - requests are handled one at a time, not lost.",
+    gradingWaitPosition: (position: number, length: number) => `You are number ${position} of ${length} waiting.`,
+    gradingElapsed: (seconds: number) => `Waiting: ${seconds}s`,
+    gradingGiveUp: "Don't wait - check it yourself",
+    gradingGivenUp: "You chose not to wait for the model. Compare your answer with the rubric yourself.",
+    // gradeAnswer's rate-limit fallback (platform.ts). The position/length are an
+    // estimate from the shim, never a promise - said as "would be", not "are".
+    overloadedFeedback: (info: { queuePosition?: number; queueLength?: number; retryAfterSeconds?: number }) => {
+      const base = "The tutor is overloaded right now – compare your answer with the rubric yourself.";
+      if (info.queuePosition === undefined || info.queueLength === undefined) return base;
+      const estimate = info.retryAfterSeconds !== undefined ? `, an estimated ${info.retryAfterSeconds}s` : "";
+      return `The tutor is overloaded right now (you would be number ${info.queuePosition} of ${info.queueLength} waiting${estimate}) – compare your answer with the rubric yourself.`;
+    },
     // A9.1: the `::: do` instruction card, and A9.4: header progress.
     doTitle: "Do this",
     doExpect: "What you should see",
@@ -335,6 +349,17 @@ export const UI = {
     selfCheckConfirm: "Ich habe meine Antwort damit verglichen",
     selfReportedBadge: "selbst eingeschätzt",
     selfReportedNote: "Selbst eingeschätzte Aufgaben zählen für den Abschluss des Schritts, aber nicht für die im Fortschritt angezeigte Beherrschung.",
+    gradingWait: "Die Bewertung steht in einer Warteschlange - Anfragen werden nacheinander bearbeitet, nicht verworfen.",
+    gradingWaitPosition: (position: number, length: number) => `Du bist Nummer ${position} von ${length} Wartenden.`,
+    gradingElapsed: (seconds: number) => `Wartezeit: ${seconds}s`,
+    gradingGiveUp: "Nicht warten - selbst prüfen",
+    gradingGivenUp: "Du hast dich entschieden, nicht auf das Modell zu warten. Vergleiche deine Antwort selbst mit der Rubrik.",
+    overloadedFeedback: (info: { queuePosition?: number; queueLength?: number; retryAfterSeconds?: number }) => {
+      const base = "Der Tutor ist gerade überlastet – vergleiche deine Antwort selbst mit der Rubrik.";
+      if (info.queuePosition === undefined || info.queueLength === undefined) return base;
+      const estimate = info.retryAfterSeconds !== undefined ? `, geschätzt noch ${info.retryAfterSeconds}s` : "";
+      return `Der Tutor ist gerade überlastet (du wärst Nummer ${info.queuePosition} von ${info.queueLength} Wartenden${estimate}) – vergleiche deine Antwort selbst mit der Rubrik.`;
+    },
     // A9.1: die `::: do`-Anleitungskarte, A9.4: Fortschritt in der Kopfzeile.
     doTitle: "Das ist zu tun",
     doExpect: "Daran erkennst du, dass es geklappt hat",
