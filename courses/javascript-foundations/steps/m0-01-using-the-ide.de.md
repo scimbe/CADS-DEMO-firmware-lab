@@ -52,6 +52,23 @@ Bedien diesen Editor sicher genug für jeden Step: Terminal öffnen, Befehl ausf
 
 Dieser Kurs setzt keine Programmiererfahrung und keinen vorherigen Kurs voraus; er braucht auch keine Installation über das hier Vorhandene hinaus.
 
+## Was auf deinem Bildschirm ist
+
+| Wo | Was es ist |
+|---|---|
+| Linker Rand, senkrechte Leiste | Aktivitätsleiste. Das Doktorhut-Symbol öffnet **CaDS Tutor**. |
+| Links, breite Spalte | Explorer: klick eine Datei unter `src/` an, um sie zu öffnen. |
+| Mitte | Editor, ein Tab je Datei. |
+| Unten | Panel: **Terminal**, **Problems**, **Output**. Umschalten über **View > Terminal**. |
+
+Dieser Step selbst ist das **Tutor-Panel**: jede Aufgabe dort hat eine Prüf-Schaltfläche.
+
+![Das Tutor-Panel neben dem Editor, links der Kursbaum, rechts die Abzeichen und der Text des Steps](tutor-panel-step.png)
+*Wo du bist: links der Kursbaum, rechts dieser Step. Die Abzeichen nennen Bloom-Stufe, Art der Anleitung und geschätzte Zeit.*
+
+![Die Aufgabenliste des Panels, die ersten beiden Prüfungen bestanden, je ein grüner Haken daneben](tutor-panel-checks.png)
+*Die Aufgabenliste. **Check** führt eine Aufgabe aus, **Show hint** öffnet die Hinweise Stufe für Stufe, und eine `question`-Aufgabe beantwortest du im Textfeld.*
+
 ## Das tust du zuerst
 
 **1. Terminal öffnen.**
@@ -87,23 +104,6 @@ node --test test/m0-01-using-the-ide.test.js
 **4. Die im Fehlschlag genannte Datei ändern** - [`src/m0/ready.js`](file:src/m0/ready.js) - von `false` auf `true`, mit **Strg+S** (**Cmd+S** auf dem Mac) speichern und den Befehl erneut ausführen. Die **Pfeil-nach-oben-Taste** holt ihn zurück, ohne ihn abzutippen.
 
 Dateien unter `test/` sind das Prüfschema; eine davon zu ändern, damit sie besteht, hilft in diesem Kurs nirgends.
-
-## Was auf deinem Bildschirm ist
-
-| Wo | Was es ist |
-|---|---|
-| Linker Rand, senkrechte Leiste | Aktivitätsleiste. Das Doktorhut-Symbol öffnet **CaDS Tutor**. |
-| Links, breite Spalte | Explorer: klick eine Datei unter `src/` an, um sie zu öffnen. |
-| Mitte | Editor, ein Tab je Datei. |
-| Unten | Panel: **Terminal**, **Problems**, **Output**. Umschalten über **View > Terminal**. |
-
-Dieser Step selbst ist das **Tutor-Panel**: jede Aufgabe dort hat eine Prüf-Schaltfläche.
-
-![Das Tutor-Panel neben dem Editor, links der Kursbaum, rechts die Abzeichen und der Text des Steps](tutor-panel-step.png)
-*Wo du bist: links der Kursbaum, rechts dieser Step. Die Abzeichen nennen Bloom-Stufe, Art der Anleitung und geschätzte Zeit.*
-
-![Die Aufgabenliste des Panels, die ersten beiden Prüfungen bestanden, je ein grüner Haken daneben](tutor-panel-checks.png)
-*Die Aufgabenliste. **Check** führt eine Aufgabe aus, **Show hint** öffnet die Hinweise Stufe für Stufe, und eine `question`-Aufgabe beantwortest du im Textfeld.*
 
 ## Drei Wege, etwas auszuführen
 
@@ -142,3 +142,5 @@ node src/m0/ready.js
 Eine Übungsdatei direkt auszuführen prüft nichts - Übungsdateien exportieren nur Funktionen, die ein Test aufruft. Jede gibt einen Hinweis aus, der den Befehl nennt, der deine Arbeit wirklich prüft.
 
 Als Nächstes: [deine erste richtige Übung](step:m0-02-first-run).
+
+Wie der Tutor deine Arbeit bewertet und was am Ende dabei herauskommt, steht hier: [Wie der Tutor deine Arbeit bewertet](https://scimbe.github.io/CADS-DEMO-firmware-lab-docs/de/javascript/how-you-are-assessed/).

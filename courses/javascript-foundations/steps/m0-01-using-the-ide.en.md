@@ -52,6 +52,23 @@ Operate this editor well enough to finish any step: open a terminal, run a comma
 
 This course assumes no programming experience and no prior course; it also needs nothing installed beyond what is already here.
 
+## What is on your screen
+
+| Where | What it is |
+|---|---|
+| Left edge, vertical bar | Activity bar. The mortarboard icon opens **CaDS Tutor**. |
+| Left, wide column | Explorer: click a file under `src/` to open it. |
+| Middle | Editor, one tab per file. |
+| Bottom | Panel: **Terminal**, **Problems**, **Output**. Toggle with **View > Terminal**. |
+
+This step itself is the **tutor panel**. Each task there has a check button; pressing one runs the check and prints the verdict beside it.
+
+![The tutor panel beside the editor, with the course tree on the left and the step's badges and text on the right](tutor-panel-step.png)
+*Where you are: course tree left, this step right. The badges give the Bloom level, the kind of scaffolding and the estimated time.*
+
+![The panel's task list with the first two checks passed and a green tick beside each](tutor-panel-checks.png)
+*The task list. **Check** runs one task, **Show hint** opens the hints one tier at a time, and a `question` task is answered in the box.*
+
 ## Do this first
 
 **1. Open a terminal.**
@@ -87,23 +104,6 @@ node --test test/m0-01-using-the-ide.test.js
 **4. Change the file the failure names** - [`src/m0/ready.js`](file:src/m0/ready.js) - from `false` to `true`, save with **Ctrl+S** (**Cmd+S** on a Mac), and run the command again. The **Up arrow** brings it back without retyping.
 
 Files under `test/` are the marking scheme; editing one to make it pass helps nowhere in this course.
-
-## What is on your screen
-
-| Where | What it is |
-|---|---|
-| Left edge, vertical bar | Activity bar. The mortarboard icon opens **CaDS Tutor**. |
-| Left, wide column | Explorer: click a file under `src/` to open it. |
-| Middle | Editor, one tab per file. |
-| Bottom | Panel: **Terminal**, **Problems**, **Output**. Toggle with **View > Terminal**. |
-
-This step itself is the **tutor panel**. Each task there has a check button; pressing one runs the check and prints the verdict beside it.
-
-![The tutor panel beside the editor, with the course tree on the left and the step's badges and text on the right](tutor-panel-step.png)
-*Where you are: course tree left, this step right. The badges give the Bloom level, the kind of scaffolding and the estimated time.*
-
-![The panel's task list with the first two checks passed and a green tick beside each](tutor-panel-checks.png)
-*The task list. **Check** runs one task, **Show hint** opens the hints one tier at a time, and a `question` task is answered in the box.*
 
 ## Three ways to run something
 
@@ -142,3 +142,5 @@ node src/m0/ready.js
 Running an exercise file directly checks nothing - exercise files only export functions for a test to call. Each one prints a reminder naming the command that does check your work.
 
 Next: [your first real exercise](step:m0-02-first-run).
+
+How the tutor assesses your work, and what you end up with: [How the tutor assesses your work](https://scimbe.github.io/CADS-DEMO-firmware-lab-docs/en/javascript/how-you-are-assessed/).
