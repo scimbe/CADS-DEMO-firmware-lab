@@ -70,6 +70,16 @@ export interface TaskView {
    * answer, and showing it first would turn the task into copying.
    */
   selfCheck?: string;
+  /**
+   * The buttons row and the self-check box, rendered on the extension side and
+   * patched into the DOM on every update - not just the step's initial render -
+   * because whether a task is confirmable and whether its rubric shows both
+   * depend on state (`answer`, `selfCheck`) that only exists after a run.
+   */
+  buttonsHtml?: string;
+  selfCheckHtml?: string;
+  /** Plain text for the type badge - see renderTaskTypeLabel for why it must also be resent on every update. */
+  typeLabel?: string;
   /** Nobody but the student verified this pass; it carries no mastery weight. */
   selfReported?: boolean;
   /** true when the task's check runs automatically on save (fileMatches & co.). */
@@ -423,16 +433,20 @@ export function renderOrientation(view: OrientationView, lang: Lang): string {
   </div>`;
 }
 
-function renderTask(t: TaskView, lang: Lang): string {
+/**
+ * The buttons row and the self-check box are exported separately from renderTask
+ * (rather than left inline) because they must ALSO be re-sent after an answer is
+ * submitted, when the task's `<li>` already exists in the DOM: whether a task is
+ * manually confirmable, and whether its rubric is shown, both depend on state
+ * (`t.answer`, `t.selfCheck`) that only exists AFTER that submission. A postTask
+ * update that only patched icon/message/cause/hint - as this one used to - left
+ * the confirm button and the rubric box permanently absent for any `question`
+ * that fell back to manual: they were computed once, when the step first opened
+ * and no answer existed yet, and never recomputed after.
+ */
+export function renderTaskButtons(t: TaskView, lang: Lang): string {
   const s = ui(lang);
   const canCheck = !t.manual || t.type === "question";
-  // R11a.5: no button inside a task is primary. The page has exactly one, in
-  // the header, and it points here - two equally weighted buttons are a choice
-  // the student cannot make.
-  const answerBox = t.needsAnswer
-    ? `<textarea class="answer" data-task="${escapeHtml(t.id)}" placeholder="${escapeHtml(s.answerPlaceholder)}" rows="3">${escapeHtml(t.answer ?? "")}</textarea>
-       <div class="row"><button class="btn submit-answer" data-task="${escapeHtml(t.id)}">${s.submitAnswer}</button></div>`
-    : "";
   const buttons: string[] = [];
   // A predict task is run from its own "save prediction and run" button, so the
   // plain Check button would let the student skip the prediction.
@@ -443,10 +457,56 @@ function renderTask(t: TaskView, lang: Lang): string {
   if (t.manual && t.type !== "question") buttons.push(`<button class="btn confirm" data-task="${escapeHtml(t.id)}">${s.markDone}</button>`);
   if (t.manual && t.type === "question" && t.selfCheck) buttons.push(`<button class="btn confirm" data-task="${escapeHtml(t.id)}">${s.selfCheckConfirm}</button>`);
   buttons.push(`<button class="btn hint-btn" data-task="${escapeHtml(t.id)}">${s.showHint}</button>`);
-  const self = t.selfCheck
+  return `<div class="row task-actions">${buttons.join(" ")}</div>`;
+}
+
+/**
+ * Plain text, not HTML: `selfReported` only becomes true after a confirm click
+ * that happens well after the step first opened, so this - like the buttons row
+ * and the self-check box above - must be resent on every update, not computed
+ * once. Callers embedding it into an HTML string still need escapeHtml.
+ */
+export function renderTaskTypeLabel(t: TaskView, lang: Lang): string {
+  const s = ui(lang);
+  return `${t.type}${t.live ? " · live" : ""}${t.selfReported && t.status === "passed" ? ` · ${s.selfReportedBadge}` : ""}`;
+}
+
+export function renderSelfCheck(t: TaskView, lang: Lang): string {
+  const s = ui(lang);
+  return t.selfCheck
     ? `<div class="selfcheck"><div class="selfcheck-title">${escapeHtml(s.selfCheckTitle)}</div>
        <div class="selfcheck-intro">${escapeHtml(s.selfCheckIntro)}</div>
        <div class="selfcheck-rubric">${escapeHtml(t.selfCheck)}</div></div>`
+    : "";
+}
+
+/**
+ * R11a.8b: every TaskView field that can change after a task first appears must be
+ * recomputed and resent on EVERY update, not only the step's initial render - a
+ * partial update that omits one freezes it silently, without a test or a validator
+ * ever going red. This is the single place that enumerates them, precisely so a
+ * later field with the same problem has one obvious spot to be added to, instead of
+ * a fourth hand-patched line inside postTask. The three fields here were the second
+ * and third such gap found (the first was `answerGraded`, a persisted-state gap
+ * rather than a resend gap; see TaskState.answerGraded).
+ */
+export function taskUpdateFields(t: TaskView, lang: Lang): { predictHtml?: string; buttonsHtml: string; selfCheckHtml: string; typeLabel: string } {
+  return {
+    predictHtml: t.predict ? renderPredict(t, lang) : undefined,
+    buttonsHtml: renderTaskButtons(t, lang),
+    selfCheckHtml: renderSelfCheck(t, lang),
+    typeLabel: renderTaskTypeLabel(t, lang),
+  };
+}
+
+function renderTask(t: TaskView, lang: Lang): string {
+  const s = ui(lang);
+  // R11a.5: no button inside a task is primary. The page has exactly one, in
+  // the header, and it points here - two equally weighted buttons are a choice
+  // the student cannot make.
+  const answerBox = t.needsAnswer
+    ? `<textarea class="answer" data-task="${escapeHtml(t.id)}" placeholder="${escapeHtml(s.answerPlaceholder)}" rows="3">${escapeHtml(t.answer ?? "")}</textarea>
+       <div class="row"><button class="btn submit-answer" data-task="${escapeHtml(t.id)}">${s.submitAnswer}</button></div>`
     : "";
   const hint = t.hint
     ? `<div class="hint"><div class="hint-tier">${escapeHtml(s.hintTier(t.hint.tier))}</div><div class="hint-q">${escapeHtml(t.hint.question)}</div><div class="hint-h">${escapeHtml(t.hint.hint)}</div></div>`
@@ -455,16 +515,16 @@ function renderTask(t: TaskView, lang: Lang): string {
     <div class="task-head">
       <span class="task-icon" title="${escapeHtml(s.taskStatus[t.status])}">${STATUS_ICON[t.status]}</span>
       <span class="task-title">${escapeHtml(t.title)}</span>
-      <span class="task-type">${t.type}${t.live ? " · live" : ""}${t.selfReported && t.status === "passed" ? ` · ${escapeHtml(s.selfReportedBadge)}` : ""}</span>
+      <span class="task-type">${escapeHtml(renderTaskTypeLabel(t, lang))}</span>
     </div>
     ${t.description ? `<div class="task-desc">${escapeHtml(t.description)}</div>` : ""}
     ${renderPredict(t, lang)}
     ${renderActions(t, lang)}
     ${answerBox}
-    ${self}
+    ${renderSelfCheck(t, lang)}
     <div class="task-cause">${t.cause ? `<span class="cause-label">${escapeHtml(s.causeLabel)}:</span> ${escapeHtml(t.cause)}` : ""}</div>
     <div class="task-msg">${t.message ? escapeHtml(t.message) : escapeHtml(s.taskStatus[t.status])}</div>
-    <div class="row task-actions">${buttons.join(" ")}</div>
+    ${renderTaskButtons(t, lang)}
     <div class="task-hint">${hint}</div>
   </li>`;
 }
@@ -832,10 +892,28 @@ function clientScript(view: StepView): string {
       li.querySelector(".task-icon").textContent = S.icons[t.status];
       li.querySelector(".task-icon").title = S.statusText[t.status];
       li.querySelector(".task-msg").textContent = t.message || S.statusText[t.status];
+      if (t.typeLabel !== undefined) li.querySelector(".task-type").textContent = t.typeLabel;
       // R11a.4: the course's sentence about the probable cause, above the output.
       const cause = li.querySelector(".task-cause");
       if (cause) cause.innerHTML = t.cause ? '<span class="cause-label">' + esc(S.causeLabel) + ':</span> ' + esc(t.cause) : "";
-      const actions = li.querySelector(".task-actions");
+      // Whether a task is manually confirmable, and whether its rubric is shown,
+      // both depend on state (an answer, a graded-or-not outcome) that only exists
+      // after this run - re-sent every time rather than computed once when the
+      // step first opened, or a question task falling back to manual would never
+      // get a confirm button or its self-check rubric at all.
+      if (t.buttonsHtml !== undefined) {
+        const actions = li.querySelector(".task-actions");
+        if (actions) actions.outerHTML = t.buttonsHtml;
+      }
+      if (t.selfCheckHtml !== undefined) {
+        const existingSelf = li.querySelector(".selfcheck");
+        if (t.selfCheckHtml) {
+          if (existingSelf) existingSelf.outerHTML = t.selfCheckHtml;
+          else li.querySelector(".task-cause").insertAdjacentHTML("beforebegin", t.selfCheckHtml);
+        } else if (existingSelf) {
+          existingSelf.remove();
+        }
+      }
       if (t.status === "passed") li.querySelector(".task-hint").innerHTML = "";
       if (t.hint) li.querySelector(".task-hint").innerHTML = '<div class="hint"><div class="hint-tier">' + esc(S.hintTier.replace("{n}", t.hint.tier)) + '</div><div class="hint-q">' + esc(t.hint.question) + '</div><div class="hint-h">' + esc(t.hint.hint) + '</div></div>';
       // The predict panel is re-rendered by the extension, which is the only side

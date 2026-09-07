@@ -63,7 +63,7 @@ import { TutorTerminal, type TerminalLike } from "./terminal";
 import { CoursesTreeProvider, type TreeNode } from "./tree";
 import { loc, recallPromptOf, stepKey, type Course, type Lang, type LoadDiagnostic, type ObjectiveCompetence, type SessionState, type Step, type StepContent, type TaskSpec, type TaskState, type TaskStatus } from "./types";
 import { DebugStopTracker, ensureBridge, runShellTask, runTaskByLabel } from "./vscodeChecks";
-import { renderCanDo, renderCompetence, renderDoCard, renderPredict, renderRecall, renderReflection, type AskView, type CanDoCardView, type CompetenceCardView, type CompetenceObjectiveView, type FromWebview, type HintView, type NextActionView, type LinkView, type NoteView, type PredictView, type RecallView, type ReflectionView, type StepRef, type StepView, type TaskView } from "./webview";
+import { renderCanDo, renderCompetence, renderDoCard, renderRecall, renderReflection, taskUpdateFields, type AskView, type CanDoCardView, type CompetenceCardView, type CompetenceObjectiveView, type FromWebview, type HintView, type NextActionView, type LinkView, type NoteView, type PredictView, type RecallView, type ReflectionView, type StepRef, type StepView, type TaskView } from "./webview";
 
 const SAVE_DEBOUNCE_MS = 2000;
 const NOTIFY_MIN_INTERVAL_MS = 60_000;
@@ -1050,7 +1050,9 @@ export class TutorController implements vscode.Disposable {
     };
     this.panel.post({
       type: "task",
-      task: { ...taskView, predictHtml: predict ? renderPredict(taskView, this.lang) : undefined },
+      // R11a.8b: taskUpdateFields is the one place that recomputes every field a
+      // task's HTML can change to after it first rendered - see its own comment.
+      task: { ...taskView, ...taskUpdateFields(taskView, this.lang) },
     });
   }
 

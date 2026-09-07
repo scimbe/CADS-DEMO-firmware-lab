@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { renderCanDo, renderCompetence, renderPredict, renderRecall, renderReflection, renderStepHtml, type CanDoCardView, type CompetenceCardView, type CompetenceObjectiveView, type RecallView, type ReflectionView, type StepView, type TaskView } from "../src/webview";
+import { renderCanDo, renderCompetence, renderPredict, renderRecall, renderReflection, renderStepHtml, taskUpdateFields, type CanDoCardView, type CompetenceCardView, type CompetenceObjectiveView, type RecallView, type ReflectionView, type StepView, type TaskView } from "../src/webview";
 
 function baseView(extra: Partial<StepView> = {}): StepView {
   return {
@@ -381,5 +381,56 @@ describe("A9.3 can-do card", () => {
     const html = renderCanDo({ ...card, can: [] }, "en");
     assert.match(html, /Nothing verified in this module yet/);
     assert.doesNotMatch(html, /<ul class="can-list">/);
+  });
+});
+
+describe("R11a.8b: postTask resends every field a task's HTML can change to", () => {
+  // Regression test for two live bugs, both from the same cause: the panel's
+  // incremental update (postTask -> taskUpdateFields) once only computed the
+  // fields the FIRST postTask call after a step opened happened to need, so a
+  // later state change - an answer submitted, a task confirmed - froze the
+  // confirm button, the self-check rubric and the "self-assessed" badge exactly
+  // as they were when the step first rendered. A test that only renders a task
+  // once, as every other test in this file does, cannot catch that: it has to
+  // walk a real transition and check what gets RESENT, not what a single render
+  // produces.
+  const question: TaskView = {
+    id: "q1",
+    title: "Say where the output appeared",
+    type: "question",
+    status: "pending",
+    needsAnswer: true,
+    manual: true, // no LLM configured
+    live: false,
+  };
+
+  it("no answer yet: no confirm button, no self-check box", () => {
+    const fields = taskUpdateFields(question, "en");
+    assert.doesNotMatch(fields.buttonsHtml, /class="btn confirm"/);
+    assert.equal(fields.selfCheckHtml, "");
+    assert.equal(fields.typeLabel, "question");
+  });
+
+  it("answered, ungraded (manual fallback): confirm button AND rubric appear", () => {
+    const answered: TaskView = { ...question, answer: "I ran node --version.", selfCheck: "Three sentences, one per part." };
+    const fields = taskUpdateFields(answered, "en");
+    assert.match(fields.buttonsHtml, /class="btn confirm"/, "the confirm button must be resent once an answer exists, not only computed at the step's initial render");
+    assert.match(fields.selfCheckHtml, /class="selfcheck"/);
+    assert.match(fields.selfCheckHtml, /Three sentences, one per part\./, "the rubric text itself must be resent, not just the box");
+  });
+
+  it("confirmed: passed status carries the self-assessed badge", () => {
+    const confirmed: TaskView = { ...question, status: "passed", answer: "I ran node --version.", selfReported: true };
+    const fields = taskUpdateFields(confirmed, "en");
+    assert.equal(fields.typeLabel, "question · self-assessed", "the badge must be resent on the SAME update that marks the task passed, not only at the next full render");
+  });
+
+  it("graded by a model: no badge, even though an answer and a rubric both exist", () => {
+    // selfCheck only survives a real grade if the caller forgot to clear it; this
+    // guards the badge specifically, so a regression here cannot hide behind the
+    // "no confirm button" assertion above.
+    const graded: TaskView = { ...question, status: "passed", answer: "I ran node --version.", selfReported: false };
+    const fields = taskUpdateFields(graded, "en");
+    assert.equal(fields.typeLabel, "question");
   });
 });
