@@ -4,6 +4,7 @@
  * RspConnection; the caller wires it to a TCP socket. All probe calls are serialised by the
  * probe client itself. Memory reads are cached while the core is halted (flash/RAM/CCM only).
  */
+import { isPlausibleCodeAddress } from '../memoryRanges';
 import type { ProbeEvent, ProbeOp, ProbeResult } from '../types';
 import { PacketParser, encodePacket, hexDecode, hexEncode, hexToReg, parseHexInt, regToHex } from './packet';
 
@@ -109,7 +110,7 @@ const SIG_SEGV = '0b';
 const PAGE = 512;
 
 function isCacheable(addr: number): boolean {
-  return (addr >= 0x08000000 && addr < 0x08200000) || (addr >= 0x20000000 && addr < 0x20040000) || (addr >= 0x10000000 && addr < 0x10010000);
+  return isPlausibleCodeAddress(addr);
 }
 
 export interface GdbServerOptions {

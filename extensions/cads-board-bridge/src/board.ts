@@ -4,6 +4,7 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { elfToImage, isElf } from './elf';
+import { isPlausibleCodeAddress } from './memoryRanges';
 import type { Probe } from './probeClient';
 import type { ProbeEvent, ProbeStatus } from './types';
 
@@ -63,6 +64,7 @@ export class BoardController {
   private baud = 115200;
   private flashing = false;
   private recovering = false;
+  private statusRefreshTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(
     readonly probe: Probe,
@@ -105,6 +107,25 @@ export class BoardController {
     const s = await this.probe.getStatus();
     this.applyProbeStatus(s);
     return this.getStatus();
+  }
+
+  /**
+   * PB-02: `status.core` and `probe.lastStatus.core` are two copies of one
+   * fact, and an event ("halted", "usb-connect", ...) only ever updates the
+   * first - a fast hint, not the owner. Measured live: a resume the event
+   * stream missed left the status bar reporting "halted" while the core had
+   * already been running for two seconds. A debounced refresh() asks the
+   * probe directly and corrects a wrong hint within one round trip (~0.8s
+   * by this session's own `rtt` figures) instead of leaving it wrong until
+   * the next unrelated event happens to fire. Debounced, not queued, so a
+   * burst of events (halt, then immediately reset) settles once.
+   */
+  private scheduleStatusRefresh(delayMs = 800): void {
+    if (this.statusRefreshTimer) clearTimeout(this.statusRefreshTimer);
+    this.statusRefreshTimer = setTimeout(() => {
+      this.statusRefreshTimer = undefined;
+      void this.refresh().catch((e) => this.log.warn(`status refresh after event failed: ${e instanceof Error ? e.message : String(e)}`));
+    }, delayMs);
   }
 
   /** Connect: chooser if needed (user gesture), then open the serial console if a port is known. */
@@ -320,6 +341,16 @@ export class BoardController {
         this.onSerialChunk(Buffer.from(e.data, 'base64'));
         break;
       case 'halted':
+        // A halt is always worth confirming (below), but a pc outside flash/SRAM/CCM is not a
+        // halt report at all - it is a garbled one. Measured: 0xE000ED30, DFSR's OWN address,
+        // bit-identical across two runs. haltReason() (cads-probe) reads DFSR write-1-to-clear,
+        // so a stale sticky bit is ruled out; the corruption is elsewhere in the probe driver.
+        // Not applying a bad hint is enough here - the refresh below finds the real state.
+        this.scheduleStatusRefresh();
+        if (!isPlausibleCodeAddress(e.pc)) {
+          this.log.warn(`halted event at implausible pc 0x${(e.pc >>> 0).toString(16)} (${e.reason}) - dropped, refresh will settle the real state`);
+          break;
+        }
         this.update({ core: 'halted' });
         this.events.fire({ type: 'debug-stop', detail: { reason: e.reason, pc: e.pc } });
         break;
