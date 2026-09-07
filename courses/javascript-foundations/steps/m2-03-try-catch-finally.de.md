@@ -76,7 +76,7 @@ Zwei Dinge lohnen Genauigkeit. Erstens sind nur die Anweisungen **innerhalb** de
 
 Die Feinheit ist, was passiert, wenn `finally` selbst etwas zurückgibt. Sag [`examples/m2-finally-order.js`](file:examples/m2-finally-order.js) in der Vorhersage-Aufgabe im Panel vorher; sie führt die Datei aus, sobald deine Vorhersage erfasst ist, und nicht vorher.
 
-Der `catch`-Block entscheidet sich, `true` zurückzugeben; der `finally`-Block gibt danach `false` zurück, und `false` ist das, was der Aufrufer sieht. Ein `return` in `finally` überschreibt den Wert, den die Funktion schon zurückgeben wollte - und würde ebenso einen hinausreisenden Fehler verschlucken. MDN dokumentiert dieses Verhalten, und der praktische Rat folgt daraus: **Aufräumarbeit in `finally`, niemals ein `return`**.
+Der `catch`-Block entscheidet sich für einen Rückgabewert; der `finally`-Block gibt danach einen eigenen zurück, und dieser zweite Wert ist das, was der Aufrufer sieht, ganz gleich, welcher erste es war. Ein `return` in `finally` überschreibt den Wert, den die Funktion schon zurückgeben wollte - und würde ebenso einen hinausreisenden Fehler verschlucken. MDN dokumentiert dieses Verhalten, und der praktische Rat folgt daraus: **Aufräumarbeit in `finally`, niemals ein `return`**.
 
 ## Das Muster, um das es hier wirklich geht
 

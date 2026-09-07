@@ -74,8 +74,8 @@ Das ist die nützliche Hälfte. Die verwirrende Hälfte ist, welche *Bindung* ei
 ## Eine Bindung oder eine pro Durchlauf
 
 ```js
-for (var a = 0; a < 3; a++) fns.push(() => a);   // [3, 3, 3]
-for (let b = 0; b < 3; b++) fns.push(() => b);   // [0, 1, 2]
+for (var a = 0; a < 3; a++) fns.push(() => a);
+for (let b = 0; b < 3; b++) fns.push(() => b);
 ```
 
 `var` erzeugt **eine** Bindung für die ganze Funktion, alle drei Closures beziehen sich also auf dasselbe `a`, und wenn sie laufen, steht es auf 3. `let` im `for`-Kopf erzeugt **für jeden Durchlauf eine frische Bindung**, jede Closure hat also ihr eigenes `b`. Das ist einer der stärksten Gründe für den Wechsel zu `let`, und deshalb sagt [M1](step:m1-01-let-const), dass du `var` liegen lassen sollst.

@@ -74,8 +74,8 @@ That is the useful half. The confusing half is which *binding* got captured.
 ## One binding, or one per pass
 
 ```js
-for (var a = 0; a < 3; a++) fns.push(() => a);   // [3, 3, 3]
-for (let b = 0; b < 3; b++) fns.push(() => b);   // [0, 1, 2]
+for (var a = 0; a < 3; a++) fns.push(() => a);
+for (let b = 0; b < 3; b++) fns.push(() => b);
 ```
 
 `var` creates **one** binding for the whole function, so all three closures refer to the same `a`, and by the time they run it is 3. `let` in a `for` head creates a **fresh binding for every pass**, so each closure has its own `b`. That is one of the strongest reasons the language moved to `let`, and it is why [M1](step:m1-01-let-const) told you to leave `var` alone.

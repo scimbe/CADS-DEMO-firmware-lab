@@ -61,7 +61,7 @@ MDN's [Grammar and types](https://developer.mozilla.org/en-US/docs/Web/JavaScrip
 | boolean | `true` | `"boolean"` |
 | undefined | a variable declared and not assigned | `"undefined"` |
 | null | `null` | **`"object"`** |
-| bigint | `9007199254740993n` | `"bigint"` |
+| bigint | `9007199254740993n` | its own name, not `"number"` |
 | symbol | `Symbol("id")` | `"symbol"` |
 | object | `{}`, `[]`, a function | `"object"`, `"function"` |
 

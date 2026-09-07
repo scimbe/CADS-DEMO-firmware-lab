@@ -61,7 +61,7 @@ MDNs Kapitel [Grammar and types](https://developer.mozilla.org/en-US/docs/Web/Ja
 | boolean | `true` | `"boolean"` |
 | undefined | eine deklarierte, nicht zugewiesene Variable | `"undefined"` |
 | null | `null` | **`"object"`** |
-| bigint | `9007199254740993n` | `"bigint"` |
+| bigint | `9007199254740993n` | ein eigener Name, nicht `"number"` |
 | symbol | `Symbol("id")` | `"symbol"` |
 | object | `{}`, `[]`, eine Funktion | `"object"`, `"function"` |
 

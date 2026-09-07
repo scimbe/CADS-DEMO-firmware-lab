@@ -76,7 +76,7 @@ Two things are worth being precise about. First, only the statements **inside** 
 
 The subtlety is what happens when `finally` itself returns. Predict [`examples/m2-finally-order.js`](file:examples/m2-finally-order.js) in the panel's prediction task; it runs the file once your prediction is recorded, and not before.
 
-The `catch` block decides to return `true`; the `finally` block then returns `false`, and `false` is what the caller sees. A `return` inside `finally` overrides the value the function was already about to hand back - and would equally swallow an error that was travelling out. MDN documents the behaviour, and the practical advice follows from it: **put cleanup in `finally`, never a `return`**.
+The `catch` block decides on one return value; the `finally` block then returns a value of its own, and that second value is what the caller sees, whatever the first one was. A `return` inside `finally` overrides the value the function was already about to hand back - and would equally swallow an error that was travelling out. MDN documents the behaviour, and the practical advice follows from it: **put cleanup in `finally`, never a `return`**.
 
 ## The pattern this step is really teaching
 
