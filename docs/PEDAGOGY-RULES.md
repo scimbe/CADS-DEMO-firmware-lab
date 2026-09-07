@@ -395,6 +395,15 @@ Handlung. Zwei Handlungen sind zwei Blöcke. *E5, Google/Microsoft Style Guide; 
 geklappt hat, und was sie tut, wenn nicht. Ein Block ohne `expect:`/`recover:` ist unfertig.
 *E5: minimalistische Materialien mit Fehlerbehebung halbierten die Bearbeitungszeit; K3.* **[Validator]**
 
+**R11a.2b — Ein `recover` nennt das Zeichen, an dem der Wiederanlauf erkennbar ist.** Nicht nur „führ das
+aus", sondern auch, was dann zu sehen ist. Ohne dieses Zeichen ist die Rettung eine zweite Sackgasse hinter der
+ersten: Die Studierende hat keine Möglichkeit zu unterscheiden, ob der Ausweg gewirkt hat oder still ins Leere
+lief.
+*Herkunft: PB-03/PB-04 (07.09.2026). Zwölf `recover`-Zeilen schickten Studierende zu `board_key.py quit`; das
+Skript fand im Container nie ein Gerät und tat nichts. Weil keine Zeile sagte, was zu sehen sein müsste, blieb
+der Unterschied zwischen „lief durch" und „lief ins Leere" zwei Wochen unsichtbar — bis ein Durchgang an echter
+Hardware ihn zeigte.* **[Lesen, nicht Validator: ob ein Zeichen echt ist, entscheidet keine Kennzahl.]**
+
 **R11a.2a — Ein `recover` beschreibt einen Fehlschlag, den dieser Befehl wirklich erzeugen kann.** Die Zeile
 nennt das Bild, das die Studierende **tatsächlich** sieht, wenn sie den beschriebenen Fehlgriff macht — nicht
 ein plausibles Bild aus einem verwandten Fall. Prüfbar ist das nur, indem man den Fehlgriff einmal begeht.

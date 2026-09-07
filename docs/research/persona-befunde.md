@@ -64,3 +64,16 @@ starten.
 | **Exakt prüfbar?** | Ja, und das ist der Kern: Der Validator prüft `::: do command=` bereits gegen die vorhandenen Werkzeuge. `> recover:`-Zeilen mit einem Befehl darin werden noch nicht geprüft. |
 | **Fixrichtung** | **Nicht** über `POST /serial` — der Endpunkt ist schreibend und hat kein Gegenstück zum Lesen, ein `read_lines()` kann darauf nicht stehen (erste Einschätzung hier war falsch und wurde korrigiert, bevor die cads-zero-Seite darauf gebaut hat). Richtig ist ein Pfadwechsel: die Bridge betreibt bereits eine beidseitige Konsole — `127.0.0.1:3334` (`SerialTcpServer`, schreibt zum Board und streamt zurück) und daran per `socat pty,raw,echo=0,link=…` das **PTY `/home/coder/board-console`** (Einstellung `cads.board.consoleLink`). Weil das ein echtes tty ist, bleiben `os.open()` + `termios` in `cads_serial.py` unverändert; nur der Gerätepfad wechselt. |
 | **Falle beim Bauen** | `/flash`, `/reset`, `/halt` prüfen die Verbindung und antworten mit 503 samt `reason`. `/serial` prüft sie **nicht**: Ohne Board gelingt der Schreibvorgang lokal, das abgelehnte `sendSerial` wird als Logwarnung verschluckt, und das Skript sieht Erfolg, während nichts ankommt. Ein Ausweg, der Erfolg meldet und nichts tut, ist schlimmer als einer, der scheitert — also vorher `GET /status` (`connected`, sonst `probe.blockReason`) auswerten. |
+
+### PB-04 — Kein `> recover:` sagt, woran der Wiederanlauf erkennbar ist
+
+| | |
+|---|---|
+| **Steps** | Alle zwölf `> recover:`-Zeilen, die `python3 scripts/board_key.py quit` anbieten: `m0-05-explorer`, `m2-02-mmio-gpio`, `m2-03-buttons`, `m3-03-fault-forensics`, `m4-05-stack-sizing`, `m6-01-littlefs` — je de/en. Der Befund gilt aber allgemein. |
+| **Handlung** | Die zwölf Zeilen daraufhin gelesen, ob sie ein Erfolgsbild nennen |
+| **Beobachtung** | Keine einzige tut es. Jede sagt „führ das aus" und hört auf. Das Skript druckt bei Erfolg genau `  \| sent: quit` (eine Zeile je gesendetem Zeichen, Quelle: `scripts/board_key.py` in cads-zero) — im Kurs steht das nirgends. |
+| **Warum das der Kern von PB-03 ist** | Genau diese Lücke hat PB-03 verstecken können. Das Skript tat in dieser Umgebung *gar nichts*, und weil keine Zeile sagte, was zu sehen sein müsste, konnte weder ein Studierender noch eine Durchsicht den Unterschied zwischen „lief durch" und „lief ins Leere" bemerken. Sichtbar wurde es erst bei einem Hardware-Durchgang. |
+| **Regel** | Vorschlag **R11a.2b — Ein `recover` nennt das Zeichen, an dem der Wiederanlauf erkennbar ist.** R11a.2 verlangt, dass es einen `recover` gibt; R11a.2a, dass sein Fehlerbild echt ist. Beides sagt nichts darüber, woran die Studierende merkt, dass die Rettung gewirkt hat — und ein Wiederanlauf ohne Erfolgszeichen ist eine zweite Sackgasse hinter der ersten. |
+| **Schweregrad** | blockiert |
+| **Exakt prüfbar?** | Nein. Ob eine Zeile ein *echtes* Erfolgszeichen nennt, entscheidet nur Lesen; eine Kennzahl („enthält der recover einen Backtick-Block?") würde Textbausteine belohnen. Nach der Methodenregel bleibt das aus dem Validator draußen. |
+| **Stand** | Text vorbereitet, **bewusst nicht committet**: Die zwölf Zeilen dürfen erst dann `  \| sent: quit` versprechen, wenn der reparierte `board_key.py` im ausgelieferten Abbild steckt. Ein Kurstext, der ein Verhalten zusagt, das die Umgebung noch nicht hat, ist genau PB-01 noch einmal. |
