@@ -183,7 +183,8 @@
         "m5-01-canvas-draw",
         "m5-02-view-dispatcher",
         "m5-03-own-app",
-        "m5-04-dirty-rect-eval"
+        "m5-04-dirty-rect-measure",
+        "m5-05-dirty-rect-judge"
       ],
       "reflection": {
         "prompts": [
@@ -242,7 +243,8 @@
         "m7-02-udp-hello",
         "m7-03-dhcp-stack-lesson",
         "m7-04-recon-tools",
-        "m7-05-pa7-network-eval"
+        "m7-05-pa7-network-cost",
+        "m7-06-pa7-position"
       ],
       "reflection": {
         "prompts": [

@@ -4,7 +4,7 @@ title: Where the filesystem lives
 bloom: understand
 objectives: [cz.storage.littlefs]
 recallFrom: [m0-05-explorer, m4-04-iwdg-watchdog]
-requires: [m5-04-dirty-rect-eval]
+requires: [m5-05-dirty-rect-judge]
 estimatedMinutes: 15
 scaffold: worked
 links:

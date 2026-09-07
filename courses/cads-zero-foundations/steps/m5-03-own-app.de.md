@@ -9,7 +9,7 @@ scaffold: worked
 recallFrom: [m5-02-view-dispatcher]
 creates: [cads_hello_init]
 links:
-  - { step: m5-04-dirty-rect-eval }
+  - { step: m5-04-dirty-rect-measure }
   - { file: "apps/about/cads_about.c", line: 126 }
   - { file: "apps/menu/cads_menu_app.c", line: 55 }
   - { doc: "docs/reference/canvas.md" }

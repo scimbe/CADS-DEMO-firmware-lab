@@ -3,7 +3,7 @@ id: m8-03-clean-room-pr
 title: Judge a change before it becomes a PR
 bloom: evaluate
 objectives: [cz.quality.cleanroom-pr, firmware-explanation-clean-room]
-recallFrom: [m1-01-module-layout, m7-02-udp-hello, m7-05-pa7-network-eval]
+recallFrom: [m1-01-module-layout, m7-02-udp-hello, m7-05-pa7-network-cost]
 requires: [m8-02-golden-images]
 estimatedMinutes: 20
 scaffold: independent

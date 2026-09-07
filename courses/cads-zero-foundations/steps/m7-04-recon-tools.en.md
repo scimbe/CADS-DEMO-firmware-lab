@@ -8,7 +8,7 @@ requires: [m7-03-dhcp-stack-lesson]
 estimatedMinutes: 20
 scaffold: independent
 links:
-  - { step: m7-05-pa7-network-eval }
+  - { step: m7-05-pa7-network-cost }
   - { doc: "docs/reference/explorer-console.md" }
   - { file: "modules/toolbox/include/cads/toolbox/dhcpwatch.h", line: 102 }
   - { file: "modules/toolbox/include/cads/toolbox/arpwatch.h", line: 39 }

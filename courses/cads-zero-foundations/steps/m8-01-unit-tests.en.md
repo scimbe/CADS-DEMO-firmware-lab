@@ -4,7 +4,7 @@ title: Unit tests on the host
 bloom: apply
 objectives: [cz.quality.unit-tests]
 recallFrom: [m6-01-littlefs, m7-01-lwip-netif, m7-04-recon-tools]
-requires: [m7-05-pa7-network-eval]
+requires: [m7-06-pa7-position]
 estimatedMinutes: 15
 scaffold: worked
 links:
