@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { renderCanDo, renderCompetence, renderPredict, renderRecall, renderReflection, renderStepHtml, taskUpdateFields, type CanDoCardView, type CompetenceCardView, type CompetenceObjectiveView, type RecallView, type ReflectionView, type StepView, type TaskView } from "../src/webview";
+import { renderCanDo, renderCompetence, renderNote, renderPredict, renderRecall, renderReflection, renderStepHtml, taskUpdateFields, type CanDoCardView, type CompetenceCardView, type CompetenceObjectiveView, type NoteView, type RecallView, type ReflectionView, type StepView, type TaskView } from "../src/webview";
 
 function baseView(extra: Partial<StepView> = {}): StepView {
   return {
@@ -279,6 +279,35 @@ describe("R11a.8 self-assessed passes are marked", () => {
     const base: TaskView = { id: "q", title: "Why?", type: "question", status: "passed", needsAnswer: true, manual: true, live: false };
     assert.match(renderStepHtml(baseView({ tasks: [{ ...base, selfReported: true }] }), "cs", "N"), /selbst eingeschätzt|self-assessed/);
     assert.doesNotMatch(renderStepHtml(baseView({ tasks: [base] }), "cs", "N"), /selbst eingeschätzt|self-assessed/);
+  });
+});
+
+describe("a citation from a step's own indexed body jumps back to that step", () => {
+  it("renders a nav link, not a URL, for a step-sourced citation", () => {
+    const note: NoteView = {
+      title: "Answer",
+      text: "…",
+      citations: [{ title: "The problem UDP solves", section: "Learning goal", url: "step:cads-zero-foundations/m7-02-udp-hello#en", score: 1, excerpt: "excerpt" }],
+    };
+    const html = renderNote(note, "en");
+    assert.match(html, /data-tutor-link="step" data-step="m7-02-udp-hello"/);
+    assert.doesNotMatch(html, /href="step:/);
+  });
+
+  it("still links out for an ordinary https citation", () => {
+    const note: NoteView = {
+      title: "Answer",
+      text: "…",
+      citations: [{ title: "MDN", section: "WebSockets", url: "https://developer.mozilla.org/x", score: 1, excerpt: "excerpt" }],
+    };
+    const html = renderNote(note, "en");
+    assert.match(html, /data-tutor-link="url"/);
+    assert.match(html, /href="https:\/\/developer\.mozilla\.org\/x"/);
+  });
+
+  it("omits the link entirely when a citation has neither shape", () => {
+    const note: NoteView = { title: "Answer", text: "…", citations: [{ title: "Course pack", section: "Sec", url: "", score: 1, excerpt: "excerpt" }] };
+    assert.doesNotMatch(renderNote(note, "en"), /data-tutor-link/);
   });
 });
 

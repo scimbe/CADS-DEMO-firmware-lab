@@ -541,11 +541,25 @@ function renderTask(t: TaskView, lang: Lang): string {
   </li>`;
 }
 
+// A course-step source is indexed under `step:${courseId}/${stepId}#${lang}`
+// (platform.ts) - a citation from one is not an external link, it is the
+// step the student is already reading (or a neighboring one), so it jumps
+// there via the same nav path as "next step" instead of opening a URL.
+const STEP_CITATION_URL_RE = /^step:[^/]+\/([^#]+)#\w+$/;
+
 function renderCitations(citations: Citation[], lang: Lang): string {
   if (citations.length === 0) return "";
   const s = ui(lang);
   return `<div class="citations"><div class="citations-title">${s.sources}</div><ol>${citations
-    .map((c) => `<li><span class="cite-title">${escapeHtml(c.title)}</span> – ${escapeHtml(c.section)}${c.url && /^https?:/.test(c.url) ? ` <a href="${escapeHtml(c.url)}" data-tutor-link="url">↗</a>` : ""}<div class="cite-excerpt">${escapeHtml(c.excerpt)}…</div></li>`)
+    .map((c) => {
+      const step = STEP_CITATION_URL_RE.exec(c.url);
+      const link = step
+        ? `<a ${tutorLinkAttrs({ kind: "step", stepId: step[1] })}>↗</a>`
+        : c.url && /^https?:/.test(c.url)
+          ? `<a href="${escapeHtml(c.url)}" data-tutor-link="url">↗</a>`
+          : "";
+      return `<li><span class="cite-title">${escapeHtml(c.title)}</span> – ${escapeHtml(c.section)}${link ? ` ${link}` : ""}<div class="cite-excerpt">${escapeHtml(c.excerpt)}…</div></li>`;
+    })
     .join("")}</ol></div>`;
 }
 
@@ -963,8 +977,13 @@ function clientScript(view: StepView): string {
 
   function renderCitations(cs) {
     if (!cs || !cs.length) return "";
-    return '<div class="citations"><div class="citations-title">' + esc(S.sources) + '</div><ol>' + cs.map((c) =>
-      '<li><span class="cite-title">' + esc(c.title) + '</span> – ' + esc(c.section) + (c.url && /^https?:/.test(c.url) ? ' <a href="' + esc(c.url) + '" data-tutor-link="url">↗</a>' : '') + '<div class="cite-excerpt">' + esc(c.excerpt) + '…</div></li>').join("") + '</ol></div>';
+    return '<div class="citations"><div class="citations-title">' + esc(S.sources) + '</div><ol>' + cs.map((c) => {
+      const step = /^step:[^/]+\/([^#]+)#\w+$/.exec(c.url);
+      const link = step
+        ? '<a href="#" data-tutor-link="step" data-step="' + esc(step[1]) + '">↗</a>'
+        : (c.url && /^https?:/.test(c.url) ? '<a href="' + esc(c.url) + '" data-tutor-link="url">↗</a>' : '');
+      return '<li><span class="cite-title">' + esc(c.title) + '</span> – ' + esc(c.section) + (link ? ' ' + link : '') + '<div class="cite-excerpt">' + esc(c.excerpt) + '…</div></li>';
+    }).join("") + '</ol></div>';
   }
 
   window.addEventListener("message", (ev) => {
