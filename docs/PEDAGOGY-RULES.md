@@ -387,6 +387,14 @@ Handlung. Zwei Handlungen sind zwei Blöcke. *E5, Google/Microsoft Style Guide; 
 geklappt hat, und was sie tut, wenn nicht. Ein Block ohne `expect:`/`recover:` ist unfertig.
 *E5: minimalistische Materialien mit Fehlerbehebung halbierten die Bearbeitungszeit; K3.* **[Validator]**
 
+**R11a.2a — Ein `recover` beschreibt einen Fehlschlag, den dieser Befehl wirklich erzeugen kann.** Die Zeile
+nennt das Bild, das die Studierende **tatsächlich** sieht, wenn sie den beschriebenen Fehlgriff macht — nicht
+ein plausibles Bild aus einem verwandten Fall. Prüfbar ist das nur, indem man den Fehlgriff einmal begeht.
+*Herkunft: Der Block `cargo --version` im ersten Rust-Schritt versprach `could not find Cargo.toml`, falls das
+`cd` fehlt. `cargo --version` braucht kein `Cargo.toml`: In beiden Ordnern kommt dieselbe Ausgabe mit Exit 0,
+der versprochene Fehler tritt nie ein. Gefunden im Betriebsdurchgang am 2026-09-07, nicht von einer Prüfung —
+der Validator sieht, **dass** ein `recover` dasteht, nicht **ob** es eintreten kann.*
+
 **R11a.3 — Bedienwege werden nicht erfunden.** Task-, Kommando- und Palettennamen im Kurstext müssen wörtlich
 aus einer Prüfung, aus `tasks.json` oder aus der Befehlsliste der Extension stammen. *A8.3, E1; K4.* **[Validator]**
 
