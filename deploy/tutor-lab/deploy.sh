@@ -83,8 +83,15 @@ compose() { docker compose -f "$COMPOSE_FILE" "$@"; }
 command -v docker >/dev/null 2>&1 || die "docker is not on PATH"
 docker compose version >/dev/null 2>&1 || die "docker compose (v2) is not available"
 [ -f "$COMPOSE_FILE" ] || die "no compose.yml next to this script"
-[ -f "$HERE/.env" ] || die "no .env next to this script - cp .env.example .env and fill it in"
-[ -n "${TUTOR_LAB_PASSWORD:-}" ] || die "TUTOR_LAB_PASSWORD is empty in .env - the lab would be open to anyone who reaches the port"
+# A .env file is the normal way, but not the only one: everything it carries may
+# come from the environment instead. Some sessions are not allowed to write a
+# secrets file at all, and refusing to deploy for the sake of the file - when the
+# values are right there - would be bureaucracy, not safety.
+if [ ! -f "$HERE/.env" ] && [ -z "${TUTOR_LAB_PASSWORD:-}" ]; then
+    die "no .env next to this script and no TUTOR_LAB_PASSWORD in the environment - either cp .env.example .env and fill it in, or run: TUTOR_LAB_PASSWORD=... TUTOR_LAB_TAG=... ./deploy.sh"
+fi
+[ -n "${TUTOR_LAB_PASSWORD:-}" ] || die "TUTOR_LAB_PASSWORD is empty - the lab would be open to anyone who reaches the port"
+[ -f "$HERE/.env" ] || say "no .env - taking every value from the environment"
 
 if [ -z "$TAG" ]; then
     # Not an error: compose.yml carries a default. Name it, so the log says
