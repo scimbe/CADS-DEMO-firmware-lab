@@ -195,6 +195,57 @@ def runtime_check_types(path=RUNTIME_TYPES_TS):
     return set(re.findall(r'"([A-Za-z]+)"', m.group(1))) or None
 
 
+# --- transient UI messages ---------------------------------------------------
+# PB-01 (Persona-Durchsicht, 07.09.2026): four `> expect:` lines told the student
+# to confirm a successful flash by `Flash ok: <bytes> in <ms>` - a message the
+# extension posts with `setStatusBarMessage(..., 6000)`, so it erases itself
+# after six seconds, typically while the student is still reading the step. An
+# expectation may only point at evidence that is still there when they look.
+#
+# Read from the extension sources rather than a hand-kept list, the same way
+# CHECK_TYPES is read: a list maintained here would drift out of date exactly
+# when it matters. Only calls WITH a numeric timeout count - a
+# setStatusBarMessage without one stays until it is disposed.
+EXTENSIONS_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "extensions",
+)
+TRANSIENT_CALL_RE = re.compile(
+    r"setStatusBarMessage\(\s*(`[^`]*`|'[^']*'|\"[^\"]*\")\s*,\s*\d+",
+)
+_TRANSIENT = None
+
+
+def transient_ui_fragments(root=EXTENSIONS_DIR):
+    """Literal fragments of self-erasing status bar messages, lowercased.
+
+    A fragment is the literal head of the message: everything before the first
+    `${...}`, with a leading `$(icon)` removed. Fragments shorter than 8
+    characters are dropped - too short to be quoted meaningfully in a step."""
+    global _TRANSIENT
+    if _TRANSIENT is not None:
+        return _TRANSIENT
+    out = set()
+    for dirpath, _dirs, files in os.walk(root):
+        if "node_modules" in dirpath:
+            continue
+        for name in files:
+            if not name.endswith(".ts"):
+                continue
+            try:
+                with open(os.path.join(dirpath, name), encoding="utf-8") as fh:
+                    text = fh.read()
+            except OSError:
+                continue
+            for lit in TRANSIENT_CALL_RE.findall(text):
+                body = lit[1:-1]
+                head = body.split("${", 1)[0]
+                head = re.sub(r"^\$\([a-z-]+\)\s*", "", head).strip()
+                if len(head) >= 8:
+                    out.add(head.lower())
+    _TRANSIENT = out
+    return out
+
+
 # --- SPEC A9.1: the `::: do` instruction block -------------------------------
 # Bedienanweisungen als Fließtext werden gelesen, gekürzt und falsch abgetippt.
 # Drei Kurse sind daran gescheitert: eine Paletteneingabe ohne führendes ">", ein
@@ -733,6 +784,10 @@ def validate_do_blocks(where, step_id, body, root, known, report):
             report.error(at, "::: do - no `> expect:` line; a route without an expected result cannot be checked by the student")
         if not block["recover"]:
             report.error(at, "::: do - no `> recover:` line; say what to do when the expected result does not appear")
+        # An expectation may only point at evidence that survives the reading.
+        for fragment in transient_ui_fragments():
+            if fragment in block["expect"].lower():
+                report.warn(at, f'::: do - `> expect:` names "{fragment}", a status bar message that erases itself (setStatusBarMessage with a timeout). Point at evidence that is still there when the student looks.')
         if block["expect"] and block["recover"] and _same_sentence(block["expect"], block["recover"]):
             report.error(at, "::: do - `recover:` only repeats `expect:` instead of naming a way back")
 
