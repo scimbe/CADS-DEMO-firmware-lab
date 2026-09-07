@@ -42,7 +42,7 @@ starten.
 | **Regel** | R1.3-verwandt, aber schärfer: Eine Zusage über den Zustand *nach* einer Handlung ist eine Aussage über das System, keine Formulierungsfrage. Vorschlag: *Jede Zustandszusage im Kurstext muss einmal am Gerät beobachtet worden sein.* |
 | **Schweregrad** | blockiert |
 | **Exakt prüfbar?** | Nein, nur am Gerät. Deshalb gehört sie in die Persona-Durchsicht und nicht in den Validator. |
-| **Fixrichtung** | Zuerst klären, ob „Stop" die VS-Code-eigene Schaltfläche ist (dann ist ihr Verhalten nicht unseres, und der Kurstext muss „Weiterlaufen lassen" ausdrücklich nennen) oder unsere. Die Bridge kennt `/halt`; ob sie ein Gegenstück zum Fortsetzen hat, ist zu prüfen. Screenshot in jedem Fall neu aufnehmen. |
+| **Fixrichtung** | Geklärt: In der Tutor-Erweiterung gibt es keinen eigenen Stop-Befehl — `debugStop` ist dort ein *Prüftyp*, der auf das Anhalten wartet, keine Schaltfläche. „Stop" ist also die VS-Code-eigene Schaltfläche, ihr Verhalten nicht unseres. Damit muss der Kurstext in beiden Sprachen „Weiterlaufen lassen" ausdrücklich nennen, und `debug-after-stop.png` wird neu aufgenommen. |
 
 ### PB-03 — `board_key.py` läuft im Container ins Leere, ist aber der dokumentierte Ausweg
 
@@ -55,4 +55,5 @@ starten.
 | **Regel** | R11a.2a gilt sinngemäß auch für den Ausweg: Ein `> recover:` muss in *dieser* Umgebung ausführbar sein, nicht nur auf einem Entwicklungsrechner. |
 | **Schweregrad** | blockiert |
 | **Exakt prüfbar?** | Ja, und das ist der Kern: Der Validator prüft `::: do command=` bereits gegen die vorhandenen Werkzeuge. `> recover:`-Zeilen mit einem Befehl darin werden noch nicht geprüft. |
-| **Fixrichtung** | Die Bridge hat bereits `POST /serial` (`extensions/cads-board-bridge/src/http.ts:138`), und für `st-flash` existiert der Shim-Weg schon. `board_key.py` bekommt denselben Weg: erst VCP, sonst Bridge. Das Skript liegt in `cads-zero`, der Endpunkt bei uns — die beiden Seiten gehören abgestimmt. |
+| **Fixrichtung** | **Nicht** über `POST /serial` — der Endpunkt ist schreibend und hat kein Gegenstück zum Lesen, ein `read_lines()` kann darauf nicht stehen (erste Einschätzung hier war falsch und wurde korrigiert, bevor die cads-zero-Seite darauf gebaut hat). Richtig ist ein Pfadwechsel: die Bridge betreibt bereits eine beidseitige Konsole — `127.0.0.1:3334` (`SerialTcpServer`, schreibt zum Board und streamt zurück) und daran per `socat pty,raw,echo=0,link=…` das **PTY `/home/coder/board-console`** (Einstellung `cads.board.consoleLink`). Weil das ein echtes tty ist, bleiben `os.open()` + `termios` in `cads_serial.py` unverändert; nur der Gerätepfad wechselt. |
+| **Falle beim Bauen** | `/flash`, `/reset`, `/halt` prüfen die Verbindung und antworten mit 503 samt `reason`. `/serial` prüft sie **nicht**: Ohne Board gelingt der Schreibvorgang lokal, das abgelehnte `sendSerial` wird als Logwarnung verschluckt, und das Skript sieht Erfolg, während nichts ankommt. Ein Ausweg, der Erfolg meldet und nichts tut, ist schlimmer als einer, der scheitert — also vorher `GET /status` (`connected`, sonst `probe.blockReason`) auswerten. |
