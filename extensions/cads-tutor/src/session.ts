@@ -148,6 +148,8 @@ export interface TaskRunExtras {
   selfReported?: boolean;
   /** A9.2: a language model compared prediction and output (a self-assessed verdict is not evidence). */
   predictionGraded?: boolean;
+  /** Input to TaskState.answerGraded (the persisted state) - see its own comment for how it differs from CheckResult.graded (the one-run value it is set from). */
+  answerGraded?: boolean;
 }
 
 export function recordTaskResult(
@@ -185,6 +187,11 @@ export function recordTaskResult(
   else if (extra.selfReported === false) delete state.selfReported;
   if (extra.predictionGraded === true) state.predictionGraded = true;
   else if (extra.predictionGraded === false) delete state.predictionGraded;
+  // Unlike selfReported/predictionGraded, not cleared on false: a `question` still
+  // `pending` after an ungraded attempt must keep showing its self-check rubric
+  // across a reload, which needs the tri-state (never attempted / graded / not
+  // graded) to survive, not just "true or absent".
+  if (extra.answerGraded !== undefined) state.answerGraded = extra.answerGraded;
   progress.tasks[taskId] = state;
   session.updatedAt = now.toISOString();
 

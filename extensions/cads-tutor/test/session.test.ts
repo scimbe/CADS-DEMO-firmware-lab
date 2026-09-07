@@ -62,6 +62,21 @@ describe("session & progress", () => {
     assert.equal(u.state.failures, 0);
   });
 
+  it("answerGraded survives a pending state, unlike selfReported/predictionGraded", () => {
+    // A9.2/R11a.8a: a `question` still `pending` after an ungraded attempt (no
+    // model configured, or one overloaded) must keep knowing it was ungraded
+    // across a reload, so the panel can still offer the self-check rubric. That
+    // needs a tri-state (never attempted / graded / not graded), not "true or
+    // absent" - unlike selfReported and predictionGraded, which delete on false
+    // because they only mean anything for an already-passed result.
+    const s = newSession();
+    const [welcome] = orderedSteps(course);
+    const pending = recordTaskResult(s, course, welcome, "hello", "pending", "compare yourself", all, new Date(), { answerGraded: false });
+    assert.equal(pending.state.answerGraded, false);
+    const graded = recordTaskResult(s, course, welcome, "hello", "passed", "ok", all, new Date(), { answerGraded: true });
+    assert.equal(graded.state.answerGraded, true);
+  });
+
   it("course prerequisites lock every step of the dependent course", () => {
     const dep = { ...course, manifest: { ...course.manifest, id: "dep", prerequisites: ["example-course"] } };
     const s = newSession();

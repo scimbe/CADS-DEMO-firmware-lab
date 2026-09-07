@@ -29,6 +29,9 @@ export interface CheckResult {
    * configured or because it could not answer right now (e.g. overloaded). A9.2/R11a.8:
    * a self-confirmed pass must never be credited as verified just because a model is
    * configured in general; only an attempt that was actually graded counts.
+   *
+   * Describes this one run, not the task's saved state - see TaskState.answerGraded
+   * (session.ts/types.ts) for the persisted counterpart this feeds.
    */
   graded?: boolean;
 }

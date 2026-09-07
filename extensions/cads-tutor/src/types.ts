@@ -275,6 +275,17 @@ export interface TaskState {
   selfReported?: boolean;
   /** `predict`: true when a language model compared prediction and output. A verdict the student gave themselves is self-assessment, not evidence. */
   predictionGraded?: boolean;
+  /**
+   * `question`: was the LAST attempt actually judged by a language model (true),
+   * or did it fall back to manual self-check (false) - whether no model is
+   * configured or one is but could not judge this attempt. Persisted (unlike
+   * `selfReported`, which is cleared while pending) so a still-pending, ungraded
+   * answer keeps showing its self-check rubric across a reload.
+   *
+   * The task's saved state, not one run - see CheckResult.graded (checks/runner.ts)
+   * for the per-attempt value this is set from.
+   */
+  answerGraded?: boolean;
 }
 
 export type PredictionOutcome = "correct" | "deviated";
