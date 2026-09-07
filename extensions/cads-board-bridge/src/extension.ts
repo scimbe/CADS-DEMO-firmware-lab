@@ -8,7 +8,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { BoardController, type BoardEvent, type BoardStatus } from './board';
 import { createHttpServer } from './http';
-import { boardMessage, boardMessageLine } from './messages';
+import { boardMessage, boardMessageLine, boardStatusBarText } from './messages';
 import { listenWithRetry } from './listen';
 import { VsCodeProbeClient } from './probeClient';
 import { GdbSession } from './rsp/server';
@@ -92,19 +92,10 @@ export function activate(context: vscode.ExtensionContext): BoardBridgeApi {
   statusItem.command = 'cads.board.showMenu';
   context.subscriptions.push(statusItem);
   const renderStatus = (s: BoardStatus): void => {
-    if (!s.connected) {
-      statusItem.text = '$(plug) Board: getrennt';
-      statusItem.tooltip = 'CaDS Board – nicht verbunden. Klicken zum Verbinden.';
-      statusItem.backgroundColor = undefined;
-    } else {
-      const core = s.core === 'halted' ? 'angehalten' : s.core === 'running' ? 'läuft' : s.core;
-      const serial = s.serialOpen ? ' · Konsole' : '';
-      const gdb = s.gdbClients > 0 ? ' · GDB' : '';
-      statusItem.text = `$(plug) Board: verbunden · ${core}${serial}${gdb}`;
-      const t = s.probe?.target;
-      statusItem.tooltip = `ST-Link ${s.probe?.stlink?.version ?? ''} – ${t?.devName ?? ''} (${t?.flashSize ?? '?'} KB)\nCore: ${s.core}${s.lastFlash ? `\nLetzter Flash: ${s.lastFlash.file} ${s.lastFlash.ok ? 'ok' : 'FEHLER'} (${s.lastFlash.at})` : ''}`;
-      statusItem.backgroundColor = s.core === 'halted' && s.gdbClients === 0 ? new vscode.ThemeColor('statusBarItem.warningBackground') : undefined;
-    }
+    const { text, tooltip, warning } = boardStatusBarText(s);
+    statusItem.text = text;
+    statusItem.tooltip = tooltip;
+    statusItem.backgroundColor = warning ? new vscode.ThemeColor('statusBarItem.warningBackground') : undefined;
     statusItem.show();
   };
   board.statusChanged.on(renderStatus);
@@ -247,8 +238,10 @@ export function activate(context: vscode.ExtensionContext): BoardBridgeApi {
       });
       try {
         const r = await board.flashFile(target);
-        if (r.ok) void vscode.window.setStatusBarMessage(`$(check) Flash ok: ${r.bytes} Bytes in ${r.ms} ms`, 6000);
-        else void vscode.window.showErrorMessage(`Flash fehlgeschlagen: ${r.error}`);
+        // PB-01: the success text now lives in the status item itself (renderStatus,
+        // via lastFlash) and stays until the next state change - a setStatusBarMessage
+        // here duplicated it for six seconds and then deleted the only copy.
+        if (!r.ok) void vscode.window.showErrorMessage(`Flash fehlgeschlagen: ${r.error}`);
         return r;
       } finally {
         sub.dispose();

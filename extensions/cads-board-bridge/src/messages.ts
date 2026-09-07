@@ -5,6 +5,7 @@
  * because "NetworkError: Unable to claim interface" tells a beginner nothing and reads like a
  * broken board when it almost always means something else is holding it.
  */
+import type { BoardStatus } from './board';
 import type { BlockReason } from './types';
 
 export interface BoardMessage {
@@ -91,4 +92,37 @@ export function shimMessage(reason: BlockReason | undefined, connected: boolean)
   const m = boardMessage(reason, 'de');
   const e = boardMessage(reason, 'en');
   return `${m.title} ${m.action}\n${e.title} ${e.action}`;
+}
+
+export interface BoardStatusBarText {
+  text: string;
+  tooltip: string;
+  warning: boolean;
+}
+
+/**
+ * PB-01: four course `> expect:` lines and a screenshot tell the student to
+ * confirm a flash by the text "Flash ok: <bytes> Bytes in <ms> ms" - which
+ * used to exist only as a `setStatusBarMessage(…, 6000)`, gone by the time a
+ * student who reads the step before looking up ever sees it. `lastFlash`
+ * already carries bytes/ms (board.ts); this puts them in the STATUS ITEM's
+ * own text, which is redrawn on every statusChanged and stays exactly as
+ * long as it is true - until the next connect, flash or core change
+ * replaces it, never on a timer.
+ */
+export function boardStatusBarText(s: BoardStatus): BoardStatusBarText {
+  if (!s.connected) {
+    return { text: '$(plug) Board: getrennt', tooltip: 'CaDS Board – nicht verbunden. Klicken zum Verbinden.', warning: false };
+  }
+  const core = s.core === 'halted' ? 'angehalten' : s.core === 'running' ? 'läuft' : s.core;
+  const serial = s.serialOpen ? ' · Konsole' : '';
+  const gdb = s.gdbClients > 0 ? ' · GDB' : '';
+  const flash = s.lastFlash?.ok && typeof s.lastFlash.bytes === 'number' && typeof s.lastFlash.ms === 'number' ? ` · Flash ok: ${s.lastFlash.bytes} Bytes in ${s.lastFlash.ms} ms` : '';
+  const t = s.probe?.target;
+  const tooltip = `ST-Link ${s.probe?.stlink?.version ?? ''} – ${t?.devName ?? ''} (${t?.flashSize ?? '?'} KB)\nCore: ${s.core}${s.lastFlash ? `\nLetzter Flash: ${s.lastFlash.file} ${s.lastFlash.ok ? 'ok' : 'FEHLER'} (${s.lastFlash.at})` : ''}`;
+  return {
+    text: `$(plug) Board: verbunden · ${core}${serial}${gdb}${flash}`,
+    tooltip,
+    warning: s.core === 'halted' && s.gdbClients === 0,
+  };
 }
