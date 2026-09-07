@@ -474,6 +474,17 @@ Kompetenzstufe eingegangen. Vor dem Rückfall war die Kopplung zufällig richtig
 Sprachmodell vorkam; der Rückfall hat sie stillschweigend gebrochen. Gefunden 2026-09-07 auf Nachfrage, nicht
 von einer Prüfung.*
 
+**R11a.8b — Was das Panel beim ersten Zeichnen zeigt, muss es auch beim Nachziehen zeigen.** Jedes Feld einer
+Aufgabenansicht, das sich im Laufe eines Schritts ändern kann — Schaltflächen, Selbstkontrollkasten, Typ- und
+Belegabzeichen, Hinweis, Ursache —, wird bei **jeder** Aktualisierung neu gerendert und mitgeschickt, nicht nur
+beim ersten Aufbau der Seite. Was die Teilaktualisierung auslässt, friert für die Studierende ein, ohne dass
+irgendetwas rot wird.
+*Herkunft: Der Selbstkontroll-Rückfall war im Zustand korrekt und blieb trotzdem unsichtbar, weil der
+Aktualisierungspfad nur Symbol, Meldung, Ursache und Hinweis austauschte; Schaltflächen und Rubrikkasten wurden
+seit dem ersten Rendern nie wieder angefasst. Dasselbe Muster traf das „selbst eingeschätzt"-Abzeichen. Beide
+Male schwieg jeder Test, weil sie das Rendern prüfen und nicht das Nachziehen. Gefunden 2026-09-07 im
+Live-Durchgang, nachdem derselbe Weg zwei Tage lang als vorhanden geführt worden war.*
+
 **R11a.9 — Keine Punktewährung.** Keine XP, keine Level, keine Serien, keine Ligen, keine Rangliste, kein
 Zeitdruck. Anerkennung entsteht über Kompetenzstufe, Kannkarte und Nachweisheft.
 *E9: Belohnungs- und Statusmechanik wirkt deutlich schwächer als Herausforderung und bedeutsames Ziel;
