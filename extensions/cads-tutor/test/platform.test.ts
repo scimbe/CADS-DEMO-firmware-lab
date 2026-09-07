@@ -46,6 +46,17 @@ describe("TutorPlatform", () => {
     assert.equal(p.knownObjective(["nope", "firmware-how-to-build"]), "firmware-how-to-build");
   });
 
+  it("R11a.8d: citationsFor() withholds a hit that is only function-word overlap, not a real match", async () => {
+    // citationsFor() is the no-LLM path - the one this lab actually ran on until
+    // today. A hit is not evidence of relevance just because BM25 returned one:
+    // "ist"/"die" alone score high against a small corpus once step bodies are
+    // indexed, the same failure questionIsSupported already guards for ask()'s
+    // own enrichment - this asserts it also holds for the plain, no-context path.
+    const p = new TutorPlatform({ course, packsDir: PACKS, studentId: "s1", memoryDir: tmp(), llm: null });
+    const citations = p.citationsFor("Was ist die Hauptstadt von Frankreich?");
+    assert.deepEqual(citations, []);
+  });
+
   it("with a fake LLM: Socratic ask (tier by attempt), rubric verdict parsing", async () => {
     const prompts: string[] = [];
     const llm = {

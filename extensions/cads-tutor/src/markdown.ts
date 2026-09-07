@@ -104,6 +104,32 @@ export interface DoBlockView {
 
 const DO_OPEN_RE = /^:::[ \t]+do(?:[ \t]+(.*))?$/;
 const DO_CLOSE_RE = /^:::[ \t]*$/;
+
+/**
+ * Removes every `::: do ... :::` block from a step's raw markdown body, line by
+ * line, same boundaries the renderer itself uses. For indexing (GroundingEngine):
+ * a `::: do` block is an operating instruction, not an explanation - its `expect:`
+ * line names the very result a content question would be asking for, so leaving
+ * it in the search index would let a citation hand back the answer instead of the
+ * material to reason from it.
+ */
+export function stripDoBlocks(body: string): string {
+  const lines = body.split("\n");
+  const out: string[] = [];
+  let inBlock = false;
+  for (const line of lines) {
+    if (!inBlock && DO_OPEN_RE.test(line)) {
+      inBlock = true;
+      continue;
+    }
+    if (inBlock) {
+      if (DO_CLOSE_RE.test(line)) inBlock = false;
+      continue;
+    }
+    out.push(line);
+  }
+  return out.join("\n");
+}
 const DO_ATTR_RE = /([a-zA-Z]+)[ \t]*=[ \t]*(?:"([^"]*)"|(\S+))/g;
 const DO_ACTION_KEYS = ["task", "command", "palette", "file", "keys"] as const;
 const DO_MODIFIER_KEYS = ["cwd", "line"] as const;

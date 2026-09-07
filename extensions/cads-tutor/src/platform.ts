@@ -29,6 +29,7 @@ import type { EventStoreLike } from "./events";
 import { questionIsSupported, retrievalQuery } from "./askRouting";
 import { ui } from "./i18n";
 import { LlmRateLimitError, RetryingLlmClient, type LlmProgressInfo } from "./llmClient";
+import { stripDoBlocks } from "./markdown";
 import { withLanguageDirective } from "./prompts";
 import type { Course, Lang } from "./types";
 
@@ -152,6 +153,35 @@ export class TutorPlatform {
       }
     }
 
+    // Every step's own explanation, in every language it has a file for - found
+    // missing this session: the tutor could cite the Rust book, MDN or project
+    // code, but never the step the student is actually reading. Each step becomes
+    // its OWN source (not one shared "course steps" bucket), named by the step's
+    // own title, because chunkMarkdown derives `section` from in-document
+    // headings ("Learning goal", "The problem X solves") - identical heading
+    // names recur across steps, so only a per-step source title tells two
+    // citations apart. `::: do` blocks are stripped first: they are operating
+    // instructions, not explanations, and a content question would otherwise get
+    // its `expect:` line handed back as the answer.
+    for (const step of course.steps.values()) {
+      if (step.placeholder) continue;
+      for (const lang of ["en", "de"] as const) {
+        const content = step.variants[lang];
+        if (!content) continue;
+        const stepSourceId = `step:${course.manifest.id}/${step.id}#${lang}`;
+        let stepChunks: Chunk[];
+        try {
+          stepChunks = chunkMarkdown(stepSourceId, stepSourceId, stripDoBlocks(content.body));
+        } catch (err) {
+          this.log(`cannot chunk step ${step.id} (${lang}): ${err instanceof Error ? err.message : String(err)}`);
+          continue;
+        }
+        if (stepChunks.length === 0) continue;
+        sources.push({ id: stepSourceId, title: content.meta.title, license: "course pack", url: stepSourceId });
+        chunks.push(...stepChunks);
+      }
+    }
+
     // Project files named by the steps (`sources:`) and by the pack's objectives (sourceDocIds like
     // "cads-zero/docs/reference/hal.md") are indexed from the project root. The first chunk of a
     // file gets the id "<project.root>/<rel>" so an objective's sourceDocIds resolve for check-ins.
@@ -234,9 +264,18 @@ export class TutorPlatform {
       : "The tutor dialog is not configured (TUTOR_LLM_BASE_URL / TUTOR_LLM_API_KEY / TUTOR_LLM_MODEL are not set).";
   }
 
-  /** Grounded citations for a free-text query (used even without LLM to point at reading material). */
+  /**
+   * Grounded citations for a free-text query (used even without LLM to point at
+   * reading material). Same questionIsSupported guard as ask()'s primary path:
+   * without it, a student with no model configured - the current live-lab state
+   * - would see a citation for an off-topic question that only shares function
+   * words with the material, which is worse than pointing at nothing.
+   */
   citationsFor(query: string): Citation[] {
     const answer = this.engine.ask(query);
+    if (!answer.grounded) return [];
+    const retrievedText = answer.citations.map((c) => `${c.chunk.section} ${c.chunk.text}`).join("\n");
+    if (!questionIsSupported(query, retrievedText)) return [];
     return this.toCitations(answer.citations);
   }
 
@@ -255,7 +294,25 @@ export class TutorPlatform {
     } catch (err) {
       return { kind: "llm-error", message: err instanceof Error ? err.message : String(err), citations: [] };
     }
-    if (result.kind !== "refused") return this.toOutcome(result);
+    if (result.kind !== "refused") {
+      // session.ask() grounds (or refuses) entirely inside the external package,
+      // which has no notion of a stopword: a question sharing nothing with the
+      // material but function words ("ist", "die") can score above threshold on
+      // its own, no enrichment needed. Invisible as long as the corpus was one
+      // large language - it stopped being invisible once course step bodies
+      // were indexed in both languages (found here: a genuinely off-topic
+      // question scored 15.85 against material it shares only "ist"/"die"
+      // with). questionIsSupported already guards exactly this for
+      // askWithContext's own enrichment below; applying it here too closes the
+      // same gap on the PRIMARY path, not just the fallback.
+      const retrievedText = "citations" in result ? result.citations.map((c) => `${c.chunk.section} ${c.chunk.text}`).join("\n") : "";
+      if (retrievedText && !questionIsSupported(trimmed, retrievedText)) {
+        this.log("ask: session grounded on function words alone, no content word of the question matched - treating as refused");
+        const enriched = await this.askWithContext(trimmed, options);
+        return enriched ?? { kind: "refused", reason: "No indexed reference source shares real vocabulary with this question, only common words." };
+      }
+      return this.toOutcome(result);
+    }
 
     // The question did not ground. Before refusing, retry RETRIEVAL with the
     // step's own English vocabulary added: a German question scores near zero
