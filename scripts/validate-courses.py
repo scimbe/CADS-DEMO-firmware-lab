@@ -694,6 +694,29 @@ def collect_routes(check, tasks, commands):
         collect_routes(check["then"], tasks, commands)
 
 
+# R1.4 - a step does not grow without limit. What counts as running text is the
+# validator's own notion of it: parse_do_blocks' `outside`, i.e. the lines a
+# student reads that are NOT part of a `::: do` block, already without fenced
+# code, image markup, captions and HTML comments. The action block is
+# deliberately excluded: it is a scannable card, introduced by A9.1 to LOWER the
+# reading load, and counting it as running text would penalise exactly the
+# explicit `> recover:` guidance R11a demands. Two sessions measured the same
+# Rust step as 818 and 1051 words on 2026-09-07 purely because this definition
+# was written down nowhere and checked nowhere - hence this function.
+# R1.4 measures the GERMAN prose and grants the English version the ten percent
+# the same content reliably grows by, so the two halves of a step are held to
+# the same content, not to the same word count.
+PROSE_LIMIT = {"de": 900, "en": 990}
+
+
+def prose_word_count(body):
+    _, outside = parse_do_blocks(body)
+    text = " ".join(prose for _, prose in outside)
+    text = re.sub(r"`[^`]*`", " ", text)                 # inline code is shown, not read
+    text = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", text)  # keep link text, drop the target
+    return len(re.findall(r"[A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9'-]*", text))
+
+
 def validate_do_blocks(where, step_id, body, root, known, report):
     """The four A9.1 rules. Returns the number of rule-4 findings, so the two
     language halves of a step can be held against each other."""
@@ -1513,6 +1536,11 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
                 report.warn(where, "misconceptions declared but no command/testSuite task produces output to match")
             # A9.1: instruction blocks, and the call to action that escaped one.
             rule4_hits[(sid, lang)] = validate_do_blocks(where, sid, body, root, known, report)
+            # R1.4: past the reading break, more explanation stops working.
+            n_prose = prose_word_count(body)
+            prose_limit = PROSE_LIMIT.get(lang, PROSE_LIMIT["de"])
+            if n_prose > prose_limit:
+                report.warn(where, f"{n_prose} words of running text, over the hard limit of {prose_limit} (R1.4) - split the step or cut it, and put the rule most students trip over first")
             # A plain-string field carries the language of its own file, and
             # nothing structural can notice when it does not.
             validate_language(where, fm, lang, report, language_errors)

@@ -47,8 +47,16 @@ Leseabbruch; er ist jetzt in drei Steps von 450 bis 580 Wörtern geteilt, jeder 
 
 **Gemessen wird die Prosa der deutschen Fassung**, ohne Bildunterschriften, Codeblöcke und Kommentare — das ist,
 was ein Studierender tatsächlich liest. Die englische Fassung derselben Inhalte fällt regelmäßig etwa ein Zehntel
-länger aus; ihr gilt dieselbe Grenze plus diese zehn Prozent. Messskript: `scripts/` oder der Einzeiler aus dem
-Validator-Auftrag unten.
+länger aus; ihr gilt dieselbe Grenze plus diese zehn Prozent (DE 900, EN 990).
+
+**Nicht mitgezählt wird der `::: do`-Anleitungsblock samt seiner `> expect:`- und `> recover:`-Zeilen.** Er ist
+eine abzuarbeitende Karte, kein Fließtext, und A9.1 hat ihn eingeführt, um die Leselast zu *senken*; ihn
+mitzuzählen würde ausgerechnet die ausführliche Wiederanlauf-Anleitung bestrafen, die R11a.2 verlangt. Gezählt
+wird damit genau der Text, den auch A9.1-Regel 4 prüft — dieselbe Definition, eine Quelle.
+
+**Gemessen wird im Validator** (`prose_word_count`), nicht von Hand. *Anlass: Am 07.09.2026 maßen zwei Sitzungen
+denselben Rust-Step als 818 und als 1051 Wörter — allein, weil diese Definition nirgends stand und nirgends
+geprüft wurde. Eine harte Grenze, die jeder anders zählt, ist keine Grenze.*
 *Herkunft: `m0-01` wuchs von 399 auf 1009 Wörter, der Primer auf 1435; S− las in beiden nur den Anfang, und die
 Abschnitte, die alle drei Aufgaben tragen, lagen dahinter (Runde 2).* **[Validator]**
 
@@ -530,7 +538,7 @@ den Validator-Strang.
 | R7.5 | Modul ohne `predict` ⇒ Warnung |
 | R10.3 | DE/EN mit ungleicher Abschnitts- oder Aufgabenmenge ⇒ Fehler |
 | R1.5 | mehr als drei Tasks je Step ⇒ Warnung (**umgesetzt**) |
-| R1.4 | Fließtext über 900 Wörter ⇒ Warnung |
+| R1.4 | Fließtext über 900 Wörter (EN 990), ohne `::: do`-Blöcke ⇒ Warnung (**umgesetzt**) |
 | R3.6 | Check-Typ nicht in `extensions/cads-tutor/src/types.ts` ⇒ Warnung (**umgesetzt**) |
 
 Zusätzlich empfohlen, weil beide Runden es gebraucht hätten: eine Warnung für jeden Backtick-Pfad im Fließtext,
