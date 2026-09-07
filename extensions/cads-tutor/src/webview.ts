@@ -609,7 +609,14 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
 <title>${escapeHtml(view.title)}</title>
 <style nonce="${scriptNonce}">
   :root { color-scheme: light dark; }
-  body { font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); color: var(--vscode-foreground); background: var(--vscode-editor-background); padding: 0 1.2rem 2rem; line-height: 1.55; max-width: 62rem; margin: 0 auto; }
+  html, body { height: 100%; }
+  body { font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); color: var(--vscode-foreground); background: var(--vscode-editor-background); line-height: 1.55; margin: 0; padding: 0; }
+  /* "Frag den Tutor" pinned at the bottom, everything else scrolls above it - the
+     operator's own finding: on a long step, the ask box used to scroll away with
+     the rest of the page, so it was never where the eye already was. */
+  .page { display: flex; flex-direction: column; height: 100vh; max-width: 62rem; margin: 0 auto; box-sizing: border-box; }
+  .scroll-area { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 0 1.2rem 1rem; }
+  .ask-footer { flex: none; border-top: 1px solid var(--vscode-panel-border); background: var(--vscode-editor-background); padding: 0.6em 1.2rem 0.8em; max-height: 45vh; overflow-y: auto; }
   a { color: var(--vscode-textLink-foreground); text-decoration: none; } a:hover { text-decoration: underline; }
   code { font-family: var(--vscode-editor-font-family); background: var(--vscode-textCodeBlock-background); padding: 0.1em 0.3em; border-radius: 3px; }
   pre { background: var(--vscode-textCodeBlock-background); padding: 0.8em; border-radius: 4px; overflow-x: auto; } pre code { background: none; padding: 0; }
@@ -617,7 +624,7 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
   blockquote { border-left: 3px solid var(--vscode-textBlockQuote-border); background: var(--vscode-textBlockQuote-background); margin: 0.8em 0; padding: 0.4em 0.8em; }
   img { max-width: 100%; }
   table { border-collapse: collapse; } td, th { border: 1px solid var(--vscode-panel-border); padding: 0.2em 0.6em; }
-  .topbar { position: sticky; top: 0; background: var(--vscode-editor-background); padding: 0.6em 0 0.5em; border-bottom: 1px solid var(--vscode-panel-border); z-index: 2; }
+  .topbar { flex: none; background: var(--vscode-editor-background); padding: 0.6em 1.2rem 0.5em; border-bottom: 1px solid var(--vscode-panel-border); }
   .topbar-row { display: flex; align-items: center; gap: 0.6em; flex-wrap: wrap; }
   .crumbs { opacity: 0.75; font-size: 0.9em; flex: 1; }
   /* A9.4.1: the module bar - "Schritt m von n" says where, the bar says how much is left. */
@@ -647,7 +654,11 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
   .hint { border: 1px dashed var(--vscode-focusBorder); border-radius: 4px; padding: 0.4em 0.7em; margin-top: 0.4em; }
   .hint-tier { font-size: 0.8em; opacity: 0.7; } .hint-q { font-style: italic; } .hint-h { margin-top: 0.2em; }
   textarea, input[type=text] { width: 100%; box-sizing: border-box; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, transparent); padding: 0.4em; border-radius: 3px; font-family: inherit; }
-  .ask { border-top: 1px solid var(--vscode-panel-border); margin-top: 1.5em; padding-top: 0.8em; }
+  /* .ask-footer already draws the separating border above this - a second one
+     here (from .ask's pre-pin styling) only ate space a short panel does not
+     have to spare. */
+  .ask-footer h2 { font-size: 1em; margin: 0 0 0.4em; }
+  .ask-footer .meta { margin-bottom: 0.4em; }
   .ask-row { display: flex; gap: 0.5em; } .ask-row input { flex: 1; }
   .answer-box { margin-top: 0.6em; padding: 0.6em 0.8em; border-radius: 4px; border: 1px solid var(--vscode-panel-border); white-space: pre-wrap; } .answer-box[hidden] { display: none; }
   /* Addendum v1.1: scaffold badge, predict panel, recall and reflection cards. */
@@ -729,6 +740,7 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
 </style>
 </head>
 <body class="status-${view.status}">
+  <div class="page">
   <div class="topbar">
     <div class="topbar-row">
       <span class="crumbs">${escapeHtml(view.courseTitle)} › ${escapeHtml(view.moduleTitle)} › ${escapeHtml(s.stepOf(view.index + 1, view.total))}</span>
@@ -738,6 +750,7 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
     </div>
     ${renderNextAction(view)}
   </div>
+  <div class="scroll-area">
   <h1 id="step-title">${escapeHtml(view.title)}</h1>
   <div class="meta">
     <span class="meta-item bloom" title="${s.bloom}">${escapeHtml(s.bloom)}: ${escapeHtml(s.bloomLabel[view.bloom])}</span>
@@ -762,15 +775,19 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
        before they had done anything. -->
   <div id="recall-area">${view.recall ? renderRecall(view.recall, view.lang) : ""}</div>
   <div id="reflection-area">${view.reflection ? renderReflection(view.reflection, view.lang) : ""}</div>
+  <div class="nav">
+    <button class="btn" id="prev" ${view.prev ? `data-step="${escapeHtml(view.prev.stepId)}"` : "disabled"}>${s.prev}${view.prev ? `: ${escapeHtml(view.prev.title)}` : ""}</button>
+    <button class="btn" id="next" ${view.next ? `data-step="${escapeHtml(view.next.stepId)}"` : "disabled"}>${s.next}${view.next ? `: ${escapeHtml(view.next.title)}` : ""}</button>
+  </div>
+  </div>
+  <div class="ask-footer">
   <div class="ask">
     <h2 style="border:none;margin-top:0">${s.ask}</h2>
     <div class="ask-row"><input id="question" type="text" maxlength="800" placeholder="${escapeHtml(s.askPlaceholder)}" /><button class="btn" id="ask-btn">${s.askButton}</button></div>
     <div class="meta" style="margin-top:0.3em"><span class="meta-item bloom">${escapeHtml(s.bloom)}: ${escapeHtml(s.bloomLabel[view.bloom])}</span>${view.llmConfigured ? "" : `<span class="meta-item" id="llm-state">${escapeHtml(s.llmUnconfigured)}</span>`}</div>
     <div id="answer" class="answer-box" hidden></div>
   </div>
-  <div class="nav">
-    <button class="btn" id="prev" ${view.prev ? `data-step="${escapeHtml(view.prev.stepId)}"` : "disabled"}>${s.prev}${view.prev ? `: ${escapeHtml(view.prev.title)}` : ""}</button>
-    <button class="btn" id="next" ${view.next ? `data-step="${escapeHtml(view.next.stepId)}"` : "disabled"}>${s.next}${view.next ? `: ${escapeHtml(view.next.title)}` : ""}</button>
+  </div>
   </div>
   <script nonce="${scriptNonce}">${clientScript(view)}</script>
 </body>

@@ -84,3 +84,12 @@ statt als negatives Tippen gezählt. Aggregiert je Step, gesendet beim Speichern
 in `e2e/tutor/`. Gefunden und behoben durch den Test: (1) esbuild-Shim für `node:sqlite` löste sich selbst auf
 → Events fielen still auf JSON zurück; (2) CSP `style-src` ohne `unsafe-inline` blockierte Inline-Styles des
 VS-Code-Webview-Wrappers; (3) Hinweis blieb nach bestandenem Check sichtbar.
+
+**Für eine reine Layout-/CSS-Frage im Panel braucht es keinen Container:** `renderStepHtml()` (webview.ts)
+gegen einen echten Kurs-Step zu statischem HTML rendern (`loadCoursePack` + `createRenderer`, beide ohne
+VS Code) und das Ergebnis in Playwright öffnen (`page.addInitScript` muss `acquireVsCodeApi` stubben, sonst
+stirbt das Client-Skript sofort mit `acquireVsCodeApi is not defined`). Liefert echte Pixelmaße
+(`getBoundingClientRect`, `scrollHeight` vs. `clientHeight`) bei beliebiger Viewportgröße, ohne Container,
+Anmeldung oder Sprachmodell - genutzt, um die Anheftung von „Frag den Tutor" bei 420×600 gegen einen echten
+Firmware-Step zu vermessen (fand einen doppelten Rand, den kein Test sah, weil keiner die Fußzeilenhöhe in
+Pixeln kannte).
