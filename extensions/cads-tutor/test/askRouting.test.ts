@@ -41,6 +41,16 @@ describe("procedural questions are recognised", () => {
   it("does not treat an empty question as procedural", () => {
     assert.equal(isProceduralQuestion("   "), false);
   });
+
+  // The operator's field finding: a lost-beginner question with no word the
+  // pattern list happens to spell out is still lost-beginner shaped. Rather
+  // than add one more phrasing to the list forever, a question with no word
+  // past the same content-word cut questionIsSupported uses is treated as
+  // procedural directly - it could never have grounded anyway.
+  const noContentWordShape = ["Und was jetzt?", "What now?", "So what now?"];
+  for (const q of noContentWordShape) {
+    it(`recognises the shape, not the wording: ${q}`, () => assert.equal(isProceduralQuestion(q), true));
+  }
 });
 
 describe("the procedural answer", () => {

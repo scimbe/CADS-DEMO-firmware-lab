@@ -1702,6 +1702,17 @@ export class TutorController implements vscode.Disposable {
       // Used for RETRIEVAL only when the question does not ground on its own.
       stepTerms: stepTerms(cur.step.variants.en!.meta),
     });
+    // A refusal is a dead end for the student. The procedural answer is
+    // always true - it is read straight from session state, never from the
+    // question - so it costs nothing to try it before giving up: refusal is
+    // now the last resort, not the first thing an ungrounded question meets.
+    if (outcome.kind === "refused") {
+      const text = proceduralAnswer(this.proceduralContext(cur));
+      this.log(`ask "${q.slice(0, 60)}" ungrounded, fell back to a procedural answer (no LLM, no retrieval)`);
+      this.emit({ type: "question.answered", data: { kind: "procedural", grounded: false, citations: 0 } });
+      this.panel.post({ type: "ask", outcome: { kind: "answer", text, citations: [] } });
+      return;
+    }
     this.emit({
       type: "question.answered",
       data: (() => {

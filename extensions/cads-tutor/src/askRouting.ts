@@ -52,10 +52,26 @@ const PROCEDURAL_PATTERNS: RegExp[] = [
   /\bnothing\s+happens\b/i,
 ];
 
+/**
+ * A question with no word past the stopword cut used by questionIsSupported
+ * has no topic at all - not evidence it is off-topic, evidence there is
+ * nothing to search for. "Was soll ich tun" is this shape, and so is every
+ * paraphrase of it ("was mach ich jetzt hier", "und was jetzt"): chasing each
+ * one into PROCEDURAL_PATTERNS is a list that never catches up, while this is
+ * the same content-word test grounding itself depends on, so a question that
+ * fails it could never have grounded anyway.
+ */
+function hasNoContentWord(question: string): boolean {
+  return !question
+    .toLowerCase()
+    .split(/[^a-zà-ÿ0-9_]+/)
+    .some((w) => w.length >= 4 && !STOPWORDS.has(w));
+}
+
 export function isProceduralQuestion(question: string): boolean {
   const q = question.trim();
   if (!q) return false;
-  return PROCEDURAL_PATTERNS.some((re) => re.test(q));
+  return PROCEDURAL_PATTERNS.some((re) => re.test(q)) || hasNoContentWord(q);
 }
 
 export interface ProceduralContext {
@@ -201,10 +217,10 @@ const STOPWORDS = new Set([
   "der", "die", "das", "den", "dem", "des", "ein", "eine", "einen", "einem", "eines", "und", "oder",
   "ich", "du", "wir", "ist", "sind", "war", "wie", "was", "warum", "wo", "wann", "wer", "nicht",
   "mit", "von", "zu", "zum", "zur", "für", "auf", "in", "im", "an", "am", "bei", "aus", "kann",
-  "muss", "soll", "hier", "dann", "noch", "aber", "auch", "mir", "mich",
+  "muss", "soll", "hier", "dann", "noch", "aber", "auch", "mir", "mich", "jetzt",
   "the", "a", "an", "and", "or", "is", "are", "was", "how", "what", "why", "where", "when", "who",
   "not", "with", "of", "to", "for", "on", "in", "at", "from", "can", "should", "must", "this",
-  "that", "it", "i", "do", "does", "my",
+  "that", "it", "i", "do", "does", "my", "now",
 ]);
 
 /** Words a course pack contributes: objectives, created symbols, file names. */
