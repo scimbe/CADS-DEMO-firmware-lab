@@ -49,7 +49,7 @@ Das Panel **CaDS Tutor** zeigt den Step, den du liest, die Aufgaben mit je einer
 
 Das ist der häufigste Weg, zehn Minuten zu verlieren:
 
-Klicke jetzt einmal auf **Terminal**, **Problems** und **Output**, während nichts läuft, und sieh nach, was darin steht. Einer der drei ist die Stelle, an die ein von dir getippter Befehl ausgibt; die beiden anderen enthalten Dinge, in die kein Befehl von dir jemals schreibt. Welcher welcher ist, findet man besser hier heraus als mitten in einem scheiternden Step.
+Die drei Reiter sitzen im **Bereich unten**, dem vierten der fünf Bereiche von eben - zu Beginn zugeklappt; `Strg`/`Cmd`+`J` klappt ihn auf und wieder zu. Klicke dort jetzt einmal auf **Terminal**, **Problems** und **Output**, während nichts läuft, und sieh nach, was darin steht. Einer der drei ist die Stelle, an die ein von dir getippter Befehl ausgibt; die beiden anderen enthalten Dinge, in die kein Befehl von dir jemals schreibt. Welcher welcher ist, findet man besser hier heraus als mitten in einem scheiternden Step.
 
 ## Drei Wege, dasselbe auszuführen
 

@@ -49,7 +49,7 @@ The **CaDS Tutor** panel shows the step you are reading, the tasks with a **Chec
 
 This is the single most common way to lose ten minutes:
 
-Click each of **Terminal**, **Problems** and **Output** once now, with nothing running, and note what is in them. One of the three is where a command you typed prints; the other two hold things no command of yours will ever write. Which is which is worth finding out here rather than in the middle of a failing step.
+The three tabs sit in the **panel at the bottom**, the fourth of the five regions above - closed to start with; `Ctrl`/`Cmd`+`J` opens and closes it. Click each of **Terminal**, **Problems** and **Output** there once now, with nothing running, and note what is in them. One of the three is where a command you typed prints; the other two hold things no command of yours will ever write. Which is which is worth finding out here rather than in the middle of a failing step.
 
 ## Three ways to run the same thing
 

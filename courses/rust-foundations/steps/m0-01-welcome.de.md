@@ -35,45 +35,9 @@ Bloom-Abzeichen, seinem Scaffold-Abzeichen und seiner Aufgabenliste.](tutor-pane
 
 ## Was du siehst
 
-Du bist in einem Rust-*Paket* namens `rust_foundations`. Alles, was der Kurs von dir verlangt, passiert in diesem einen Ordner. Vier Stellen sind wichtig:
+Drei Stellen reichen für diesen Step: **links** die Seitenleiste mit dem Kursbaum, **in der Mitte** dieser Steptext als eigener Reiter - hier liest du gerade -, und **unten** der Terminal-Bereich, zu Beginn zugeklappt. Das Symbol mit dem Doktorhut in der schmalen Leiste ganz links öffnet den **CaDS Tutor**, falls das Panel einmal verschwindet. Wie jeder Bereich im Einzelnen heißt und was sonst hineingehört, zeigt der nächste Step, [Die Oberfläche bedienen](step:m0-02-workbench) - hier reicht es, ein Terminal zu öffnen.
 
-- **`Cargo.toml`** ist das Manifest: Paketname, Rust-Edition und die Liste der Abhängigkeiten (hier: keine, mit Absicht - alles in diesem Kurs kommt aus der Standardbibliothek).
-- **`src/`** enthält die Übungen, eine Datei je Step, gruppiert in `m0/` … `m6/` und `project/`. **Du bearbeitest diese Dateien, und nur diese.**
-- **`tests/`** enthält eine Datei je Step, benannt wie der Step: `tests/m0-03-first-test.rs`. Sie sind fertig und du änderst sie nicht. Lies sie - sie sagen genau, was dein Code leisten muss.
-- **`README.md`** ist die Karte des Ordners, samt der Verzeichnisse, die dir später begegnen (`examples/`, `snippets/`, `repair/`, `samples/`).
-
-## Der erste Schritt, konkret
-
-Öffne ein Terminal in diesem Ordner und führe aus:
-
-```bash
-cargo --version
-cargo build
-```
-
-Die Versionsprobe gibt etwa `cargo 1.94.0` aus. Tut sie das nicht, funktioniert nichts weiter in diesem Kurs, und das Problem liegt an deiner Umgebung, nicht an deinem Code. Der nächste Step, [Die Oberfläche bedienen](step:m0-02-workbench), geht das Fenster Bereich für Bereich durch und zeigt die drei Wege, einen Befehl auszuführen; dieser Step stellt nur fest, dass die Toolchain überhaupt antwortet.
-
-Beachte, dass das Paket übersetzt, **obwohl noch nichts implementiert ist**: unfertige Übungen sind `todo!()`, ein Makro, das sich als beliebiger Typ typprüfen lässt und abstürzt, sobald es erreicht wird. Das Paket baut also immer; fehlschlagen tun die Tests.
-
-## Wohin cargo seine Ausgabe legt
-
-Alles, was cargo erzeugt, landet in `target/`, das von git ignoriert wird und jederzeit gelöscht werden darf. Der nächste Step baut das Paket und liest, was es ausgibt.
-
-## Die Tests eines einzelnen Steps ausführen
-
-`cargo test` führt alles aus, auch die gut zwanzig Steps, die du noch nicht begonnen hast, und meldet entsprechend eine Wand aus Fehlschlägen. Das ist erwartbar und hilft dir gerade nicht. Führe stattdessen **einen** Step aus:
-
-```bash
-cargo test --test m0-03-first-test
-```
-
-Der Name hinter `--test` ist der Dateiname in `tests/` ohne `.rs` und identisch mit der Step-ID. Der Tutor zeigt diesen Befehl für den Step an, an dem du gerade bist; raten musst du nie.
-
-## Deine Aufgabe
-
-Führe die Versionsprobe aus dem Block unten aus; der erste Check bestätigt es. Beantworte dann, wo die Tests des nächsten Steps liegen und wie du nur sie ausführst. Der nächste Step führt dich durch das Fenster selbst.
-
-## So führst du das aus
+## Was du zuerst tust
 
 ::: do palette="> Terminal: Create New Terminal"
 Öffne ein Terminal: **F1** drücken, den Eintrag samt dem vorangestellten `>` tippen, Eingabetaste. Im Browser ist F1 zuverlässiger als Strg+Umschalt+P, das der Browser für sich behalten kann.
@@ -95,4 +59,33 @@ Führe den Befehl der Aufgabe *cargo antwortet* aus.
 
 ![Ein Terminal im Bereich unten: die Eingabeaufforderung zeigt coder@…:~/workspace/rust-foundations, darunter der cargo-Befehl und seine Ausgabe.](terminal-run-a-step.png)
 
-Der Knopf **Prüfen** an der Aufgabe führt denselben Befehl aus und zeigt dieselbe Ausgabe im Tutor-Panel; er benutzt immer den richtigen Ordner und braucht das `cd` daher nie. Das Terminal ist dafür da, dass du es selbst siehst und wiederholen kannst. Die Ausgabe steht im Reiter **Terminal**, nicht in **Problems** und nicht in **Output** - diese beiden zeigen anderes und sind der übliche Grund für „es passiert nichts".
+## Woran du erkennst, dass es geklappt hat
+
+Die Ausgabe steht im Reiter **Terminal**, nicht in **Problems** und nicht in **Output** - diese beiden zeigen anderes und sind der übliche Grund für „es passiert nichts". Sie lautet etwa `cargo 1.94.0`; antwortet cargo gar nicht, funktioniert nichts weiter in diesem Kurs, und das Problem liegt an deiner Umgebung, nicht an deinem Code. Der Knopf **Prüfen** an der Aufgabe *cargo antwortet* führt denselben Befehl aus und zeigt dieselbe Ausgabe im Tutor-Panel; er benutzt immer den richtigen Ordner und braucht das `cd` daher nie.
+
+## Was in diesem Ordner steckt
+
+Du bist in einem Rust-*Paket* namens `rust_foundations`. Alles, was der Kurs von dir verlangt, passiert in diesem einen Ordner. Vier Stellen sind wichtig:
+
+- **`Cargo.toml`** ist das Manifest: Paketname, Rust-Edition und die Liste der Abhängigkeiten (hier: keine, mit Absicht - alles in diesem Kurs kommt aus der Standardbibliothek).
+- **`src/`** enthält die Übungen, eine Datei je Step, gruppiert in `m0/` … `m6/` und `project/`. **Du bearbeitest diese Dateien, und nur diese.**
+- **`tests/`** enthält eine Datei je Step, benannt wie der Step: `tests/m0-03-first-test.rs`. Sie sind fertig und du änderst sie nicht. Lies sie - sie sagen genau, was dein Code leisten muss.
+- **`README.md`** ist die Karte des Ordners, samt der Verzeichnisse, die dir später begegnen (`examples/`, `snippets/`, `repair/`, `samples/`).
+
+Beachte, dass das Paket übersetzt, **obwohl noch nichts implementiert ist**: unfertige Übungen sind `todo!()`, ein Makro, das sich als beliebiger Typ typprüfen lässt und abstürzt, sobald es erreicht wird. Das Paket baut also immer; fehlschlagen tun die Tests. Alles, was cargo erzeugt, landet außerdem in `target/`, das von git ignoriert wird und jederzeit gelöscht werden darf.
+
+## Die Tests eines einzelnen Steps ausführen
+
+`cargo test` führt alles aus, auch die gut zwanzig Steps, die du noch nicht begonnen hast, und meldet entsprechend eine Wand aus Fehlschlägen. Das ist erwartbar und hilft dir gerade nicht. Führe stattdessen **einen** Step aus:
+
+```bash
+cargo test --test m0-03-first-test
+```
+
+Der Name hinter `--test` ist der Dateiname in `tests/` ohne `.rs` und identisch mit der Step-ID. Der Tutor zeigt diesen Befehl für den Step an, an dem du gerade bist; raten musst du nie.
+
+## Deine Aufgabe
+
+Beantworte, wo die Tests des nächsten Steps liegen und wie du nur sie ausführst.
+
+Wie der Tutor deine Arbeit bewertet und was am Ende dabei herauskommt, steht hier: [Wie der Tutor deine Arbeit bewertet](https://scimbe.github.io/CADS-DEMO-firmware-lab-docs/de/rust/how-you-are-assessed/).

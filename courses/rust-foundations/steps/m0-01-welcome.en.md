@@ -35,51 +35,9 @@ badge, its scaffold badge and its task list.](tutor-panel-and-tree.png)
 
 ## What you see
 
-You are in a Rust *package* called `rust_foundations`. Everything the course asks you to do happens in this one folder. Four places matter:
+Three places matter for this step: **on the left** the sidebar with the course tree, **in the middle** this step's own text, as a tab - which is what you are reading now - and **at the bottom** the terminal area, collapsed to start with. The mortarboard icon in the narrow bar on the far left opens the **CaDS Tutor**, in case the panel ever disappears. What every region is called and what else belongs in it is covered by the next step, [Operating the workbench](step:m0-02-workbench) - here it is enough to open a terminal.
 
-- **`Cargo.toml`** is the manifest: the package name, the Rust edition, and the list of dependencies (here: none, on purpose - everything in this course uses the standard library).
-- **`src/`** holds the exercises, one file per step, grouped into `m0/` … `m6/` and `project/`. **You edit these files, and only these.**
-- **`tests/`** holds one file per step, named exactly like the step: `tests/m0-03-first-test.rs`. These are finished and you do not change them. Read them - they say precisely what your code must do.
-- **`README.md`** is the map of the folder, including the directories you will meet later (`examples/`, `snippets/`, `repair/`, `samples/`).
-
-## The first step, concretely
-
-Open a terminal in this folder and run:
-
-```bash
-cargo --version
-```
-
-The version probe prints something like `cargo 1.94.0`. If it does not, nothing else in this course will work, and the problem is your environment, not your code. The next step, [Operating the workbench](step:m0-02-workbench), goes through the window region by region and through the three ways to run a command; this step only establishes that the toolchain answers at all.
-
-Note that the package compiles **even though nothing is implemented yet**: unfinished exercises are `todo!()`, a macro that type-checks as any type and panics if it is ever reached. The package always builds; the tests are what fail.
-
-## Reading cargo's output
-
-The first build downloads nothing and takes a second or two. What you see is:
-
-```text
-   Compiling rust_foundations v0.1.0 (/home/coder/workspace/rust-foundations)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.42s
-```
-
-`dev` profile means: no optimisation, full debug information - the right trade for a course. Everything cargo produces lands in `target/`, which is git-ignored and can always be deleted.
-
-## Running one step's tests
-
-`cargo test` runs everything, including the twenty-odd steps you have not started, so it will report a wall of failures. That is expected and useless to you right now. Run **one** step instead:
-
-```bash
-cargo test --test m0-03-first-test
-```
-
-The name after `--test` is the file name in `tests/`, without `.rs`, and it is identical to the step id. The tutor prints this command for whichever step you are on, so you never have to guess it.
-
-## Your task
-
-Run the version probe from the block below; the first check confirms it. Then answer where the next step's tests live and how to run only them. The next step takes you through the window itself.
-
-## Running it
+## What you do first
 
 ::: do palette="> Terminal: Create New Terminal"
 Open a terminal: press **F1**, type the entry with its leading `>`, press Enter. In a browser F1 is more reliable than Ctrl+Shift+P, which the browser may keep for itself.
@@ -101,4 +59,40 @@ Run the command of the *cargo answers* task.
 
 ![A terminal in the bottom panel: the prompt reads coder@…:~/workspace/rust-foundations, with the cargo command and its output below it.](terminal-run-a-step.png)
 
-The **Check** button on the task runs the same command and shows the same output in the tutor panel; it always uses the right folder, so it never needs the `cd`. The terminal is there so you can see it yourself and repeat it. The output appears on the **Terminal** tab, not in **Problems** and not in **Output** - those two show other things and are the usual reason for "nothing happens".
+## How you know it worked
+
+The output appears on the **Terminal** tab, not in **Problems** and not in **Output** - those two show other things and are the usual reason for "nothing happens". It reads something like `cargo 1.94.0`; if cargo does not answer at all, nothing else in this course will work, and the problem is your environment, not your code. The **Check** button on the *cargo answers* task runs the same command and shows the same output in the tutor panel; it always uses the right folder, so it never needs the `cd`.
+
+## What's in this folder
+
+You are in a Rust *package* called `rust_foundations`. Everything the course asks you to do happens in this one folder. Four places matter:
+
+- **`Cargo.toml`** is the manifest: the package name, the Rust edition, and the list of dependencies (here: none, on purpose - everything in this course uses the standard library).
+- **`src/`** holds the exercises, one file per step, grouped into `m0/` … `m6/` and `project/`. **You edit these files, and only these.**
+- **`tests/`** holds one file per step, named exactly like the step: `tests/m0-03-first-test.rs`. These are finished and you do not change them. Read them - they say precisely what your code must do.
+- **`README.md`** is the map of the folder, including the directories you will meet later (`examples/`, `snippets/`, `repair/`, `samples/`).
+
+Note that the package compiles **even though nothing is implemented yet**: unfinished exercises are `todo!()`, a macro that type-checks as any type and panics if it is ever reached. The package always builds; the tests are what fail. What you see on a first build:
+
+```text
+   Compiling rust_foundations v0.1.0 (/home/coder/workspace/rust-foundations)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.42s
+```
+
+`dev` profile means no optimisation and full debug information - the right trade for a course. Everything cargo produces lands in `target/`, which is git-ignored and can always be deleted.
+
+## Running one step's tests
+
+`cargo test` runs everything, including the twenty-odd steps you have not started, so it will report a wall of failures. That is expected and useless to you right now. Run **one** step instead:
+
+```bash
+cargo test --test m0-03-first-test
+```
+
+The name after `--test` is the file name in `tests/`, without `.rs`, and it is identical to the step id. The tutor prints this command for whichever step you are on, so you never have to guess it.
+
+## Your task
+
+Answer where the next step's tests live and how to run only them.
+
+How the tutor assesses your work, and what you end up with: [How the tutor assesses your work](https://scimbe.github.io/CADS-DEMO-firmware-lab-docs/en/rust/how-you-are-assessed/).
