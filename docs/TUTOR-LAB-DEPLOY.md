@@ -198,6 +198,24 @@ Soll ein fehlgeschlagener Stand zur Untersuchung stehen bleiben:
 ./deploy.sh --tag <neuer Stand> --no-rollback
 ```
 
+### Umbenennen bewahrt einen Behälter **nicht** (belegt 2026-09-07)
+
+Beim Umstieg vom alten, lokal gebauten Aufbau auf das veröffentlichte Abbild wurde der laufende Behälter
+umbenannt, um seinen Namen freizugeben und ihn zugleich als Rücksprung zu behalten. **Das hat nicht
+funktioniert:** `docker compose up -d` findet einen Behälter über seine Compose-Etiketten (Projektname und
+Servicename), nicht über den Namen — beide Compose-Dateien benutzten dasselbe Projekt `cads-demo-tutor-lab` und
+`container_name: tutor-lab`. Compose hat den umbenannten Behälter als denselben Dienst erkannt und ersetzt; er
+existiert danach nicht mehr.
+
+**Verloren gegangen ist dabei nichts** — geprüft: der alte Datenträger war unverändert (gleiche Dateien,
+gleiche Zeitstempel, readonly gegengelesen) und das alte Abbild lag lokal vor. Verloren war nur der Behälter,
+also die *Startbequemlichkeit* des Rücksprungs.
+
+**Folge für den Rücksprung auf einen Stand aus einem anderen Aufbau:** Nicht auf einen umbenannten Behälter
+verlassen. Notiere vorher Abbild-Digest, Datenträgernamen und `Config.Cmd`; zurück geht es dann über ein
+eigenes `docker run` des alten Abbilds gegen den alten Datenträger, nicht über `docker start`. Innerhalb
+*desselben* Aufbaus bleibt `./deploy.sh --tag <vorheriger Stand>` der richtige Weg.
+
 ## 9. Aufräumen
 
 Erst wenn der neue Stand einige Tage getragen hat — jede Fassung belegt etwa
