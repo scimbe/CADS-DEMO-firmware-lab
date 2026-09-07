@@ -64,8 +64,21 @@ Browser ──TLS──► Edge (Browser-Plane, require_login=1) ──► ct-ag
 
 ## Offene Punkte (Abstimmung Labor/Tunnel)
 1. Wird der ct-agent für firmware-lab künftig auf Labor betrieben (heute Services)? Tunnel-Token muss dann wandern.
-2. Ist `require_login=1` + Access-List für diesen Tunnel im Portal gesetzt (Voraussetzung für `/gate/check`)?
-   Studierende müssen auf die Access-List (Kursliste) – Prozess klären (Portal-API?).
+2. ~~Ist `require_login=1` + Access-List für diesen Tunnel im Portal gesetzt?~~ **Beantwortet 2026-09-07 von
+   der Tunnel-Sitzung, quellcode- und datenbankbestätigt:**
+   - **Ein Keycloak-Client reicht für alle Hostnamen.** Der Login-Gate benutzt dieselbe Realm und denselben
+     Client wie das Portal; unterschieden wird je Tunnel **datengetrieben** über die Spalten `require_login` /
+     `allow_any_login` und die Tabelle `tunnel_login_allowlist` (`hostname`, `email`). **Keine neue
+     Client-Registrierung je Hostname.**
+   - `GET /gate/check` setzt `X-Gate-Email` serverseitig aus dem verifizierten Token; ein vom Klienten
+     mitgeschickter Wert wird vorher entfernt — dasselbe Muster, das `firmware-lab` bereits nutzt.
+   - **`allow_any_login=1` ist die Alternative zur gepflegten Kursliste:** Jede angemeldete Kennung kommt
+     durch, die Personenbindung macht dann der Broker anhand der Kopfzeile. Für eine Lehrveranstaltung heißt
+     das: keine Liste pflegen, und eine fremde Kennung bekäme einen **eigenen leeren** Arbeitsbereich statt
+     Zugriff auf einen fremden — Ressourcenfrage, keine Datenschutzfrage.
+   - **Stand für `tutor-lab-34a13a96`: nicht eingerichtet** (`require_login=0`, `allow_any_login=0`, keine
+     Allowlist-Zeile). Das ist ein reiner Konfigurationsschritt im Portal, den der Tunnel-Eigentümer ausführen
+     muss, bevor der Gate für diesen Hostnamen überhaupt greift.
 3. Kapazität: Labor schätzt 15–20 gleichzeitig aktive Sessions (CPU-Bursts beim Compile) – vor Festlegung Lasttest mit parallelen Builds.
 
 ## Bedrohungsmodell-Hinweis (Review Labor, 2026-09-03)
