@@ -31,4 +31,18 @@ else
   echo "$out" | tail -6; fail=1
 fi
 
+# SPEC A9.2 competence measurement (see the header of measure-competence.js for
+# what "perfect" and "realistic" mean and what commit they are measured
+# against). Informational only, not a gate: a course can validate cleanly and
+# still teach less than it could, and that is a finding to act on deliberately,
+# not a build failure to work around.
+echo
+echo "measure-competence (informational, not a gate):"
+if out=$(npm --prefix extensions/cads-tutor run --silent compile-tests 2>&1); then
+  node scripts/measure-competence.js 2>&1 | sed 's/^/  /'
+else
+  echo "  skipped: extensions/cads-tutor/out-test could not be built"
+  echo "$out" | tail -5 | sed 's/^/  /'
+fi
+
 exit $fail
