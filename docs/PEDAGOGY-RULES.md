@@ -54,6 +54,15 @@ eine abzuarbeitende Karte, kein Fließtext, und A9.1 hat ihn eingeführt, um die
 mitzuzählen würde ausgerechnet die ausführliche Wiederanlauf-Anleitung bestrafen, die R11a.2 verlangt. Gezählt
 wird damit genau der Text, den auch A9.1-Regel 4 prüft — dieselbe Definition, eine Quelle.
 
+**Ausnahmen tragen ihren Grund** (`EXCEPT_R14` im Validator, nach dem Muster von `EXCEPT_R42`). **R1.4a — Ein
+Eintrag ohne Grund ist ein Fehler**, keine Ausnahme: sonst ist die harte Grenze nur eine stumm geschaltete
+Warnung. Ein ausgenommener Step warnt weiter, aber mit seinem Grund daneben — er soll sichtbar bleiben, damit man
+ihn bestreiten kann. Aktuell drei Einträge, alle deutsch, alle im Firmware-Kurs, alle höchstens 2,8 % darüber:
+`m3-05-spi-mutex`, `m4-03-mutex-spi-bus`, `m8-03-clean-room-pr`. In allen drei besteht der Überhang aus
+Abrufmaterial — genau dem, was „nachgewiesen" von 6 auf 24 von 40 Lernzielen gehoben hat. Diese Abschnitte für
+eine Zahl zu kürzen, tauschte einen gemessenen Gewinn gegen einen Zähler. Das Argument hinter R1.4 greift dort
+auch nicht: Die Aufgaben stehen im Front Matter, das Panel zeigt sie unabhängig davon, wie weit gescrollt wurde.
+
 **Gemessen wird im Validator** (`prose_word_count`), nicht von Hand. *Anlass: Am 07.09.2026 maßen zwei Sitzungen
 denselben Rust-Step als 818 und als 1051 Wörter — allein, weil diese Definition nirgends stand und nirgends
 geprüft wurde. Eine harte Grenze, die jeder anders zählt, ist keine Grenze.*
