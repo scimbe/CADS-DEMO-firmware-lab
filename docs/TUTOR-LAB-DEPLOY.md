@@ -3,7 +3,7 @@
 Auslieferung des Sprachlabors (Rust + JavaScript) auf dem Laborrechner
 **cads-lambda**. Alles, was hier steht, ist wörtlich kopierbar.
 
-Auszuliefernder Stand: **`ghcr.io/scimbe/cads-tutor-lab:next-0d432d3`**
+Auszuliefernder Stand: **`ghcr.io/scimbe/cads-tutor-lab:next-b5f435f`**
 (amd64 + arm64, CI grün, Rauchprobe bestanden).
 
 Dateien: [`deploy/tutor-lab/`](../deploy/tutor-lab/) — `compose.yml`, `deploy.sh`,
@@ -42,7 +42,7 @@ Auszufüllen sind:
 | Wert | Pflicht | Bemerkung |
 |---|---|---|
 | `TUTOR_LAB_PASSWORD` | ja | gemeinsames Studierenden-Kennwort. Neu erzeugen: `openssl rand -hex 12`. Das bisherige Kennwort steht in der alten `.env` unter `/home/becke/CADS-DEMO-tutor-lab/` |
-| `TUTOR_LAB_TAG` | ja | `next-0d432d3` — steht bereits so in `.env.example` |
+| `TUTOR_LAB_TAG` | ja | `next-b5f435f` — steht bereits so in `.env.example` |
 | `TUTOR_LLM_BASE_URL` | für den Unterricht | Adresse von llm2, **muss mit `https://` beginnen** und endet üblicherweise auf `/v1` |
 | `TUTOR_LLM_API_KEY` | für den Unterricht | Schlüssel des Proxys |
 | `TUTOR_LLM_MODEL` | für den Unterricht | z. B. `local-devstral-small2` |
@@ -96,7 +96,7 @@ Am Ende von `./deploy.sh`:
 ```
 PASS: tutor-lab smoke test
 
->> deployed ghcr.io/scimbe/cads-tutor-lab:next-0d432d3 on http://127.0.0.1:8084
+>> deployed ghcr.io/scimbe/cads-tutor-lab:next-b5f435f on http://127.0.0.1:8084
 >> entry links (publish these two, not the bare host):
     javascript: <host>/?folder=/home/coder/workspace/javascript-foundations
     rust: <host>/?folder=/home/coder/workspace/rust-foundations

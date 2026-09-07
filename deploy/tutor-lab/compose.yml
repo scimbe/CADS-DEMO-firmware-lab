@@ -33,7 +33,7 @@ services:
     # rather than assumed.
     # TUTOR_LAB_IMAGE is parameterised only so a rollback can pin the exact
     # image that was running, by id, even if its tag has moved since.
-    image: ${TUTOR_LAB_IMAGE:-ghcr.io/scimbe/cads-tutor-lab}:${TUTOR_LAB_TAG:-next-0d432d3}
+    image: ${TUTOR_LAB_IMAGE:-ghcr.io/scimbe/cads-tutor-lab}:${TUTOR_LAB_TAG:-next-b5f435f}
     container_name: ${TUTOR_LAB_CONTAINER:-tutor-lab}
     restart: unless-stopped
     environment:
