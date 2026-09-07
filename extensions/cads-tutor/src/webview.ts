@@ -978,7 +978,7 @@ function clientScript(view: StepView): string {
   function renderCitations(cs) {
     if (!cs || !cs.length) return "";
     return '<div class="citations"><div class="citations-title">' + esc(S.sources) + '</div><ol>' + cs.map((c) => {
-      const step = /^step:[^/]+\/([^#]+)#\w+$/.exec(c.url);
+      const step = /^step:[^/]+\\/([^#]+)#\\w+$/.exec(c.url);
       const link = step
         ? '<a href="#" data-tutor-link="step" data-step="' + esc(step[1]) + '">↗</a>'
         : (c.url && /^https?:/.test(c.url) ? '<a href="' + esc(c.url) + '" data-tutor-link="url">↗</a>' : '');

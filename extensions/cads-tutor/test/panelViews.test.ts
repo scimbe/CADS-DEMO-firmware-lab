@@ -282,6 +282,23 @@ describe("R11a.8 self-assessed passes are marked", () => {
   });
 });
 
+describe("the embedded client script is valid JavaScript", () => {
+  // A backslash written directly inside the template literal that produces
+  // this script (e.g. `\/` or `\w` in a regex literal) is not a recognised
+  // string escape, so the TypeScript compiler silently drops it - the
+  // browser then receives a corrupted regex and a syntax error that kills
+  // the whole script before it ever registers a click handler, and every
+  // button on the page goes dead with no server-side error to find it by.
+  // None of the string-content assertions elsewhere catch this, because
+  // they never ask whether the script actually parses.
+  it("parses with no syntax error", () => {
+    const html = renderStepHtml(baseView(), "cs", "N");
+    const script = /<script nonce="N">([\s\S]*)<\/script>/.exec(html)?.[1];
+    assert.ok(script && script.length > 0, "the script tag was found");
+    assert.doesNotThrow(() => new Function(script!));
+  });
+});
+
 describe("a citation from a step's own indexed body jumps back to that step", () => {
   it("renders a nav link, not a URL, for a step-sourced citation", () => {
     const note: NoteView = {
