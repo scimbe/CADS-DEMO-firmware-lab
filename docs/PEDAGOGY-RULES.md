@@ -129,7 +129,23 @@ beantworten und klickte auf Hinweis (Runde 1, A6).* **[Validator]**
 **R4.2 — Die Antwort steht nicht im Steptext.** Eine Prüffrage verlangt eine Ableitung, eine Rechnung oder eine
 Diagnose an neuen Daten. Wird ein auflösender Satz in die Rubrik verschoben, ist er aus dem Fließtext zu
 **entfernen** — sonst hat sich nichts geändert. Messgröße: die inhaltstragenden Tokens der Rubrik überlappen zu
-weniger als 50 % mit dem Fließtext desselben Steps, bei `analyze` und `evaluate` zu weniger als 35 %.
+weniger als **40 %** mit dem Fließtext desselben Steps, bei `analyze` und `evaluate` zu weniger als **28 %**;
+maßgeblich ist die Stufe des **Checks**, nicht die des Steps, denn die Rubrik bewertet die Antwort auf den Check.
+
+*Warum 28/40 und nicht mehr 35/50 (Kalibrierung 2026-09-06):* Die Messgröße rechnet seit demselben Tag
+genauer — Anleitungsblöcke, Markdown-Linkziele und Bezeichner (alles, was der Rumpf in Backticks oder
+Codeblöcke setzt, plus erwartete Testnamen) zählen nicht mehr als geteilte Prosa. Eine Rubrik über `Copy`,
+`E0507` oder `Number.isNaN` kann diese Wörter nicht vermeiden, sie **sind** ihr Gegenstand. Dadurch fällt der
+Wert um den Median-Faktor 0,851 — **eine neue Größe gegen die alte Schwelle zu halten hätte die Regel
+stillschweigend gelockert:** von vierzehn bekannten echten Befunden wären fünf durchgefallen. 28/40 ist das
+Paar, bei dem alle vierzehn wieder anschlagen; `scripts/pedagogy-metrics.py --selftest` hält genau das fest und
+läuft als fünfte Zeile in `validate-all-courses.sh` mit. **Wer die Rechnung ändert, ändert die Grenze mit** —
+der Selbsttest schlägt sonst an, und das ist seine Aufgabe.
+
+*Und was die Zahl nicht kann:* Sie unterscheidet nicht, ob ein Rumpf die Antwort **aussagt** oder die Frage mit
+denselben Substantiven **stellt**. Zwölf Rümpfe, die ihre eigene Frage beantworteten, hat Lesen gefunden und
+diese Größe keinen einzigen; ein umgeschriebener Rumpf misst danach exakt wie davor. Sie sortiert Kandidaten
+vor, sie urteilt nicht.
 *Herkunft: gemessene Überlappung von 72 % im Median, 86 % im Maximum; S−: „Ich scrolle hoch und schreibe ab. Ich
 habe nichts verstanden und der Step ist grün." (Runde 1, A3).* **[Validator]**
 
@@ -458,7 +474,7 @@ den Validator-Strang.
 |---|---|
 | R2.2 | Front-Matter-`bloom` ≠ Check-`bloom` ohne Reflexionsbegründung ⇒ Warnung |
 | R2.1 | Step mit `bloom: apply` oder höher ohne ausführbaren Check ⇒ Warnung |
-| R4.2 | Rubrik/Fließtext-Tokenüberlappung > 50 % ⇒ Warnung, > 70 % ⇒ Fehler |
+| R4.2 | Rubrik/Fließtext-Überlappung geteilter Prosa > 40 % (bzw. > 28 % bei `analyze`/`evaluate`, nach Check-Bloom) ⇒ Befund |
 | R4.2a | Eintrag in `EXCEPT_R42` ohne Grund, oder Ausnahme oberhalb `understand` ⇒ Fehler |
 | R4.1 | Prompt mit ≥ 2 Fragezeichen oder > 40 Wörtern ⇒ Warnung |
 | R5.1 | Überlappung `hints[2]` mit der Rubrik > 30 % ⇒ Warnung |
