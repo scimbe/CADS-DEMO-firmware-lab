@@ -15,6 +15,7 @@ import {
   moduleReflectionDue,
   newSession,
   objectiveCeiling,
+  recallDrawPool,
   objectiveCompetence,
   objectiveEvidence,
 } from "../src/session";
@@ -299,5 +300,50 @@ describe("A9.3 the can-do card does not hang on the reflection", () => {
     const last = m2[m2.length - 1];
     assert.equal(moduleReflectionDue(s, course, last)?.id, "m2");
     assert.equal(moduleCompletedAt(s, course, last)?.id, "m2");
+  });
+});
+
+describe("E7 which recall the card draws", () => {
+  const candidates = [
+    { stepId: "m1-01-board", taskId: "tap" },
+    { stepId: "m1-02-reflect", taskId: "reflect" },
+    { stepId: "m0-01-welcome", taskId: "hello" },
+  ];
+  const passed = (stepId: string, taskId: string) => ({ date: "2026-09-07", onStepId: "m2-02-predict", fromStepId: stepId, taskId, outcome: "passed" as const });
+
+  it("keeps every candidate while none has been passed", () => {
+    assert.deepEqual(recallDrawPool(newSession(), CID, candidates), candidates);
+  });
+
+  it("drops what is already proven, so the repetition lands on what is not", () => {
+    const s = newSession();
+    s.recallLog = { [CID]: [passed("m1-01-board", "tap")] };
+    assert.deepEqual(recallDrawPool(s, CID, candidates).map((c) => c.stepId), ["m1-02-reflect", "m0-01-welcome"]);
+  });
+
+  it("keeps two in the draw so a step does not show the same card every morning", () => {
+    const s = newSession();
+    s.recallLog = { [CID]: [passed("m1-01-board", "tap"), passed("m1-02-reflect", "reflect")] };
+    const pool = recallDrawPool(s, CID, candidates);
+    assert.equal(pool.length, 2);
+    assert.equal(pool[0].stepId, "m0-01-welcome", "the unproven one is in the pool");
+  });
+
+  it("hands everything back once all of them are proven", () => {
+    const s = newSession();
+    s.recallLog = { [CID]: candidates.map((c) => passed(c.stepId, c.taskId)) };
+    assert.deepEqual(recallDrawPool(s, CID, candidates), candidates);
+  });
+
+  it("counts a failed recall as still unproven", () => {
+    const s = newSession();
+    s.recallLog = { [CID]: [{ ...passed("m1-01-board", "tap"), outcome: "failed" }] };
+    assert.equal(recallDrawPool(s, CID, candidates).length, 3);
+  });
+
+  it("does not let another course's log narrow this one", () => {
+    const s = newSession();
+    s.recallLog = { "other-course": [passed("m1-01-board", "tap")] };
+    assert.deepEqual(recallDrawPool(s, CID, candidates), candidates);
   });
 });

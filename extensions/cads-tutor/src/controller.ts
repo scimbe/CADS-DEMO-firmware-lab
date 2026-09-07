@@ -47,6 +47,7 @@ import {
   newSession,
   nextOpenStep,
   readSession,
+  recallDrawPool,
   recordRecallEvidence,
   recordTaskResult,
   sessionFilePath,
@@ -663,7 +664,10 @@ export class TutorController implements vscode.Disposable {
       }
     }
     if (candidates.length === 0) return undefined;
-    const pick = candidates[hashString(`${key}:${today}`) % candidates.length];
+    // E7: prefer what has not stuck yet - see recallDrawPool for why, and why it
+    // still varies rather than working through a list.
+    const pool = recallDrawPool(this.session, course.manifest.id, candidates);
+    const pick = pool[hashString(`${key}:${today}`) % pool.length];
     const view = this.recallCard(course, pick.stepId, pick.taskId, lang);
     if (!view) return undefined;
     this.session.recall = { ...(this.session.recall ?? {}), [key]: { date: today, fromStepId: pick.stepId, taskId: pick.taskId } };
