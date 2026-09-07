@@ -877,8 +877,60 @@ def free_text_fields(fm):
 # language pack, both of which have been through exactly this correction.
 
 
+def _command_is_determinate(check):
+    """R11a.7e: expectStdout/expectStderr name a specific observation; a named,
+    non-default exit code is the 'benannter Fehler' the rule also allows.
+    expectExitCode 0 (the default, meaning nothing went wrong) commits to
+    nothing a student could compare a prediction against."""
+    if isinstance(check.get("expectStdout"), str) and check["expectStdout"].strip():
+        return True
+    if isinstance(check.get("expectStderr"), str) and check["expectStderr"].strip():
+        return True
+    code = check.get("expectExitCode")
+    if isinstance(code, str) and re.fullmatch(r"-?\d+", code.strip()):
+        code = int(code)
+    return isinstance(code, int) and code != 0
+
+
+def _test_suite_is_determinate(check):
+    """A testSuite's 'named' outcome is a specific test asserted to pass or fail;
+    minPass alone only counts tests, it names none of them."""
+    return bool(check.get("expectPass") or check.get("expectFail"))
+
+
+def predict_then_indeterminate(check):
+    """Leaf command/testSuite checks under a predict's `then` that never commit
+    to a specific, checkable observation (R11a.7e - 'a prediction needs a
+    determinate reveal'). Other check types (fileMatches, serialExpect,
+    debugStop, board, flash, ...) already name a pattern or a location and are
+    out of scope: this fires only where a check merely asks whether something
+    ran, never what it showed."""
+    ctype = check.get("type")
+    if ctype == "command":
+        return [] if _command_is_determinate(check) else [check]
+    if ctype == "testSuite":
+        return [] if _test_suite_is_determinate(check) else [check]
+    if ctype in ("all", "any"):
+        out = []
+        for sub in check.get("checks") or []:
+            if isinstance(sub, dict):
+                out += predict_then_indeterminate(sub)
+        return out
+    return []
+
+
+def _looks_like_answer_literal(pattern):
+    """Enough of an expectStdout/expectStderr pattern is literal text to be worth
+    matching against the step body verbatim. A bare regex metachar soup like
+    `\\d+` or `.*` names no specific value and would only produce noise; strip
+    the common metacharacters and require what is left to still say something."""
+    stripped = re.sub(r"[\\^$.*+?()\[\]{}|]", "", pattern)
+    return len(stripped.strip()) >= 3
+
+
 def validate_predict_reveal(where, fm, body, report):
-    """A predict step whose own body prints the command that reveals the answer."""
+    """A predict step whose own body prints the command that reveals the answer,
+    or - R11a.7d - the literal answer that reveal is supposed to show."""
     prose = re.sub(r"\s+", " ", body)
     for task in fm.get("tasks") or []:
         if not isinstance(task, dict):
@@ -895,6 +947,23 @@ def validate_predict_reveal(where, fm, body, report):
                     f"that reveals it (`{command}`). The panel withholds the observed output until a "
                     f"prediction exists; a student who can run it first is predicting nothing.",
                 )
+            # R11a.7d: naming the FILE is fine and necessary; quoting the exact
+            # output (or error text) the reveal will show is a second way to hand
+            # out the answer, independent of the command leak above.
+            for key in ("expectStdout", "expectStderr"):
+                answer = leaf.get(key)
+                if not isinstance(answer, str) or not answer.strip():
+                    continue
+                if not _looks_like_answer_literal(answer):
+                    continue
+                literal = re.sub(r"\s+", " ", answer.strip())
+                if literal in prose:
+                    report.warn(
+                        where,
+                        f"task '{task.get('id')}' asks for a prediction and the step body already contains "
+                        f"the literal text its reveal ({key}) is supposed to show (`{literal}`). The mechanism "
+                        f"stays; only the outcome must not be printed before the prediction is written (R11a.7d).",
+                    )
 
 
 def validate_language(where, fm, lang, report, as_error):
@@ -1072,6 +1141,14 @@ def validate_check(check, where, task_id, report, depth=0):
                 report.error(where, f"{label}: predict.then cannot be another predict")
             elif sub in ("question", "manual"):
                 report.error(where, f"{label}: predict.then cannot be '{sub}'")
+            gaps = predict_then_indeterminate(then)
+            if gaps:
+                report.error(
+                    where,
+                    f"{label}: predict.then does not expect anything specific "
+                    f"(no expectStdout/expectStderr and no named exit code/test) - nobody can check whether "
+                    f"the reveal actually showed what was predicted (R11a.7e)",
+                )
         if "bloom" in check and check["bloom"] not in ALLOWED_BLOOM:
             report.error(where, f"{label}: predict bloom '{check.get('bloom')}' not in {sorted(ALLOWED_BLOOM)}")
     elif ctype == "question":
@@ -1424,7 +1501,7 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
                 else:
                     m = re.match(r"^(task|question):([^:]+):", trig)
                     if m and m.group(2) not in task_ids:
-                        report.warn(where, f"{what} trigger '{trig}' references unknown task '{m.group(2)}'")
+                        report.error(where, f"{what} trigger '{trig}' references unknown task '{m.group(2)}'")
                     if trig.startswith("output:"):
                         _compile(trig[len("output:"):], where, f"{what} output trigger", report)
                         if not (step_check_types & {"command", "testSuite"}):
