@@ -465,6 +465,15 @@ Leckmessung bedeutet dort „nicht prüfbar", nicht „sauber".* **[Validator]**
 **R11a.8 — Selbstauskunft ist kein Nachweis.** Ohne Sprachmodell bestätigte Antworten zählen als `selfReported`
 und tragen nichts zur Kompetenzstufe bei; sie schalten nichts frei. *E8; K7.*
 
+**R11a.8a — Ob ein Versuch bewertet wurde, entscheidet der Versuch, nicht die Konfiguration.** Die Marke
+`selfReported` folgt aus dem **einzelnen Prüflauf** (`graded`: hat das Modell in diesem Versuch ein Urteil
+geliefert?), nie aus einem statischen „ist ein Sprachmodell eingerichtet".
+*Herkunft: Mit dem Überlast-Rückfall (429 oder Zeitüberschreitung → Selbstkontrolle) blieb „eingerichtet" wahr,
+während dieser eine Versuch unbewertet blieb — eine selbst bestätigte Antwort wäre als geprüfter Nachweis in die
+Kompetenzstufe eingegangen. Vor dem Rückfall war die Kopplung zufällig richtig, weil Selbstkontrolle nur ohne
+Sprachmodell vorkam; der Rückfall hat sie stillschweigend gebrochen. Gefunden 2026-09-07 auf Nachfrage, nicht
+von einer Prüfung.*
+
 **R11a.9 — Keine Punktewährung.** Keine XP, keine Level, keine Serien, keine Ligen, keine Rangliste, kein
 Zeitdruck. Anerkennung entsteht über Kompetenzstufe, Kannkarte und Nachweisheft.
 *E9: Belohnungs- und Statusmechanik wirkt deutlich schwächer als Herausforderung und bedeutsames Ziel;
