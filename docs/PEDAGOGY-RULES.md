@@ -485,6 +485,17 @@ seit dem ersten Rendern nie wieder angefasst. Dasselbe Muster traf das „selbst
 Male schwieg jeder Test, weil sie das Rendern prüfen und nicht das Nachziehen. Gefunden 2026-09-07 im
 Live-Durchgang, nachdem derselbe Weg zwei Tage lang als vorhanden geführt worden war.*
 
+**R11a.8c — Angereichert wird nur, wenn die nackte Frage nicht grundet.** Der Fragetext einer Studierendenfrage
+ist zugleich die Suchanfrage in den Kursquellen; jede Ergänzung verschiebt also, **welche** Stellen gefunden
+werden. Ergänzt wird deshalb erst, **nachdem** die unveränderte Frage nichts gefunden hat — nie vorsorglich und
+nie nach einer Wortzahl.
+*Herkunft: 40 gemessene Fälle über zwei Kurse, beide Sprachen (2026-09-07). Die Vermutung „unter N Wörtern
+anreichern" war falsch: Auch lange, gut formulierte Fragen verlieren durch eine Ergänzung Treffer, die sie ohne
+sie hatten — „why do I get a promise object back instead of the actual value" (13 Wörter) verliert die
+zugehörige Übungsdatei aus den ersten drei Treffern, ohne dass Besseres nachrückt. Findet die nackte Frage
+dagegen nichts, kann eine Ergänzung nichts verdrängen und ist reiner Gewinn. Die bestehende Architektur trug
+diesen Auslöser bereits — gemessen wurde, bevor gebaut wurde.*
+
 **R11a.9 — Keine Punktewährung.** Keine XP, keine Level, keine Serien, keine Ligen, keine Rangliste, kein
 Zeitdruck. Anerkennung entsteht über Kompetenzstufe, Kannkarte und Nachweisheft.
 *E9: Belohnungs- und Statusmechanik wirkt deutlich schwächer als Herausforderung und bedeutsames Ziel;
