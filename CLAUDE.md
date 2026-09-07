@@ -33,3 +33,22 @@ fertig, sondern liegen gelassen.
 Für Messungen einen Wegwerf-Aufbau nehmen, nicht die Laborinstanz. Wo ein öffentlicher Ursprung
 gebraucht wird, reicht ein kurzlebiger eigener Tunnel auf eine Wegwerf-Seite — und exponiert wird nur
 diese Seite, nie code-server.
+
+## Eingebettete Client-Skripte werden geparst, nicht nur typgeprüft
+
+`webview.ts` erzeugt das Panel-HTML als Zeichenkette; der `<script>`-Rumpf darin ist für `tsc` nur Text.
+Ein regulärer Ausdruck oder ein Fluchtzeichen in diesem Text wird beim Übersetzen der **äußeren**
+Zeichenkette verbraucht: `\/` und `\w` sind keine gültigen String-Escapes, der Rückstrich fällt
+stillschweigend weg, und der Browser bekommt ungültiges JavaScript. Ein einziger Syntaxfehler bricht die
+gesamte Datei ab, bevor irgendein Ereignisbehandler registriert wird — das Panel rendert, aber **keine
+Schaltfläche reagiert mehr**, und der Container meldet nichts.
+
+- Jede Änderung am eingebetteten Client-Skript wird vor dem Commit **zu statischem HTML gerendert und der
+  `<script>`-Inhalt mit `new Function()` geparst**. `npm test` und `tsc` prüfen nur die TypeScript-Seite.
+- Im Skriptrumpf jedes Fluchtzeichen doppeln (`\\/`, `\\w`, `\\d`, `\\s`) oder den regulären Ausdruck über
+  `new RegExp('…')` bilden.
+- Der Regressionstest dafür steht in `extensions/cads-tutor/test/` und muss bestehen bleiben.
+
+**Anlass (2026-09-07, Commit 429c2f9, behoben in 529d733):** Der Operator meldete „alle Schaltflächen
+tot" in M0.2. Ursache war genau dieser Fall in der Client-Kopie von `renderCitations`. Kein Test hatte je
+geprüft, ob das ausgelieferte Skript überhaupt gültiges JavaScript ist.
