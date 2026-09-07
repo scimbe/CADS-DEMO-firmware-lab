@@ -108,13 +108,13 @@ cd ~/workspace/rust-foundations
 ::: do command="cargo --version && cargo fmt --version && cargo clippy --version" cwd="."
 Führe den Befehl der Aufgabe *Alle drei Werkzeuge antworten* aus.
 > expect: Der Befehl endet ohne Fehler, und seine Ausgabe enthält `clippy`.
-> recover: Bleibt der Cursor stehen, ohne dass die Eingabeaufforderung zurückkommt, läuft er noch - das ist kein Hänger. Antwortet cargo mit `could not find Cargo.toml`, fehlt das `cd` von oben.
+> recover: Bleibt der Cursor stehen, ohne dass die Eingabeaufforderung zurückkommt, läuft er noch - das ist kein Hänger. Antwortet das Terminal mit `command not found`, steckt dieses Terminal nicht im Container - öffne ein neues aus demselben Workspace.
 :::
 
 ::: do command="cargo build" cwd="."
 Führe den Befehl der Aufgabe *Der Workspace übersetzt aus dem Terminal* aus.
 > expect: Der Befehl endet ohne Fehler und ohne Meldung; darunter erscheint die Eingabeaufforderung wieder.
-> recover: Bleibt der Cursor stehen, ohne dass die Eingabeaufforderung zurückkommt, läuft er noch - das ist kein Hänger. Antwortet cargo mit `could not find Cargo.toml`, fehlt das `cd` von oben.
+> recover: Bleibt der Cursor stehen, ohne dass die Eingabeaufforderung zurückkommt, läuft er noch - das ist kein Hänger. Antwortet cargo mit `error: could not find \`Cargo.toml\` in \`/home/coder/workspace\` or any parent directory`, hat dieses Terminal das `cd` von oben nicht bekommen - hole es nach.
 :::
 
 ![Ein Terminal im Bereich unten: die Eingabeaufforderung zeigt coder@…:~/workspace/rust-foundations, darunter der cargo-Befehl und seine Ausgabe.](terminal-run-a-step.png)

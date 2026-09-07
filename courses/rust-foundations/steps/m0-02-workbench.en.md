@@ -106,13 +106,13 @@ cd ~/workspace/rust-foundations
 ::: do command="cargo --version && cargo fmt --version && cargo clippy --version" cwd="."
 Run the command of the *All three tools answer* task.
 > expect: The command ends without an error and its output contains `clippy`.
-> recover: If the cursor sits there and the prompt does not come back, it is still running - that is not a hang. If cargo answers `could not find Cargo.toml`, the `cd` above is missing.
+> recover: If the cursor sits there and the prompt does not come back, it is still running - that is not a hang. If the terminal answers `command not found`, this terminal is not inside the container - open a new one from the same workspace.
 :::
 
 ::: do command="cargo build" cwd="."
 Run the command of the *The workspace compiles from the terminal* task.
 > expect: The command ends without an error and without a message; the prompt reappears below it.
-> recover: If the cursor sits there and the prompt does not come back, it is still running - that is not a hang. If cargo answers `could not find Cargo.toml`, the `cd` above is missing.
+> recover: If the cursor sits there and the prompt does not come back, it is still running - that is not a hang. If cargo answers `error: could not find \`Cargo.toml\` in \`/home/coder/workspace\` or any parent directory`, this terminal never got the `cd` above - do it now.
 :::
 
 ![A terminal in the bottom panel: the prompt reads coder@…:~/workspace/rust-foundations, with the cargo command and its output below it.](terminal-run-a-step.png)

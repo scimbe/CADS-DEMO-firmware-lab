@@ -90,7 +90,7 @@ cd ~/workspace/rust-foundations
 ::: do command="cargo --version" cwd="."
 Führe den Befehl der Aufgabe *cargo antwortet* aus.
 > expect: Der Befehl endet ohne Fehler, und seine Ausgabe passt auf das Muster `cargo \d+\.\d+\.\d+`.
-> recover: Bleibt der Cursor stehen, ohne dass die Eingabeaufforderung zurückkommt, läuft er noch - das ist kein Hänger. Antwortet cargo mit `could not find Cargo.toml`, fehlt das `cd` von oben.
+> recover: Bleibt der Cursor stehen, ohne dass die Eingabeaufforderung zurückkommt, läuft er noch - das ist kein Hänger. Antwortet das Terminal mit `command not found`, steckt dieses Terminal nicht im Container - öffne ein neues aus demselben Workspace.
 :::
 
 ![Ein Terminal im Bereich unten: die Eingabeaufforderung zeigt coder@…:~/workspace/rust-foundations, darunter der cargo-Befehl und seine Ausgabe.](terminal-run-a-step.png)

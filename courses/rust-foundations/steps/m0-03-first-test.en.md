@@ -116,7 +116,7 @@ cd ~/workspace/rust-foundations
 ::: do command="cargo test --test m0-03-first-test" cwd="."
 Run this step's tests. The same command sits behind the **Check** button on the *greet() returns the greeting* task.
 > expect: One line per test, `test … ok` or `… FAILED`, then the summary `test result: ok. 3 passed; 0 failed` once all 3 pass. The first run takes a few seconds while the crate compiles once; every run after that stays well under a second.
-> recover: If cargo answers `could not find Cargo.toml`, this terminal never got the `cd` above - do it now. If it says `no test target named`, the name after `--test` is wrong; `ls tests/` lists the valid ones.
+> recover: If cargo answers `error: could not find \`Cargo.toml\` in \`/home/coder/workspace\` or any parent directory`, this terminal never got the `cd` above - do it now. If it says `no test target named`, the name after `--test` is wrong; `ls tests/` lists the valid ones.
 :::
 
 ![A terminal in the bottom panel: the prompt reads coder@…:~/workspace/rust-foundations, with the cargo command and its output below it.](terminal-run-a-step.png)
