@@ -496,6 +496,15 @@ zugehörige Übungsdatei aus den ersten drei Treffern, ohne dass Besseres nachr�
 dagegen nichts, kann eine Ergänzung nichts verdrängen und ist reiner Gewinn. Die bestehende Architektur trug
 diesen Auslöser bereits — gemessen wurde, bevor gebaut wurde.*
 
+**R11a.8d — Ein Treffer ist noch keine Grundlage.** Die Prüfung, ob eine gefundene Stelle die Frage
+**inhaltlich** trägt, gilt für **jeden** Weg, der ein Zitat erzeugt — nicht nur für den, der die Frage vorher
+angereichert hat.
+*Herkunft: Mit der Indexierung der Kursrümpfe grundete die Frage „wie stelle ich einen Kuchenteig her" über
+reine Funktionswort-Überlappung im echten Kurstext — vorher unmöglich, weil der Kurstext gar nicht im Index
+war. Die Stützprüfung lief bis dahin nur auf dem Anreicherungspfad; der Primärpfad und die reine
+Zitatsuche waren ungeschützt. Gefunden 2026-09-07 durch zwei Kontrollfragen, deren Antwort absichtlich
+nirgends im Kurs steht — sie kosten nichts und sind das billigste Mittel gegen ein zu weites Netz.*
+
 **R11a.9 — Keine Punktewährung.** Keine XP, keine Level, keine Serien, keine Ligen, keine Rangliste, kein
 Zeitdruck. Anerkennung entsteht über Kompetenzstufe, Kannkarte und Nachweisheft.
 *E9: Belohnungs- und Statusmechanik wirkt deutlich schwächer als Herausforderung und bedeutsames Ziel;
