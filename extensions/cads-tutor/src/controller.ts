@@ -1684,11 +1684,17 @@ export class TutorController implements vscode.Disposable {
     // must never reach the question log, which is why they do not call emit here.
     this.emit({ type: "question.asked", data: { question: q, kind: classifyQuestionText(q), bloom: cur.content.meta.bloom, attempt: attempts } });
 
+    // Computed once and shared: isProceduralQuestion and platform.ask() must
+    // agree on what counts as this step's own short vocabulary ("pin", "LED",
+    // "SPI", ...), or a real content question about one of those terms gets
+    // called topic-free before retrieval is ever consulted.
+    const terms = stepTerms(cur.step.variants.en!.meta);
+
     // "How do I start?" has no indexable term in any language, so it used to be
     // refused - while the last hint tells the student to go and ask exactly
     // that. It is answered from session state, with no model and no retrieval,
     // which is what the students' own configuration has.
-    if (isProceduralQuestion(q)) {
+    if (isProceduralQuestion(q, terms)) {
       const text = proceduralAnswer(this.proceduralContext(cur));
       this.log(`ask "${q.slice(0, 60)}" answered as a procedural question (no LLM, no retrieval)`);
       this.emit({ type: "question.answered", data: { kind: "procedural", grounded: false, citations: 0 } });
@@ -1700,7 +1706,7 @@ export class TutorController implements vscode.Disposable {
       bloomLevel: cur.content.meta.bloom,
       attemptNumber: attempts,
       // Used for RETRIEVAL only when the question does not ground on its own.
-      stepTerms: stepTerms(cur.step.variants.en!.meta),
+      stepTerms: terms,
     });
     // A refusal is a dead end for the student. The procedural answer is
     // always true - it is read straight from session state, never from the

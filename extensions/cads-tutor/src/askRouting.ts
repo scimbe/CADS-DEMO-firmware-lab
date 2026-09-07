@@ -53,25 +53,43 @@ const PROCEDURAL_PATTERNS: RegExp[] = [
 ];
 
 /**
- * A question with no word past the stopword cut used by questionIsSupported
- * has no topic at all - not evidence it is off-topic, evidence there is
- * nothing to search for. "Was soll ich tun" is this shape, and so is every
- * paraphrase of it ("was mach ich jetzt hier", "und was jetzt"): chasing each
- * one into PROCEDURAL_PATTERNS is a list that never catches up, while this is
- * the same content-word test grounding itself depends on, so a question that
- * fails it could never have grounded anyway.
+ * A word counts as a topic if it clears the general stopword-and-length cut,
+ * OR if it is at least 3 letters and is one of THIS step's own terms
+ * (stepTerms: title, objectives, creates, sources, links) - the corpus's own
+ * short technical vocabulary ("pin", "LED", "bit", "SPI", ...) that a blanket
+ * length-4 cut treats as noise. Shared by questionIsSupported and
+ * hasNoContentWord so the two can never disagree on what a topic looks like -
+ * they disagreeing is exactly how "Was ist ein Pin?" was found answering as
+ * "you are on step X" instead of reaching retrieval at all: hasNoContentWord
+ * called it topic-free before questionIsSupported was ever consulted.
  */
-function hasNoContentWord(question: string): boolean {
-  return !question
-    .toLowerCase()
-    .split(/[^a-zà-ÿ0-9_]+/)
-    .some((w) => w.length >= 4 && !STOPWORDS.has(w));
+function isContentWord(word: string, courseTerms: ReadonlySet<string>): boolean {
+  if (STOPWORDS.has(word)) return false;
+  return word.length >= 4 || (word.length >= 3 && courseTerms.has(word));
 }
 
-export function isProceduralQuestion(question: string): boolean {
+/**
+ * A question with no word past isContentWord, and no glossary mapping
+ * either, has no topic at all - not evidence it is off-topic, evidence there
+ * is nothing to search for. "Was soll ich tun" is this shape, and so is
+ * every paraphrase of it ("was mach ich jetzt hier", "und was jetzt"):
+ * chasing each one into PROCEDURAL_PATTERNS is a list that never catches up,
+ * while this is the same content-word test grounding itself depends on, so a
+ * question that fails it could never have grounded anyway.
+ */
+function hasNoContentWord(question: string, courseTerms: readonly string[]): boolean {
+  const terms = new Set(courseTerms);
+  const hasWord = question
+    .toLowerCase()
+    .split(/[^a-zà-ÿ0-9_]+/)
+    .some((w) => isContentWord(w, terms));
+  return !hasWord && glossaryTerms(question).length === 0;
+}
+
+export function isProceduralQuestion(question: string, courseTerms: readonly string[] = []): boolean {
   const q = question.trim();
   if (!q) return false;
-  return PROCEDURAL_PATTERNS.some((re) => re.test(q)) || hasNoContentWord(q);
+  return PROCEDURAL_PATTERNS.some((re) => re.test(q)) || hasNoContentWord(q, courseTerms);
 }
 
 export interface ProceduralContext {
@@ -217,7 +235,7 @@ const STOPWORDS = new Set([
   "der", "die", "das", "den", "dem", "des", "ein", "eine", "einen", "einem", "eines", "und", "oder",
   "ich", "du", "wir", "ist", "sind", "war", "wie", "was", "warum", "wo", "wann", "wer", "nicht",
   "mit", "von", "zu", "zum", "zur", "für", "auf", "in", "im", "an", "am", "bei", "aus", "kann",
-  "muss", "soll", "hier", "dann", "noch", "aber", "auch", "mir", "mich", "jetzt",
+  "muss", "soll", "hier", "dann", "noch", "aber", "auch", "mir", "mich", "jetzt", "denn", "nun",
   "the", "a", "an", "and", "or", "is", "are", "was", "how", "what", "why", "where", "when", "who",
   "not", "with", "of", "to", "for", "on", "in", "at", "from", "can", "should", "must", "this",
   "that", "it", "i", "do", "does", "my", "now",
@@ -290,12 +308,13 @@ export function retrievalQuery(question: string, terms: readonly string[], limit
  * to: at least one content word of the question, or of its glossary mapping,
  * has to occur in the retrieved text.
  */
-export function questionIsSupported(question: string, retrievedText: string): boolean {
+export function questionIsSupported(question: string, retrievedText: string, courseTerms: readonly string[] = []): boolean {
   const haystack = retrievedText.toLowerCase();
+  const terms = new Set(courseTerms);
   const own = question
     .toLowerCase()
     .split(/[^a-zà-ÿ0-9_]+/)
-    .filter((w) => w.length >= 4 && !STOPWORDS.has(w));
+    .filter((w) => isContentWord(w, terms));
   const candidates = [...new Set([...own, ...glossaryTerms(question)])];
   return candidates.some((w) => haystack.includes(w));
 }

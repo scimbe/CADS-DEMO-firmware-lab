@@ -271,11 +271,11 @@ export class TutorPlatform {
    * - would see a citation for an off-topic question that only shares function
    * words with the material, which is worse than pointing at nothing.
    */
-  citationsFor(query: string): Citation[] {
+  citationsFor(query: string, courseTerms: readonly string[] = []): Citation[] {
     const answer = this.engine.ask(query);
     if (!answer.grounded) return [];
     const retrievedText = answer.citations.map((c) => `${c.chunk.section} ${c.chunk.text}`).join("\n");
-    if (!questionIsSupported(query, retrievedText)) return [];
+    if (!questionIsSupported(query, retrievedText, courseTerms)) return [];
     return this.toCitations(answer.citations);
   }
 
@@ -286,7 +286,7 @@ export class TutorPlatform {
   ): Promise<AskOutcome> {
     const trimmed = question.trim().slice(0, MAX_QUESTION_CHARS);
     if (!this.session) {
-      return { kind: "unconfigured", message: this.unconfiguredMessage(lang), citations: this.citationsFor(trimmed) };
+      return { kind: "unconfigured", message: this.unconfiguredMessage(lang), citations: this.citationsFor(trimmed, options.stepTerms) };
     }
     let result: TutorTurnResult;
     try {
@@ -306,7 +306,7 @@ export class TutorPlatform {
       // askWithContext's own enrichment below; applying it here too closes the
       // same gap on the PRIMARY path, not just the fallback.
       const retrievedText = "citations" in result ? result.citations.map((c) => `${c.chunk.section} ${c.chunk.text}`).join("\n") : "";
-      if (retrievedText && !questionIsSupported(trimmed, retrievedText)) {
+      if (retrievedText && !questionIsSupported(trimmed, retrievedText, options.stepTerms)) {
         this.log("ask: session grounded on function words alone, no content word of the question matched - treating as refused");
         const enriched = await this.askWithContext(trimmed, options);
         return enriched ?? { kind: "refused", reason: "No indexed reference source shares real vocabulary with this question, only common words." };
@@ -344,7 +344,7 @@ export class TutorPlatform {
     // The context terms can ground on their own, which would answer a question
     // the student did not ask. The retrieved material must speak to their words.
     const retrieved = answer.citations.map((c) => `${c.chunk.section} ${c.chunk.text}`).join("\n");
-    if (!questionIsSupported(question, retrieved)) {
+    if (!questionIsSupported(question, retrieved, options.stepTerms)) {
       this.log(`ask: context terms grounded, but nothing in the sources speaks to the question – keeping the refusal`);
       return undefined;
     }

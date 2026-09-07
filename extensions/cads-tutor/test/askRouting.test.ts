@@ -47,10 +47,31 @@ describe("procedural questions are recognised", () => {
   // than add one more phrasing to the list forever, a question with no word
   // past the same content-word cut questionIsSupported uses is treated as
   // procedural directly - it could never have grounded anyway.
-  const noContentWordShape = ["Und was jetzt?", "What now?", "So what now?"];
+  const noContentWordShape = ["Und was jetzt?", "What now?", "So what now?", "Und was soll ich denn nun tun?"];
   for (const q of noContentWordShape) {
     it(`recognises the shape, not the wording: ${q}`, () => assert.equal(isProceduralQuestion(q), true));
   }
+});
+
+describe("a step's own short vocabulary is not mistaken for no vocabulary at all", () => {
+  // Firmware Tutor's finding on the first version of this fix: the length-4
+  // cut that makes "was soll ich tun" topic-free ALSO makes "was ist ein
+  // Pin" topic-free, because "pin" is three letters - and the corpus is full
+  // of the answer. Measured against real course content: pin, LED, bit, SPI
+  // and a dozen more short terms are each the subject of whole steps.
+  // Passing the step's own terms (what retrievalQuery already receives) is
+  // what tells "pin" apart from "was"/"soll"/"tun".
+  it("a three-letter term the step's own metadata names is a topic, not silence", () => {
+    assert.equal(isProceduralQuestion("Was ist ein Pin?", ["pin"]), false);
+    assert.equal(isProceduralQuestion("What does let do?", ["let"]), false);
+  });
+  it("without the step's terms, the same short word still reads as topic-free", () => {
+    // Documents the failure mode this fix closes - not a target to preserve.
+    assert.equal(isProceduralQuestion("Was ist ein Pin?", []), true);
+  });
+  it("a genuinely procedural question is unaffected by a step full of short terms", () => {
+    assert.equal(isProceduralQuestion("Was soll ich tun?", ["pin", "led", "bit", "spi"]), true);
+  });
 });
 
 describe("the procedural answer", () => {
@@ -169,5 +190,10 @@ describe("the refusal survives", () => {
   it("does not let stopwords or short words carry the match", () => {
     // "ist", "das", "von" would otherwise match almost any text.
     assert.equal(questionIsSupported("Ist das von hier?", buildDocs), false);
+  });
+  it("admits a step's own short term as a topic, so it can ground like any other content word", () => {
+    const pinDocs = "This board exposes 40 pins on the header, numbered left to right.";
+    assert.equal(questionIsSupported("What is a pin?", pinDocs), false, "without the step's own terms, 'pin' is still too short to count");
+    assert.equal(questionIsSupported("What is a pin?", pinDocs, ["pin"]), true);
   });
 });
