@@ -6,6 +6,7 @@ import { describe, it } from "node:test";
 import { stepTerms } from "../src/askRouting";
 import { masteryFor, openEventStore } from "../src/events";
 import { loadCoursePack } from "../src/loader";
+import { LlmRateLimitError } from "../src/llmClient";
 import { readLlmConfig, TutorPlatform } from "../src/platform";
 
 const EXAMPLE = path.resolve(__dirname, "..", "..", "courses", "_example");
@@ -71,6 +72,40 @@ describe("TutorPlatform", () => {
     assert.equal(v.feedback, "Good, but which register range?");
     const hint = await p.genericHint("build", "exit 2", "remember", 1, "en", ["firmware-how-to-build"]);
     assert.equal(hint, "What does the preset select for you?");
+  });
+
+  it("gradeAnswer falls back to self-check on a rate limit, not a raw error", async () => {
+    const rateLimited = new TutorPlatform({
+      course,
+      packsDir: PACKS,
+      studentId: "s1",
+      memoryDir: tmp(),
+      llm: null,
+      llmClient: {
+        async complete() {
+          throw new LlmRateLimitError("LLM rate-limited after retry: 429");
+        },
+      },
+    });
+    const v = await rateLimited.gradeAnswer("why no mass erase?", "mentions option bytes", "because it is dangerous");
+    assert.equal(v.kind, "manual");
+    assert.match(v.feedback, /overloaded/);
+
+    const brokenModel = new TutorPlatform({
+      course,
+      packsDir: PACKS,
+      studentId: "s1",
+      memoryDir: tmp(),
+      llm: null,
+      llmClient: {
+        async complete() {
+          throw new Error("connection reset");
+        },
+      },
+    });
+    const w = await brokenModel.gradeAnswer("why no mass erase?", "mentions option bytes", "because it is dangerous");
+    assert.equal(w.kind, "error");
+    assert.match(w.feedback, /grading failed/);
   });
 });
 

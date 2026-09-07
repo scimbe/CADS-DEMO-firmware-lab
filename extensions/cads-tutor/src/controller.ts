@@ -952,7 +952,7 @@ export class TutorController implements vscode.Disposable {
       // A9.2: both flags decide whether this pass is evidence, and both are
       // properties of this run - whether a model was configured now, not whether
       // one is configured when the competence card is drawn. So they are stored.
-      const verified = this.isVerifiedPass(task, this.platformFor(cur.course));
+      const verified = this.isVerifiedPass(task, result);
       const rec = recordTaskResult(this.session, cur.course, cur.step, taskId, result.status, result.message, this.courses, new Date(), {
         output: result.output,
         tests: result.tests,
@@ -963,7 +963,7 @@ export class TutorController implements vscode.Disposable {
         predictionGraded: task.check.type === "predict" ? result.predictionOutcome !== undefined : undefined,
       });
       this.saveSession();
-      this.recordLearningEvent(cur.course, cur.step, task, result.status, rec.state.hintTier);
+      this.recordLearningEvent(cur.course, cur.step, task, result, rec.state.hintTier);
       this.emitCheckOutcome(task, rec.state, result, Date.now() - startedAt);
       this.log(`check ${cur.step.id}/${taskId} [${task.check.type}] → ${result.status}: ${result.message}`);
 
@@ -1556,20 +1556,23 @@ export class TutorController implements vscode.Disposable {
     });
   }
 
-  private recordLearningEvent(course: Course, step: Step, task: TaskSpec, status: TaskStatus, hintTier: number): void {
+  private recordLearningEvent(course: Course, step: Step, task: TaskSpec, result: CheckResult, hintTier: number): void {
     const store = this.eventStore?.store;
     if (!store) return;
+    const status = result.status;
     if (status !== "passed" && status !== "failed") return;
     const meta = step.variants.en!.meta;
     const platform = this.platformFor(course);
 
     // A pass the student awarded themselves is not evidence of mastery. Without
-    // a language model every `question` check falls back to manual confirmation,
-    // and `manual` never had any verification to begin with; recording either as
-    // independent success made the progress view - and the teacher's portal -
-    // report mastery that nobody checked. Such a pass is still visible as a
-    // telemetry event, it just carries no weight in the mastery estimate.
-    if (status === "passed" && !this.isVerifiedPass(task, platform)) {
+    // a language model - or when one is configured but could not answer this
+    // attempt (e.g. overloaded) - every `question` check falls back to manual
+    // confirmation, and `manual` never had any verification to begin with;
+    // recording either as independent success made the progress view - and the
+    // teacher's portal - report mastery that nobody checked. Such a pass is
+    // still visible as a telemetry event, it just carries no weight in the
+    // mastery estimate.
+    if (status === "passed" && !this.isVerifiedPass(task, result)) {
       this.log(`self-confirmed pass ${step.id}/${task.id} [${task.check.type}] recorded WITHOUT mastery weight (no automatic verification)`);
       this.emit({ type: "check.pass", data: { taskId: task.id, checkType: task.check.type, selfReported: true } });
       return;
@@ -1601,12 +1604,15 @@ export class TutorController implements vscode.Disposable {
 
   /**
    * Did anything other than the student decide this passed? `manual` is a
-   * self-declaration by definition, and a `question` without a language model
-   * falls back to the same thing.
+   * self-declaration by definition, and a `question` falls back to the same thing
+   * whenever THIS attempt was not actually graded - whether no language model is
+   * configured at all, or one is configured but could not judge this particular
+   * answer (e.g. overloaded). Deliberately not "is a model configured": that would
+   * silently credit a self-confirmed pass as verified the moment grading recovers.
    */
-  private isVerifiedPass(task: TaskSpec, platform: TutorPlatform): boolean {
+  private isVerifiedPass(task: TaskSpec, result: CheckResult): boolean {
     if (task.check.type === "manual") return false;
-    if (task.check.type === "question") return platform.hasLlm;
+    if (task.check.type === "question") return result.graded === true;
     return true;
   }
 

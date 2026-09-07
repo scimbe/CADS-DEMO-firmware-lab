@@ -104,11 +104,18 @@ describe("check runner", () => {
     // question without LLM → manual fallback
     const q = { type: "question" as const, prompt: "why?", rubric: "r", minChars: 5 };
     assert.equal((await runCheck(q, "t", ctx(root, { answerFor: () => "because of reasons" }))).status, "pending");
-    assert.equal((await runCheck(q, "t", ctx(root, { answerFor: () => "because of reasons", manualConfirmed: () => true }))).status, "passed");
+    const selfConfirmed = await runCheck(q, "t", ctx(root, { answerFor: () => "because of reasons", manualConfirmed: () => true }));
+    assert.equal(selfConfirmed.status, "passed");
+    // A9.2/R11a.8: a manually-confirmed pass must never carry `graded: true`, whether the
+    // fallback happened because no model is configured or because one is but could not
+    // judge this attempt (e.g. rate-limited) - either way the controller must not credit
+    // it as verified. Regression guard for that distinction, not just this call's shape.
+    assert.equal(selfConfirmed.graded, false);
     assert.equal((await runCheck(q, "t", ctx(root, { answerFor: () => "no" }))).status, "failed");
     const graded = await runCheck(q, "t", ctx(root, { answerFor: () => "because of reasons", gradeAnswer: async () => ({ kind: "fail", feedback: "missing option bytes" }) }));
     assert.equal(graded.status, "failed");
     assert.equal(graded.message, "missing option bytes");
+    assert.equal(graded.graded, true);
   });
 
   it("task/build use exit codes; board checks report unavailable without a bridge", async () => {

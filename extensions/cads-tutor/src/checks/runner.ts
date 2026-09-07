@@ -23,6 +23,14 @@ export interface CheckResult {
   /** A1: the prediction a `predict` check was judged against. */
   prediction?: string;
   predictionOutcome?: PredictionOutcome;
+  /**
+   * `question` only: was THIS attempt actually judged by the language model (pass/fail),
+   * as opposed to falling back to manual confirmation - whether because none is
+   * configured or because it could not answer right now (e.g. overloaded). A9.2/R11a.8:
+   * a self-confirmed pass must never be credited as verified just because a model is
+   * configured in general; only an attempt that was actually graded counts.
+   */
+  graded?: boolean;
 }
 
 export interface DebugStopRecord {
@@ -166,15 +174,15 @@ async function dispatch(spec: CheckSpec, taskId: string, ctx: CheckContext): Pro
       const verdict = await ctx.gradeAnswer(loc(spec.prompt, ctx.lang), spec.rubric, answer, spec.bloom);
       switch (verdict.kind) {
         case "pass":
-          return { status: "passed", message: verdict.feedback };
+          return { status: "passed", message: verdict.feedback, graded: true };
         case "fail":
-          return { status: "failed", message: verdict.feedback };
+          return { status: "failed", message: verdict.feedback, graded: true };
         case "manual":
           return ctx.manualConfirmed(taskId)
-            ? { status: "passed", message: ctx.lang === "de" ? "manuell bestätigt (kein LLM konfiguriert)" : "confirmed manually (no LLM configured)" }
-            : { status: "pending", message: verdict.feedback };
+            ? { status: "passed", message: ctx.lang === "de" ? "manuell bestätigt (kein LLM konfiguriert)" : "confirmed manually (no LLM configured)", graded: false }
+            : { status: "pending", message: verdict.feedback, graded: false };
         case "error":
-          return { status: "unavailable", message: verdict.feedback };
+          return { status: "unavailable", message: verdict.feedback, graded: false };
       }
       break;
     }
