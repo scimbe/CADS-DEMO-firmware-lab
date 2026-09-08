@@ -674,7 +674,9 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
   .ask-footer h2 { font-size: 1em; margin: 0 0 0.4em; }
   .ask-footer .meta { margin-bottom: 0.4em; }
   .ask-row { display: flex; gap: 0.5em; } .ask-row input { flex: 1; }
-  .answer-box { margin-top: 0.6em; padding: 0.6em 0.8em; border-radius: 4px; border: 1px solid var(--vscode-panel-border); white-space: pre-wrap; } .answer-box[hidden] { display: none; }
+  .answer-box { position: relative; margin-top: 0.6em; padding: 0.6em 2em 0.6em 0.8em; border-radius: 4px; border: 1px solid var(--vscode-panel-border); white-space: pre-wrap; } .answer-box[hidden] { display: none; }
+  .answer-close { position: absolute; top: 0.3em; right: 0.4em; background: none; border: none; color: var(--vscode-foreground); opacity: 0.6; font-size: 1.1em; line-height: 1; cursor: pointer; padding: 0.15em 0.4em; border-radius: 3px; }
+  .answer-close:hover { opacity: 1; background: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground)); }
   /* Addendum v1.1: scaffold badge, predict panel, recall and reflection cards. */
   .selfcheck { margin-top: 0.6em; padding: 0.5em 0.7em; border-left: 3px solid var(--vscode-inputValidation-warningBorder, var(--vscode-panel-border)); background: var(--vscode-textBlockQuote-background); border-radius: 3px; }
   .selfcheck-title { font-weight: 600; }
@@ -815,6 +817,7 @@ function clientScript(view: StepView): string {
     // The panel no longer toggles to "the other" language; it names both and
     // marks the active one, so the client only needs to know which is active.
     thinking: ui(view.lang).askThinking,
+    answerClose: ui(view.lang).answerClose,
     copied: ui(view.lang).copied,
     copyLabel: view.lang === "de" ? "Kopieren" : "Copy",
     running: ui(view.lang).running,
@@ -872,6 +875,10 @@ function clientScript(view: StepView): string {
       const line = b.getAttribute("data-line");
       post({ type: "action", taskId: taskId || undefined, kind, arg: b.getAttribute("data-arg") || undefined, cwd: b.getAttribute("data-cwd") || undefined, line: line ? Number(line) : undefined });
       if (kind === "copyCommand") { b.textContent = S.copied; setTimeout(() => { b.textContent = S.copyLabel; }, 1500); }
+    }
+    else if (b.classList.contains("answer-close")) {
+      const box = document.getElementById("answer");
+      box.hidden = true; box.innerHTML = "";
     }
     else if (b.id === "orientation-dismiss") {
       const card = document.getElementById("orientation");
@@ -1070,7 +1077,8 @@ function clientScript(view: StepView): string {
       let html = esc(m.outcome.text);
       if (m.outcome.kind === "answer" && m.outcome.hintTier) html = '<div class="hint-tier">' + esc(S.hintTier.replace("{n}", m.outcome.hintTier)) + ' · ' + esc(m.outcome.bloomLevel || "") + '</div>' + html;
       if (m.outcome.next) html += '<div class="hint-tier" style="margin-top:0.4em">→ ' + esc(m.outcome.next) + '</div>';
-      box.innerHTML = html + renderCitations(m.outcome.citations);
+      const closeBtn = '<button class="answer-close" type="button" aria-label="' + esc(S.answerClose) + '" title="' + esc(S.answerClose) + '">×</button>';
+      box.innerHTML = closeBtn + html + renderCitations(m.outcome.citations);
     } else if (m.type === "note") {
       const area = document.getElementById("note-area");
       area.innerHTML = '<div class="note' + (m.note.tier ? ' note-hint' : '') + '"><div class="note-title">' + esc(m.note.title) + (m.note.tier ? ' · ' + esc(S.hintTier.replace("{n}", m.note.tier)) : '') + '</div><div class="note-text">' + esc(m.note.text) + '</div>' + renderCitations(m.note.citations) + '</div>';
