@@ -1624,6 +1624,7 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
                             )
 
             # socratic triggers (classic + Addendum: test:<name>:failed, output:<regex>)
+            tasks_with_own_ladder = set()
             for k, entry in enumerate(fm.get("socratic") or []):
                 what = f"socratic[{k}]"
                 if not isinstance(entry, dict):
@@ -1636,6 +1637,8 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
                     m = re.match(r"^(task|question):([^:]+):", trig)
                     if m and m.group(2) not in task_ids:
                         report.error(where, f"{what} trigger '{trig}' references unknown task '{m.group(2)}'")
+                    elif m:
+                        tasks_with_own_ladder.add(m.group(2))
                     if trig.startswith("output:"):
                         _compile(trig[len("output:"):], where, f"{what} output trigger", report)
                         if not (step_check_types & {"command", "testSuite"}):
@@ -1643,6 +1646,13 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
                     if trig.startswith("test:") and "testSuite" not in step_check_types:
                         report.warn(where, f"{what} '{trig}' needs a testSuite task to ever fire")
                 _hints_ok(entry, where, what, report)
+            # R5.3: one trigger per step with two or three tasks leaves the majority
+            # without help - a task:<id>:/question:<id>: entry is that task's OWN
+            # ladder; a step-wide `*` or `event:` trigger does not count, since it
+            # cannot carry a hint specific to the task the student is stuck on.
+            for tid in sorted(task_ids - tasks_with_own_ladder):
+                if tid is not None:
+                    report.warn(where, f"task '{tid}' has no socratic entry of its own (task:{tid}:... or question:{tid}:...) - it shares whatever step-wide trigger exists, if any (R5.3)")
             if misconceptions and not (step_check_types & {"command", "testSuite"}):
                 report.warn(where, "misconceptions declared but no command/testSuite task produces output to match")
             # A9.1: instruction blocks, and the call to action that escaped one.
