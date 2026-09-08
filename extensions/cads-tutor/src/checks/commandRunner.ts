@@ -105,6 +105,11 @@ export async function runCommand(opts: CommandOptions): Promise<CommandOutcome> 
       // No shell: true - we already are the shell, and a second layer would
       // re-interpret quoting in the author's command.
       stdio: ["ignore", "pipe", "pipe"],
+      // detached so the shell gets its own process group: /bin/sh does not
+      // exec-replace itself for every command (e.g. "sleep 30" is forked as a
+      // real child of the shell, not exec'd into it), so signalling only the
+      // shell's own pid leaves that grandchild running past the timeout.
+      detached: process.platform !== "win32",
     });
 
     const finish = (exitCode: number | undefined, extra: { spawnError?: string; terminatedBy?: string } = {}) => {
@@ -123,11 +128,33 @@ export async function runCommand(opts: CommandOptions): Promise<CommandOutcome> 
       });
     };
 
-    // SIGTERM first, then SIGKILL, so a shell that traps TERM cannot wedge a check.
+    // Signal the whole process group (negative pid), not just the shell - a
+    // plain child.kill() only reaches /bin/sh itself, and its real children
+    // (e.g. "sleep 30", forked rather than exec'd) survive it untouched.
+    // Falls back to child.kill() if the group is already gone or on win32,
+    // where process groups don't work this way.
+    const killGroup = (signal: NodeJS.Signals) => {
+      const pid = child.pid;
+      if (pid !== undefined && process.platform !== "win32") {
+        try {
+          process.kill(-pid, signal);
+          return;
+        } catch {
+          // group already reaped, or this process was never its own leader
+        }
+      }
+      try {
+        child.kill(signal);
+      } catch {
+        // already dead
+      }
+    };
+
+    // SIGTERM first, then SIGKILL, so a shell (or command) that traps TERM cannot wedge a check.
     const kill = () => {
-      child.kill("SIGTERM");
+      killGroup("SIGTERM");
       setTimeout(() => {
-        if (!settled) child.kill("SIGKILL");
+        if (!settled) killGroup("SIGKILL");
       }, 2000).unref?.();
     };
 
