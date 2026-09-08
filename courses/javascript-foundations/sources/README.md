@@ -20,3 +20,9 @@ source URL and licence note in its header.
 The tutor chunks and indexes `sources/**.md` in addition to the pack, and cites
 them as "JavaScript Foundations". Nothing here is rewritten or summarised: the
 grounding corpus has to be the real documentation, not a paraphrase of it.
+
+## Editor/IDE questions
+
+| File | Source |
+|---|---|
+| `vscode-terminal-basics.md` | [VS Code docs: Terminal Basics](https://code.visualstudio.com/docs/terminal/basics) - an excerpt (introduction and "opening a terminal"), fetched from `microsoft/vscode-docs` on 2026-09-08 and reproduced under **CC-BY 3.0 US**, Microsoft Corporation. Added so a question about the editor itself ("how do I open the terminal?") can ground on something, not just on course content about JavaScript. The same file is also indexed for `rust-foundations` and `cads-zero-foundations`. |
