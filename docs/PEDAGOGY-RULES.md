@@ -551,7 +551,7 @@ den Validator-Strang.
 | R4.2 | Rubrik/Fließtext-Überlappung geteilter Prosa > 40 % (bzw. > 28 % bei `analyze`/`evaluate`, nach Check-Bloom) ⇒ Befund (**umgesetzt**, `scripts/pedagogy-metrics.py`) |
 | R4.2a | Eintrag in `EXCEPT_R42` ohne Grund ⇒ Fehler (**umgesetzt**); Ausnahme oberhalb `understand` ⇒ bislang nur Warnung, siehe Nachtrag unten |
 | R4.1 | Prompt mit ≥ 2 Fragezeichen oder > 40 Wörtern ⇒ Warnung (**umgesetzt**) |
-| R5.1 | Überlappung `hints[2]` mit der Rubrik > 30 % ⇒ Warnung |
+| R5.1 | Überlappung `hints[2]` mit der Rubrik > 30 % ⇒ Warnung (**umgesetzt**) |
 | R5.3 | Task ohne `socratic`-Eintrag ⇒ Warnung (**umgesetzt**) |
 | R7.5 | Modul ohne `predict` ⇒ Warnung (**umgesetzt**) |
 | R10.3 | DE/EN mit ungleicher Abschnitts- oder Aufgabenmenge ⇒ Fehler |

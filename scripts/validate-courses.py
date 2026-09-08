@@ -473,6 +473,17 @@ def _words(text):
     return [w for w in re.findall(r"[\w]+", text.lower()) if len(w) > 2]
 
 
+def _overlap_pct(text, base):
+    """What fraction of BASE's distinct words also appear in `text`, as a
+    percent - R5.1's "hints[2] overlaps the rubric": how much of the rubric's
+    content the hint already gave away, not the reverse."""
+    bt = set(_words(base))
+    if not bt:
+        return 0.0
+    tt = set(_words(text))
+    return len(tt & bt) / len(bt) * 100
+
+
 def _same_sentence(a, b):
     """True when recover: only repeats expect: instead of saying what to do."""
     na, nb = " ".join(_words(a)), " ".join(_words(b))
@@ -1594,6 +1605,7 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
                 report.warn(where, f"expected 1-3 tasks, found {len(tasks)}")
             step_check_types = set()
             task_ids = set()
+            task_rubrics = {}
             for task in tasks:
                 if not isinstance(task, dict):
                     report.error(where, f"malformed task entry: {task!r}")
@@ -1604,6 +1616,8 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
                     continue
                 report.checks += 1
                 task_ids.add(task.get("id"))
+                if isinstance(check.get("rubric"), str) and check["rubric"].strip():
+                    task_rubrics[task.get("id")] = check["rubric"]
                 ctype = validate_check(check, where, task.get("id"), report)
                 step_check_types |= _check_types(check)
                 if probes is not None and lang == "en" and probe_leaves(check):
@@ -1640,6 +1654,17 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
                         report.error(where, f"{what} trigger '{trig}' references unknown task '{m.group(2)}'")
                     elif m:
                         tasks_with_own_ladder.add(m.group(2))
+                        # R5.1: tier 3 is the decisive partial fact, never the
+                        # rubric restated - a hint this close to the rubric
+                        # leaves nothing for the student to still work out.
+                        rubric = task_rubrics.get(m.group(2))
+                        hints = entry.get("hints")
+                        if rubric and isinstance(hints, list) and len(hints) >= 3 and _is_localized(hints[2]):
+                            for lang3, h3 in _prompt_texts(hints[2]):
+                                pct = _overlap_pct(h3, rubric)
+                                if pct > 30:
+                                    tag = f" ({lang3})" if lang3 else ""
+                                    report.warn(where, f"{what} hints[2]{tag} overlaps the rubric {pct:.0f}% (over 30%) (R5.1)")
                     if trig.startswith("output:"):
                         _compile(trig[len("output:"):], where, f"{what} output trigger", report)
                         if not (step_check_types & {"command", "testSuite"}):
