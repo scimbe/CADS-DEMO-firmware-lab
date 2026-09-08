@@ -109,3 +109,16 @@ starten.
 | **Exakt prüfbar?** | Teilweise: Dass die Zeichenkette mit „Warteschlange"/„Wartenden" nur auf einem Pfad erscheint, auf dem tatsächlich gewartet wird, lässt sich im Test festhalten. Ob die neue Formulierung *stimmt*, entscheidet die Messung. |
 | **Stand** | Messung läuft (Relay-Antwort und gerendeter Text je Fall nebeneinander). Fix erst nach der Messung — die neue Formulierung muss gegen den beobachteten Text prüfbar sein. |
 | **Nebenbefund zur Arbeitsweise** | Ich hatte 68/20/48 Anfragen als Messung *unseres* Panels weitergegeben; es war der reine Relay-Test der llm2-Sitzung, unsere Seite hatte noch keine einzige Anfrage gefahren. Die Tutor-Sitzung hat nachgefragt statt den Bericht um eine fremde Zahl herum zu schreiben. Zahlen tragen ihre Herkunft, sonst tragen sie nichts. |
+
+### PB-07 — Ein Verbindungsabbruch umgeht den gesamten Notpfad
+
+| | |
+|---|---|
+| **Ort** | `extensions/cads-tutor/src/llmClient.ts:144-149` |
+| **Beobachtung** | `post()` fängt genau eine Sache ab: den eigenen `AbortError` bei Zeitüberschreitung. Alles andere fliegt roh weiter. Ein Abbruch auf Socketebene (`UND_ERR_SOCKET`, keine HTTP-Antwort, kein 429) wird damit **nicht wiederholt** und ist **kein `LlmRateLimitError`** — und der gesamte Notpfad hängt an genau diesem Fehlertyp: Warteschlangenmeldung, 20-Sekunden-Fluchtweg, Rückfall auf Selbstkontrolle. |
+| **Wann das eintritt** | Beim Lastversuch am 08.09.2026 brachen Verbindungen oberhalb von etwa sechs gleichzeitigen auf Socketebene ab, bevor überhaupt eine HTTP-Antwort kam. In einem Hörsaal heißt das: Ab der siebten gleichzeitigen Anfrage sieht der Studierende einen rohen Fehler statt „das Modell ist gerade beschäftigt" — der Rückfall, der genau für diesen Moment gebaut wurde, läuft nie. |
+| **Warum das schwerer wiegt als die Grenze selbst** | Wo die Grenze sitzt (Relay, Tunnel, Client), ist noch offen und gehört anderen. Dass wir sie ungefedert an den Studierenden durchreichen, gehört uns und ist unabhängig davon zu beheben. |
+| **Fixrichtung** | Einen Verbindungsfehler behandeln wie das, was er aus Sicht des Studierenden ist: Das Modell ist gerade nicht erreichbar. Einmal mit kurzer Pause wiederholen, bei Fortbestehen über denselben Pfad wie eine Ratenbegrenzung melden, damit der Rückfall greift. **Nicht** stillschweigend schlucken: Das Protokoll muss weiterhin sagen, dass es ein Socketfehler war, sonst verlieren wir die Unterscheidung „beschäftigt" gegen „kaputt". |
+| **Schweregrad** | blockiert |
+| **Exakt prüfbar?** | Ja, im Test: erster Versuch scheitert am Socket und die Wiederholung gelingt; beide scheitern und der Studierende landet im Rückfall. |
+| **Offen, nicht bei uns** | Die Grenze selbst. Die gemessenen Zahlen (n=6 → 6/6, n=7 → 2/7, n=8 → 6/8, n=10 → 6/10) tragen **keine** saubere Schranke bei sechs — bei einer konfigurierten Grenze müssten bei n=7 sechs durchkommen, nicht zwei. Vor der Meldung an die Gegenseite jedes n dreimal wiederholen; eine falsche Konstante kostet den Empfänger einen Nachmittag in der falschen Datei. |
