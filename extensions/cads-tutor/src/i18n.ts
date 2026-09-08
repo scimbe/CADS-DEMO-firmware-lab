@@ -136,9 +136,13 @@ export const UI = {
     selfCheckConfirm: "I have compared my answer with this",
     selfReportedBadge: "self-assessed",
     selfReportedNote: "Self-assessed tasks count towards finishing the step, but not towards the mastery shown in Progress.",
-    // The model answers one request at a time; a burst of students land in its queue.
-    gradingWait: "Grading is queued - requests are handled one at a time, not lost.",
-    gradingWaitPosition: (position: number, length: number) => `You are number ${position} of ${length} waiting.`,
+    // Shown the moment a grading starts, before any answer exists - so it may only
+    // say what is known then. It used to promise "queued ... not lost", which is
+    // false for every request the shim refuses outright (PB-06).
+    // NOTE: gradingWaitPosition is re-templated in webview.ts by replacing the
+    // literals 1 and 2 - it must contain no other digits, and position before length.
+    gradingWait: "Grading is running - the model answers one request at a time.",
+    gradingWaitPosition: (position: number, length: number) => `The model is busy: you would be number ${position} of ${length}.`,
     gradingElapsed: (seconds: number) => `Waiting: ${seconds}s`,
     gradingGiveUp: "Don't wait - check it yourself",
     gradingGivenUp: "You chose not to wait for the model. Compare your answer with the rubric yourself.",
@@ -349,8 +353,9 @@ export const UI = {
     selfCheckConfirm: "Ich habe meine Antwort damit verglichen",
     selfReportedBadge: "selbst eingeschätzt",
     selfReportedNote: "Selbst eingeschätzte Aufgaben zählen für den Abschluss des Schritts, aber nicht für die im Fortschritt angezeigte Beherrschung.",
-    gradingWait: "Die Bewertung steht in einer Warteschlange - Anfragen werden nacheinander bearbeitet, nicht verworfen.",
-    gradingWaitPosition: (position: number, length: number) => `Du bist Nummer ${position} von ${length} Wartenden.`,
+    // Siehe die englische Fassung: Der Satz erscheint, bevor eine Antwort da ist.
+    gradingWait: "Die Bewertung läuft - das Modell beantwortet eine Anfrage nach der anderen.",
+    gradingWaitPosition: (position: number, length: number) => `Das Modell ist ausgelastet: du wärst Nummer ${position} von ${length}.`,
     gradingElapsed: (seconds: number) => `Wartezeit: ${seconds}s`,
     gradingGiveUp: "Nicht warten - selbst prüfen",
     gradingGivenUp: "Du hast dich entschieden, nicht auf das Modell zu warten. Vergleiche deine Antwort selbst mit der Rubrik.",
