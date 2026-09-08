@@ -41,7 +41,10 @@ describe("real course packs", { skip: REAL.length === 0 ? "courses/ not present"
             llmConfigured: false, bridgeAvailable: false, scaffold: meta.scaffold, hasBoard: false,
           };
           const page = renderStepHtml(view, "vscode-webview://x", "N");
-          assert.match(page, /<h1 id="step-title">/);
+          // The heading now carries the step identity as data, because the title
+          // itself is translated and cannot identify a step across languages.
+          assert.match(page, /<h1 id="step-title"[^>]*>/);
+          assert.match(page, new RegExp(`data-step-id="${step.id}"`), `${step.id}.${lang}: heading carries its own step id`);
         }
         // Every socratic trigger references a task of the step (or an event / *).
         for (const s of step.variants.en!.meta.socratic) {

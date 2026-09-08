@@ -767,7 +767,12 @@ export function renderStepHtml(view: StepView, cspSource: string, scriptNonce: s
     ${renderNextAction(view)}
   </div>
   <div class="scroll-area">
-  <h1 id="step-title">${escapeHtml(view.title)}</h1>
+  <!-- The step id, machine-readable. The title is the only other identity the DOM
+       carries and it is TRANSLATED, so anything checking which step is on screen -
+       a support question, a driver, a verification run - has to compare against a
+       different string per language. Two hours went into a wrong step id today.
+       Not shown to anyone; read with document.getElementById("step-title").dataset.stepId. -->
+  <h1 id="step-title" data-step-id="${escapeHtml(view.stepId)}" data-course-id="${escapeHtml(view.courseId)}">${escapeHtml(view.title)}</h1>
   <div class="meta">
     <span class="meta-item bloom" title="${s.bloom}">${escapeHtml(s.bloom)}: ${escapeHtml(s.bloomLabel[view.bloom])}</span>
     <span class="meta-item scaffold scaffold-${view.scaffold}" title="${escapeHtml(s.scaffoldHint[view.scaffold])}">${escapeHtml(s.scaffold[view.scaffold])}</span>

@@ -232,6 +232,18 @@ describe("A9.4: header, progress and the one next action", () => {
   // computed but never delivered is the exact failure the reflection card had:
   // every part right, nothing on screen. renderRecall was covered, the container's
   // position was covered - that the card ends up INSIDE the container was not.
+  // Which step is on screen must be readable without parsing translated text.
+  it("carries the step and course id as data attributes, not only the translated title", () => {
+    const de = renderStepHtml(baseView({ lang: "de" }), "cs", "N");
+    const en = renderStepHtml(baseView({ lang: "en" }), "cs", "N");
+    for (const html of [de, en]) {
+      const m = /<h1 id="step-title" data-step-id="([^"]*)" data-course-id="([^"]*)"/.exec(html);
+      assert.ok(m, "the heading must carry both ids");
+      assert.equal(m![1], baseView({}).stepId);
+      assert.equal(m![2], baseView({}).courseId);
+    }
+  });
+
   it("puts the recall card inside #recall-area, not just the empty container", () => {
     const area = (html: string): string => /<div id="recall-area">([\s\S]*?)<\/div>\s*<div id="reflection-area">/.exec(html)?.[1] ?? "MISSING";
     const withCard = renderStepHtml(
