@@ -33,7 +33,13 @@ services:
     # rather than assumed.
     # TUTOR_LAB_IMAGE is parameterised only so a rollback can pin the exact
     # image that was running, by id, even if its tag has moved since.
-    image: ${TUTOR_LAB_IMAGE:-ghcr.io/scimbe/cads-tutor-lab}:${TUTOR_LAB_TAG:-next-b5f435f}
+    # REQUIRED, like the volume name below and for the same reason: a default
+    # here ages. This literal said next-b5f435f (2026-09-06) while the lab had
+    # long been running next-aa5e0e6 (2026-09-07), so anyone deploying without
+    # TUTOR_LAB_TAG set would have silently shipped a two-day-old image, and a
+    # session measuring against the "compose default" would have measured the
+    # wrong build. deploy.sh already dies with a usable message when it is unset.
+    image: ${TUTOR_LAB_IMAGE:-ghcr.io/scimbe/cads-tutor-lab}:${TUTOR_LAB_TAG:?set TUTOR_LAB_TAG - the tag to deploy, e.g. next-<shortsha>; never let compose pick a stale one}
     container_name: ${TUTOR_LAB_CONTAINER:-tutor-lab}
     restart: unless-stopped
     environment:

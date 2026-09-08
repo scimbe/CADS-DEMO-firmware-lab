@@ -94,11 +94,10 @@ fi
 [ -f "$HERE/.env" ] || say "no .env - taking every value from the environment"
 
 if [ -z "$TAG" ]; then
-    # Not an error: compose.yml carries a default. Name it, so the log says
-    # which image this run deployed.
-    TAG="$(TUTOR_LAB_PASSWORD=x compose config 2>/dev/null | sed -n 's#.*image: .*cads-tutor-lab:\(.*\)#\1#p' | head -1)"
-    [ -n "$TAG" ] || die "no TUTOR_LAB_TAG in .env and no default in compose.yml"
-    say "no TUTOR_LAB_TAG set, using the compose default: $TAG"
+    # compose.yml deliberately carries NO default any more: a hardcoded tag ages
+    # in place, and an unset variable then deploys whatever was current when
+    # somebody last edited the file. Say what to do instead of guessing.
+    die "no TUTOR_LAB_TAG: put it in .env, or run TUTOR_LAB_TAG=next-<shortsha> ./deploy.sh, or pass --tag. There is no default on purpose - a default tag ages and would ship an old image silently."
 fi
 case "$TAG" in
     next|latest|main|"")
