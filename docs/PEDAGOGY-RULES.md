@@ -553,7 +553,7 @@ den Validator-Strang.
 | R4.1 | Prompt mit ≥ 2 Fragezeichen oder > 40 Wörtern ⇒ Warnung (**umgesetzt**) |
 | R5.1 | Überlappung `hints[2]` mit der Rubrik > 30 % ⇒ Warnung |
 | R5.3 | Task ohne `socratic`-Eintrag ⇒ Warnung (**umgesetzt**) |
-| R7.5 | Modul ohne `predict` ⇒ Warnung |
+| R7.5 | Modul ohne `predict` ⇒ Warnung (**umgesetzt**) |
 | R10.3 | DE/EN mit ungleicher Abschnitts- oder Aufgabenmenge ⇒ Fehler |
 | R1.5 | mehr als drei Tasks je Step ⇒ Warnung (**umgesetzt**) |
 | R1.4 | Fließtext über 900 Wörter (EN 990), ohne `::: do`-Blöcke ⇒ Warnung (**umgesetzt**) |

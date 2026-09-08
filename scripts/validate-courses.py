@@ -1443,6 +1443,7 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
     # checks declare, and that route is just as real.
     recall_sources = set()
     known_tasks, known_commands, step_titles = set(), set(), set()
+    steps_with_predict = set()  # R7.5: every module needs at least one predict task
     # One node call for the whole directory rather than one per file.
     preload_front_matter([
         os.path.join(steps_dir, f"{sid}.{lang}.md")
@@ -1655,6 +1656,8 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
                     report.warn(where, f"task '{tid}' has no socratic entry of its own (task:{tid}:... or question:{tid}:...) - it shares whatever step-wide trigger exists, if any (R5.3)")
             if misconceptions and not (step_check_types & {"command", "testSuite"}):
                 report.warn(where, "misconceptions declared but no command/testSuite task produces output to match")
+            if "predict" in step_check_types:
+                steps_with_predict.add(sid)
             # A9.1: instruction blocks, and the call to action that escaped one.
             rule4_hits[(sid, lang)] = validate_do_blocks(where, sid, body, root, known, report)
             # R1.4: past the reading break, more explanation stops working.
@@ -1691,6 +1694,16 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
             f"or the probe is weaker on one of them - a bilingual course checked on one side "
             f"only reports a clean half that nobody looked at.",
         )
+
+    # R7.5: a module without any predict task gives no step where a student
+    # commits to an answer before seeing it - the module's own steps ran, but
+    # none of them exercised that particular kind of check.
+    for mod in manifest.get("modules") or []:
+        if not isinstance(mod, dict):
+            continue
+        mod_steps = [s for s in (mod.get("steps") or []) if isinstance(s, str)]
+        if mod_steps and not (set(mod_steps) & steps_with_predict):
+            report.warn(f"{name}/course.json modules[{mod.get('id', '?')}]", "no step in this module has a 'predict' task (R7.5)")
 
     # Only enforce full checks once (avoid double-counting de/en): dedupe handled
     # by iterating both, which is intentional - both files must be schema-valid.
