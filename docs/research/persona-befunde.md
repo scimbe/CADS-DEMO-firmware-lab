@@ -181,3 +181,13 @@ starten.
 | **Zustaendigkeit** | UDP/4433 muss zwischen Laborrechner und Kante offen sein. Welche Seite es verwirft, ist offen: Die Laborsitzung hat kein sudo fuer die eigene Firewall, die Kantensitzung kann ihre Seite sehen. **Eine Freigabe dieser Art ist eine Operator-Entscheidung, keine unsere.** |
 | **Schweregrad** | blockiert (Kursbetrieb mit mehreren Gleichzeitigen), und der Einstiegspunkt der Studierenden haengt mit dran |
 | **Was daraus folgt, unabhaengig vom Fix** | Ein Dienst, der 42 Prozent seiner Anmeldungen verliert, hat einen vollen Arbeitstag lang niemandem etwas gesagt. Was fehlt, ist nicht die Reparatur, sondern die **Meldung**: Wer diese Tunnel betreibt, braucht eine Ueberwachung, die auf die Flatterrate schaut und nicht auf eine Einzelabfrage - eine Einzelabfrage sagt hier auf Dauer "gesund". |
+
+#### PB-11, Nachtrag: wer nachsehen kann, hat nachgesehen - und wo es aufhoert
+
+| | |
+|---|---|
+| **Kantenseite geprueft (read-only)** | Der UDP-Port ist gebunden und lauscht (`ss -uln` zeigt `0.0.0.0:4433` und `[::]:4433`), die Portweitergabe des Behaelters gibt `4433/udp` frei. Anwendungsseitig ist dort nichts falsch konfiguriert. Ausserdem protokolliert die Kante im selben Zeitraum reichlich TCP-Verkehr auf 4433 mit `peer closed connection without sending TLS close_notify` - passend zu den Rueckfallversuchen der Agenten, aber ohne Aussage ueber UDP. |
+| **Wo es aufhoert** | Weder die Kantensitzung noch die Laborsitzung hat sudo. Damit ist **nicht** feststellbar, ob UDP/4433 am Laborrechner ausgehend, in der Cloud-Sicherheitsgruppe oder an der Kante eingehend verworfen wird. Beide haben das gesagt, statt zu raten. |
+| **Der Kontrollversuch, der die Frage ohne sudo entscheiden kann** | Der Services-Host betreibt einen eigenen `ct-agent` fuer `firmware-lab-34a13a96` - genau unser sauberes Kontrollziel, 10/10 dreimal, mit stabiler Anmeldung im selben Zeitfenster. Meldet sich **dieser** Agent per UDP/QUIC an, dann nimmt die Kante UDP an und das Problem liegt am Laborrechner. Steckt auch er im TCP-Rueckfall und ist nur stabiler, aendert sich das Bild vollstaendig. Angefragt, read-only, ohne Neustart - ein Neustart wuerde genau den Beleg zerstoeren. |
+| **Unterschiedliche Schwere je Tunnel** | `llm-34a13a96`: durchgehender Ausfall ueber mehr als zwoelf Stunden, keine Luecken. `tutor-lab-34a13a96`: dieselbe Fehlermeldung, aber **135 Vorkommen in 24 Stunden mit stundenlangen Pausen** - echtes Flattern, kein Dauerausfall. Beides real, das erste ungleich schlimmer. |
+| **Vorgang** | Als CADS-Tunnel#799 mit der vollstaendigen Kette abgelegt, damit die Firewall-Frage den Operator mit Zusammenhang erreicht und nicht als Bruchstueck. |
