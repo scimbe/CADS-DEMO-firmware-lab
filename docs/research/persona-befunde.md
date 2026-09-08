@@ -95,3 +95,17 @@ starten.
 | **Kandidat für die Behebung** | Wenn das Experiment die Hypothese stützt: die Reihenfolge im Poller umdrehen (erst Programmzähler, dann Haltegrund) **und** die Antwortlänge des Schreibbefehls prüfen. Die Reihenfolge allein wäre eine Umgehung; sie behebt den Fall, aber nicht die Klasse. |
 | **Schweregrad** | verfälscht die Bewertung (nicht mehr: die Wirkung ist gefiltert) — aber ein Treiber, der einen falschen Programmzähler liefern kann, tut es irgendwann an einer Stelle, an der es niemand filtert. |
 | **Stand** | Offen, wartet auf das nächste Hardware-Fenster. Nicht dringend, seit `10497cb` nichts mehr darauf reagiert. |
+
+### PB-06 — Das Panel verspricht einer abgewiesenen Anfrage einen Platz in einer Warteschlange, die es nicht gibt
+
+| | |
+|---|---|
+| **Ort** | `extensions/cads-tutor/src/i18n.ts:140-141` (en) und `:352-353` (de), gespeist aus `llmClient.ts:160` und `webview.ts:971`. |
+| **Vertrag der Gegenseite** (im Code der Relay-Sitzung geprüft, nicht aus dem Gedächtnis) | Bei `reason: "queue_full"` sendet der Relay **beide** Kopfzeilen `X-Queue-Position` und `X-Queue-Length` — auch bei sofortiger Ablehnung. Bei `reason: "per_user"` nur `X-Queue-Length`. Entscheidend: **Bei einer Ablehnung wird niemand eingereiht.** Die Position bedeutet „wärst du in diesem Augenblick hineingekommen, wärst du Nummer X gewesen" — eine kontrafaktische Momentaufnahme, kein laufender Platz. |
+| **Was das Panel daraus macht** | „Die Bewertung steht in einer Warteschlange – Anfragen werden nacheinander bearbeitet, **nicht verworfen**." und „Du bist Nummer 7 von 12 **Wartenden**." |
+| **Warum das schlimmer ist als eine Ungenauigkeit** | Drei Aussagen auf einmal falsch, und die mittlere ist ein **Versprechen**: Die Anfrage wurde sehr wohl verworfen. Der Studierende wartet auf einen Platz, den niemand für ihn freihält. Dieselbe Form wie PB-01 und PB-02 — eine selbstsichere Anzeige für etwas, das das System nicht tut. |
+| **Entscheidung** | **Kein Vertragswechsel.** Sofortige Ablehnung ist das bessere Verhalten: „jetzt nicht, in N Sekunden wieder" schlägt einen Wartekringel, und eine echte Warteschlange erkaufte den Platz mit gehaltenen Verbindungen. Wir lesen Position/Länge als **Auslastungsangabe**, nicht als Platz, und formulieren entsprechend. Das Versprechen „nicht verworfen" verschwindet vom Ablehnungspfad. |
+| **Schweregrad** | blockiert (der Studierende wartet auf etwas, das nicht kommt) |
+| **Exakt prüfbar?** | Teilweise: Dass die Zeichenkette mit „Warteschlange"/„Wartenden" nur auf einem Pfad erscheint, auf dem tatsächlich gewartet wird, lässt sich im Test festhalten. Ob die neue Formulierung *stimmt*, entscheidet die Messung. |
+| **Stand** | Messung läuft (Relay-Antwort und gerendeter Text je Fall nebeneinander). Fix erst nach der Messung — die neue Formulierung muss gegen den beobachteten Text prüfbar sein. |
+| **Nebenbefund zur Arbeitsweise** | Ich hatte 68/20/48 Anfragen als Messung *unseres* Panels weitergegeben; es war der reine Relay-Test der llm2-Sitzung, unsere Seite hatte noch keine einzige Anfrage gefahren. Die Tutor-Sitzung hat nachgefragt statt den Bericht um eine fremde Zahl herum zu schreiben. Zahlen tragen ihre Herkunft, sonst tragen sie nichts. |
