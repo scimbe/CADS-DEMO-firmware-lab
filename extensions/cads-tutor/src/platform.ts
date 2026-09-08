@@ -530,7 +530,11 @@ function walkMarkdown(dir: string): string[] {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, e.name);
     if (e.isDirectory()) out.push(...walkMarkdown(p));
-    else if (e.isFile() && /\.md$/i.test(e.name)) out.push(p);
+    // README.md describes what a sources/ folder contains, for the humans
+    // maintaining it - not grounding material. Indexing it let a question
+    // closely matching the README's OWN description of a file (rather than
+    // the file's content) win the retrieval match against the real source.
+    else if (e.isFile() && /\.md$/i.test(e.name) && !/^readme\.md$/i.test(e.name)) out.push(p);
   }
   return out.sort();
 }
