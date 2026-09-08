@@ -122,3 +122,18 @@ starten.
 | **Schweregrad** | blockiert |
 | **Exakt prüfbar?** | Ja, im Test: erster Versuch scheitert am Socket und die Wiederholung gelingt; beide scheitern und der Studierende landet im Rückfall. |
 | **Offen, nicht bei uns** | Die Grenze selbst. Die gemessenen Zahlen (n=6 → 6/6, n=7 → 2/7, n=8 → 6/8, n=10 → 6/10) tragen **keine** saubere Schranke bei sechs — bei einer konfigurierten Grenze müssten bei n=7 sechs durchkommen, nicht zwei. Vor der Meldung an die Gegenseite jedes n dreimal wiederholen; eine falsche Konstante kostet den Empfänger einen Nachmittag in der falschen Datei. |
+
+### PB-08 — Der Arbeitsbereich wird einmal befüllt und nie wieder aktualisiert
+
+| | |
+|---|---|
+| **Ort** | `image/entrypoint.d/10-seed-workspace.sh`, `seed_workspace()` |
+| **Beobachtung** | `seed_workspace()` bricht ab, sobald `$WS/.git` existiert („workspace exists, keeping it"). Auf dem Services-Host gemessen: Der laufende Arbeitsbereich steht auf `e882fab`, das frische Abbild bringt in `/opt/cads-seed/cads-zero` korrekt `a4ebc909` mit. Das Abbild ist also richtig — es erreicht den Arbeitsbereich nur nie. |
+| **Was das bedeutet** | **Jede Korrektur auf der Firmware-Seite erreicht nur Umgebungen, deren Datenträger nach der Korrektur angelegt wurde.** Wer im September anfängt, behält einen September-Stand für immer, während der Kurstext um ihn herum weiter aktualisiert wird. Nur `.vscode/*` wird bei jedem Start neu geschrieben — der Kommentar dort sagt ausdrücklich „so image updates reach existing workspaces", die Lücke war also bekannt und nur für diese vier Dateien geschlossen. |
+| **Wie es aufgefallen ist** | Beim Rollout von `next-895faf3`: Die beiden Prüfungen, die ich statt eines Tag-Vergleichs verlangt hatte, schlugen fehl — und die Services-Sitzung hat die Ursache gesucht, bevor sie berichtete. Ein reiner Digest-gegen-Tag-Vergleich hätte „erfolgreich ausgeliefert" gemeldet. |
+| **Sofortige Verschärfung durch diese Auslieferung** | Der Kurstext dieses Abbilds verspricht `| sent: quit`, während ein alter Arbeitsbereich weiterhin das Skript trägt, das nur „no ST-Link VCP found" sagen kann. Neues Versprechen, altes Verhalten — dieselbe Form wie PB-01, diesmal von uns erzeugt, weil Text und Skript in verschiedenen Schichten liegen. |
+| **Sofortmaßnahme (kein Löschen)** | Drei Dateien einzeln aus `/opt/cads-seed/cads-zero/scripts/` überschreiben, und nur, wenn `git status --porcelain` sie als unverändert ausweist. Kein `git reset`, kein `checkout`, kein Wischen des Datenträgers — dort liegt möglicherweise die einzige Kopie fremder Arbeit. Der `HEAD` bleibt danach ehrlich alt. |
+| **Entwurf für die dauerhafte Lösung** | Nicht „immer überschreiben" und nicht „nie anfassen", sondern **nur anfassen, was nachweislich unberührt ist**: beim Start die Blobs des alten und des neuen Seeds vergleichen und genau die Dateien aktualisieren, die (a) sich zwischen altem und neuem Seed unterscheiden **und** (b) im Arbeitsbereich bitgleich mit dem alten Seed sind. Alles andere bleibt liegen und wird gemeldet, nicht überschrieben. Dazu gehört ein Vermerk im Arbeitsbereich, welcher Seed-Commit zuletzt angewandt wurde — ohne den ist (a) nicht entscheidbar. Wo eine Datei abweicht, sieht der Studierende einen Hinweis statt einer stillen Änderung. |
+| **Schweregrad** | blockiert |
+| **Exakt prüfbar?** | Ja, und das ist die eigentliche Lehre: Ein Deploy gilt erst als geprüft, wenn **im laufenden Behälter** nachgesehen wurde, nicht wenn Tag und Digest zusammenpassen. Das Abbild war die ganze Zeit richtig. |
+| **Stand** | Sofortmaßnahme läuft auf dem Services-Host. Dauerhafte Lösung offen. |
