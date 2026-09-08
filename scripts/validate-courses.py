@@ -1658,6 +1658,12 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
                 report.warn(where, "misconceptions declared but no command/testSuite task produces output to match")
             if "predict" in step_check_types:
                 steps_with_predict.add(sid)
+            # R2.1: a step claiming apply or higher needs a check that actually
+            # exercises that level - a question task alone is self-report/LLM
+            # judgment, never evidence of apply/analyze/evaluate/create (R11a.8).
+            executable_types = step_check_types - {"question", "manual", "all", "any"}
+            if fm.get("bloom") in ("apply", "analyze", "evaluate", "create") and not executable_types:
+                report.warn(where, f"step claims bloom '{fm.get('bloom')}' but has no executable check (only {sorted(step_check_types) or 'none'}) (R2.1)")
             # A9.1: instruction blocks, and the call to action that escaped one.
             rule4_hits[(sid, lang)] = validate_do_blocks(where, sid, body, root, known, report)
             # R1.4: past the reading break, more explanation stops working.

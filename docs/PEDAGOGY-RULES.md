@@ -547,7 +547,7 @@ den Validator-Strang.
 | Regel | Prüfung |
 |---|---|
 | R2.2 | Front-Matter-`bloom` ≠ Check-`bloom` ohne Reflexionsbegründung ⇒ Warnung |
-| R2.1 | Step mit `bloom: apply` oder höher ohne ausführbaren Check ⇒ Warnung |
+| R2.1 | Step mit `bloom: apply` oder höher ohne ausführbaren Check ⇒ Warnung (**umgesetzt**) |
 | R4.2 | Rubrik/Fließtext-Überlappung geteilter Prosa > 40 % (bzw. > 28 % bei `analyze`/`evaluate`, nach Check-Bloom) ⇒ Befund (**umgesetzt**, `scripts/pedagogy-metrics.py`) |
 | R4.2a | Eintrag in `EXCEPT_R42` ohne Grund ⇒ Fehler (**umgesetzt**); Ausnahme oberhalb `understand` ⇒ bislang nur Warnung, siehe Nachtrag unten |
 | R4.1 | Prompt mit ≥ 2 Fragezeichen oder > 40 Wörtern ⇒ Warnung (**umgesetzt**) |
