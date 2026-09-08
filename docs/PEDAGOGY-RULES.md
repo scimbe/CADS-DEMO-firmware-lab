@@ -550,7 +550,7 @@ den Validator-Strang.
 | R2.1 | Step mit `bloom: apply` oder höher ohne ausführbaren Check ⇒ Warnung |
 | R4.2 | Rubrik/Fließtext-Überlappung geteilter Prosa > 40 % (bzw. > 28 % bei `analyze`/`evaluate`, nach Check-Bloom) ⇒ Befund |
 | R4.2a | Eintrag in `EXCEPT_R42` ohne Grund, oder Ausnahme oberhalb `understand` ⇒ Fehler |
-| R4.1 | Prompt mit ≥ 2 Fragezeichen oder > 40 Wörtern ⇒ Warnung |
+| R4.1 | Prompt mit ≥ 2 Fragezeichen oder > 40 Wörtern ⇒ Warnung (**umgesetzt**) |
 | R5.1 | Überlappung `hints[2]` mit der Rubrik > 30 % ⇒ Warnung |
 | R5.3 | Task ohne `socratic`-Eintrag ⇒ Warnung |
 | R7.5 | Modul ohne `predict` ⇒ Warnung |

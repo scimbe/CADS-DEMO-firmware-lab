@@ -1176,6 +1176,33 @@ def _relative_cwd_ok(cwd):
     return ".." not in re.split(r"[\\/]", cwd)
 
 
+def _prompt_texts(prompt):
+    """Yield (lang, text) for a prompt field - a {de, en} map or a plain string."""
+    if isinstance(prompt, str):
+        yield None, prompt
+    elif isinstance(prompt, dict):
+        for k in ("de", "en"):
+            v = prompt.get(k)
+            if isinstance(v, str) and v.strip():
+                yield k, v
+
+
+def _check_prompt_shape(prompt, label, where, report):
+    """R4.1: one question, about 25 words, one question mark. Two or more
+    question marks means the task asks more than one thing at once; over 40
+    words means the rubric will be judging something a student cannot hold
+    in view - both come back as a warning, not a hard failure, because a
+    borderline case may still be a good task."""
+    for lang, text in _prompt_texts(prompt):
+        tag = f" ({lang})" if lang else ""
+        qmarks = text.count("?")
+        if qmarks >= 2:
+            report.warn(where, f"{label}: prompt{tag} has {qmarks} question marks - one task should ask one thing (R4.1)")
+        n_words = len(re.findall(r"[A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9'-]*", text))
+        if n_words > 40:
+            report.warn(where, f"{label}: prompt{tag} is {n_words} words, over the 40-word limit (R4.1)")
+
+
 def validate_check(check, where, task_id, report, depth=0):
     """Schema of one check (Addendum v1.1 types included), recursing into
     all/any/predict.then. Returns the check type or None."""
@@ -1235,6 +1262,8 @@ def validate_check(check, where, task_id, report, depth=0):
     elif ctype == "predict":
         if not _is_localized(check.get("prompt")):
             report.error(where, f"{label}: predict needs 'prompt' ({{de, en}} or string)")
+        else:
+            _check_prompt_shape(check.get("prompt"), label, where, report)
         then = check.get("then")
         if not isinstance(then, dict):
             report.error(where, f"{label}: predict needs 'then' (the check that runs after the prediction)")
@@ -1257,6 +1286,8 @@ def validate_check(check, where, task_id, report, depth=0):
     elif ctype == "question":
         if not _is_localized(check.get("prompt")):
             report.error(where, f"{label}: question needs 'prompt'")
+        else:
+            _check_prompt_shape(check.get("prompt"), label, where, report)
         if not check.get("rubric"):
             report.error(where, f"{label}: question needs 'rubric'")
     elif ctype in ("all", "any"):
