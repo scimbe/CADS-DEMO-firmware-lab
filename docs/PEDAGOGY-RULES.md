@@ -554,7 +554,7 @@ den Validator-Strang.
 | R5.1 | Überlappung `hints[2]` mit der Rubrik > 30 % ⇒ Warnung (**umgesetzt**) |
 | R5.3 | Task ohne `socratic`-Eintrag ⇒ Warnung (**umgesetzt**) |
 | R7.5 | Modul ohne `predict` ⇒ Warnung (**umgesetzt**) |
-| R10.3 | DE/EN mit ungleicher Abschnitts- oder Aufgabenmenge ⇒ Fehler |
+| R10.3 | DE/EN mit ungleicher Abschnitts- oder Aufgabenmenge ⇒ Fehler (**umgesetzt**) |
 | R1.5 | mehr als drei Tasks je Step ⇒ Warnung (**umgesetzt**) |
 | R1.4 | Fließtext über 900 Wörter (EN 990), ohne `::: do`-Blöcke ⇒ Warnung (**umgesetzt**) |
 | R3.6 | Check-Typ nicht in `extensions/cads-tutor/src/types.ts` ⇒ Warnung (**umgesetzt**) |

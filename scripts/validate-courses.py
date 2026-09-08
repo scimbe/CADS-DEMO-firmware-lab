@@ -1503,6 +1503,7 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
     # difference means one half is being checked less than the other, which is
     # how a whole German half once read as clean because nobody had looked.
     rule4_hits = {}
+    task_counts, heading_counts = {}, {}  # R10.3: DE/EN must agree on how much there is
 
     # Validate each language file.
     for sid in sorted(all_ids):
@@ -1601,6 +1602,7 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
 
             # tasks
             tasks = fm.get("tasks") or []
+            task_counts[(sid, lang)] = len(tasks)
             if not (1 <= len(tasks) <= 3):
                 report.warn(where, f"expected 1-3 tasks, found {len(tasks)}")
             step_check_types = set()
@@ -1691,6 +1693,9 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
                 report.warn(where, f"step claims bloom '{fm.get('bloom')}' but has no executable check (only {sorted(step_check_types) or 'none'}) (R2.1)")
             # A9.1: instruction blocks, and the call to action that escaped one.
             rule4_hits[(sid, lang)] = validate_do_blocks(where, sid, body, root, known, report)
+            # R10.3: a markdown heading, outside fenced code (a commented-out
+            # heading in a code sample is not a real section).
+            heading_counts[(sid, lang)] = len(re.findall(r"^#{1,6}\s", re.sub(r"```.*?```", "", body, flags=re.S), re.M))
             # R1.4: past the reading break, more explanation stops working.
             n_prose = prose_word_count(body)
             prose_limit = PROSE_LIMIT.get(lang, PROSE_LIMIT["de"])
@@ -1725,6 +1730,17 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
             f"or the probe is weaker on one of them - a bilingual course checked on one side "
             f"only reports a clean half that nobody looked at.",
         )
+
+    # R10.3: DE and EN are independently authored files, not translations of
+    # a single source - so nothing keeps them in step by construction. A
+    # difference means one language has content, or a task, the other lacks.
+    for sid in sorted(all_ids):
+        tc_de, tc_en = task_counts.get((sid, "de")), task_counts.get((sid, "en"))
+        if tc_de is not None and tc_en is not None and tc_de != tc_en:
+            report.error(f"{name}/{sid}", f"DE has {tc_de} task(s), EN has {tc_en} (R10.3)")
+        hc_de, hc_en = heading_counts.get((sid, "de")), heading_counts.get((sid, "en"))
+        if hc_de is not None and hc_en is not None and hc_de != hc_en:
+            report.error(f"{name}/{sid}", f"DE has {hc_de} section heading(s), EN has {hc_en} (R10.3)")
 
     # R7.5: a module without any predict task gives no step where a student
     # commits to an answer before seeing it - the module's own steps ran, but
