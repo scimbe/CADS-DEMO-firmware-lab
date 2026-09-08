@@ -548,8 +548,8 @@ den Validator-Strang.
 |---|---|
 | R2.2 | Front-Matter-`bloom` ≠ Check-`bloom` ohne Reflexionsbegründung ⇒ Warnung |
 | R2.1 | Step mit `bloom: apply` oder höher ohne ausführbaren Check ⇒ Warnung |
-| R4.2 | Rubrik/Fließtext-Überlappung geteilter Prosa > 40 % (bzw. > 28 % bei `analyze`/`evaluate`, nach Check-Bloom) ⇒ Befund |
-| R4.2a | Eintrag in `EXCEPT_R42` ohne Grund, oder Ausnahme oberhalb `understand` ⇒ Fehler |
+| R4.2 | Rubrik/Fließtext-Überlappung geteilter Prosa > 40 % (bzw. > 28 % bei `analyze`/`evaluate`, nach Check-Bloom) ⇒ Befund (**umgesetzt**, `scripts/pedagogy-metrics.py`) |
+| R4.2a | Eintrag in `EXCEPT_R42` ohne Grund ⇒ Fehler (**umgesetzt**); Ausnahme oberhalb `understand` ⇒ bislang nur Warnung, siehe Nachtrag unten |
 | R4.1 | Prompt mit ≥ 2 Fragezeichen oder > 40 Wörtern ⇒ Warnung (**umgesetzt**) |
 | R5.1 | Überlappung `hints[2]` mit der Rubrik > 30 % ⇒ Warnung |
 | R5.3 | Task ohne `socratic`-Eintrag ⇒ Warnung |
@@ -558,6 +558,17 @@ den Validator-Strang.
 | R1.5 | mehr als drei Tasks je Step ⇒ Warnung (**umgesetzt**) |
 | R1.4 | Fließtext über 900 Wörter (EN 990), ohne `::: do`-Blöcke ⇒ Warnung (**umgesetzt**) |
 | R3.6 | Check-Typ nicht in `extensions/cads-tutor/src/types.ts` ⇒ Warnung (**umgesetzt**) |
+
+**Nachtrag zu R4.2a** — bei der Umsetzung geprüft und eine echte Luecke zwischen Regel und Praxis gefunden, keine
+im Code: `EXCEPT_R42["javascript-foundations"]["m6-04-concurrency"]["choose-combinator"]` steht bei Bloom
+`evaluate`, nicht `remember`/`understand`. Der Eintrag traegt einen echten, gemessenen Grund ("36.4 gegen 35 auf
+einem Rubric von 22 Inhaltswoertern... vier Neufassungen lagen zwischen 35.9 und 46.9") — aber dieser Grund ist
+keine "Nennung von Bildschirm-Artefakten auf remember/understand-Niveau", sondern ein Zweifel an der Messung
+selbst bei kurzen Rubrics. Das ist eine zweite, in R4.2a bisher nicht dokumentierte Ausnahmeklasse. `scripts/
+pedagogy-metrics.py` prueft die "kein Grund"-Haelfte hart (Fehler), meldet die "oberhalb understand"-Haelfte
+bisher nur als Warnung, gerade weil eine automatische Entscheidung hier falsch waere: entweder die Regel wird um
+diese Klasse ergaenzt, oder der Eintrag wird korrigiert — das ist eine Entscheidung fuer einen Menschen, nicht
+fuer den Validator.
 
 Zusätzlich empfohlen, weil beide Runden es gebraucht hätten: eine Warnung für jeden Backtick-Pfad im Fließtext,
 der im Projekt-Root nicht existiert und in keinem `creates:` steht — das hätte vier tote Verweise gefunden.

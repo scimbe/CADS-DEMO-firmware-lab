@@ -162,6 +162,57 @@ EXCEPT_R42 = {
         "believing the percentage.",
 }
 
+
+def _validate_except_r42():
+    """R4.2a, the unambiguous half: an exception needs a real reason. Runs on
+    every invocation, not only --selftest, so a bad entry fails the very next
+    validation rather than waiting for someone to remember to run the
+    self-test. Returns (errors, warnings).
+
+    The bloom half of R4.2a as documented ("only remember/understand may be
+    excused") is checked too, but only as a warning: the third entry below
+    (m6-04-concurrency/choose-combinator, bloom evaluate) is a real, already
+    -measured exception that does not fit that criterion - its argument is
+    that the overlap number itself is a short-rubric statistical artifact,
+    not that a high-bloom rubric is allowed to restate the body. That is a
+    real gap between the documented rule and actual practice, not a bug in
+    this check or in the pack - so it is surfaced, not silently hidden and
+    not force-broken by a rule that may itself be incomplete.
+    """
+    errors, warnings = [], []
+    for (ex_pack, ex_sid, ex_task), reason in EXCEPT_R42.items():
+        where = f"{ex_pack}/{ex_sid}/{ex_task}"
+        if not isinstance(reason, str) or not reason.strip():
+            errors.append(f"{where}: EXCEPT_R42 entry has no reason (R4.2a)")
+            continue
+        path = f"courses/{ex_pack}/steps/{ex_sid}.en.md"
+        if not os.path.exists(path):
+            errors.append(f"{where}: step file not found at {path}")
+            continue
+        fm = V.load_step(path)[0]
+        task = next((t for t in (fm.get("tasks") or []) if t.get("id") == ex_task), None)
+        if task is None:
+            errors.append(f"{where}: no task '{ex_task}' in {path}")
+            continue
+        cb = (task.get("check") or {}).get("bloom") or fm.get("bloom")
+        if cb not in ("remember", "understand"):
+            warnings.append(
+                f"{where}: exception at bloom '{cb}' - R4.2a as documented only allows "
+                f"remember/understand; this entry's own reason argues a different, "
+                f"undocumented exception class (see this function's docstring) - needs a "
+                f"human decision (fix the rule text, or fix the entry), not an automatic one"
+            )
+    return errors, warnings
+
+
+_r42a_errors, _r42a_warnings = _validate_except_r42()
+for _msg in _r42a_warnings:
+    print(f"WARN  {_msg}", file=sys.stderr)
+if _r42a_errors:
+    for _msg in _r42a_errors:
+        print(f"ERROR {_msg}", file=sys.stderr)
+    sys.exit(1)
+
 STOP=set("""a an the of to in on for and or is are be been was were it its this that these those with as at by from not no if then than so such can could may might must will would should do does did have has had you your yours we our they their them i me my one two three
 der die das den dem des ein eine einen einem eines und oder ist sind sein war waren es dies diese dieser dieses mit als bei von aus nicht kein keine wenn dann so auch noch nur schon man du dein deine dir dich wir uns sie ihr ihre ich mich mein meine kann können könnte muss müssen soll sollen wird werden wurde worden hat haben hatte zu im am um vom zum zur auf für dass ob wie was wer wo welche welcher welches""".split())
 # --prose only. The stop list above is asymmetric - its German half already
