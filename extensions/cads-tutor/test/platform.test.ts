@@ -46,6 +46,18 @@ describe("TutorPlatform", () => {
     assert.equal(p.knownObjective(["nope", "firmware-how-to-build"]), "firmware-how-to-build");
   });
 
+  it("a sources/ README.md is not indexed - it must not out-compete the content it describes", async () => {
+    // courses/_example/sources/README.md deliberately echoes this same query
+    // ("how do I build the firmware with cmake presets") in its own
+    // description text - exactly the shape of bug where the operator asked
+    // "wie starte ich den terminal?" and got cited to a README describing a
+    // VS Code doc excerpt, instead of the excerpt itself.
+    const p = new TutorPlatform({ course, packsDir: PACKS, studentId: "s1", memoryDir: tmp(), llm: null });
+    const citations = p.citationsFor("how do I build the firmware with cmake presets?");
+    assert.ok(citations.length > 0, "the real notes file must still ground this");
+    assert.ok(citations.every((c) => !/README\.md/i.test(c.url)), `no citation should come from a sources/ README.md, got: ${JSON.stringify(citations.map((c) => c.url))}`);
+  });
+
   it("R11a.8d: citationsFor() withholds a hit that is only function-word overlap, not a real match", async () => {
     // citationsFor() is the no-LLM path - the one this lab actually ran on until
     // today. A hit is not evidence of relevance just because BM25 returned one:
