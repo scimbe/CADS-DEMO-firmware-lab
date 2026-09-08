@@ -247,3 +247,14 @@ starten.
 | **Was nicht hielt, war die Formulierung** | "Ein starker Beleg **und** ein Abruf" laesst sich lesen, als sei der Abruf der starke Beleg - genau die Lesart, die der Code ausschliesst. Auf allen vier Seiten umformuliert: erst der Abruf, dann der zusaetzliche Beleg, mit dem Grund in einem Satz. |
 | **Gegenprobe auf derselben Seite** | Die Warteschlangen-Zusage derselben Seite hielt **nicht** und wurde heute korrigiert. Zwei Zusagen, eine Seite: eine bis auf den Buchstaben durchgesetzt, eine beschrieb eine Anzeige, die es nie gab. Auseinander hielt sie nur das Lesen des Codes. |
 | **Was PB-13 daran anschliesst** | Der Einfuege-Weg gelingt auf `remember`-Niveau. Damit ist die naechste Frage die tragende: **Laesst sich auch eine Abrufkarte so bestehen?** Wenn ja, ist "nachgewiesen" per Einfuegen erreichbar und diese Zusage ist trotz korrektem Code wertlos. Wenn nein, traegt sie. Das ist der Punkt, an dem das Kompetenzmodell steht oder faellt. |
+
+### PB-15 - Wie gross ist der Einfuege-Weg wirklich? Statisch ausgemessen
+
+| | |
+|---|---|
+| **Frage** | PB-13 zeigt, dass der Einfuege-Weg auf `remember`-Niveau gelingt. Wie viel des Kurses steht darauf, und - entscheidend - beruehrt es die Abrufkarten, an denen "nachgewiesen" haengt? |
+| **Alle Fragen nach Stufe** (126 `question`-Aufgaben, vier Pakete) | `analyze` 46, `understand` 29, `evaluate` 29, `apply` 13, `create` 6, **`remember` 3**. Nachschlage-formige Fragen (`remember` + `understand`) sind 32 von 126, und die niedrigen liegen fast alle in den m0-Modulen, wo sie hingehoeren. |
+| **Der Befund, der traegt** | Von den **99** Fragen, die als **Abrufquelle** dienen, ist **keine einzige** auf `remember`. Die drei nachweislich einfuegbaren Fragen sind also nirgends Abrufquelle - der demonstrierte Weg kann "nachgewiesen" **strukturell nicht** erzeugen. |
+| **Wo die Aussetzung wirklich liegt** | 28 der 99 Abrufquellen stehen auf `understand`. Das ist die offene Flanke, nicht `remember`. Namentlich u. a. `m0-03-first-test/read-the-test` (Rust), `m0-04-modules/named-vs-default` (JS), `m2-04-safety/protected-pins` (Firmware). |
+| **Folge fuer die Messung** | Der laufende Versuch prueft eine Abrufkarte, deren Quelle auf `analyze`/`evaluate` liegt - ein **harter** Fall. Haelt er, sagt das nichts ueber die 28 weichen. Ein zweiter, gezielter Versuch an einer `understand`-Quelle gehoert dazu, sonst misst man die Verteidigung an ihrer starken Seite. |
+| **Folge fuer das Regelwerk** | Die Belegtabelle gewichtet jede bestandene Verstaendnisfrage gleich ("mittel"), unabhaengig von ihrer Stufe. Eine Nachschlagefrage und eine Bewertungsfrage sind aber nicht derselbe Beleg. Zu klaeren, sobald die Messung sagt, wie gross die Klasse ist. |
