@@ -237,3 +237,13 @@ starten.
 | **Schweregrad** | verfälscht die Bewertung (bei `remember`-Aufgaben zaehlt "nachgewiesen", obwohl nichts verstanden werden musste) |
 | **Exakt pruefbar?** | Teilweise. Ob eine Antwort `hintTier` traegt, ist exakt pruefbar (das Feld existiert). Ob eine Frage *inhaltlich* reines Nachschlagen ist, nicht - das entscheidet nur Lesen/Bedienen je Aufgabe. |
 | **Stand** | Bestaetigt, einmal, am schwaechsten Fall. Naechster Schritt (nicht in diesem Durchlauf): Stichprobe weiterer `remember`/`understand`-Fragen, um die Groessenordnung der Klasse zu schaetzen - keine Vollerhebung ohne Grund, aber auch keine Verallgemeinerung von einem einzigen Fall. |
+
+### PB-14 - Kritischer Dozent, Punkt 4: haelt der Kurs, was die Bewertungsseite zusagt?
+
+| | |
+|---|---|
+| **Geprueft** | Die staerkste Zusage des Systems: "nachgewiesen = ein starker Beleg und ein bestandener Abruf aus einem **spaeteren** Modul". Gegen den Code gelesen, nicht gegen die Absicht. |
+| **Ergebnis: sie haelt** | `competenceLevel()` verlangt einen Abruf **und** einen starken Beleg, der nicht der Abruf ist (`session.ts:465-474`). Ein Abruf wird ueberhaupt nur verbucht, wenn das abrufende Modul **echt spaeter** liegt als das Quellmodul (`session.ts:411-413`: `here <= there` bricht ab). Durchgesetzt, nicht bloss behauptet. |
+| **Was nicht hielt, war die Formulierung** | "Ein starker Beleg **und** ein Abruf" laesst sich lesen, als sei der Abruf der starke Beleg - genau die Lesart, die der Code ausschliesst. Auf allen vier Seiten umformuliert: erst der Abruf, dann der zusaetzliche Beleg, mit dem Grund in einem Satz. |
+| **Gegenprobe auf derselben Seite** | Die Warteschlangen-Zusage derselben Seite hielt **nicht** und wurde heute korrigiert. Zwei Zusagen, eine Seite: eine bis auf den Buchstaben durchgesetzt, eine beschrieb eine Anzeige, die es nie gab. Auseinander hielt sie nur das Lesen des Codes. |
+| **Was PB-13 daran anschliesst** | Der Einfuege-Weg gelingt auf `remember`-Niveau. Damit ist die naechste Frage die tragende: **Laesst sich auch eine Abrufkarte so bestehen?** Wenn ja, ist "nachgewiesen" per Einfuegen erreichbar und diese Zusage ist trotz korrektem Code wertlos. Wenn nein, traegt sie. Das ist der Punkt, an dem das Kompetenzmodell steht oder faellt. |
