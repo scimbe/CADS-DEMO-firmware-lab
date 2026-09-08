@@ -1,0 +1,289 @@
+{
+  "baseUrlHost": "llm-34a13a96.bunsenbrenner.org",
+  "model": "local-devstral-small2",
+  "startedAtIso": "2026-09-08T06:54:55.450Z",
+  "totalDurationMs": 22785,
+  "bgCount": 24,
+  "bgAdmitted": 6,
+  "bgRefused": 18,
+  "bgRefusedByReason": {
+    "TypeError": 18
+  },
+  "primaryA": {
+    "studentId": "loadtest-primary-A",
+    "startedAt": 340,
+    "endedAt": 3410,
+    "ok": false,
+    "errorName": "TypeError",
+    "message": "fetch failed",
+    "events": []
+  },
+  "primaryA2": {
+    "studentId": "loadtest-primary-A",
+    "startedAt": 3411,
+    "endedAt": 6282,
+    "ok": true,
+    "content": "ok",
+    "events": [
+      {
+        "t_ms": 6282,
+        "attempt": 1
+      }
+    ]
+  },
+  "primaryB": {
+    "studentId": "loadtest-primary-B",
+    "startedAt": 22295,
+    "endedAt": 22784,
+    "ok": true,
+    "content": "ok",
+    "events": [
+      {
+        "t_ms": 22784,
+        "attempt": 1
+      }
+    ]
+  },
+  "bgResults": [
+    {
+      "studentId": "loadtest-bg-00",
+      "startedAt": 3,
+      "endedAt": 3319,
+      "ok": false,
+      "errorName": "TypeError",
+      "message": "fetch failed",
+      "events": []
+    },
+    {
+      "studentId": "loadtest-bg-01",
+      "startedAt": 34,
+      "endedAt": 3322,
+      "ok": false,
+      "errorName": "TypeError",
+      "message": "fetch failed",
+      "events": []
+    },
+    {
+      "studentId": "loadtest-bg-02",
+      "startedAt": 34,
+      "endedAt": 3326,
+      "ok": false,
+      "errorName": "TypeError",
+      "message": "fetch failed",
+      "events": []
+    },
+    {
+      "studentId": "loadtest-bg-03",
+      "startedAt": 34,
+      "endedAt": 3307,
+      "ok": false,
+      "errorName": "TypeError",
+      "message": "fetch failed",
+      "events": []
+    },
+    {
+      "studentId": "loadtest-bg-04",
+      "startedAt": 35,
+      "endedAt": 3275,
+      "ok": false,
+      "errorName": "TypeError",
+      "message": "fetch failed",
+      "events": []
+    },
+    {
+      "studentId": "loadtest-bg-05",
+      "startedAt": 35,
+      "endedAt": 1720,
+      "ok": true,
+      "content": "ok",
+      "events": [
+        {
+          "t_ms": 1720,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-bg-06",
+      "startedAt": 36,
+      "endedAt": 3310,
+      "ok": false,
+      "errorName": "TypeError",
+      "message": "fetch failed",
+      "events": []
+    },
+    {
+      "studentId": "loadtest-bg-07",
+      "startedAt": 36,
+      "endedAt": 3282,
+      "ok": false,
+      "errorName": "TypeError",
+      "message": "fetch failed",
+      "events": []
+    },
+    {
+      "studentId": "loadtest-bg-08",
+      "startedAt": 36,
+      "endedAt": 1689,
+      "ok": true,
+      "content": "ok",
+      "events": [
+        {
+          "t_ms": 1634,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-bg-09",
+      "startedAt": 37,
+      "endedAt": 3314,
+      "ok": false,
+      "errorName": "TypeError",
+      "message": "fetch failed",
+      "events": []
+    },
+    {
+      "studentId": "loadtest-bg-10",
+      "startedAt": 37,
+      "endedAt": 3294,
+      "ok": false,
+      "errorName": "TypeError",
+      "message": "fetch failed",
+      "events": []
+    },
+    {
+      "studentId": "loadtest-bg-11",
+      "startedAt": 37,
+      "endedAt": 1561,
+      "ok": true,
+      "content": "ok",
+      "events": [
+        {
+          "t_ms": 1561,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-bg-12",
+      "startedAt": 38,
+      "endedAt": 3274,
+      "ok": false,
+      "errorName": "TypeError",
+      "message": "fetch failed",
+      "events": []
+    },
+    {
+      "studentId": "loadtest-bg-13",
+      "startedAt": 38,
+      "endedAt": 1535,
+      "ok": true,
+      "content": "ok",
+      "events": [
+        {
+          "t_ms": 1476,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-bg-14",
+      "startedAt": 38,
+      "endedAt": 3278,
+      "ok": false,
+      "errorName": "TypeError",
+      "message": "fetch failed",
+      "events": []
+    },
+    {
+      "studentId": "loadtest-bg-15",
+      "startedAt": 38,
+      "endedAt": 1403,
+      "ok": true,
+      "content": "ok",
+      "events": [
+        {
+          "t_ms": 1402,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-bg-16",
+      "startedAt": 38,
+      "endedAt": 3289,
+      "ok": false,
+      "errorName": "TypeError",
+      "message": "fetch failed",
+      "events": []
+    },
+    {
+      "studentId": "loadtest-bg-17",
+      "startedAt": 38,
+      "endedAt": 3287,
+      "ok": false,
+      "errorName": "TypeError",
+      "message": "fetch failed",
+      "events": []
+    },
+    {
+      "studentId": "loadtest-bg-18",
+      "startedAt": 39,
+      "endedAt": 3296,
+      "ok": false,
+      "errorName": "TypeError",
+      "message": "fetch failed",
+      "events": []
+    },
+    {
+      "studentId": "loadtest-bg-19",
+      "startedAt": 39,
+      "endedAt": 1340,
+      "ok": true,
+      "content": "ok",
+      "events": [
+        {
+          "t_ms": 1337,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-bg-20",
+      "startedAt": 39,
+      "endedAt": 3300,
+      "ok": false,
+      "errorName": "TypeError",
+      "message": "fetch failed",
+      "events": []
+    },
+    {
+      "studentId": "loadtest-bg-21",
+      "startedAt": 39,
+      "endedAt": 3277,
+      "ok": false,
+      "errorName": "TypeError",
+      "message": "fetch failed",
+      "events": []
+    },
+    {
+      "studentId": "loadtest-bg-22",
+      "startedAt": 39,
+      "endedAt": 3293,
+      "ok": false,
+      "errorName": "TypeError",
+      "message": "fetch failed",
+      "events": []
+    },
+    {
+      "studentId": "loadtest-bg-23",
+      "startedAt": 39,
+      "endedAt": 3306,
+      "ok": false,
+      "errorName": "TypeError",
+      "message": "fetch failed",
+      "events": []
+    }
+  ]
+}

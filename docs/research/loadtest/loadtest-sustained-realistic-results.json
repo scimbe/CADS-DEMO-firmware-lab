@@ -1,0 +1,1481 @@
+{
+  "summary": {
+    "concurrency": 6,
+    "durationMs": 90000,
+    "totalCalls": 70,
+    "admitted": 70,
+    "refused": 0,
+    "refusedByReason": {},
+    "refusalsWithBothQueueHeaders": 0,
+    "sampleRefusalsWithHeaders": [],
+    "sampleAdmitted": [
+      {
+        "studentId": "loadtest-sustained-3",
+        "callIndex": 0,
+        "durationMs": 1872,
+        "events": [
+          {
+            "t_ms": 1924,
+            "attempt": 1
+          }
+        ]
+      },
+      {
+        "studentId": "loadtest-sustained-2",
+        "callIndex": 0,
+        "durationMs": 3242,
+        "events": [
+          {
+            "t_ms": 3296,
+            "attempt": 1
+          }
+        ]
+      },
+      {
+        "studentId": "loadtest-sustained-5",
+        "callIndex": 0,
+        "durationMs": 4619,
+        "events": [
+          {
+            "t_ms": 4676,
+            "attempt": 1
+          }
+        ]
+      }
+    ],
+    "perStudentSequence": {
+      "loadtest-sustained-0": [
+        {
+          "callIndex": 0,
+          "ok": true,
+          "durationMs": 7420
+        },
+        {
+          "callIndex": 1,
+          "ok": true,
+          "durationMs": 6932
+        },
+        {
+          "callIndex": 2,
+          "ok": true,
+          "durationMs": 11026
+        },
+        {
+          "callIndex": 3,
+          "ok": true,
+          "durationMs": 6910
+        },
+        {
+          "callIndex": 4,
+          "ok": true,
+          "durationMs": 6901
+        },
+        {
+          "callIndex": 5,
+          "ok": true,
+          "durationMs": 11125
+        },
+        {
+          "callIndex": 6,
+          "ok": true,
+          "durationMs": 6924
+        },
+        {
+          "callIndex": 7,
+          "ok": true,
+          "durationMs": 6948
+        },
+        {
+          "callIndex": 8,
+          "ok": true,
+          "durationMs": 11136
+        },
+        {
+          "callIndex": 9,
+          "ok": true,
+          "durationMs": 6961
+        },
+        {
+          "callIndex": 10,
+          "ok": true,
+          "durationMs": 6981
+        },
+        {
+          "callIndex": 11,
+          "ok": true,
+          "durationMs": 8369
+        }
+      ],
+      "loadtest-sustained-1": [
+        {
+          "callIndex": 0,
+          "ok": true,
+          "durationMs": 8777
+        },
+        {
+          "callIndex": 1,
+          "ok": true,
+          "durationMs": 6889
+        },
+        {
+          "callIndex": 2,
+          "ok": true,
+          "durationMs": 6898
+        },
+        {
+          "callIndex": 3,
+          "ok": true,
+          "durationMs": 11051
+        },
+        {
+          "callIndex": 4,
+          "ok": true,
+          "durationMs": 6902
+        },
+        {
+          "callIndex": 5,
+          "ok": true,
+          "durationMs": 6971
+        },
+        {
+          "callIndex": 6,
+          "ok": true,
+          "durationMs": 11090
+        },
+        {
+          "callIndex": 7,
+          "ok": true,
+          "durationMs": 6944
+        },
+        {
+          "callIndex": 8,
+          "ok": true,
+          "durationMs": 6971
+        },
+        {
+          "callIndex": 9,
+          "ok": true,
+          "durationMs": 11124
+        },
+        {
+          "callIndex": 10,
+          "ok": true,
+          "durationMs": 6966
+        }
+      ],
+      "loadtest-sustained-2": [
+        {
+          "callIndex": 0,
+          "ok": true,
+          "durationMs": 3242
+        },
+        {
+          "callIndex": 1,
+          "ok": true,
+          "durationMs": 6889
+        },
+        {
+          "callIndex": 2,
+          "ok": true,
+          "durationMs": 11110
+        },
+        {
+          "callIndex": 3,
+          "ok": true,
+          "durationMs": 6841
+        },
+        {
+          "callIndex": 4,
+          "ok": true,
+          "durationMs": 6964
+        },
+        {
+          "callIndex": 5,
+          "ok": true,
+          "durationMs": 11025
+        },
+        {
+          "callIndex": 6,
+          "ok": true,
+          "durationMs": 6939
+        },
+        {
+          "callIndex": 7,
+          "ok": true,
+          "durationMs": 6935
+        },
+        {
+          "callIndex": 8,
+          "ok": true,
+          "durationMs": 11136
+        },
+        {
+          "callIndex": 9,
+          "ok": true,
+          "durationMs": 7013
+        },
+        {
+          "callIndex": 10,
+          "ok": true,
+          "durationMs": 6907
+        },
+        {
+          "callIndex": 11,
+          "ok": true,
+          "durationMs": 11171
+        }
+      ],
+      "loadtest-sustained-3": [
+        {
+          "callIndex": 0,
+          "ok": true,
+          "durationMs": 1872
+        },
+        {
+          "callIndex": 1,
+          "ok": true,
+          "durationMs": 11029
+        },
+        {
+          "callIndex": 2,
+          "ok": true,
+          "durationMs": 6898
+        },
+        {
+          "callIndex": 3,
+          "ok": true,
+          "durationMs": 6915
+        },
+        {
+          "callIndex": 4,
+          "ok": true,
+          "durationMs": 11036
+        },
+        {
+          "callIndex": 5,
+          "ok": true,
+          "durationMs": 6937
+        },
+        {
+          "callIndex": 6,
+          "ok": true,
+          "durationMs": 6957
+        },
+        {
+          "callIndex": 7,
+          "ok": true,
+          "durationMs": 11096
+        },
+        {
+          "callIndex": 8,
+          "ok": true,
+          "durationMs": 6947
+        },
+        {
+          "callIndex": 9,
+          "ok": true,
+          "durationMs": 6971
+        },
+        {
+          "callIndex": 10,
+          "ok": true,
+          "durationMs": 11156
+        },
+        {
+          "callIndex": 11,
+          "ok": true,
+          "durationMs": 6962
+        }
+      ],
+      "loadtest-sustained-4": [
+        {
+          "callIndex": 0,
+          "ok": true,
+          "durationMs": 5998
+        },
+        {
+          "callIndex": 1,
+          "ok": true,
+          "durationMs": 11050
+        },
+        {
+          "callIndex": 2,
+          "ok": true,
+          "durationMs": 6883
+        },
+        {
+          "callIndex": 3,
+          "ok": true,
+          "durationMs": 6916
+        },
+        {
+          "callIndex": 4,
+          "ok": true,
+          "durationMs": 11059
+        },
+        {
+          "callIndex": 5,
+          "ok": true,
+          "durationMs": 6942
+        },
+        {
+          "callIndex": 6,
+          "ok": true,
+          "durationMs": 6962
+        },
+        {
+          "callIndex": 7,
+          "ok": true,
+          "durationMs": 11087
+        },
+        {
+          "callIndex": 8,
+          "ok": true,
+          "durationMs": 6991
+        },
+        {
+          "callIndex": 9,
+          "ok": true,
+          "durationMs": 6964
+        },
+        {
+          "callIndex": 10,
+          "ok": true,
+          "durationMs": 11136
+        }
+      ],
+      "loadtest-sustained-5": [
+        {
+          "callIndex": 0,
+          "ok": true,
+          "durationMs": 4619
+        },
+        {
+          "callIndex": 1,
+          "ok": true,
+          "durationMs": 6891
+        },
+        {
+          "callIndex": 2,
+          "ok": true,
+          "durationMs": 6968
+        },
+        {
+          "callIndex": 3,
+          "ok": true,
+          "durationMs": 10982
+        },
+        {
+          "callIndex": 4,
+          "ok": true,
+          "durationMs": 6915
+        },
+        {
+          "callIndex": 5,
+          "ok": true,
+          "durationMs": 6932
+        },
+        {
+          "callIndex": 6,
+          "ok": true,
+          "durationMs": 11094
+        },
+        {
+          "callIndex": 7,
+          "ok": true,
+          "durationMs": 6940
+        },
+        {
+          "callIndex": 8,
+          "ok": true,
+          "durationMs": 7002
+        },
+        {
+          "callIndex": 9,
+          "ok": true,
+          "durationMs": 11097
+        },
+        {
+          "callIndex": 10,
+          "ok": true,
+          "durationMs": 6947
+        },
+        {
+          "callIndex": 11,
+          "ok": true,
+          "durationMs": 6977
+        }
+      ]
+    }
+  },
+  "results": [
+    {
+      "studentId": "loadtest-sustained-3",
+      "callIndex": 0,
+      "startedAt": 55,
+      "endedAt": 1927,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 1924,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-2",
+      "callIndex": 0,
+      "startedAt": 54,
+      "endedAt": 3296,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 3296,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-5",
+      "callIndex": 0,
+      "startedAt": 58,
+      "endedAt": 4677,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 4676,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-4",
+      "callIndex": 0,
+      "startedAt": 57,
+      "endedAt": 6055,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 6055,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-0",
+      "callIndex": 0,
+      "startedAt": 4,
+      "endedAt": 7424,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 7424,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-1",
+      "callIndex": 0,
+      "startedAt": 53,
+      "endedAt": 8830,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 8816,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-2",
+      "callIndex": 1,
+      "startedAt": 3296,
+      "endedAt": 10185,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 10185,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-5",
+      "callIndex": 1,
+      "startedAt": 4677,
+      "endedAt": 11568,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 11568,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-3",
+      "callIndex": 1,
+      "startedAt": 1928,
+      "endedAt": 12957,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 5013,
+          "log": "LLM connection failed at the socket level (UND_ERR_SOCKET), attempt 1"
+        },
+        {
+          "t_ms": 12957,
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-0",
+      "callIndex": 1,
+      "startedAt": 7424,
+      "endedAt": 14356,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 14339,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-1",
+      "callIndex": 1,
+      "startedAt": 8831,
+      "endedAt": 15720,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 15719,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-4",
+      "callIndex": 1,
+      "startedAt": 6055,
+      "endedAt": 17105,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 9106,
+          "log": "LLM connection failed at the socket level (UND_ERR_SOCKET), attempt 1"
+        },
+        {
+          "t_ms": 17105,
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-5",
+      "callIndex": 2,
+      "startedAt": 11568,
+      "endedAt": 18536,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 18479,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-3",
+      "callIndex": 2,
+      "startedAt": 12958,
+      "endedAt": 19856,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 19856,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-2",
+      "callIndex": 2,
+      "startedAt": 10185,
+      "endedAt": 21295,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 13267,
+          "log": "LLM connection failed at the socket level (UND_ERR_SOCKET), attempt 1"
+        },
+        {
+          "t_ms": 21238,
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-1",
+      "callIndex": 2,
+      "startedAt": 15720,
+      "endedAt": 22618,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 22618,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-4",
+      "callIndex": 2,
+      "startedAt": 17105,
+      "endedAt": 23988,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 23988,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-0",
+      "callIndex": 2,
+      "startedAt": 14356,
+      "endedAt": 25382,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 17438,
+          "log": "LLM connection failed at the socket level (UND_ERR_SOCKET), attempt 1"
+        },
+        {
+          "t_ms": 25382,
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-3",
+      "callIndex": 3,
+      "startedAt": 19856,
+      "endedAt": 26771,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 26756,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-2",
+      "callIndex": 3,
+      "startedAt": 21296,
+      "endedAt": 28137,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 28136,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-5",
+      "callIndex": 3,
+      "startedAt": 18537,
+      "endedAt": 29519,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 21613,
+          "log": "LLM connection failed at the socket level (UND_ERR_SOCKET), attempt 1"
+        },
+        {
+          "t_ms": 29519,
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-4",
+      "callIndex": 3,
+      "startedAt": 23988,
+      "endedAt": 30904,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 30903,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-0",
+      "callIndex": 3,
+      "startedAt": 25382,
+      "endedAt": 32292,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 32276,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-1",
+      "callIndex": 3,
+      "startedAt": 22618,
+      "endedAt": 33669,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 25667,
+          "log": "LLM connection failed at the socket level (UND_ERR_SOCKET), attempt 1"
+        },
+        {
+          "t_ms": 33668,
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-2",
+      "callIndex": 4,
+      "startedAt": 28137,
+      "endedAt": 35101,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 35046,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-5",
+      "callIndex": 4,
+      "startedAt": 29519,
+      "endedAt": 36434,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 36425,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-3",
+      "callIndex": 4,
+      "startedAt": 26771,
+      "endedAt": 37807,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 29850,
+          "log": "LLM connection failed at the socket level (UND_ERR_SOCKET), attempt 1"
+        },
+        {
+          "t_ms": 37806,
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-0",
+      "callIndex": 4,
+      "startedAt": 32292,
+      "endedAt": 39193,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 39193,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-1",
+      "callIndex": 4,
+      "startedAt": 33669,
+      "endedAt": 40571,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 40570,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-4",
+      "callIndex": 4,
+      "startedAt": 30904,
+      "endedAt": 41963,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 33983,
+          "log": "LLM connection failed at the socket level (UND_ERR_SOCKET), attempt 1"
+        },
+        {
+          "t_ms": 41963,
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-5",
+      "callIndex": 5,
+      "startedAt": 36434,
+      "endedAt": 43366,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 43351,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-3",
+      "callIndex": 5,
+      "startedAt": 37807,
+      "endedAt": 44744,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 44735,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-2",
+      "callIndex": 5,
+      "startedAt": 35102,
+      "endedAt": 46127,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 38174,
+          "log": "LLM connection failed at the socket level (UND_ERR_SOCKET), attempt 1"
+        },
+        {
+          "t_ms": 46127,
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-1",
+      "callIndex": 5,
+      "startedAt": 40571,
+      "endedAt": 47542,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 47525,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-4",
+      "callIndex": 5,
+      "startedAt": 41963,
+      "endedAt": 48905,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 48905,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-0",
+      "callIndex": 5,
+      "startedAt": 39193,
+      "endedAt": 50318,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 42272,
+          "log": "LLM connection failed at the socket level (UND_ERR_SOCKET), attempt 1"
+        },
+        {
+          "t_ms": 50300,
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-3",
+      "callIndex": 6,
+      "startedAt": 44744,
+      "endedAt": 51701,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 51686,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-2",
+      "callIndex": 6,
+      "startedAt": 46127,
+      "endedAt": 53066,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 53066,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-5",
+      "callIndex": 6,
+      "startedAt": 43366,
+      "endedAt": 54460,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 46436,
+          "log": "LLM connection failed at the socket level (UND_ERR_SOCKET), attempt 1"
+        },
+        {
+          "t_ms": 54459,
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-4",
+      "callIndex": 6,
+      "startedAt": 48905,
+      "endedAt": 55867,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 55850,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-0",
+      "callIndex": 6,
+      "startedAt": 50318,
+      "endedAt": 57242,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 57225,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-1",
+      "callIndex": 6,
+      "startedAt": 47542,
+      "endedAt": 58632,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 50591,
+          "log": "LLM connection failed at the socket level (UND_ERR_SOCKET), attempt 1"
+        },
+        {
+          "t_ms": 58614,
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-2",
+      "callIndex": 7,
+      "startedAt": 53066,
+      "endedAt": 60001,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 60000,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-5",
+      "callIndex": 7,
+      "startedAt": 54460,
+      "endedAt": 61400,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 61392,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-3",
+      "callIndex": 7,
+      "startedAt": 51701,
+      "endedAt": 62797,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 54780,
+          "log": "LLM connection failed at the socket level (UND_ERR_SOCKET), attempt 1"
+        },
+        {
+          "t_ms": 62781,
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-0",
+      "callIndex": 7,
+      "startedAt": 57243,
+      "endedAt": 64191,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 64173,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-1",
+      "callIndex": 7,
+      "startedAt": 58632,
+      "endedAt": 65576,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 65559,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-4",
+      "callIndex": 7,
+      "startedAt": 55867,
+      "endedAt": 66954,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 58937,
+          "log": "LLM connection failed at the socket level (UND_ERR_SOCKET), attempt 1"
+        },
+        {
+          "t_ms": 66953,
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-5",
+      "callIndex": 8,
+      "startedAt": 61400,
+      "endedAt": 68402,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 68346,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-3",
+      "callIndex": 8,
+      "startedAt": 62797,
+      "endedAt": 69744,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 69744,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-2",
+      "callIndex": 8,
+      "startedAt": 60001,
+      "endedAt": 71137,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 63077,
+          "log": "LLM connection failed at the socket level (UND_ERR_SOCKET), attempt 1"
+        },
+        {
+          "t_ms": 71136,
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-1",
+      "callIndex": 8,
+      "startedAt": 65576,
+      "endedAt": 72547,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 72530,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-4",
+      "callIndex": 8,
+      "startedAt": 66954,
+      "endedAt": 73945,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 73928,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-0",
+      "callIndex": 8,
+      "startedAt": 64191,
+      "endedAt": 75327,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 67270,
+          "log": "LLM connection failed at the socket level (UND_ERR_SOCKET), attempt 1"
+        },
+        {
+          "t_ms": 75327,
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-3",
+      "callIndex": 9,
+      "startedAt": 69744,
+      "endedAt": 76715,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 76714,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-2",
+      "callIndex": 9,
+      "startedAt": 71137,
+      "endedAt": 78150,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 78100,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-5",
+      "callIndex": 9,
+      "startedAt": 68402,
+      "endedAt": 79499,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 71449,
+          "log": "LLM connection failed at the socket level (UND_ERR_SOCKET), attempt 1"
+        },
+        {
+          "t_ms": 79499,
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-4",
+      "callIndex": 9,
+      "startedAt": 73945,
+      "endedAt": 80909,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 80891,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-0",
+      "callIndex": 9,
+      "startedAt": 75327,
+      "endedAt": 82288,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 82271,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-1",
+      "callIndex": 9,
+      "startedAt": 72547,
+      "endedAt": 83671,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 75623,
+          "log": "LLM connection failed at the socket level (UND_ERR_SOCKET), attempt 1"
+        },
+        {
+          "t_ms": 83670,
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-2",
+      "callIndex": 10,
+      "startedAt": 78150,
+      "endedAt": 85057,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 85057,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-5",
+      "callIndex": 10,
+      "startedAt": 79500,
+      "endedAt": 86447,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 86447,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-3",
+      "callIndex": 10,
+      "startedAt": 76715,
+      "endedAt": 87871,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 79792,
+          "log": "LLM connection failed at the socket level (UND_ERR_SOCKET), attempt 1"
+        },
+        {
+          "t_ms": 87854,
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-0",
+      "callIndex": 10,
+      "startedAt": 82288,
+      "endedAt": 89269,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 89252,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-1",
+      "callIndex": 10,
+      "startedAt": 83671,
+      "endedAt": 90637,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 90637,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-4",
+      "callIndex": 10,
+      "startedAt": 80909,
+      "endedAt": 92045,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 83985,
+          "log": "LLM connection failed at the socket level (UND_ERR_SOCKET), attempt 1"
+        },
+        {
+          "t_ms": 92044,
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-5",
+      "callIndex": 11,
+      "startedAt": 86447,
+      "endedAt": 93424,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 93423,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-3",
+      "callIndex": 11,
+      "startedAt": 87871,
+      "endedAt": 94833,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 94823,
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-2",
+      "callIndex": 11,
+      "startedAt": 85057,
+      "endedAt": 96228,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 88135,
+          "log": "LLM connection failed at the socket level (UND_ERR_SOCKET), attempt 1"
+        },
+        {
+          "t_ms": 96228,
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "studentId": "loadtest-sustained-0",
+      "callIndex": 11,
+      "startedAt": 89269,
+      "endedAt": 97638,
+      "ok": true,
+      "content": "Your answer correctly identifies that Rust prevents moving a borrowed value to avoid dangling references. To strengthen it, could you clarify how the borrow checker enforces this rule at compile time to ensure the value isn't freed while still borrowed?\n\nVERDICT: pass",
+      "events": [
+        {
+          "t_ms": 92317,
+          "log": "LLM connection failed at the socket level (UND_ERR_SOCKET), attempt 1"
+        },
+        {
+          "t_ms": 97621,
+          "attempt": 2
+        }
+      ]
+    }
+  ]
+}
