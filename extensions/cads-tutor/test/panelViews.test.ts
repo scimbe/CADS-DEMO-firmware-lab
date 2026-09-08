@@ -228,6 +228,27 @@ describe("A9.4: header, progress and the one next action", () => {
     assert.match(renderStepHtml(baseView({ lang: "de", moduleProgress: { done: 1, total: 4 } }), "cs", "N"), /Modul: \{d\} von \{t\} Schritten fertig/);
   });
 
+  // The recall card is the ONLY route to "demonstrated", and a card that is
+  // computed but never delivered is the exact failure the reflection card had:
+  // every part right, nothing on screen. renderRecall was covered, the container's
+  // position was covered - that the card ends up INSIDE the container was not.
+  it("puts the recall card inside #recall-area, not just the empty container", () => {
+    const area = (html: string): string => /<div id="recall-area">([\s\S]*?)<\/div>\s*<div id="reflection-area">/.exec(html)?.[1] ?? "MISSING";
+    const withCard = renderStepHtml(
+      baseView({ recall: { fromStepId: "s0", fromTitle: "Earlier", taskId: "q", prompt: "Why is the value gone?", settled: false } }),
+      "cs",
+      "N",
+    );
+    const filled = area(withCard);
+    assert.notEqual(filled, "MISSING", "the recall container must exist");
+    assert.notEqual(filled.trim(), "", "a step with a due recall card must not render an empty recall area");
+    assert.match(filled, /Why is the value gone\?/, "the card's own prompt has to reach the panel");
+
+    // And the other half: no card due means an empty area, not a stray heading.
+    const without = area(renderStepHtml(baseView({}), "cs", "N"));
+    assert.equal(without.trim(), "", "a step with no recall due renders the area empty");
+  });
+
   it("puts the recall and reflection cards after the tasks, not before them", () => {
     const html = renderStepHtml(
       baseView({
