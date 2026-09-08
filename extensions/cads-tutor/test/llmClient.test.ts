@@ -33,8 +33,32 @@ function rateLimited(opts: { reason?: "per_user" | "queue_full"; retryAfter?: nu
   return new Response(body, { status: 429, headers });
 }
 
-function client(onProgress?: (info: unknown) => void) {
-  return new RetryingLlmClient({ baseUrl: "https://model.example", apiKey: "k", model: "m", studentId: "s1", onProgress: onProgress as never });
+function client(onProgress?: (info: unknown) => void, onLog?: (msg: string) => void) {
+  return new RetryingLlmClient({ baseUrl: "https://model.example", apiKey: "k", model: "m", studentId: "s1", onProgress: onProgress as never, onLog });
+}
+
+/** Like withFetch, but each queued entry is either a Response or an Error to throw (a socket-level failure never returns one). */
+async function withFetchOutcomes<T>(outcomes: (Response | Error)[], run: () => Promise<T>): Promise<T> {
+  const original = globalThis.fetch;
+  let i = 0;
+  globalThis.fetch = (async () => {
+    const outcome = outcomes[i];
+    i++;
+    if (outcome instanceof Error) throw outcome;
+    return outcome;
+  }) as typeof fetch;
+  try {
+    return await run();
+  } finally {
+    globalThis.fetch = original;
+  }
+}
+
+function socketError(code: string): Error {
+  const err = new Error("fetch failed");
+  err.name = "TypeError";
+  (err as { cause?: unknown }).cause = { code };
+  return err;
 }
 
 describe("RetryingLlmClient: per_user retries, queue_full does not", () => {
@@ -83,6 +107,47 @@ describe("RetryingLlmClient: per_user retries, queue_full does not", () => {
       { attempt: 1, queuePosition: 2, queueLength: 5 },
       { attempt: 2, queuePosition: undefined, queueLength: undefined },
     ]);
+  });
+});
+
+describe("RetryingLlmClient: a socket-level failure gets the same care as a rate limit", () => {
+  // PB-06 groundwork: a connection that never reaches the shim at all (undici's
+  // UND_ERR_SOCKET, a reset, a refused connection) used to rethrow raw and skip
+  // the entire graceful path - no retry, no queue message, no 20s escape hatch,
+  // no self-check fallback. It now gets exactly one retry, and if that also
+  // fails, the same LlmRateLimitError shape a rate limit produces.
+
+  it("first attempt fails at the socket, the retry succeeds", async () => {
+    const logs: string[] = [];
+    const content = await withFetchOutcomes([socketError("UND_ERR_SOCKET"), okResponse("ok")], () => client(undefined, (m) => logs.push(m)).complete("hi"));
+    assert.equal(content, "ok");
+    assert.ok(logs.some((m) => /socket/i.test(m) && /UND_ERR_SOCKET/.test(m)), `expected a socket-failure log entry, got: ${JSON.stringify(logs)}`);
+  });
+
+  it("both attempts fail at the socket: the student reaches the same fallback a rate limit gets", async () => {
+    const logs: string[] = [];
+    await assert.rejects(
+      () => withFetchOutcomes([socketError("UND_ERR_SOCKET"), socketError("UND_ERR_SOCKET")], () => client(undefined, (m) => logs.push(m)).complete("hi")),
+      (err: unknown) => {
+        assert.ok(err instanceof LlmRateLimitError, `expected LlmRateLimitError, got ${err instanceof Error ? err.constructor.name : typeof err}`);
+        assert.match(err.message, /socket/i);
+        return true;
+      },
+    );
+    assert.equal(logs.length, 2, "logged on both the retried failure and the final one - not silently swallowed");
+  });
+
+  it("our own timeout (AbortError) is unaffected - still escalates immediately, as before", async () => {
+    // Guards against widening the new retry to a case that already has its own
+    // deliberate no-retry reasoning (the client's timeout sits below the shim's
+    // own ~75s cutoff on purpose).
+    const abortError = new Error("aborted");
+    abortError.name = "AbortError";
+    await assert.rejects(() => withFetchOutcomes([abortError], () => client().complete("hi")), (err: unknown) => {
+      assert.ok(err instanceof LlmRateLimitError);
+      assert.match(err.message, /timed out/);
+      return true;
+    });
   });
 });
 

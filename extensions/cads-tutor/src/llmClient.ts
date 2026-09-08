@@ -30,6 +30,8 @@ export interface RetryingLlmClientOptions {
   /** OpenAI `user` field for the shim's per-student fairness - the existing pseudonymous studentId, nothing else. */
   studentId: string;
   onProgress?: (info: LlmProgressInfo) => void;
+  /** So a transport-level failure (below) stays distinguishable from the shim being busy in the next investigation. */
+  onLog?: (msg: string) => void;
 }
 
 export interface LlmRateLimitInfo {
@@ -80,6 +82,15 @@ interface RateLimitBody {
 }
 /** Below the shim's own ~75s cutoff, so this client is the one that speaks first. */
 const REQUEST_TIMEOUT_MS = 60_000;
+/**
+ * A transport-level failure (DNS, TLS, a reset or refused socket - e.g. undici's
+ * UND_ERR_SOCKET) never reaches the shim at all, so from the student's side it
+ * is indistinguishable from "the model is busy right now": one short retry,
+ * then the same fallback a rate limit gets. Short on purpose - this is not the
+ * shim's own queue delay, it is us finding out whether the last attempt was a
+ * blip before spending the retry budget the 429 path also uses.
+ */
+const CONNECTION_RETRY_DELAY_MS = 500;
 
 interface ChatCompletionResponse {
   choices?: { message?: { content?: string } }[];
@@ -94,7 +105,28 @@ export class RetryingLlmClient {
 
   async complete(prompt: string): Promise<string> {
     for (let attempt = 0; ; attempt++) {
-      const res = await this.post(prompt);
+      let res: Response;
+      try {
+        res = await this.post(prompt);
+      } catch (err) {
+        // post() already turns our own timeout into an LlmRateLimitError - that
+        // shape is right as is, no extra retry here. Anything else never got a
+        // response at all (a socket the shim never saw), which is where this
+        // used to rethrow raw and skip the entire graceful path: no retry, no
+        // queue message, no 20s escape hatch, no self-check fallback - a raw
+        // failure in a lecture hall the moment a connection is refused instead
+        // of "the model is busy, try again".
+        if (err instanceof LlmRateLimitError) throw err;
+        const cause = err instanceof Error && "cause" in err ? (err as { cause?: { code?: string } }).cause?.code : undefined;
+        this.options.onLog?.(`LLM connection failed at the socket level (${cause ?? "no cause code"}), attempt ${attempt + 1}`);
+        if (attempt === 0) {
+          await delay(CONNECTION_RETRY_DELAY_MS);
+          continue;
+        }
+        throw new LlmRateLimitError(
+          `LLM connection failed at the socket level${cause ? ` (${cause})` : ""} after one retry - the model is likely unreachable or overloaded, not this student's fault`,
+        );
+      }
       const queue = readQueueHeaders(res);
       this.options.onProgress?.({ attempt: attempt === 0 ? 1 : 2, ...queue });
       if (res.status === 429) {

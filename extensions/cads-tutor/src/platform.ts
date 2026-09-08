@@ -239,7 +239,7 @@ export class TutorPlatform {
       base = opts.llmClient;
     } else if (opts.llm) {
       try {
-        base = new RetryingLlmClient({ ...opts.llm, studentId: opts.studentId, onProgress: opts.onLlmProgress });
+        base = new RetryingLlmClient({ ...opts.llm, studentId: opts.studentId, onProgress: opts.onLlmProgress, onLog: this.log });
       } catch (err) {
         this.log(`LLM disabled: ${err instanceof Error ? err.message : String(err)}`);
       }
