@@ -224,6 +224,7 @@ starten.
 | **Ergebnis** | **UDP/QUIC funktioniert vom Services-Host zur Kante. Vom Laborrechner in 24 Stunden kein einziges Mal.** Damit liegt es am Ausgangspfad des Laborrechners - ausgehende Filterung dort oder ein Unterschied im Netzweg. Kante, DNS, Anwendungsseite und Doppelprozesse sind alle geprueft und ausgeschlossen. |
 | **Was der Operator entscheiden muss** | Genau eines: **ausgehendes UDP/4433 vom Laborrechner zur Kante** (`57.131.133.91`). Keine Sitzung hier hat die noetigen Rechte, und niemand sollte einen Port auf Zuruf oeffnen. Vorgang: CADS-Tunnel#799. |
 | **Was ausserdem repariert wurde, ohne dass es die Ursache war** | Acht gleichzeitige Tunnel-Prozesse auf dem Services-Host (dazu zwoelf und zwei bei zwei anderen Diensten), weil das Startskript alte Prozesse ueber ein Suchmuster beenden wollte, das nie passte. Behoben mit einer PID-Datei, die beim Start geschrieben und vor dem Beenden mit `kill -0` **und** einer Pruefung des Arbeitsverzeichnisses geprueft wird - eine wiederverwendete PID darf nicht zum selben Fehler im neuen Gewand werden. |
+
 ### PB-13 - Der Einfuege-Weg funktioniert, genau dort, wo er am wenigsten alarmierend ist
 
 | | |
