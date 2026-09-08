@@ -65,7 +65,7 @@ Three places in this firmware say something about stack depth: the console comma
 ::: do palette="> CaDS Board: Konsole öffnen"
 Press **`F1`**, type `CaDS Board: Konsole öffnen`, confirm with `Enter`, and send `k` there.
 > expect: **At the bottom** of the terminal area sits a terminal named `CaDS Board Console` at 115200 baud, and `k` prints the stack report in it, with the free high-water marks of the three tasks.
-> recover: If you cannot see the terminal area, `Ctrl`/`Cmd`+`J` folds it open and shut. If the board does not answer `k` at all, it is sitting in the touchscreen app tree and mishears single letters — open an ordinary terminal first (**☰ → `Terminal` → `New Terminal`**; ☰ is the three-line icon at the very top left, there is no visible menu bar) and run `python3 scripts/board_key.py quit` there once, not in the board console.
+> recover: If you cannot see the terminal area, `Ctrl`/`Cmd`+`J` folds it open and shut. If the board does not answer `k` at all, it is sitting in the touchscreen app tree and mishears single letters — open an ordinary terminal first (**☰ → `Terminal` → `New Terminal`**; ☰ is the three-line icon at the very top left, there is no visible menu bar) and run `python3 scripts/board_key.py quit` (the script reports `| sent: quit`) there once, not in the board console.
 :::
 
 Afterwards click into the terminal `CaDS Board Console`, type `k` there yourself and press Enter. The answer arrives in under a second and starts with `# tasks`.

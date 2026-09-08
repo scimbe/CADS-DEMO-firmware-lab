@@ -122,7 +122,7 @@ RUN set -eu; \
 FROM base AS seed
 
 ARG CADS_ZERO_REPO=https://github.com/scimbe/cads-zero.git
-ARG CADS_ZERO_REF=e882fabd347c0b5ca04a7668b50be1d005924cb9
+ARG CADS_ZERO_REF=a4ebc909f55f1c3f84e2626761ce29bbc0dbaca1
 # 1 = skip the host (SDL2/ctest) smoke test at image build time.
 ARG CADS_SKIP_HOST_BUILD=0
 # 1 = keep build/host in the seed (faster first "Host tests" run, bigger image).

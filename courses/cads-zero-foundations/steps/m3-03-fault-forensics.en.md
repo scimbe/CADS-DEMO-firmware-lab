@@ -56,7 +56,7 @@ The working directory is the project root; it takes under a second.
 ::: do palette="> CaDS Board: Konsole öffnen"
 Press **`F1`**, type `CaDS Board: Konsole öffnen` and confirm with `Enter`, so you can read along with what the board answers.
 > expect: A terminal named `CaDS Board Console` sits at the bottom, and the board answers single letters typed there.
-> recover: If it stays silent, it is either still in the app tree — repeat `python3 scripts/board_key.py quit` in an ordinary terminal — or halted by a debug session: then press Continue or Stop on the debug toolbar at the top.
+> recover: If it stays silent, it is either still in the app tree — repeat `python3 scripts/board_key.py quit` (the script reports `| sent: quit`) in an ordinary terminal — or halted by a debug session: then press Continue or Stop on the debug toolbar at the top.
 :::
 
 You do not type `E` there yourself: the check button sends it, you only read the answer. A board halted by a debug session will not listen either - press Continue or Stop on the debug toolbar at the top.

@@ -107,7 +107,7 @@ Zwei dieser sechs Ereignisse können nicht von einem Tastendruck stammen. Welche
 ::: do palette="> CaDS Board: Konsole öffnen"
 Drücke **`F1`**, tippe `CaDS Board: Konsole öffnen`, bestätige mit `Enter` und sende dort `w 10`. Drücke sofort einen Taster, solange das Fenster offen ist, und notiere, welcher Port und welches Bit sich bewegen. Probier danach `s 10` und `i` aus.
 > expect: Der Port-Watcher druckt zehn Sekunden lang jede Änderung, die er sieht, und dein Tastendruck erscheint als Zeile mit Port und Bitnummer.
-> recover: Kommt vom Board gar nichts zurück, steht es noch im Touchscreen-App-Baum und überhört einzelne Buchstaben — führ dann in einem gewöhnlichen Terminal (**☰ → `Terminal` → `New Terminal`**) einmal `python3 scripts/board_key.py quit` aus. Bewegt sich bei jedem Druck dasselbe Bit auf einem Port, den du nicht erwartest, hast du eine INT-Leitung statt eines Tasters erwischt: die Taster liegen auf GPIOF.
+> recover: Kommt vom Board gar nichts zurück, steht es noch im Touchscreen-App-Baum und überhört einzelne Buchstaben — führ dann in einem gewöhnlichen Terminal (**☰ → `Terminal` → `New Terminal`**) einmal `python3 scripts/board_key.py quit` (das Skript meldet `| sent: quit`) aus. Bewegt sich bei jedem Druck dasselbe Bit auf einem Port, den du nicht erwartest, hast du eine INT-Leitung statt eines Tasters erwischt: die Taster liegen auf GPIOF.
 :::
 
 

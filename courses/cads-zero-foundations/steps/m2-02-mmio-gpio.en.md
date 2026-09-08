@@ -81,7 +81,7 @@ Remember the M0 gotcha: a board sitting in the app tree ignores plain commands. 
 ::: do palette="> CaDS Board: Konsole öffnen"
 Press **`F1`**, type `CaDS Board: Konsole öffnen`, confirm with `Enter`, and send `o 0301` there. Then try `o ff`, `o ff00`, `o ffff` and `o 0` and a few `l` patterns to get a feel for the mask.
 > expect: The console answers `# outputs = 0301`, and on the adapter exactly the lamps belonging to that mask light up.
-> recover: If nothing comes back from the board at all, it is still in the touchscreen app tree and ignores single letters — run `python3 scripts/board_key.py quit` once in an ordinary terminal (**☰ → `Terminal` → `New Terminal`**), not in the board console. If the console shows a yellow notice, the serial port is not granted in the browser: call `CaDS Board: Verbinden` again.
+> recover: If nothing comes back from the board at all, it is still in the touchscreen app tree and ignores single letters — run `python3 scripts/board_key.py quit` (the script reports `| sent: quit`) once in an ordinary terminal (**☰ → `Terminal` → `New Terminal`**), not in the board console. If the console shows a yellow notice, the serial port is not granted in the browser: call `CaDS Board: Verbinden` again.
 :::
 
 Then convert the mask `0x0301` into pins yourself, and finally judge why the HAL uses BSRR rather than ODR.

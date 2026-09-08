@@ -56,7 +56,7 @@ Das Arbeitsverzeichnis ist die Projektwurzel; der Befehl braucht unter einer Sek
 ::: do palette="> CaDS Board: Konsole öffnen"
 Drücke **`F1`**, tippe `CaDS Board: Konsole öffnen` und bestätige mit `Enter`, um mitzulesen, was das Board antwortet.
 > expect: Unten steht ein Terminal mit dem Namen `CaDS Board Console`, und das Board antwortet dort auf einzelne Buchstaben.
-> recover: Bleibt es stumm, steht es entweder noch im App-Baum — dann `python3 scripts/board_key.py quit` im gewöhnlichen Terminal wiederholen — oder es ist von einer Debug-Sitzung angehalten: dann Continue oder Stop in der Debug-Werkzeugleiste oben drücken.
+> recover: Bleibt es stumm, steht es entweder noch im App-Baum — dann `python3 scripts/board_key.py quit` (das Skript meldet `| sent: quit`) im gewöhnlichen Terminal wiederholen — oder es ist von einer Debug-Sitzung angehalten: dann Continue oder Stop in der Debug-Werkzeugleiste oben drücken.
 :::
 
 Den Befehl `E` tippst du dort **nicht** selbst: der Prüfknopf sendet ihn, du liest nur die Antwort mit. Ist das Board von einer Debug-Sitzung angehalten, hört es ebenfalls nicht zu - drücke dann Continue oder Stop in der Debug-Werkzeugleiste oben.

@@ -65,7 +65,7 @@ Drei Stellen dieser Firmware sagen etwas über Stacktiefe: der Konsolenbefehl `k
 ::: do palette="> CaDS Board: Konsole öffnen"
 Drücke **`F1`**, tippe `CaDS Board: Konsole öffnen`, bestätige mit `Enter` und sende dort `k`.
 > expect: **Unten** im Terminal-Bereich steht ein Terminal namens `CaDS Board Console` mit 115200 Baud, und `k` druckt darin den Stack-Bericht mit den freien Höchstständen der drei Tasks.
-> recover: Siehst du den Terminal-Bereich nicht, klappt ihn `Strg`/`Cmd`+`J` auf und wieder zu. Antwortet das Board auf `k` gar nicht, steht es im Touchscreen-App-Baum und überhört einzelne Buchstaben — öffne dann zuerst ein gewöhnliches Terminal (**☰ → `Terminal` → `New Terminal`**; ☰ ist das Symbol mit den drei Strichen ganz oben links, eine sichtbare Menüleiste gibt es nicht) und führ dort einmal `python3 scripts/board_key.py quit` aus, nicht in der Board-Konsole.
+> recover: Siehst du den Terminal-Bereich nicht, klappt ihn `Strg`/`Cmd`+`J` auf und wieder zu. Antwortet das Board auf `k` gar nicht, steht es im Touchscreen-App-Baum und überhört einzelne Buchstaben — öffne dann zuerst ein gewöhnliches Terminal (**☰ → `Terminal` → `New Terminal`**; ☰ ist das Symbol mit den drei Strichen ganz oben links, eine sichtbare Menüleiste gibt es nicht) und führ dort einmal `python3 scripts/board_key.py quit` (das Skript meldet `| sent: quit`) aus, nicht in der Board-Konsole.
 :::
 
 Danach klickst du in das Terminal `CaDS Board Console`, tippst dort selbst `k` und drückst Enter. Die Antwort kommt in unter einer Sekunde und beginnt mit `# tasks`.

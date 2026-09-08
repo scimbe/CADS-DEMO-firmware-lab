@@ -81,7 +81,7 @@ The explorer command `u` is the M4 hardware gate: on a fresh volume it formats a
 ::: do palette="> CaDS Board: Konsole öffnen"
 Press **`F1`**, type `CaDS Board: Konsole öffnen` and confirm with `Enter`, so you can read along. You do not have to send anything: the **Check** button on this task sends `u` itself and waits for the answer.
 > expect: A terminal named `CaDS Board Console` sits at the bottom, and after you press **Check** the gate's output runs through it down to its verdict line.
-> recover: If the console stays silent, the board is in the app tree and ignores single letters — run `python3 scripts/board_key.py quit` once in an ordinary terminal (**☰ → `Terminal` → `New Terminal`**), not in the board console. If it shows a yellow notice, the serial port is not granted in the browser: call `CaDS Board: Verbinden` again.
+> recover: If the console stays silent, the board is in the app tree and ignores single letters — run `python3 scripts/board_key.py quit` (the script reports `| sent: quit`) once in an ordinary terminal (**☰ → `Terminal` → `New Terminal`**), not in the board console. If it shows a yellow notice, the serial port is not granted in the browser: call `CaDS Board: Verbinden` again.
 :::
 
 Then predict whether a format trips the watchdog and compare against the two constants in the source. Finally, the question of why a reflash leaves the volume intact. The next step opens the one file you will edit inside that volume.

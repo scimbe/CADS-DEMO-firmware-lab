@@ -90,7 +90,7 @@ Die Antwort des Skripts erscheint in genau diesem Terminal; die Antwort des Boar
 ::: do palette="> CaDS Board: Konsole öffnen"
 Drücke **`F1`**, tippe `CaDS Board: Konsole öffnen` und bestätige mit `Enter`. Steht das Board noch im App-Baum, hol es wie oben beschrieben an den Prompt zurück.
 > expect: Unten steht ein Terminal mit dem Namen `CaDS Board Console`, und das Board antwortet dort auf einzelne Buchstaben.
-> recover: Antwortet es auf gar nichts, steht es noch im Touchscreen-App-Baum und überhört einzelne Buchstaben — dann zuerst `python3 scripts/board_key.py quit` in einem gewöhnlichen Terminal ausführen, nicht in der Board-Konsole. Zeigt die Konsole einen gelben Hinweis, ist der serielle Port im Browser nicht freigegeben: `CaDS Board: Verbinden` erneut aufrufen.
+> recover: Antwortet es auf gar nichts, steht es noch im Touchscreen-App-Baum und überhört einzelne Buchstaben — dann zuerst `python3 scripts/board_key.py quit` (das Skript meldet `| sent: quit`) in einem gewöhnlichen Terminal ausführen, nicht in der Board-Konsole. Zeigt die Konsole einen gelben Hinweis, ist der serielle Port im Browser nicht freigegeben: `CaDS Board: Verbinden` erneut aufrufen.
 :::
 
 Die beiden ersten Aufgaben tippst du **nicht** selbst: der Knopf **Prüfen** sendet `?` beziehungsweise `k` selbst an das Board und wartet bis zu 15 Sekunden auf die Antwortzeile. Du sorgst nur dafür, dass die Konsole offen ist und das Board am Prompt steht — und liest mit, was zurückkommt. Begründe dann im Feld der dritten Aufgabe, warum von den beiden Befehlen zur Tastersuche nur einer den Pin verrät. Das nächste Modul öffnet, wie die Firmware tatsächlich strukturiert ist.
