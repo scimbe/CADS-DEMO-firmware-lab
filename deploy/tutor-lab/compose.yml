@@ -90,4 +90,12 @@ volumes:
   workspace:
     # Explicit, so the volume does not silently change name when the compose
     # project or the directory is renamed.
-    name: ${TUTOR_LAB_VOLUME:-tutor-lab-workspace}
+    #
+    # REQUIRED, not defaulted. A default here is a loaded gun on every
+    # destructive command: `docker compose down -v` resolves this name too, and
+    # an unset variable then aims it at a real volume nobody meant to name.
+    # That happened on 2026-09-08 - a volume was deleted because `up` had the
+    # variable set and `down -v` did not. Compose now refuses instead of
+    # guessing; deploy.sh reads .env and reports the right name when it is
+    # missing (section 2 of docs/TUTOR-LAB-DEPLOY.md).
+    name: ${TUTOR_LAB_VOLUME:?set TUTOR_LAB_VOLUME - see docs/TUTOR-LAB-DEPLOY.md section 2; never let a destructive compose command guess this name}

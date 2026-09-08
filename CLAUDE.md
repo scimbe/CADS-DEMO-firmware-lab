@@ -22,6 +22,27 @@ Wegwerf-Tunnels hätte den produktiven ct-agent-Tunnel getroffen, über den die 
 ist. Er hat überlebt — zufällig, nicht durch Sorgfalt. Belege: `docs/research/copilot-machbarkeit.md`,
 Abschnitt „Messumgebung und Hygiene".
 
+## Ein zerstörender Befehl nennt sein Ziel selbst
+
+`docker compose down -v` löscht Datenträger, deren **Namen aus Variablen mit Vorgabewert** kommen. Wer
+beim `up` eine Variable setzt und beim `down` nicht, trifft nicht seinen Wegwerf-Aufbau, sondern das,
+worauf der Vorgabewert zeigt.
+
+- **`down -v` nur, wenn jede Variable, die der compose-Datei einen Datenträgernamen liefert, im selben
+  Befehl gesetzt ist.** Im Zweifel ohne `-v` abbauen und den eigenen Datenträger danach einzeln über
+  seinen vollen Namen entfernen.
+- **Vorher `docker compose … config --volumes` (oder `config`) ansehen** — das zeigt die aufgelösten
+  Namen, bevor sie gelöscht werden. Ein Name, den man nicht selbst vergeben hat, ist ein Abbruchgrund.
+- **Vorgabewerte für Datenträgernamen gehören nicht in eine compose-Datei**, die auf einem Host mit
+  fremden Datenträgern läuft. `${VAR:?erklärender Text}` scheitert laut; `${VAR:-echter-name}` trifft
+  still das Falsche.
+
+**Anlass (2026-09-08, Lastfenster):** Beim Abbau eines Wegwerf-Behälters löschte ein `down -v` ohne
+gesetztes `TUTOR_LAB_VOLUME` den Datenträger `tutor-lab-workspace` — den Vorgabewert der compose-Datei,
+nicht den eigenen. Die beiden Datenträger mit bekannten Daten blieben unversehrt; was im gelöschten lag,
+lässt sich nicht mehr feststellen. Genau das ist der Punkt: Bei einem zerstörenden Befehl ist „vermutlich
+war es leer" kein Befund.
+
 ## Aufräumen gehört zur Messung
 
 Was eine Messung startet, räumt sie auch ab, und der Bericht sagt womit geprüft wurde
