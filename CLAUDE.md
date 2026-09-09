@@ -43,6 +43,26 @@ nicht den eigenen. Die beiden Datenträger mit bekannten Daten blieben unversehr
 lässt sich nicht mehr feststellen. Genau das ist der Punkt: Bei einem zerstörenden Befehl ist „vermutlich
 war es leer" kein Befund.
 
+## Ein „beendet" ist keine Todesmeldung
+
+Der Status einer Hintergrundaufgabe sagt, was die **Sitzung** von ihr weiss, nicht, was der Prozess
+tut. Verliert das Aufgaben-Tracking den Bezug, meldet es „killed", waehrend der Prozess ruhig
+weiterlaeuft. Wer daraufhin neu startet, hat zwei — und beim dritten Mal drei.
+
+- **Vor jedem Neuversuch eines langen Hintergrundlaufs pruefen, ob er wirklich tot ist** — `ps` auf
+  die notierte PID, nicht der gemeldete Status.
+- **Verwaiste Laeufe ueber ihre PID beenden**, nie ueber ein Muster (siehe oben).
+- **Lange Laeufe von vornherein von der Sitzung entkoppeln** (`setsid`/`nohup` in eine Protokolldatei)
+  und das Protokoll beobachten. Dann ist der Lauf nicht an die Lebensdauer einer Aufgabenverfolgung
+  gebunden, und sein Zustand steht in einer Datei statt in einem Statusfeld.
+
+**Anlass (2026-09-09, Videobau):** Drei Bauversuche wurden als „killed" gemeldet und liefen alle drei
+weiter. Sie schrieben gleichzeitig gegen denselben Behaelter und dieselben Ausgabedateien; die Folge
+waren `TargetCloseError`-Abbrueche an jeweils anderer Stelle, die wie Browser- oder Speicherfehler
+aussahen. Zwei Hypothesen (Zeitgrenze der Sitzung, OOM) waren falsch, und beide waren plausibel — die
+Ursache war eine **Statusmeldung, die etwas anderes behauptete als der Rechner tat.** Dieselbe Form
+wie die Fehler im Produkt an diesem Tag, nur im Werkzeug.
+
 ## Aufräumen gehört zur Messung
 
 Was eine Messung startet, räumt sie auch ab, und der Bericht sagt womit geprüft wurde
