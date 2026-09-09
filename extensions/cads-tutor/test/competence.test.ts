@@ -77,6 +77,28 @@ describe("A9.2 competence levels", () => {
 });
 
 describe("A9.2 evidence from a session", () => {
+  // R11a.8e: a worked step prints its own solution, so passing its check first
+  // try evidences transcription. Measured on the real packs: 35 of 113 executable
+  // checks sit on a worked step, and one handed a first-try pass for typing in a
+  // line printed two paragraphs above it.
+  it("caps a worked step at medium, however cleanly its check passed", () => {
+    const s = newSession();
+    pass(s, "m2-01-command", "budget"); // scaffold: worked, first try, no hints
+    const worked = objectiveEvidence(course, s, "firmware-tooling").filter((e) => e.stepId === "m2-01-command");
+    assert.deepEqual(worked.map((e) => e.kind), ["checkAssisted"], "a worked step cannot yield checkFirstTry");
+    assert.deepEqual(worked.map((e) => e.weight), ["medium"]);
+
+    // And the contrast, so the cap is not simply "everything is medium now":
+    // m0-02-build is not a worked step and still earns the strong evidence.
+    const s2 = newSession();
+    pass(s2, "m0-02-build", "build");
+    assert.deepEqual(
+      objectiveEvidence(course, s2, "firmware-how-to-build").map((e) => e.kind),
+      ["checkFirstTry"],
+      "a non-worked step still earns strong evidence on a clean first try",
+    );
+  });
+
   it("reads a first-try pass as strong and an assisted pass as medium", () => {
     const s = newSession();
     pass(s, "m0-02-build", "build");

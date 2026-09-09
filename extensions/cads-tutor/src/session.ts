@@ -386,8 +386,21 @@ function taskEvidence(step: Step, task: TaskSpec, state: TaskState | undefined, 
   const out: Evidence[] = [];
   // A rubric-graded answer is worth a medium regardless of attempts: A9.2 grades
   // the question by who judged it, not by how often it was tried.
+  //
+  // R11a.8e: a `worked` step prints its own solution - that is the point of a
+  // worked example and it is right where it stands. But passing its check on the
+  // first try then evidences transcription, not capability, and `checkFirstTry`
+  // is the only strong evidence besides a recall. Measured 2026-09-09: 35 of 113
+  // executable checks sit on a worked step, and one of them handed a first-try
+  // pass for typing in a line the step printed two paragraphs earlier. So a
+  // worked step caps at `checkAssisted`; `faded` and `independent` are untouched.
+  const workedExample = step.variants.en?.meta.scaffold === "worked";
   const kind: EvidenceKind =
-    task.check.type === "question" ? "question" : (state.attempts ?? 1) <= 1 && state.hintTier === 0 ? "checkFirstTry" : "checkAssisted";
+    task.check.type === "question"
+      ? "question"
+      : !workedExample && (state.attempts ?? 1) <= 1 && state.hintTier === 0
+        ? "checkFirstTry"
+        : "checkAssisted";
   out.push({ ...base, kind, weight: EVIDENCE_WEIGHT[kind] });
   if (task.check.type === "predict" && state.predictionOutcome === "correct" && state.predictionGraded) {
     out.push({ ...base, kind: "prediction", weight: EVIDENCE_WEIGHT.prediction });
