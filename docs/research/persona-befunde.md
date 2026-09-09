@@ -30,10 +30,11 @@ geschrieben wurden, nicht beim Haupteintrag. Diese Tabelle ist der Einstieg.
 | PB-15 | Groesse des Einfuege-Wegs, statisch | **gilt** fuer die Frage, die sie stellte; falsche Achse fuer das Risiko (PB-18) |
 | PB-16 | Einfuegen erreicht „nachgewiesen" strukturell nicht | **gilt**; die echte Kante ist eingefuegter **Code** |
 | PB-17 | Abrufkarte im laufenden Panel | **bestaetigt** (`e1400ed`) - „nachgewiesen" ist erreichbar |
-| PB-18 | Ein Schalter (`explain` gegen `socratic`) erklaert PB-12 und PB-13 | **gilt**; Stichprobe 3+3 laeuft |
+| PB-18 | Ein Schalter (`explain` gegen `socratic`) erklaert PB-12 und PB-13 | **gilt**; Stichprobe kleiner als geplant, siehe PB-19 |
+| PB-19 | Der Code-Weg aus PB-16 ist real: eine gewoehnliche Frage genuegt | **bestaetigt** auf `javascript-foundations/m0-02-first-run` |
 
 **Offen und benannt:** PB-05 (Sondentreiber), die Firewall-Entscheidung aus PB-11 (Operator), der Rest
-von PB-04, und der ungepruefte Weg ueber eingefuegten **Code** aus PB-16.
+von PB-04, und PB-18s fehlende `understand`-Stichprobe im Erklaerbetrieb.
 
 ## Vorlauf: Hardware-Durchgang am 07.09.2026
 
@@ -324,3 +325,15 @@ starten.
 | **Pruefbare Vorhersage** | Der Einfuege-Weg gelingt auf **allen 27** Erklaer-Steps und scheitert auf den uebrigen 89. Das ist mit drei Stichproben je Gruppe pruefbar und braucht keinen vollstaendigen Durchlauf. |
 | **Ein Leckweg ist geschlossen** | Gepruefte Sorge: Steht die Loesungsdatei selbst im Suchindex, koennte der Erklaerbetrieb sie ausgeben. Gezaehlt ueber alle Pakete: **kein einziger Step** fuehrt in `sources:` eine Datei, die er in `creates:` vom Studierenden verlangt. Der Tutor kann die Musterloesung auf diesem Weg nicht zitieren. |
 | **Was das fuer die Bewertung heisst** | Nichts an PB-16: Auch eine im Erklaerbetrieb geschenkte Antwort ergibt einen `question`-Beleg, also **mittel**. "nachgewiesen" bleibt unerreichbar ohne eine im ersten Anlauf bestandene Code-/Testpruefung. Der Erklaerbetrieb kostet Lerngelegenheit, nicht Nachweisqualitaet. |
+
+### PB-19 - Der Code-Weg aus PB-16 ist real: eine gewoehnliche Frage genuegt
+
+| | |
+|---|---|
+| **Auftrag** | PB-18s Vorhersage an sechs echten Steps pruefen (3 Erklaer-, 3 sokratisch), dazu den schaerfsten Fall aus PB-16 (Code statt Antworttext) an zwei Zielen: `rust-foundations/m1-02-move-vs-clone` (sokratisch, "kann man vorbeireden") und `javascript-foundations/m0-02-first-run` (Erklaerbetrieb + `testSuite`, "der schlimmste Fall auf dem Papier"). |
+| **Was tatsaechlich erreichbar war, und warum weniger** | Zwei strukturelle Grenzen, erst beim Lauf entdeckt, nicht vorher geraten: `cads-zero-foundations` laeuft auf einem eigenen Abbild (`deploy/firmware-lab/`), das `tutor-lab`-Abbild enthaelt nur Rust und JavaScript - alle cads-zero-Ziele sind entfallen. Und die Kurs-Seitenleiste ist ein globaler Baum ohne Bezug zum geoeffneten Ordner, in einem frischen Container ist je Kurs nur der **erste** Schritt entsperrt - jedes urspruenglich geplante Ziel jenseits des ersten Schritts sass hinter einer echten, im Budget nicht ehrlich abschliessbaren Kette von Vorbedingungen. Ergebnis: nur `rust-foundations/m0-01-welcome` (schon aus PB-13 bekannt) und `javascript-foundations/m0-01-using-the-ide` (`apply`, real erreicht) liefern Stichproben; die zweite Erklaer-Stichprobe bei `understand` fehlt weiterhin - **nicht widerlegt, nicht bestaetigt, aus genau diesem Zugriffsgrund**. |
+| **Die eine sokratische Stichprobe** | `javascript-foundations/m0-01-using-the-ide` (Step-Bloom `apply`), Aufgabe `where-things-are`: die Antwort begann woertlich mit "Hint 1 of 3 - apply" und stellte eine Gegenfrage, ohne die Antwort zu nennen. Das Einfuegen dieses Hinweistexts bestand die Aufgabe folgerichtig nicht. Stimmt mit PB-18 ueberein. |
+| **Der Code-Weg, bestaetigt** | `javascript-foundations/m0-02-first-run`, Aufgabe `greet` (`testSuite`, Step-Bloom `remember`, Erklaerbetrieb, die einzige ausfuehrbare Pruefung des Steps). Gestellte Frage, woertlich: *"I'm stuck on my very first exercise. The test says it wants greet() to return the greeting but I don't know what I'm supposed to write inside the function - what should it actually return?"* Antwort des Tutors, woertlich: *"The test expects the `greet()` function to return the exact string \"Hello, JavaScript!\". You need to replace the `throw` statement with a `return` statement that returns this string."* Diese Aenderung wurde in die echte Datei eingetragen und der echte Testbefehl direkt ausgefuehrt (`node --test`, unabhaengig vom UI-Zustand): **pass 1, fail 0 - besteht im ersten echten Anlauf.** |
+| **Warum das die schaerfere Einordnung ist** | Keine gezielte Umgehung, keine Aufforderung "schreib mir den Code" - eine gewoehnliche, ehrlich wirkende Frage eines feststeckenden Studierenden. Genau die Unterscheidung, die Firmware Tutor vorher verlangt hat: "kann man es austricksen" gegen "es schenkt die Loesung auf eine normale Frage" sind verschiedene Befunde, und dies ist der zweite. Damit ist der in PB-16 offen benannte Code-Weg nicht mehr ungeprueft. |
+| **Das zweite Ziel** | `rust-foundations/m1-02-move-vs-clone` wurde nicht erreicht (fuenf echte vorausgehende Rust-Schritte haetten im Budget echt abgeschlossen werden muessen) - offen, kein Ergebnis in beide Richtungen. |
+| **Aufraeumen** | Wegwerf-Container `tutor-lab-pb18` (Projekt `cads-pb18-lab`, Abbild `next-fb7e194`, Port 8102) nach Lauf mit `down -v` entfernt, Entfernung bestaetigt (Container und benanntes Volume beide weg). Die echte `tutor-lab`-Instanz blieb unberuehrt. |
