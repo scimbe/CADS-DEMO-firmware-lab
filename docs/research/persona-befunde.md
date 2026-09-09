@@ -6,6 +6,35 @@ Handlung, Beobachtung, Regel oder Regelvorschlag, Schweregrad und ob er exakt pr
 Schweregrade: **blockiert** (Studierende kommen nicht weiter oder können den Erfolg nicht
 feststellen) · **verfälscht die Bewertung** · **kosmetisch**.
 
+## Stand aller Befunde
+
+Die Eintraege stehen in der Reihenfolge, in der sie entstanden sind - Nachtraege also dort, wo sie
+geschrieben wurden, nicht beim Haupteintrag. Diese Tabelle ist der Einstieg.
+
+| | Worum es geht | Stand |
+|---|---|---|
+| PB-01 | Flash-Erfolg loeschte sich nach 6 s, vier `> expect:` zeigten darauf | **behoben** (`eafb213`), als Validatorregel verankert (`be01248`) |
+| PB-02 | „Stop" liess den Kern angehalten, der Kurs behauptete das Gegenteil | **behoben** (`10497cb`) - Anzeigefehler, Kurstext war richtig; Ursache = PB-05 |
+| PB-03 | `board_key.py` erreichte im Behaelter kein Board, war aber der Ausweg | **behoben** (cads-zero `a4ebc90`, ausgeliefert in `next-895faf3`) |
+| PB-04 | Kein `recover` nannte sein Erfolgszeichen | Regel **R11a.2b**; zwoelf Zeilen geliefert (`895faf3`), Rest der 274 offen |
+| PB-05 | Sonde meldet Halt mit einer Registeradresse als Programmzaehler | **offen** (`extensions/cads-probe`), Wirkung gefiltert, Ursache steht |
+| PB-06 | Panel versprach einer abgewiesenen Anfrage einen Platz in der Warteschlange | **behoben** (`95b5b57`), Doku korrigiert (`83c33b7`) |
+| PB-07 | Verbindungsabbruch umging den gesamten Notpfad | **behoben** (`bbc753d`) |
+| PB-08 | Arbeitsbereich wird einmal befuellt und nie aktualisiert | **behoben** (`5933d3f`), Sofortmassnahme auf dem Services-Host durchgefuehrt |
+| PB-09 | Ein Prozess, der sechs Studierende nachahmt, ist nicht sechs | **gilt** als Methodenbefund |
+| PB-10 | Eingrenzung auf den Pfad zum Sprachmodell | **abgeloest** durch PB-11 |
+| PB-11 | Tunnel meldete sich staendig neu an, weil UDP fehlt | Wirkung **behoben** (ct-agent 0.7.32, ueberall ausgerollt); **Firewall offen, beim Operator** |
+| PB-12 | Der Mogler trifft zuerst auf die Hinweisleiter | **erklaert** durch PB-18 |
+| PB-13 | Einfuege-Weg gelingt auf `remember` | **gilt**, Umfang begrenzt durch PB-15/PB-16/PB-18 |
+| PB-14 | Staerkste Zusage der Bewertungsseite | **geprueft und gehalten**, Wortlaut geschaerft |
+| PB-15 | Groesse des Einfuege-Wegs, statisch | **gilt** fuer die Frage, die sie stellte; falsche Achse fuer das Risiko (PB-18) |
+| PB-16 | Einfuegen erreicht „nachgewiesen" strukturell nicht | **gilt**; die echte Kante ist eingefuegter **Code** |
+| PB-17 | Abrufkarte im laufenden Panel | **bestaetigt** (`e1400ed`) - „nachgewiesen" ist erreichbar |
+| PB-18 | Ein Schalter (`explain` gegen `socratic`) erklaert PB-12 und PB-13 | **gilt**; Stichprobe 3+3 laeuft |
+
+**Offen und benannt:** PB-05 (Sondentreiber), die Firewall-Entscheidung aus PB-11 (Operator), der Rest
+von PB-04, und der ungepruefte Weg ueber eingefuegten **Code** aus PB-16.
+
 ## Vorlauf: Hardware-Durchgang am 07.09.2026
 
 Vor Beginn der Persona-Durchsicht lief der komplette Kurspfad M0 → M3-02 einmal an echter Hardware
