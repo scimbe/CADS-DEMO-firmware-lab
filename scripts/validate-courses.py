@@ -156,6 +156,7 @@ def load_step(path):
 # --- validation -------------------------------------------------------------
 
 ALLOWED_BLOOM = {"remember", "understand", "apply", "analyze", "evaluate", "create"}
+BLOOM_ORDER = ["remember", "understand", "apply", "analyze", "evaluate", "create"]
 CHECK_TYPES = {
     "board", "task", "build", "fileMatches", "fileNotMatches", "symbolInElf",
     "flash", "serialExpect", "debugStop", "question", "manual", "all", "any",
@@ -1608,6 +1609,7 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
             step_check_types = set()
             task_ids = set()
             task_rubrics = {}
+            task_blooms = []
             for task in tasks:
                 if not isinstance(task, dict):
                     report.error(where, f"malformed task entry: {task!r}")
@@ -1620,6 +1622,7 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
                 task_ids.add(task.get("id"))
                 if isinstance(check.get("rubric"), str) and check["rubric"].strip():
                     task_rubrics[task.get("id")] = check["rubric"]
+                task_blooms.append(check.get("bloom") or fm.get("bloom"))
                 ctype = validate_check(check, where, task.get("id"), report)
                 step_check_types |= _check_types(check)
                 if probes is not None and lang == "en" and probe_leaves(check):
@@ -1691,6 +1694,16 @@ def validate_course(course_dir, root, symbols, report, probes=None, language_err
             executable_types = step_check_types - {"question", "manual", "all", "any"}
             if fm.get("bloom") in ("apply", "analyze", "evaluate", "create") and not executable_types:
                 report.warn(where, f"step claims bloom '{fm.get('bloom')}' but has no executable check (only {sorted(step_check_types) or 'none'}) (R2.1)")
+            # R2.2: per-task bloom varying above or below the step's own level
+            # is normal (a predict/question task may deliberately sit a level
+            # off) - what still has to hold is that at least one of the step's
+            # own tasks operates AT the step's declared level or higher, or the
+            # step is claiming a level none of its tasks actually carries.
+            step_bloom = fm.get("bloom")
+            if step_bloom in BLOOM_ORDER and task_blooms:
+                step_idx = BLOOM_ORDER.index(step_bloom)
+                if not any(tb in BLOOM_ORDER and BLOOM_ORDER.index(tb) >= step_idx for tb in task_blooms):
+                    report.warn(where, f"step claims bloom '{step_bloom}' but no task reaches it (task blooms: {sorted(set(task_blooms))}) (R2.2)")
             # A9.1: instruction blocks, and the call to action that escaped one.
             rule4_hits[(sid, lang)] = validate_do_blocks(where, sid, body, root, known, report)
             # R10.3: a markdown heading, outside fenced code (a commented-out

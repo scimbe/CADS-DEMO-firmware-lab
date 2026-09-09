@@ -83,11 +83,17 @@ Fall. Eine Freitextfrage allein belegt niemals `apply` oder höher.
 *Herkunft: alle drei `evaluate`-Steps des Firmware-Kurses waren Referate, deren Kriterium, Urteil und
 Revisionsbedingung im Fließtext standen (Runde 1, A3).*
 
-**R2.2 — Eine Stufe je Step.** Die Reflexionsfrage am Ende darf eine Stufe höher liegen als der Step, aber sie
-darf nicht der Beleg für die Step-Stufe sein. Widersprechen sich Front-Matter-`bloom` und Check-`bloom` ohne diese
-Begründung, ist es ein Fehler.
-*Herkunft: sechs Steps deklarierten zwei verschiedene Stufen, und die Runtime verbuchte denselben Step je nach
-Check-Typ auf beiden (Runde 1, A10).* **[Validator]**
+**R2.2 — Der Step-Stufe muss mindestens eine eigene Aufgabe genügen.** Ein Step mit mehreren Aufgaben darf seine
+Aufgaben auf verschiedenen Stufen ansiedeln — das ist inzwischen die Regel, nicht die Ausnahme, und didaktisch
+gewollt: eine `predict`- oder `question`-Aufgabe darf bewusst höher (oder niedriger) liegen als der Step selbst.
+Was die Stufen-Ehrlichkeit aus R2.1 tatsächlich verlangt: **mindestens eine** Aufgabe des Steps muss auf der
+deklarierten Step-Stufe oder höher liegen — sonst behauptet der Step eine Stufe, die keine seiner Aufgaben trägt.
+*Herkunft: die ursprüngliche Fassung dieser Regel ("Front-Matter-`bloom` ≠ Check-`bloom` ⇒ Fehler", aus sechs
+Steps, deren Front-Matter-Widerspruch die Runtime denselben Step auf beiden Stufen verbuchen ließ, Runde 1, A10)
+passte nicht mehr zur Praxis: eine Stichprobe fand 57 Abweichungen zwischen Step- und Aufgaben-Bloom in den
+beiden lesbaren Paketen, davon 25 mehr als eine Stufe höher und 10 niedriger — überall durch mindestens eine
+andere Aufgabe desselben Steps gedeckt, in keinem einzigen Fall unbelegt (2026-09-09, Nachtrag zu R4.2a). Die neue
+Fassung prüft genau das, was noch fehlschlagen kann.* **[Validator]**
 
 **R2.3 — Wer die Lösung diktiert, schreibt nicht `create`.** Ein Step, der Funktionsnamen, Dateiort und
 Codegerüst vorgibt, ist ein Worked Example auf `apply` mit `scaffold: worked` — das ist didaktisch richtig und
@@ -546,7 +552,7 @@ den Validator-Strang.
 
 | Regel | Prüfung |
 |---|---|
-| R2.2 | Front-Matter-`bloom` ≠ Check-`bloom` ohne Reflexionsbegründung ⇒ Warnung |
+| R2.2 | Keine Aufgabe des Steps liegt auf der Step-Stufe oder höher ⇒ Warnung (**umgesetzt**) |
 | R2.1 | Step mit `bloom: apply` oder höher ohne ausführbaren Check ⇒ Warnung (**umgesetzt**) |
 | R4.2 | Rubrik/Fließtext-Überlappung geteilter Prosa > 40 % (bzw. > 28 % bei `analyze`/`evaluate`, nach Check-Bloom) ⇒ Befund (**umgesetzt**, `scripts/pedagogy-metrics.py`) |
 | R4.2a | Eintrag in `EXCEPT_R42` ohne Grund ⇒ Fehler (**umgesetzt**); Ausnahme oberhalb `understand` ⇒ bislang nur Warnung, siehe Nachtrag unten |
