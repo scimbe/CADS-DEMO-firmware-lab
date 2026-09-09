@@ -349,3 +349,14 @@ starten.
 | **Warum das die Kompetenzaussage beruehrt** | Mit einem Abruf plus einem `checkFirstTry` steht „nachgewiesen". Ist dieser starke Beleg durch Abtippen erreichbar, traegt die Aussage genau dort weniger, als sie behauptet - und zwar ohne jede Absicht zu tauschen. |
 | **Fixrichtung, zu entscheiden** | Nicht am Tutor und nicht am Kurstext: Ein vorgefuehrtes Beispiel ist paedagogisch richtig (Worked-Example-Effekt), gerade in der ersten Uebung. Zu aendern ist das **Gewicht**: Die Pruefung eines `worked`-Steps sollte hoechstens `checkAssisted` (mittel) ergeben, nicht `checkFirstTry`. `faded` und `independent` bleiben, wie sie sind. Das trifft genau die 35 Faelle und keinen anderen. |
 | **Was offen bleibt** | Die `understand`-Luecke aus PB-18 (nie beobachtet, aus Zugriffsgruenden nicht erreicht) und der Code-Weg auf einem **sokratischen** Step - beides unbelegt, nicht widerlegt. |
+
+### PB-20 - Derselbe Studierende wird auf einer Reise zweimal verschieden angeredet
+
+| | |
+|---|---|
+| **Beobachtung** | Der Kurstext duzt durchgehend („Was du siehst", „Das tust du zuerst", „Du bist Nummer 7 von 12"). Die Dokumentationsseiten siezen durchgehend. Gezaehlt ueber die fuenf deutschen Seiten einer Spur: `how-you-are-assessed` 29 Sie / 0 du, `first-session` 19/0, `the-course` 20/4, `when-a-check-fails` 21/0, `working-the-window` 12/0. |
+| **Warum das auffaellt** | Die Seite „Wie der Tutor deine Arbeit bewertet" ist **aus dem ersten Schritt beider Sprachkurse verlinkt** - ich habe diese Verlinkung selbst gelegt. Der Studierende klickt am Ende von Schritt eins auf einen Link und wird ab dort gesiezt. Zwei Register auf einer Reise lesen sich wie zwei Produkte. |
+| **Der Anlass, es zu bemerken** | Die Videostrecke stiess auf dasselbe: Die Lokalisierung driftete beim ersten Lauf ins „Sie" und wurde korrigiert - **auf das „du" des Kurstextes**. Damit zielen jetzt Kurs und Video auf dieselbe Anrede, und die Dokumentation steht allein. Drei Oberflaechen, zwei Register. |
+| **Nicht einseitig geaendert** | Das Siezen ist ueber alle fuenf Seiten konsistent, also eine Haltung und kein Ausrutscher - moeglicherweise, weil die Seiten auch von Lehrenden gelesen werden. Eine Registerentscheidung ist eine Entscheidung ueber die Stimme des Produkts und gehoert dem Operator, nicht mir. |
+| **Zur Entscheidung** | (a) Die Dokumentationsseiten duzen, wo sie Studierende ansprechen - dann liest sich die Reise als eine. (b) Beim Siezen bleiben und die Verlinkung aus dem Kursschritt so einfassen, dass der Wechsel angekuendigt ist. (c) Trennen: studierendenseitige Seiten duzen, lehrendenseitige siezen - dann muss jede Seite wissen, wen sie anspricht. |
+| **Groesse** | Fuenf Seiten je Spur, zwei Spuren, eine Sprache betroffen (Englisch kennt die Unterscheidung nicht). Kein dringender Befund, aber billiger jetzt als nach dem naechsten Dutzend Seiten. |
