@@ -31,7 +31,7 @@ geschrieben wurden, nicht beim Haupteintrag. Diese Tabelle ist der Einstieg.
 | PB-16 | Einfuegen erreicht „nachgewiesen" strukturell nicht | **gilt**; die echte Kante ist eingefuegter **Code** |
 | PB-17 | Abrufkarte im laufenden Panel | **bestaetigt** (`e1400ed`) - „nachgewiesen" ist erreichbar |
 | PB-18 | Ein Schalter (`explain` gegen `socratic`) erklaert PB-12 und PB-13 | **gilt**; Stichprobe kleiner als geplant, siehe PB-19 |
-| PB-19 | Der Code-Weg aus PB-16 ist real: eine gewoehnliche Frage genuegt | **bestaetigt** auf `javascript-foundations/m0-02-first-run` |
+| PB-19 | Ein `worked`-Step vergibt `checkFirstTry` fuers Abtippen der eigenen Musterloesung | **bestaetigt**, betrifft 35 von 113 Pruefungen; Fixrichtung offen (Nachtrag) |
 
 **Offen und benannt:** PB-05 (Sondentreiber), die Firewall-Entscheidung aus PB-11 (Operator), der Rest
 von PB-04, und PB-18s fehlende `understand`-Stichprobe im Erklaerbetrieb.
