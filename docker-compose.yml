@@ -9,18 +9,17 @@
 # and is driven from the browser (WebUSB via cads-probe).
 #
 #   cp .env.example .env            # set FIRMWARE_LAB_PASSWORD (+ TUTOR_LLM_*)
-#   GH_TOKEN=$(gh auth token) docker compose build
+#   docker compose build
 #   docker compose up -d
 #   open http://127.0.0.1:8084
 services:
   firmware-lab:
     build:
       context: .
-      secrets:
-        - gh_token
       args:
-        # Override to build a different cads-zero commit: CADS_ZERO_REF=<sha> docker compose build
-        CADS_ZERO_REF: ${CADS_ZERO_REF:-e882fabd347c0b5ca04a7668b50be1d005924cb9}
+        # Seed source: public mirror, branch praktikum/start (Dockerfile defaults).
+        # Override with a branch or a 40-hex commit: CADS_ZERO_REF=<ref> docker compose build
+        CADS_ZERO_REF: ${CADS_ZERO_REF:-praktikum/start}
     image: cads-firmware-lab:latest
     container_name: firmware-lab-dev
     restart: unless-stopped
@@ -36,12 +35,6 @@ services:
     volumes:
       # The student's cads-zero checkout lives here (seeded on first start).
       - firmware-lab-workspace:/home/coder/workspace
-
-secrets:
-  gh_token:
-    # Read-only clone token for the private cads-zero repo, only used during
-    # `docker compose build`. Never written into the image.
-    environment: GH_TOKEN
 
 volumes:
   firmware-lab-workspace:

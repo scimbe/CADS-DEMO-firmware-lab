@@ -6,10 +6,12 @@
 # `find -exec` under `set -e`, so this script must ALWAYS exit 0 - a failure
 # here must degrade to "empty workspace + log line", never to "no IDE".
 #
-#  1. Copy /opt/cads-seed/cads-zero to $CADS_WORKSPACE unless a .git exists
-#     there already (student's work is never overwritten).
-#  1a. Refresh TOOLING files (scripts/) in an existing workspace, but only the
-#     ones the student has not touched - see refresh_tooling() (PB-08).
+#  1. Copy /opt/cads-seed/cads-zero to $CADS_WORKSPACE only if the workspace
+#     is missing or empty. A .git there (the seed of an earlier start, or the
+#     student's own GitLab fork cloned into it) or any other content is kept.
+#  1a. Refresh TOOLING files (scripts/) in a workspace that came from this
+#     seed, but only the ones the student has not touched - see
+#     refresh_tooling() (PB-08). A fork cloned by the student is not touched.
 #  2. Write the container variants of .vscode/{settings,tasks,launch,extensions}.json
 #     and .clangd from /opt/cads-seed/vscode-templates (refreshed every start, so
 #     image updates reach existing workspaces). Marked skip-worktree / excluded in
@@ -52,14 +54,25 @@ seed_workspace() {
         log "workspace $WS exists, keeping it"
         return 0
     fi
+    # Not a git checkout, but not empty either (e.g. a half-finished clone of
+    # the student's fork): never copy over it - and `mv` into an existing
+    # directory would nest the seed inside it anyway.
+    if [ -d "$WS" ] && [ -n "$(ls -A "$WS" 2>/dev/null)" ]; then
+        log "workspace $WS is not empty, keeping it (no seed)"
+        return 0
+    fi
     if [ ! -d "$SEED" ]; then
         log "no seed at $SEED - nothing to do"
         return 1
     fi
     mkdir -p "$(dirname "$WS")" || return 1
+    rmdir "$WS" 2>/dev/null || true   # an empty workspace dir (e.g. a fresh volume mount point)
     log "seeding $WS from $SEED"
     rm -rf "$WS.partial"
     if cp -a "$SEED" "$WS.partial" && mv "$WS.partial" "$WS"; then
+        # Remember that this checkout is ours: only then may refresh_tooling()
+        # touch it. A fork the student clones later carries no such mark.
+        git -C "$WS" config cads.seeded true 2>/dev/null || true
         log "seed complete"
     else
         log "seed copy failed"
@@ -82,9 +95,21 @@ seed_workspace() {
 #
 # Deciding against git HEAD alone would work exactly once - our own copy makes
 # the file look modified, and every later update would skip it.
+# Only a workspace that came from this seed: marked by seed_workspace(), or -
+# for workspaces seeded before the mark existed - with our $APPLIED copies or
+# the old seed branch name cads-lab. The student's own fork (a different
+# history, possibly newer than the image) is left exactly as it is.
+seeded_by_us() {
+    [ "$(git -C "$WS" config --get cads.seeded 2>/dev/null)" = "true" ] && return 0
+    [ -d "$APPLIED" ] && return 0
+    [ "$(git -C "$WS" rev-parse --abbrev-ref HEAD 2>/dev/null)" = "cads-lab" ] && return 0
+    return 1
+}
+
 refresh_tooling() {
     [ -d "$WS/.git" ] || return 0
     [ -d "$SEED" ] || return 0
+    seeded_by_us || { log "workspace is not from the image seed (own fork?) - tooling left as is"; return 0; }
     updated=0
     kept=0
     for rel in $REFRESH_PATHS; do

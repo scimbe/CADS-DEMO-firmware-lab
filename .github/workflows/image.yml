@@ -6,9 +6,9 @@
 # a final job stitches them into one multi-arch manifest with the tags
 #   <branch>-<shortsha>, <branch>, and (main only) latest.
 #
-# Secrets: CADS_ZERO_TOKEN - read-only token for the private cads-zero repo,
-# handed to the Dockerfile as BuildKit secret "gh_token" (never in a layer).
-# Set by the repo owner: gh secret set CADS_ZERO_TOKEN   (see docs/IMAGE-NOTES.md)
+# No repository secret: the workspace seed comes from the public mirror
+# scimbe/cads-zero-firmware (branch praktikum/start, see Dockerfile). The old
+# CADS_ZERO_TOKEN secret is no longer used and can be deleted.
 
 name: image
 
@@ -25,7 +25,7 @@ on:
   workflow_dispatch:
     inputs:
       cads_zero_ref:
-        description: cads-zero commit to seed (default from the Dockerfile)
+        description: firmware branch or 40-hex commit to seed (default praktikum/start, see Dockerfile)
         required: false
         default: ""
 
@@ -96,19 +96,12 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Check CADS_ZERO_TOKEN
-        run: |
-          if [ -z "${{ secrets.CADS_ZERO_TOKEN }}" ]; then
-            echo "::error::secret CADS_ZERO_TOKEN is not set - the private cads-zero clone will fail (gh secret set CADS_ZERO_TOKEN)"; exit 1
-          fi
       - name: Build and push by digest
         id: build
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/${{ matrix.arch }}
-          secrets: |
-            gh_token=${{ secrets.CADS_ZERO_TOKEN }}
           build-args: |
             ${{ inputs.cads_zero_ref != '' && format('CADS_ZERO_REF={0}', inputs.cads_zero_ref) || '' }}
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true

@@ -71,8 +71,8 @@ example-firmware/, vscode-extension/, webusb-flash/   history: the previous Open
 
 ### Image
 
-Needs Docker with BuildKit and a GitHub login (`gh auth login`) that can read the private
-cads-zero repository; the token is passed as a BuildKit secret and never stored in a layer.
+Needs Docker with BuildKit. The workspace seed is cloned anonymously from the public
+firmware mirror `scimbe/cads-zero-firmware` (branch `praktikum/start`); no token.
 
 ```sh
 cp .env.example .env                 # FIRMWARE_LAB_PASSWORD, optional TUTOR_LLM_*
@@ -81,10 +81,13 @@ scripts/run-local.sh --fresh         # re-seed the workspace volume
 scripts/run-local.sh --stop
 ```
 
-Manual: `GH_TOKEN=$(gh auth token) docker build --secret id=gh_token,env=GH_TOKEN -t cads-firmware-lab .`
-Build args: `CADS_ZERO_REF` (commit to seed), `CADS_SKIP_HOST_BUILD=1`, `CADS_KEEP_HOST_BUILD=1`.
+Manual: `docker build -t cads-firmware-lab .`
+Build args: `CADS_ZERO_REPO` (default: the public mirror `scimbe/cads-zero-firmware`),
+`CADS_ZERO_REF` (branch or 40-hex commit to seed, default `praktikum/start`),
+`CADS_SKIP_HOST_BUILD=1`, `CADS_KEEP_HOST_BUILD=1`.
 The image build itself is a test: it runs `cmake --preset itsboard`, the host preset and
-`ctest -E '^golden_'`; a failing build fails the image. Results, size, timings and every
+`ctest -LE '^rnlab-L' -E '^golden_'` (the lesson tests are the students' task and red on
+`praktikum/start`); a failing build fails the image. Results, size, timings and every
 deviation from the spec: [`docs/IMAGE-NOTES.md`](docs/IMAGE-NOTES.md).
 
 - Shims: `python3 -m unittest discover -s tests/shims -v` (mock HTTP bridge, no Docker).
@@ -156,8 +159,8 @@ gate: [`deploy/multiuser/README.md`](deploy/multiuser/README.md).
 `.github/workflows/image.yml` builds amd64 and arm64 natively on every push to `next`/`main`
 that touches the image, extensions or courses, packages the VSIX, and pushes a multi-arch
 manifest to `ghcr.io/scimbe/cads-firmware-lab` tagged `<branch>-<shortsha>`, `<branch>` and
-(`main` only) `latest`. Required repository secret: `CADS_ZERO_TOKEN` (read-only token for
-cads-zero, see IMAGE-NOTES). Deploy immutable tags.
+(`main` only) `latest`. No repository secret: the seed is cloned anonymously from the public
+firmware mirror (see IMAGE-NOTES). Deploy immutable tags.
 
 `.github/workflows/image-tutor-lab.yml` does the same for the second image,
 `ghcr.io/scimbe/cads-tutor-lab` (`images/tutor-lab/Dockerfile`, the Rust and JavaScript tracks),

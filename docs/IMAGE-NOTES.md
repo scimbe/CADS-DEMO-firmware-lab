@@ -65,11 +65,11 @@ every `extensions/*` that has a `package.json` and hands the VSIX to the build (
 directories are skipped). Course packs under `courses/` (minus `_example*` fixtures) land in
 `/opt/cads-tutor/courses`.
 
-**Required repository secret (not created by this stream):** `CADS_ZERO_TOKEN`, a read-only
-token for the private `scimbe/cads-zero` repo, set by the owner with
-`gh secret set CADS_ZERO_TOKEN`. The workflow passes it to the Dockerfile as the BuildKit secret
-`gh_token` (same mechanism as `scripts/run-local.sh` uses with `gh auth token`); it never lands in
-a layer. The build job fails early with a clear message if the secret is missing. `GITHUB_TOKEN`
+**No repository secret any more (2026-09-28):** the seed is cloned anonymously from the public
+mirror `scimbe/cads-zero-firmware`, branch `praktikum/start` (the student starting point of the
+networks lab). Before, the image seeded a pinned commit of the private `scimbe/cads-zero` via the
+`CADS_ZERO_TOKEN` secret / BuildKit secret `gh_token` - a state without `apps/rnlab`, so students
+built something other than the lab firmware. The secret can be deleted. `GITHUB_TOKEN`
 with `packages: write` is used for the ghcr.io login. The workflow was written but not run in
 this stream (no push to `next`/`main` from a worktree); first run happens when the stream is merged.
 
@@ -137,8 +137,18 @@ local 2-GB VM tests). clangd is capped to 4 indexing workers with on-disk PCH st
 - **`build/host` is removed from the seed by default** (`CADS_KEEP_HOST_BUILD=1` keeps it). The
   host test run still happens during the image build; `build/itsboard` (incl. object files and
   `compile_commands.json`) is kept.
-- **Seed branch**: the pinned commit is checked out on a local branch `cads-lab` (detached HEAD
-  confuses students; nothing else depends on the name).
+- **Seed branch**: a branch ref (default `praktikum/start`) is checked out as a local branch of
+  the same name tracking `origin/<ref>`, so `git pull` works; a 40-hex commit lands on a local
+  branch `cads-seed`. Older seeds used `cads-lab` - still recognised by the entrypoint.
+- **Seed vs. the student's fork**: the entrypoint seeds only a missing or empty workspace and
+  marks it (`git config cads.seeded true`). The tooling refresh (PB-08) runs only on such marked
+  (or older `cads-lab`) workspaces, so a GitLab fork cloned into the workspace is never touched.
+- **Tasks for the lab (2026-09-28)**: `CaDS: Host tests (Rahmen)` = `ctest -LE '^rnlab-L'` (green
+  on `praktikum/start`), `CaDS: Lektionstests` = `ctest -L '^rnlab-LNN$'` with a lesson picker,
+  `CaDS: Lektionstests inkl. Vertiefung` adds `rnlab-LNN-vertiefung`. The old label
+  `CaDS: Host tests` stays as a hidden alias with the Rahmen command, because the tutor courses
+  (`courses/cads-zero-*`) check a task of that name. Those courses and the tutor extension were
+  written for the full cads-zero `main`, not for the lab branch; they are left as they are.
 - **Multi-arch**: the Dockerfile handles `amd64` and `arm64`; only `arm64` was built here (the
   development Docker VM is aarch64). The `amd64` path differs only in the toolchain tarball
   name and checksum, both taken from the official `.sha256asc` files on developer.arm.com.

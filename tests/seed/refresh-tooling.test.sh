@@ -29,7 +29,8 @@ mkdir -p "$TMP/seed/scripts"
 printf 'v1 helper\n' > "$TMP/seed/scripts/tool.py"
 printf 'v1 other\n'  > "$TMP/seed/scripts/other.py"
 cp -a "$TMP/seed" "$TMP/ws"
-( cd "$TMP/ws" && git init -q . && git add -A && git -c user.email=t@t -c user.name=t commit -qm seed )
+# (seeded by an older image: local branch cads-lab, no cads.seeded mark yet)
+( cd "$TMP/ws" && git init -q -b cads-lab . && git add -A && git -c user.email=t@t -c user.name=t commit -qm seed )
 
 # the student edits one of the two
 printf 'v1 other, my notes\n' > "$TMP/ws/scripts/other.py"
@@ -66,6 +67,34 @@ printf 'my work\n' > "$TMP/ws/main.c"
 printf 'seed work\n' > "$TMP/seed/main.c"
 run_seed
 check "files outside scripts/ are untouched" "my work"           "$(cat "$TMP/ws/main.c")"
+
+# --- the student's own fork must never be touched ------------------------------
+# A clone of their GitLab fork (other history, other branch, no cads.seeded mark)
+# where the image would have a different scripts/ version.
+rm -rf "$TMP/ws"
+mkdir -p "$TMP/ws/scripts"
+printf 'fork helper\n' > "$TMP/ws/scripts/tool.py"
+( cd "$TMP/ws" && git init -q -b praktikum/start . && git add -A && git -c user.email=t@t -c user.name=t commit -qm fork )
+printf 'v9 helper\n' > "$TMP/seed/scripts/tool.py"
+run_seed
+check "a fork's tooling is not refreshed"  "fork helper"         "$(cat "$TMP/ws/scripts/tool.py")"
+check "no seed file lands in a fork"       "no"                  "$([ -e "$TMP/ws/scripts/new.py" ] && echo yes || echo no)"
+grep -q 'not from the image seed' "$TMP/log"
+check "the skip is reported"               "0"                   "$?"
+
+# --- seeding only into a missing or empty workspace ------------------------------
+( cd "$TMP/seed" && git init -q -b praktikum/start . && git add -A && git -c user.email=t@t -c user.name=t commit -qm seed )
+rm -rf "$TMP/ws"; mkdir -p "$TMP/ws"          # empty dir, e.g. a fresh volume
+run_seed
+check "an empty workspace is seeded"       "v9 helper"           "$(cat "$TMP/ws/scripts/tool.py" 2>/dev/null)"
+check "the seed is marked as ours"         "true"                "$(git -C "$TMP/ws" config --get cads.seeded)"
+check "the seed is not nested"             "no"                  "$([ -e "$TMP/ws/ws" ] || [ -e "$TMP/ws/seed" ] && echo yes || echo no)"
+
+rm -rf "$TMP/ws"; mkdir -p "$TMP/ws"
+printf 'half cloned\n' > "$TMP/ws/README"      # non-empty, but no .git
+run_seed
+check "a non-empty workspace is kept"      "half cloned"         "$(cat "$TMP/ws/README")"
+check "nothing is copied into it"          "no"                  "$([ -e "$TMP/ws/scripts" ] && echo yes || echo no)"
 
 [ "$fails" -eq 0 ] && echo "all seed-refresh checks passed" || echo "$fails check(s) failed"
 exit "$fails"
