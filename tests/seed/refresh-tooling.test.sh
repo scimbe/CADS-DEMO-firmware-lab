@@ -88,7 +88,16 @@ rm -rf "$TMP/ws"; mkdir -p "$TMP/ws"          # empty dir, e.g. a fresh volume
 run_seed
 check "an empty workspace is seeded"       "v9 helper"           "$(cat "$TMP/ws/scripts/tool.py" 2>/dev/null)"
 check "the seed is marked as ours"         "true"                "$(git -C "$TMP/ws" config --get cads.seeded)"
+grep -q 'seed complete (commit unknown' "$TMP/log"
+check "no SEED_COMMIT file: says so"       "0"                   "$?"
 check "the seed is not nested"             "no"                  "$([ -e "$TMP/ws/ws" ] || [ -e "$TMP/ws/seed" ] && echo yes || echo no)"
+
+# with the file the image ships next to the seed: its commit is logged
+rm -rf "$TMP/ws"; mkdir -p "$TMP/ws"
+printf '0123456789abcdef0123456789abcdef01234567\nrepo=x\n' > "$TMP/SEED_COMMIT"
+run_seed
+grep -q 'seed complete (0123456789abcdef0123456789abcdef01234567' "$TMP/log"
+check "the seed commit is logged"          "0"                   "$?"
 
 rm -rf "$TMP/ws"; mkdir -p "$TMP/ws"
 printf 'half cloned\n' > "$TMP/ws/README"      # non-empty, but no .git

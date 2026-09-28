@@ -14,6 +14,14 @@
 # base: OS packages + ARM GNU toolchain (shared by the seed build stage and
 # the final image, so both see exactly the same compilers).
 ############################################################################
+# Seed source, shared by the seed stage (clone) and the final stage (labels).
+# CADS_SEED_COMMIT: the exact commit CADS_ZERO_REF resolved to, filled in by CI
+# (image.yml resolves it once for all architectures). Empty in a plain local
+# build - then the seed takes the branch head and records what it got.
+ARG CADS_ZERO_REPO=https://github.com/scimbe/cads-zero-firmware.git
+ARG CADS_ZERO_REF=praktikum/start
+ARG CADS_SEED_COMMIT=
+
 FROM codercom/code-server:latest AS base
 
 ARG TARGETARCH
@@ -126,10 +134,11 @@ RUN set -eu; \
 ############################################################################
 FROM base AS seed
 
-ARG CADS_ZERO_REPO=https://github.com/scimbe/cads-zero-firmware.git
 # A branch name (checked out as a tracking branch of the same name, so the
 # student can `git pull` it) or a full 40-hex commit (local branch cads-seed).
-ARG CADS_ZERO_REF=praktikum/start
+ARG CADS_ZERO_REPO
+ARG CADS_ZERO_REF
+ARG CADS_SEED_COMMIT
 # 1 = skip the host (SDL2/ctest) smoke test at image build time.
 ARG CADS_SKIP_HOST_BUILD=0
 # 1 = keep build/host in the seed (faster first "Host tests" run, bigger image).
@@ -145,10 +154,28 @@ RUN set -eu; \
     if printf '%s' "${CADS_ZERO_REF}" | grep -Eq '^[0-9a-f]{40}$'; then \
         git fetch --depth 1 origin "${CADS_ZERO_REF}"; \
         git checkout -q -b cads-seed FETCH_HEAD; \
+    elif [ -n "${CADS_SEED_COMMIT}" ]; then \
+        # CI resolved the branch to one commit for all architectures: fetch
+        # exactly that one (the branch may have moved since) and let
+        # origin/<ref> point at it, so later fetches/pulls see a normal,
+        # fast-forwardable history. This is also what makes the build cache
+        # miss when the branch moves - the RUN text alone does not change.
+        git fetch --depth 1 origin "${CADS_SEED_COMMIT}"; \
+        git update-ref "refs/remotes/origin/${CADS_ZERO_REF}" "${CADS_SEED_COMMIT}"; \
+        git checkout -q -b "${CADS_ZERO_REF}" --track "origin/${CADS_ZERO_REF}"; \
     else \
         git fetch --depth 1 origin "+refs/heads/${CADS_ZERO_REF}:refs/remotes/origin/${CADS_ZERO_REF}"; \
         git checkout -q -b "${CADS_ZERO_REF}" --track "origin/${CADS_ZERO_REF}"; \
     fi; \
+    seed="$(git rev-parse HEAD)"; \
+    # Make the seed traceable for tutors and students: an annotated tag in the
+    # workspace (`git show image-seed`) and a plain file the final stage copies
+    # to /opt/cads-seed/SEED_COMMIT (first line = the commit).
+    git -c user.name="CaDS Firmware Lab" -c user.email=firmware-lab@cads.invalid \
+        tag -a image-seed -m "Workspace-Seed des Firmware-Labor-Images" \
+        -m "commit: ${seed}" -m "repo: ${CADS_ZERO_REPO}" -m "ref: ${CADS_ZERO_REF}"; \
+    printf '%s\nrepo=%s\nref=%s\ncommit_date=%s\n' "${seed}" "${CADS_ZERO_REPO}" "${CADS_ZERO_REF}" \
+        "$(git log -1 --format=%cI)" > /home/coder/workspace/SEED_COMMIT; \
     git submodule update --init --recursive --depth 1 --jobs 2; \
     # modules/net/CMakeLists.txt patches lib/lwip at configure time (by design);
     # don't show that as " m lib/lwip" in every student's git status.
@@ -194,6 +221,15 @@ RUN set -eu; cd /home/coder/workspace/cads-zero; \
 ############################################################################
 FROM base
 
+# Which firmware commit this image seeds (docker inspect / skopeo). The commit
+# label is only exact when CI passed CADS_SEED_COMMIT; the file below always is.
+ARG CADS_ZERO_REPO
+ARG CADS_ZERO_REF
+ARG CADS_SEED_COMMIT
+LABEL org.cads.seed.repo="${CADS_ZERO_REPO}" \
+      org.cads.seed.ref="${CADS_ZERO_REF}" \
+      org.cads.seed.commit="${CADS_SEED_COMMIT}"
+
 USER root
 
 # st-flash / st-info shims (SPEC.md §3.2) - first on PATH.
@@ -203,6 +239,7 @@ COPY --chmod=0644 image/shims/cads_shim_common.py /usr/local/bin/
 # Workspace seed + the container-specific .vscode/.clangd templates the
 # entrypoint script writes into the workspace on every start.
 COPY --from=seed --chown=coder:coder /home/coder/workspace/cads-zero /opt/cads-seed/cads-zero
+COPY --from=seed --chown=coder:coder /home/coder/workspace/SEED_COMMIT /opt/cads-seed/SEED_COMMIT
 COPY --chown=coder:coder image/vscode-templates/ /opt/cads-seed/vscode-templates/
 COPY --chmod=0755 image/entrypoint.d/ /entrypoint.d/
 

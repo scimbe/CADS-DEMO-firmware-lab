@@ -67,6 +67,14 @@ export DOCKER_BUILDKIT=1
 build_args=(-t "$IMAGE")
 [ "$NO_CACHE" = 1 ] && build_args+=(--no-cache)
 [ -n "${CADS_ZERO_REF:-}" ] && build_args+=(--build-arg "CADS_ZERO_REF=$CADS_ZERO_REF")
+# Resolve the seed branch to one commit like CI does: the image then carries
+# it as OCI label (org.cads.seed.commit) and a changed branch head is not
+# hidden behind a cached layer. Offline: the seed records the head it got.
+seed_ref="${CADS_ZERO_REF:-praktikum/start}"
+if ! printf '%s' "$seed_ref" | grep -Eq '^[0-9a-f]{40}$'; then
+    seed_commit="$(git ls-remote https://github.com/scimbe/cads-zero-firmware.git "refs/heads/$seed_ref" 2>/dev/null | cut -f1)"
+    [ -n "$seed_commit" ] && build_args+=(--build-arg "CADS_SEED_COMMIT=$seed_commit") && echo ">> seed $seed_ref -> $seed_commit"
+fi
 
 echo ">> docker build (this takes 15-40 min on a small Docker VM: toolchain download, firmware + host build)"
 start=$(date +%s)
