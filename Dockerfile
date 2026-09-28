@@ -6,9 +6,8 @@
 # driven from the browser (cads-probe, WebUSB). st-flash / st-info inside the
 # container are HTTP shims against cads-board-bridge (127.0.0.1:3335).
 #
-# Build (the cads-zero repo is private, the token is a BuildKit secret and never
-# lands in a layer):
-#   GH_TOKEN=$(gh auth token) docker build --secret id=gh_token,env=GH_TOKEN -t cads-firmware-lab .
+# Build (the seed comes from the PUBLIC firmware mirror, no token needed):
+#   docker build -t cads-firmware-lab .
 # or simply scripts/run-local.sh.
 
 ############################################################################
@@ -115,14 +114,22 @@ RUN set -eu; \
     arm-none-eabi-gdb --batch -ex 'show version' | head -1
 
 ############################################################################
-# seed: clone cads-zero (pinned commit, shallow, with submodules) and build it
-# once. Done at the *runtime* path so CMakeCache/compile_commands carry the
-# right absolute paths after the seed is copied into the student workspace.
+# seed: clone the lab firmware (shallow, with submodules) and build it once.
+# Done at the *runtime* path so CMakeCache/compile_commands carry the right
+# absolute paths after the seed is copied into the student workspace.
+#
+# Source: the public mirror scimbe/cads-zero-firmware, branch praktikum/start -
+# the student starting point of the networks lab (apps/rnlab, lesson stubs).
+# The private scimbe/cads-zero is no longer needed here, hence no token. The
+# seed only fills an EMPTY workspace; a student's own GitLab fork cloned there
+# later is never overwritten (image/entrypoint.d/10-seed-workspace.sh).
 ############################################################################
 FROM base AS seed
 
-ARG CADS_ZERO_REPO=https://github.com/scimbe/cads-zero.git
-ARG CADS_ZERO_REF=a4ebc909f55f1c3f84e2626761ce29bbc0dbaca1
+ARG CADS_ZERO_REPO=https://github.com/scimbe/cads-zero-firmware.git
+# A branch name (checked out as a tracking branch of the same name, so the
+# student can `git pull` it) or a full 40-hex commit (local branch cads-seed).
+ARG CADS_ZERO_REF=praktikum/start
 # 1 = skip the host (SDL2/ctest) smoke test at image build time.
 ARG CADS_SKIP_HOST_BUILD=0
 # 1 = keep build/host in the seed (faster first "Host tests" run, bigger image).
@@ -131,22 +138,17 @@ ARG CADS_KEEP_HOST_BUILD=0
 USER coder
 WORKDIR /home/coder/workspace
 
-# The token (if any) is read by a git credential helper straight from the
-# secret file - it never appears in argv, in a config file or in a layer.
-RUN --mount=type=secret,id=gh_token,uid=1000,required=false \
-    set -eu; \
-    if [ -s /run/secrets/gh_token ]; then \
-        export GIT_CONFIG_COUNT=1 \
-               GIT_CONFIG_KEY_0=credential.helper \
-               GIT_CONFIG_VALUE_0='!f() { echo username=x-access-token; echo "password=$(cat /run/secrets/gh_token)"; }; f'; \
-    else \
-        echo "note: no gh_token build secret - cloning ${CADS_ZERO_REPO} anonymously" >&2; \
-    fi; \
+RUN set -eu; \
     git init -q cads-zero; \
     cd cads-zero; \
     git remote add origin "${CADS_ZERO_REPO}"; \
-    git fetch --depth 1 origin "${CADS_ZERO_REF}"; \
-    git checkout -q -b cads-lab FETCH_HEAD; \
+    if printf '%s' "${CADS_ZERO_REF}" | grep -Eq '^[0-9a-f]{40}$'; then \
+        git fetch --depth 1 origin "${CADS_ZERO_REF}"; \
+        git checkout -q -b cads-seed FETCH_HEAD; \
+    else \
+        git fetch --depth 1 origin "+refs/heads/${CADS_ZERO_REF}:refs/remotes/origin/${CADS_ZERO_REF}"; \
+        git checkout -q -b "${CADS_ZERO_REF}" --track "origin/${CADS_ZERO_REF}"; \
+    fi; \
     git submodule update --init --recursive --depth 1 --jobs 2; \
     # modules/net/CMakeLists.txt patches lib/lwip at configure time (by design);
     # don't show that as " m lib/lwip" in every student's git status.
@@ -168,15 +170,17 @@ RUN set -eu; cd /home/coder/workspace/cads-zero; \
 # RGB565->24bpp BMP conversion pixel-exactly against PNGs captured with the
 # maintainer's SDL build; Debian's SDL2 2.32 rounds anti-aliased edges +1
 # (cads-zero docs/ROADMAP.md, 2026-09-01: "environmental, not a regression").
-# They are excluded from the *image smoke test* only; the workspace task
-# "CaDS: Host tests" runs the full suite. build/host is dropped afterwards
-# unless CADS_KEEP_HOST_BUILD=1.
+# They are excluded from the *image smoke test* only. The lesson tests
+# (labels rnlab-L*) are red on praktikum/start by design - they are the
+# students' task - so the smoke test excludes them just like the workspace
+# task "CaDS: Host tests (Rahmen)" and the firmware repo's own CI do.
+# build/host is dropped afterwards unless CADS_KEEP_HOST_BUILD=1.
 RUN set -eu; cd /home/coder/workspace/cads-zero; \
     if [ "${CADS_SKIP_HOST_BUILD}" = "1" ]; then echo "host build skipped (CADS_SKIP_HOST_BUILD=1)"; exit 0; fi; \
     export SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy; \
     cmake --preset host; \
     cmake --build build/host; \
-    ctest --test-dir build/host --output-on-failure -E '^golden_'; \
+    ctest --test-dir build/host --output-on-failure -LE '^rnlab-L' -E '^golden_'; \
     ctest --test-dir build/host -R '^golden_' || echo "note: golden-image tests differ on this SDL build (expected, see Dockerfile)"; \
     if [ "${CADS_KEEP_HOST_BUILD}" != "1" ]; then rm -rf build/host; fi; \
     # Keep the configured tree (CMakeCache, compile_commands.json, ninja files,

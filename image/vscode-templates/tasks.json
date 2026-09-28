@@ -32,12 +32,43 @@
       "problemMatcher": []
     },
     {
-      "label": "CaDS: Host tests",
-      "detail": "cmake --preset host && cmake --build build/host && ctest -E '^golden_'  (simulator + unit tests, headless SDL2; golden images: separate task)",
+      "label": "CaDS: Host tests (Rahmen)",
+      "detail": "ctest -LE '^rnlab-L'  - simulator + unit tests of the framework, green on praktikum/start; lesson tests: next task",
       "type": "shell",
-      "command": "cmake --preset host && cmake --build build/host && ctest --test-dir build/host --output-on-failure -E '^golden_'",
+      "command": "cmake --preset host && cmake --build build/host && ctest --test-dir build/host --output-on-failure -LE '^rnlab-L'",
       "options": { "env": { "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy" } },
       "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": ["$gcc"],
+      "presentation": { "clear": true, "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "CaDS: Lektionstests",
+      "detail": "ctest -L '^rnlab-LNN$'  - the tests of ONE lesson (red until its TODOs are done)",
+      "type": "shell",
+      "command": "cmake --preset host && cmake --build build/host && ctest --test-dir build/host --output-on-failure -L '^rnlab-L${input:cadsLesson}$'",
+      "options": { "env": { "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy" } },
+      "group": "test",
+      "problemMatcher": ["$gcc"],
+      "presentation": { "clear": true, "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "CaDS: Lektionstests inkl. Vertiefung",
+      "detail": "ctest -L '^rnlab-LNN(-vertiefung)?$'  - the lesson plus its optional deep-dive tests",
+      "type": "shell",
+      "command": "cmake --preset host && cmake --build build/host && ctest --test-dir build/host --output-on-failure -L '^rnlab-L${input:cadsLesson}(-vertiefung)?$'",
+      "options": { "env": { "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy" } },
+      "group": "test",
+      "problemMatcher": ["$gcc"],
+      "presentation": { "clear": true, "reveal": "always", "panel": "shared" }
+    },
+    {
+      // Old name, kept (hidden) because the tutor courses check a task with this
+      // label; same command as "CaDS: Host tests (Rahmen)".
+      "label": "CaDS: Host tests",
+      "hide": true,
+      "type": "shell",
+      "command": "cmake --preset host && cmake --build build/host && ctest --test-dir build/host --output-on-failure -LE '^rnlab-L'",
+      "options": { "env": { "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy" } },
       "problemMatcher": ["$gcc"],
       "presentation": { "clear": true, "reveal": "always", "panel": "shared" }
     },
@@ -58,6 +89,15 @@
       "command": "python3 scripts/check_ram_budget.py build/itsboard/cads-zero.elf",
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "shared" }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "cadsLesson",
+      "type": "pickString",
+      "description": "Lektion (Versuch NN)",
+      "options": ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11"],
+      "default": "01"
     }
   ]
 }

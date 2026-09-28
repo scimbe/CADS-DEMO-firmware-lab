@@ -61,17 +61,10 @@ fi
 ls "$REPO_ROOT"/extensions/*/dist/*.vsix 2>/dev/null || echo ">> no CaDS VSIX - image gets Open VSX extensions only"
 
 # --- build -------------------------------------------------------------------
-if [ -z "${GH_TOKEN:-}" ]; then
-    if command -v gh >/dev/null 2>&1 && gh auth token >/dev/null 2>&1; then
-        GH_TOKEN="$(gh auth token)"
-    else
-        echo "warning: no GH_TOKEN and no gh login - the private cads-zero clone will fail" >&2
-        GH_TOKEN=""
-    fi
-fi
-export GH_TOKEN DOCKER_BUILDKIT=1
+# The seed comes from the public firmware mirror - no token needed.
+export DOCKER_BUILDKIT=1
 
-build_args=(--secret id=gh_token,env=GH_TOKEN -t "$IMAGE")
+build_args=(-t "$IMAGE")
 [ "$NO_CACHE" = 1 ] && build_args+=(--no-cache)
 [ -n "${CADS_ZERO_REF:-}" ] && build_args+=(--build-arg "CADS_ZERO_REF=$CADS_ZERO_REF")
 
