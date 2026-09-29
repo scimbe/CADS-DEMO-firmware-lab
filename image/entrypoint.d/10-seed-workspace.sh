@@ -73,7 +73,7 @@ seed_workspace() {
         # Remember that this checkout is ours: only then may refresh_tooling()
         # touch it. A fork the student clones later carries no such mark.
         git -C "$WS" config cads.seeded true 2>/dev/null || true
-        log "seed complete"
+        log "seed complete ($(head -n 1 "$(dirname "$SEED")/SEED_COMMIT" 2>/dev/null || echo "commit unknown"); git show image-seed)"
     else
         log "seed copy failed"
         rm -rf "$WS.partial"

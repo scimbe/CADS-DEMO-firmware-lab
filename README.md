@@ -84,7 +84,9 @@ scripts/run-local.sh --stop
 Manual: `docker build -t cads-firmware-lab .`
 Build args: `CADS_ZERO_REPO` (default: the public mirror `scimbe/cads-zero-firmware`),
 `CADS_ZERO_REF` (branch or 40-hex commit to seed, default `praktikum/start`),
-`CADS_SKIP_HOST_BUILD=1`, `CADS_KEEP_HOST_BUILD=1`.
+`CADS_SEED_COMMIT` (the exact commit `CADS_ZERO_REF` resolved to; CI sets it),
+`CADS_SKIP_HOST_BUILD=1`, `CADS_KEEP_HOST_BUILD=1`. Which seed an image carries: label
+`org.cads.seed.commit`, `/opt/cads-seed/SEED_COMMIT`, and `git show image-seed` in the workspace.
 The image build itself is a test: it runs `cmake --preset itsboard`, the host preset and
 `ctest -LE '^rnlab-L' -E '^golden_'` (the lesson tests are the students' task and red on
 `praktikum/start`); a failing build fails the image. Results, size, timings and every

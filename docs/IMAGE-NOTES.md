@@ -140,6 +140,17 @@ local 2-GB VM tests). clangd is capped to 4 indexing workers with on-disk PCH st
 - **Seed branch**: a branch ref (default `praktikum/start`) is checked out as a local branch of
   the same name tracking `origin/<ref>`, so `git pull` works; a 40-hex commit lands on a local
   branch `cads-seed`. Older seeds used `cads-lab` - still recognised by the entrypoint.
+- **Which seed is in the image (2026-09-29)**: CI (`image.yml`, job `seed`) resolves the seed
+  ref once to a commit and passes it as `CADS_SEED_COMMIT` to both architectures; the seed
+  stage fetches exactly that commit. Recorded three ways: OCI labels `org.cads.seed.repo`,
+  `org.cads.seed.ref`, `org.cads.seed.commit` (checked per architecture in the `manifest`
+  job), the file `/opt/cads-seed/SEED_COMMIT` (first line = commit, then repo, ref,
+  commit date), and the annotated tag `image-seed` in the seeded workspace
+  (`git show image-seed`, also in `git log --decorate`); the entrypoint logs the commit when
+  it seeds. Passing the commit also makes the seed layer's build cache miss when the branch
+  moves - before, an unchanged `RUN` text could serve a stale seed from the GHA cache. A
+  local build without the arg records the branch head it got in the file and the tag; its
+  commit label stays empty (`scripts/run-local.sh` resolves it like CI when online).
 - **Seed vs. the student's fork**: the entrypoint seeds only a missing or empty workspace and
   marks it (`git config cads.seeded true`). The tooling refresh (PB-08) runs only on such marked
   (or older `cads-lab`) workspaces, so a GitLab fork cloned into the workspace is never touched.

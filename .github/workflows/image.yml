@@ -33,6 +33,33 @@ env:
   IMAGE: ghcr.io/scimbe/cads-firmware-lab
 
 jobs:
+  # 0. Resolve the seed ref to ONE commit, so both architectures seed the same
+  #    firmware state and the image can say which (OCI label + file, see
+  #    Dockerfile). Public mirror, no token.
+  seed:
+    runs-on: ubuntu-latest
+    outputs:
+      ref: ${{ steps.resolve.outputs.ref }}
+      commit: ${{ steps.resolve.outputs.commit }}
+    steps:
+      - name: Resolve seed commit
+        id: resolve
+        shell: bash
+        env:
+          REPO: https://github.com/scimbe/cads-zero-firmware.git
+          REF: ${{ inputs.cads_zero_ref || 'praktikum/start' }}
+        run: |
+          set -euo pipefail
+          if [[ "$REF" =~ ^[0-9a-f]{40}$ ]]; then
+            commit="$REF"
+          else
+            commit="$(git ls-remote "$REPO" "refs/heads/$REF" | cut -f1)"
+          fi
+          [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::cannot resolve $REF in $REPO"; exit 1; }
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          echo "seed: $REPO $REF -> $commit" | tee -a "$GITHUB_STEP_SUMMARY"
+
   # 1. Package the CaDS extensions (cads-probe, cads-board-bridge, cads-tutor)
   #    into extensions/*/dist/*.vsix. Tolerant: directories that do not exist
   #    yet or have no package.json are skipped, an empty result is fine.
@@ -65,7 +92,7 @@ jobs:
 
   # 2. Native build + push by digest per architecture.
   build:
-    needs: extensions
+    needs: [extensions, seed]
     strategy:
       fail-fast: false
       matrix:
@@ -103,7 +130,8 @@ jobs:
           context: .
           platforms: linux/${{ matrix.arch }}
           build-args: |
-            ${{ inputs.cads_zero_ref != '' && format('CADS_ZERO_REF={0}', inputs.cads_zero_ref) || '' }}
+            CADS_ZERO_REF=${{ needs.seed.outputs.ref }}
+            CADS_SEED_COMMIT=${{ needs.seed.outputs.commit }}
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=${{ matrix.arch }}
           cache-to: type=gha,scope=${{ matrix.arch }},mode=max
@@ -123,7 +151,7 @@ jobs:
 
   # 3. One multi-arch manifest, tagged.
   manifest:
-    needs: build
+    needs: [build, seed]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -156,3 +184,26 @@ jobs:
       - name: Inspect
         run: |
           docker buildx imagetools inspect "$IMAGE:${GITHUB_REF_NAME//\//-}-${GITHUB_SHA::7}"
+      - name: Check the seed label of every architecture
+        shell: bash
+        env:
+          WANT: ${{ needs.seed.outputs.commit }}
+        run: |
+          set -euo pipefail
+          ref="$IMAGE:${GITHUB_REF_NAME//\//-}-${GITHUB_SHA::7}"
+          docker buildx imagetools inspect "$ref" --format '{{json .Image}}' > /tmp/image.json
+          python3 - "$WANT" <<'PY'
+          import json, sys
+          want = sys.argv[1]
+          images = json.load(open("/tmp/image.json"))
+          if "config" in images:            # single-platform shape
+              images = {"single": images}
+          bad = 0
+          for plat, img in images.items():
+              labels = img.get("config", {}).get("Labels", {}) or {}
+              got = labels.get("org.cads.seed.commit", "")
+              print(f"{plat}: org.cads.seed.commit={got} ref={labels.get('org.cads.seed.ref','')}")
+              bad += got != want
+          sys.exit(1 if bad else 0)
+          PY
+          echo "seed label = $WANT on all architectures" >> "$GITHUB_STEP_SUMMARY"
