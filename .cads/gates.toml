@@ -1,0 +1,35 @@
+# CADS-DEMO-firmware-lab: CI-Gate-Befehle, die ohne Netz und ohne Docker laufen.
+# Bezug: DEC-0058 C, AUF-20260929-032.
+#
+# Jeder [[commands]]-Eintrag ist ein GateCommand mit den Pflichtfeldern:
+#   gate        - Kennung der Prüfgruppe
+#   name        - Anzeigename des Einzelchecks
+#   argv        - Befehl als Liste (kein Shell-String, kein Netz-/Docker-Zugriff)
+#   timeout_s   - Timeout in Sekunden
+#   required    - true, wenn der Check den Merge blockiert
+#   reports_as  - Name, unter dem der Check zurückgemeldet wird
+#   mutation    - true, wenn der Befehl Dateien veraendert (hier immer false)
+#   scope       - betroffener Pfad des Checks
+#   kinds       - Liste von Schlagworten zur Einordnung des Checks
+
+[[commands]]
+gate = "sh-syntax"
+name = "bash -n deploy/firmware-lab/deploy.sh"
+argv = ["bash", "-n", "deploy/firmware-lab/deploy.sh"]
+timeout_s = 10
+required = true
+reports_as = "gates/sh-syntax/deploy.sh"
+mutation = false
+scope = "deploy/firmware-lab/deploy.sh"
+kinds = ["syntax", "shell"]
+
+[[commands]]
+gate = "sh-syntax"
+name = "bash -n deploy/firmware-lab/smoke.sh"
+argv = ["bash", "-n", "deploy/firmware-lab/smoke.sh"]
+timeout_s = 10
+required = true
+reports_as = "gates/sh-syntax/smoke.sh"
+mutation = false
+scope = "deploy/firmware-lab/smoke.sh"
+kinds = ["syntax", "shell"]

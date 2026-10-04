@@ -22,6 +22,7 @@ on:
       - extensions/**
       - courses/**
       - .github/workflows/image.yml
+  merge_group:
   workflow_dispatch:
     inputs:
       cads_zero_ref:
