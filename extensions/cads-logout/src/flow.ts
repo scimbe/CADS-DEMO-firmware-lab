@@ -21,7 +21,16 @@ export interface LogoutDeps {
   /** Ask the page to leave; the URL it goes to, or null when nobody answered. */
   navigate(): Promise<string | null>;
   error(message: string): void;
+  wait(ms: number): Promise<void>;
 }
+
+/**
+ * How long a file may stay dirty after "save all" before the student is asked.
+ * Extensions that write settings (configuration.update) leave settings.json
+ * dirty for a moment; that must not turn into a warning about unsaved work.
+ */
+export const SAVE_SETTLE_TRIES = 6;
+export const SAVE_SETTLE_MS = 500;
 
 export const TEXT = {
   confirm: 'Vom Firmware-Labor abmelden?',
@@ -32,7 +41,7 @@ export const TEXT = {
       ? `„${names[0]}“ ist noch nicht gespeichert.`
       : `${names.length} Dateien sind noch nicht gespeichert: ${names.join(', ')}`,
   dirtyDetail:
-    'Unbenannte Dateien speichert das Abmelden nicht von selbst. Abbrechen, die Dateien speichern und erneut abmelden – oder ohne sie abmelden.',
+    'Das Abmelden konnte sie nicht speichern (Datei ohne Namen oder Fehler beim Schreiben). Abbrechen, selbst speichern und erneut abmelden – oder ohne sie abmelden.',
   dirtyAction: 'Trotzdem abmelden',
   busy: 'Das Board ist noch belegt.',
   busyDetail:
@@ -46,7 +55,12 @@ export async function runLogout(deps: LogoutDeps): Promise<LogoutResult> {
   if (!(await deps.confirm(TEXT.confirm, TEXT.confirmDetail, TEXT.action))) return 'cancelled';
 
   await deps.saveAll();
-  const dirty = deps.dirtyNames();
+  let dirty = deps.dirtyNames();
+  for (let i = 0; dirty.length > 0 && i < SAVE_SETTLE_TRIES; i++) {
+    await deps.wait(SAVE_SETTLE_MS);
+    await deps.saveAll();
+    dirty = deps.dirtyNames();
+  }
   if (dirty.length > 0 && !(await deps.confirm(TEXT.dirty(dirty), TEXT.dirtyDetail, TEXT.dirtyAction))) {
     return 'cancelled';
   }

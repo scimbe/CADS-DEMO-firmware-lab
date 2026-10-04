@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { CHANNEL_NAME, requestNavigation } from '../src/channel';
-import { runLogout, TEXT, type BoardState, type LogoutDeps } from '../src/flow';
+import { runLogout, SAVE_SETTLE_TRIES, TEXT, type BoardState, type LogoutDeps } from '../src/flow';
 
 interface Script {
   answers?: boolean[];
   dirty?: string[];
+  /** The dirty files clear after this many checks (a settings write that settles). */
+  dirtyClearsAfter?: number;
   board?: BoardState;
   page?: string | null;
 }
@@ -14,6 +16,7 @@ function harness(script: Script): { deps: LogoutDeps; calls: string[]; errors: s
   const calls: string[] = [];
   const errors: string[] = [];
   const answers = [...(script.answers ?? [true])];
+  let checks = 0;
   const deps: LogoutDeps = {
     confirm: async (message) => {
       calls.push(`confirm:${message}`);
@@ -23,7 +26,14 @@ function harness(script: Script): { deps: LogoutDeps; calls: string[]; errors: s
       calls.push('saveAll');
       return true;
     },
-    dirtyNames: () => script.dirty ?? [],
+    dirtyNames: () => {
+      checks++;
+      if (script.dirtyClearsAfter !== undefined && checks > script.dirtyClearsAfter) return [];
+      return script.dirty ?? [];
+    },
+    wait: async () => {
+      calls.push('wait');
+    },
     releaseBoard: async () => {
       calls.push('release');
       return script.board ?? 'released';
@@ -55,6 +65,18 @@ test('files that stay dirty need a second confirmation; declining keeps board an
   assert.ok(!h.calls.includes('release'));
   assert.ok(!h.calls.includes('navigate'));
   assert.ok(h.calls.some((c) => c.includes('Untitled-1')));
+});
+
+test('a file that is only dirty for a moment (an extension writing settings) raises no question', async () => {
+  const h = harness({ dirty: ['settings.json'], dirtyClearsAfter: 2 });
+  assert.equal(await runLogout(h.deps), 'navigating');
+  assert.deepEqual(h.calls, [`confirm:${TEXT.confirm}`, 'saveAll', 'wait', 'saveAll', 'wait', 'saveAll', 'release', 'navigate']);
+});
+
+test('the wait for saves to settle is bounded', async () => {
+  const h = harness({ answers: [true, false], dirty: ['stuck.c'] });
+  assert.equal(await runLogout(h.deps), 'cancelled');
+  assert.equal(h.calls.filter((c) => c === 'wait').length, SAVE_SETTLE_TRIES);
 });
 
 test('files that stay dirty: "trotzdem abmelden" goes on', async () => {

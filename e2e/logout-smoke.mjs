@@ -137,6 +137,9 @@ async function openLab(context, url) {
     dialogs.push(`${d.type()}: ${d.message()}`);
     void d.accept();
   });
+  page.on("console", (m) => {
+    if (m.text().includes("[cads-logout]")) console.log(`  browser console: ${m.text()}`);
+  });
   await page.goto(url);
   return { page, dialogs };
 }
@@ -243,7 +246,13 @@ try {
 
     await page.locator(ITEM).click();
     await confirmDialog(page, "Abmelden");
-    await page.locator('input[type="password"]').waitFor({ state: "visible", timeout: 30_000 });
+    // A fresh lab has nothing unsaved: any further question here is a defect.
+    const login = page.locator('input[type="password"]');
+    const extra = page.locator(".monaco-dialog-box");
+    await login.or(extra).first().waitFor({ state: "visible", timeout: 30_000 });
+    if (await extra.isVisible().catch(() => false)) {
+      throw new Error(`password: unexpected second question: ${(await extra.innerText()).replace(/\s+/g, " ")}`);
+    }
     check(new URL(page.url()).pathname.endsWith("/login"), `password: the tab shows code-server's login page (${page.url()})`);
     const after = (await context.cookies()).filter((c) => c.name.startsWith("code-server-session") && c.value !== "");
     check(after.length === 0, "password: the session cookie is gone");

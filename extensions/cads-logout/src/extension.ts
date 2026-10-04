@@ -51,13 +51,16 @@ export function activate(context: vscode.ExtensionContext): void {
         confirm: async (message, detail, action) =>
           (await vscode.window.showWarningMessage(message, { modal: true, detail }, action)) === action,
         saveAll: () => Promise.resolve(vscode.workspace.saveAll(false)),
-        dirtyNames: () =>
-          vscode.workspace.textDocuments
-            .filter((doc) => doc.isDirty)
-            .map((doc) => doc.uri.path.split('/').pop() || doc.uri.toString()),
+        dirtyNames: () => {
+          const dirty = vscode.workspace.textDocuments.filter((doc) => doc.isDirty);
+          // Full URIs for whoever debugs a "not saved" question; the student sees names.
+          if (dirty.length > 0) console.warn(`[cads-logout] dirty: ${dirty.map((doc) => doc.uri.toString()).join(' ')}`);
+          return dirty.map((doc) => doc.uri.path.split('/').pop() || doc.uri.toString());
+        },
         releaseBoard,
         navigate: () => requestNavigation(channel, ACK_TIMEOUT_MS),
         error: (message) => void vscode.window.showErrorMessage(message, { modal: true }),
+        wait: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
       });
     } finally {
       running = false;

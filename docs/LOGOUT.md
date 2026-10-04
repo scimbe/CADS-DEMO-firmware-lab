@@ -7,8 +7,10 @@ in allen Betriebsarten ohne Änderung am Portal und ohne Konfiguration.
 ## Was beim Abmelden passiert
 
 1. Rückfrage „Vom Firmware-Labor abmelden?“ – Abbrechen lässt alles, wie es ist.
-2. Alle geänderten Dateien mit Pfad werden gespeichert. Bleibt etwas ungespeichert (unbenannte
-   Dateien, Schreibfehler), nennt eine zweite Rückfrage die Dateien; „Trotzdem abmelden“ geht weiter.
+2. Alle geänderten Dateien mit Pfad werden gespeichert. Bleibt nach bis zu 3 s etwas ungespeichert
+   (unbenannte Dateien, Schreibfehler), nennt eine zweite Rückfrage die Dateien; „Trotzdem
+   abmelden“ geht weiter. Die Wartezeit fängt Erweiterungen ab, die gerade Einstellungen schreiben
+   (`settings.json` ist dann für einen Moment „geändert“).
 3. Das Board wird freigegeben (`cads.probe.release`: ST-Link und serielle Konsole). Lehnt die Probe
    ab, weil gerade geflasht wird, fragt eine dritte Rückfrage, ob der Flash-Vorgang abgebrochen
    werden soll.
