@@ -1,6 +1,6 @@
 // Logout: page script, installer and entrypoint config (docs/LOGOUT.md).
 //
-// Run: node --test tests/logout/      (needs node, sh, python3; no docker, no image)
+// Run: node --test tests/logout/*.test.mjs      (needs node, sh, python3; no docker, no image)
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';

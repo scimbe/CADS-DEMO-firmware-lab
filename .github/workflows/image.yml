@@ -221,7 +221,7 @@ jobs:
         with:
           node-version: 22
       - name: Page script, installer, entrypoint config
-        run: node --test tests/logout/
+        run: node --test tests/logout/*.test.mjs
       - name: cads-logout extension
         working-directory: extensions/cads-logout
         run: npm ci && npm run typecheck && npm test

@@ -94,7 +94,7 @@ The image build itself is a test: it runs `cmake --preset itsboard`, the host pr
 deviation from the spec: [`docs/IMAGE-NOTES.md`](docs/IMAGE-NOTES.md).
 
 - Shims: `python3 -m unittest discover -s tests/shims -v` (mock HTTP bridge, no Docker).
-- Logout: `node --test tests/logout/` and `node e2e/logout-smoke.mjs` (both modes, see [`docs/LOGOUT.md`](docs/LOGOUT.md)).
+- Logout: `node --test tests/logout/*.test.mjs` and `node e2e/logout-smoke.mjs` (both modes, see [`docs/LOGOUT.md`](docs/LOGOUT.md)).
 - Browser smoke test against a running container:
   `CADS_LAB_PASSWORD=… node e2e/image-smoke.mjs` (login, workspace, `CaDS: Build`, `st-info --probe`).
 

@@ -81,7 +81,7 @@ das Verlassen der Seite beendet den Worker und gibt die WebUSB-/WebSerial-Handle
 | Was | Aufruf | Braucht |
 |---|---|---|
 | Ablauf und Kanal der Erweiterung | `cd extensions/cads-logout && npm ci && npm test` | node |
-| Seitenskript, `install.sh`, Entrypoint | `node --test tests/logout/` | node, sh, python3 |
+| Seitenskript, `install.sh`, Entrypoint | `node --test tests/logout/*.test.mjs` | node, sh, python3 |
 | Browser, alle Betriebsarten | `node e2e/logout-smoke.mjs` (Kopf der Datei) | laufende code-server-Instanzen, Playwright |
 
 Der Browser-Test stellt für die Portal-Betriebsart einen eigenen Reverse-Proxy vor code-server

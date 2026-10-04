@@ -146,6 +146,29 @@ async function waitForItem(page, label) {
   const text = (await page.locator(ITEM).innerText()).trim();
   check(text === "Abmelden", `${label}: its label is "Abmelden" (got "${text}")`);
 }
+// Quick Open through the command center in the title bar: a mouse click works
+// wherever the keyboard focus is (in the image it sits in the tutor's webview,
+// where Ctrl+P did not reach the workbench). Ctrl+P is the fallback.
+async function quickOpen(page, file) {
+  const input = page.locator(".quick-input-widget .quick-input-box input").first();
+  const row = page.locator(".quick-input-list .monaco-list-row", { hasText: file }).first();
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const center = page.locator(".command-center-center").first();
+      if (attempt % 2 === 1 && (await center.count())) await center.click();
+      else await page.keyboard.press("ControlOrMeta+P");
+      await input.waitFor({ state: "visible", timeout: 5000 });
+      await input.fill(file);
+      await row.waitFor({ state: "visible", timeout: 15_000 });
+      await input.press("Enter");
+      return;
+    } catch (err) {
+      if (attempt >= 4) throw err;
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(1000);
+    }
+  }
+}
 async function confirmDialog(page, button) {
   const dialog = page.locator(".monaco-dialog-box");
   await dialog.waitFor({ state: "visible", timeout: 20_000 });
@@ -178,10 +201,7 @@ try {
 
     // Make a file dirty, then log out through the status bar entry.
     const marker = `logout-e2e-${Date.now()}`;
-    await page.keyboard.press("ControlOrMeta+P");
-    await page.keyboard.type(EDIT_FILE);
-    await page.locator(".quick-input-list .monaco-list-row", { hasText: EDIT_FILE }).first().waitFor({ timeout: 20_000 });
-    await page.keyboard.press("Enter");
+    await quickOpen(page, EDIT_FILE);
     // Click into the text: on a fresh profile the focus may sit in another panel.
     const editor = page.locator(".editor-group-container .monaco-editor .view-lines").first();
     await editor.waitFor({ timeout: 20_000 });
