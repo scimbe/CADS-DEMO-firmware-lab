@@ -234,6 +234,8 @@ jobs:
       packages: read
     env:
       CADS_LAB_PASSWORD: logout-smoke-${{ github.run_id }}
+      # Last image on :next without the logout (before PR #6).
+      PORTAL_OLD_TAG: next-54cb23d
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -251,8 +253,27 @@ jobs:
           ref="$IMAGE:${GITHUB_REF_NAME//\//-}-${GITHUB_SHA::7}"
           common=(--bind-addr 0.0.0.0:8080 --disable-workspace-trust --disable-telemetry --disable-update-check)
           ws=/home/coder/workspace/cads-zero
-          # portal mode: exactly what praktikum-creator's overlay starts (--auth none)
-          docker run -d --name logout-none -p 127.0.0.1:18081:8080 "$ref" "${common[@]}" --auth none "$ws"
+          # portal mode: what praktikum-creator starts (compose.user.template.yml +
+          # compose.user.code-server.yml): --auth none, the template's environment,
+          # CADS_LOGOUT_URL=/start/logout (launcher route, praktikum-creator #191),
+          # and the per-person volume workspace-<id> on /home/coder/workspace. That
+          # volume outlives image updates, so it is filled here by the image that
+          # was on :next BEFORE the logout existed - a session of someone who used
+          # the lab earlier, not a fresh one.
+          old="$IMAGE:$PORTAL_OLD_TAG"
+          docker volume create logout-smoke-workspace
+          docker run --rm -v logout-smoke-workspace:/home/coder/workspace "$old" --version
+          docker run --rm -v logout-smoke-workspace:/home/coder/workspace --entrypoint sh "$ref" -c \
+            'test -d /home/coder/workspace/cads-zero/.git && cat /home/coder/workspace/cads-zero/.cads-seed-applied 2>/dev/null | head -3'
+          docker run -d --name logout-none -p 127.0.0.1:18081:8080 \
+            -v logout-smoke-workspace:/home/coder/workspace \
+            -e ALLOWED_EMAIL=e2e@example.org -e ADMIN_EMAILS= -e PRAKTIKUM_USER=e2e -e APPROVAL_EXPIRES= \
+            -e PASSWORD=unused-in-portal-mode -e CUSTOM_USER=cads \
+            -e CADS_LOGOUT_URL=/start/logout \
+            -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=credential.helper \
+            -e GIT_CONFIG_VALUE_0=/run/cads-git-cred/git-credential-broker.py \
+            "$ref" --bind-addr 0.0.0.0:8080 --auth none --app-name "CaDS Firmware Lab" \
+            --disable-workspace-trust --disable-telemetry --disable-update-check "$ws"
           # interim mode: the image's own CMD, code-server password
           docker run -d --name logout-password -p 127.0.0.1:18082:8080 -e "PASSWORD=$CADS_LAB_PASSWORD" "$ref"
           docker run -d --name logout-fallback -p 127.0.0.1:18083:8080 "$ref" "${common[@]}" --auth none --extensions-dir /tmp/no-extensions "$ws"
@@ -264,7 +285,7 @@ jobs:
             done
           done
           docker exec logout-none sh -c "printf 'logout e2e\n' > $ws/logout-e2e.txt"
-          docker logs logout-none 2>&1 | grep -F '[cads-logout]'
+          docker logs logout-none 2>&1 | grep -F '[cads-logout] Abmelde-Adresse: /start/logout'
           docker exec logout-none code-server --list-extensions | grep -Fx cads.cads-logout
       - name: Install Playwright
         run: |
@@ -276,6 +297,7 @@ jobs:
           CADS_LOGOUT_NONE_URL: http://127.0.0.1:18081
           CADS_LOGOUT_PASSWORD_URL: http://127.0.0.1:18082
           CADS_LOGOUT_FALLBACK_URL: http://127.0.0.1:18083
+          CADS_LOGOUT_EXPECT_VIA: /start/logout
           CADS_LOGOUT_EDIT_FILE: logout-e2e.txt
           CADS_LOGOUT_READ_CMD: docker exec logout-none cat /home/coder/workspace/cads-zero/logout-e2e.txt
           E2E_OUT: e2e/out
