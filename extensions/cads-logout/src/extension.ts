@@ -73,6 +73,9 @@ export function activate(context: vscode.ExtensionContext): void {
   item.text = '$(sign-out) Abmelden';
   item.tooltip = 'Vom Firmware-Labor abmelden (speichert offene Dateien, trennt das Board)';
   item.command = 'cads.logout';
+  // Rot hinterlegt, damit der Abmelde-Knopf sofort auffaellt (Wunsch des CTO).
+  item.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+  item.color = new vscode.ThemeColor('statusBarItem.errorForeground');
   item.show();
 
   context.subscriptions.push(
