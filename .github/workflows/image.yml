@@ -21,6 +21,8 @@ on:
       - image/**
       - extensions/**
       - courses/**
+      - e2e/logout-smoke.mjs
+      - tests/logout/**
       - .github/workflows/image.yml
   workflow_dispatch:
     inputs:
@@ -60,8 +62,8 @@ jobs:
           echo "commit=$commit" >> "$GITHUB_OUTPUT"
           echo "seed: $REPO $REF -> $commit" | tee -a "$GITHUB_STEP_SUMMARY"
 
-  # 1. Package the CaDS extensions (cads-probe, cads-board-bridge, cads-tutor)
-  #    into extensions/*/dist/*.vsix. Tolerant: directories that do not exist
+  # 1. Package the CaDS extensions (cads-probe, cads-board-bridge, cads-tutor,
+  #    cads-logout) into extensions/*/dist/*.vsix. Tolerant: directories that do not exist
   #    yet or have no package.json are skipped, an empty result is fine.
   extensions:
     runs-on: ubuntu-latest
@@ -207,3 +209,84 @@ jobs:
           sys.exit(1 if bad else 0)
           PY
           echo "seed label = $WANT on all architectures" >> "$GITHUB_STEP_SUMMARY"
+
+  # 4. Logout (docs/LOGOUT.md). Unit tests need no image and run at once; the
+  #    browser test runs against the image this workflow just pushed, in both
+  #    operating modes plus the fallback without the extension.
+  logout-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Page script, installer, entrypoint config
+        run: node --test tests/logout/
+      - name: cads-logout extension
+        working-directory: extensions/cads-logout
+        run: npm ci && npm run typecheck && npm test
+
+  logout-smoke:
+    needs: manifest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    env:
+      CADS_LAB_PASSWORD: logout-smoke-${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Start the image in both modes (and once without the extension)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ref="$IMAGE:${GITHUB_REF_NAME//\//-}-${GITHUB_SHA::7}"
+          common=(--bind-addr 0.0.0.0:8080 --disable-workspace-trust --disable-telemetry --disable-update-check)
+          ws=/home/coder/workspace/cads-zero
+          # portal mode: exactly what praktikum-creator's overlay starts (--auth none)
+          docker run -d --name logout-none -p 127.0.0.1:18081:8080 "$ref" "${common[@]}" --auth none "$ws"
+          # interim mode: the image's own CMD, code-server password
+          docker run -d --name logout-password -p 127.0.0.1:18082:8080 -e "PASSWORD=$CADS_LAB_PASSWORD" "$ref"
+          docker run -d --name logout-fallback -p 127.0.0.1:18083:8080 "$ref" "${common[@]}" --auth none --extensions-dir /tmp/no-extensions "$ws"
+          for port in 18081 18082 18083; do
+            for i in $(seq 1 60); do
+              curl -fsS -o /dev/null "http://127.0.0.1:$port/healthz" && break
+              [ "$i" = 60 ] && { echo "::error::no /healthz on port $port"; docker ps -a; exit 1; }
+              sleep 2
+            done
+          done
+          docker exec logout-none sh -c "printf 'logout e2e\n' > $ws/logout-e2e.txt"
+          docker logs logout-none 2>&1 | grep -F '[cads-logout]'
+          docker exec logout-none code-server --list-extensions | grep -Fx cads.cads-logout
+      - name: Install Playwright
+        run: |
+          mkdir -p "$RUNNER_TEMP/pw" && cd "$RUNNER_TEMP/pw"
+          npm init -y >/dev/null && npm install --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium-headless-shell
+      - name: Browser test
+        env:
+          CADS_LOGOUT_NONE_URL: http://127.0.0.1:18081
+          CADS_LOGOUT_PASSWORD_URL: http://127.0.0.1:18082
+          CADS_LOGOUT_FALLBACK_URL: http://127.0.0.1:18083
+          CADS_LOGOUT_EDIT_FILE: logout-e2e.txt
+          CADS_LOGOUT_READ_CMD: docker exec logout-none cat /home/coder/workspace/cads-zero/logout-e2e.txt
+          E2E_OUT: e2e/out
+        run: PW_MODULE="$RUNNER_TEMP/pw/node_modules/playwright" node e2e/logout-smoke.mjs
+      - name: Container logs
+        if: failure()
+        run: for c in logout-none logout-password logout-fallback; do echo "== $c"; docker logs "$c" 2>&1 | tail -40; done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: logout-smoke-screenshots
+          path: e2e/out/
+          if-no-files-found: ignore
+          retention-days: 7

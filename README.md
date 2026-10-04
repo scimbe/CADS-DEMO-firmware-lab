@@ -56,6 +56,7 @@ image/settings/user-settings.json               code-server user settings baked 
 image/shims/st-flash, st-info                   bridge HTTP shims (+ cads_shim_common.py)
 extensions/cads-probe, cads-board-bridge        bridge stream (web + node extension)
 extensions/cads-tutor                           tutor extension
+extensions/cads-logout, image/logout/           logout: status bar entry + page script (docs/LOGOUT.md)
 courses/cads-zero-foundations, cads-zero-projects   course packs (data only), courses/README.md
 deploy/multiuser/                               multi-user stack: fl-broker (host process), Caddy gate, compose, systemd/watchdog
 scripts/run-local.sh, validate-courses.py, tutor-e2e-container.sh
@@ -93,6 +94,7 @@ The image build itself is a test: it runs `cmake --preset itsboard`, the host pr
 deviation from the spec: [`docs/IMAGE-NOTES.md`](docs/IMAGE-NOTES.md).
 
 - Shims: `python3 -m unittest discover -s tests/shims -v` (mock HTTP bridge, no Docker).
+- Logout: `node --test tests/logout/` and `node e2e/logout-smoke.mjs` (both modes, see [`docs/LOGOUT.md`](docs/LOGOUT.md)).
 - Browser smoke test against a running container:
   `CADS_LAB_PASSWORD=… node e2e/image-smoke.mjs` (login, workspace, `CaDS: Build`, `st-info --probe`).
 

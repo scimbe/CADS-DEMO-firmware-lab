@@ -1,0 +1,43 @@
+{
+  "name": "cads-logout",
+  "displayName": "CaDS Abmelden",
+  "description": "Statusleisten-Eintrag und Befehl „CaDS: Abmelden“ für das CaDS Firmware Lab: speichert offene Dateien, gibt das Board frei und schickt den Browser-Tab auf die Abmelde-Adresse.",
+  "publisher": "cads",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "browser": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "cads.logout",
+        "title": "Abmelden",
+        "category": "CaDS",
+        "icon": "$(sign-out)"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p tsconfig.test.json",
+    "test": "node esbuild.mjs --tests && node --test out/test/*.test.js",
+    "package": "npm run typecheck && npm run build && vsce package --no-dependencies -o dist/"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.0",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.28.1",
+    "typescript": "^6.0.3"
+  }
+}

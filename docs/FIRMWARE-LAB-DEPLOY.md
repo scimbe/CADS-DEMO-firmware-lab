@@ -68,6 +68,9 @@ $EDITOR .env
 | `TUTOR_LLM_MODEL` | ja | z. B. `local-devstral-small2` |
 | `FIRMWARE_LAB_PUBLIC_URL` | empfohlen | die öffentliche Adresse hinter dem Tunnel; nur dann prüft die Rauchprobe auch den Tunnel und nicht bloß den lokalen Port |
 
+Abmelden braucht hier keine Einstellung: Mit Kennwort führt „Abmelden“ (Statusleiste) auf
+code-servers eigenen Logout und zurück zur Kennwortseite, siehe [LOGOUT.md](LOGOUT.md).
+
 Die drei `TUTOR_LLM_*` sind auf diesem Host **Pflicht**: `deploy.sh` verweigert
 den Deploy ohne sie (`--allow-no-llm` hebt das auf). Ohne Modell unterrichtet der
 Tutor zwar weiter, aber jede Verständnisfrage fällt auf Selbsteinschätzung
