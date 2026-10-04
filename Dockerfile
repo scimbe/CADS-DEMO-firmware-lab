@@ -232,6 +232,34 @@ LABEL org.cads.seed.repo="${CADS_ZERO_REPO}" \
 
 USER root
 
+# git-credential-oauth: GitHub sign-in via the OAuth device flow (the helper
+# prints a code, the student enters it at github.com/login/device on any
+# device). Static Go binary from the upstream release, pinned and SHA-256
+# verified per architecture (values from the release's checksums.txt).
+# The image only ships the tool; WHETHER git uses it is decided per start by
+# the launcher's entrypoint script (CADS_GIT_MODE=github-device), not here -
+# no credential.helper is configured in the image itself.
+ARG GIT_CREDENTIAL_OAUTH_VERSION=0.17.2
+ARG GIT_CREDENTIAL_OAUTH_SHA256_AMD64=7a234633ddb24c8f208505763bcb7daaa80ad068e6a4753e7660d558443b1d4a
+ARG GIT_CREDENTIAL_OAUTH_SHA256_ARM64=9ef59ffcb9742d3783396d5418d282d0445374e0fb7391461a343e4e220da144
+ARG TARGETARCH
+RUN set -eu; \
+    case "${TARGETARCH}" in \
+        amd64) sha="${GIT_CREDENTIAL_OAUTH_SHA256_AMD64}" ;; \
+        arm64) sha="${GIT_CREDENTIAL_OAUTH_SHA256_ARM64}" ;; \
+        *) echo "unsupported TARGETARCH=${TARGETARCH}" >&2; exit 1 ;; \
+    esac; \
+    v="${GIT_CREDENTIAL_OAUTH_VERSION}"; \
+    tarball="git-credential-oauth_${v}_linux_${TARGETARCH}.tar.gz"; \
+    curl -fSL --retry 5 --retry-delay 5 -o "/tmp/${tarball}" \
+        "https://github.com/hickford/git-credential-oauth/releases/download/v${v}/${tarball}"; \
+    echo "${sha}  /tmp/${tarball}" | sha256sum -c -; \
+    tar -xzf "/tmp/${tarball}" -C /usr/local/bin git-credential-oauth; \
+    chown root:root /usr/local/bin/git-credential-oauth; \
+    chmod 0755 /usr/local/bin/git-credential-oauth; \
+    rm -f "/tmp/${tarball}"; \
+    git-credential-oauth version
+
 # st-flash / st-info shims (SPEC.md §3.2) - first on PATH.
 COPY --chmod=0755 image/shims/st-flash image/shims/st-info /usr/local/bin/
 COPY --chmod=0644 image/shims/cads_shim_common.py /usr/local/bin/
