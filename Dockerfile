@@ -251,6 +251,13 @@ RUN rm -f /opt/cads-tutor/courses/.gitkeep && ls -d /opt/cads-tutor/courses/*/ 2
 
 RUN mkdir -p /home/coder/workspace && chown coder:coder /home/coder/workspace
 
+# Logout (docs/LOGOUT.md): the page script that sends the browser tab to the
+# logout URL, added to code-server's workbench HTML. The config file belongs to
+# coder because entrypoint.d/20-logout-config.sh rewrites it on every start
+# (CADS_LOGOUT_URL). The build stops if the workbench HTML changed shape.
+COPY image/logout/ /opt/cads-logout/
+RUN sh /opt/cads-logout/install.sh /usr/lib/code-server coder:coder
+
 # Extensions must be installed as `coder`: code-server resolves its extension
 # directory from $HOME and the container runs as coder.
 USER coder
@@ -267,8 +274,8 @@ RUN set -eu; for ext in \
         ms-python.python \
     ; do code-server --install-extension "$ext"; done
 
-# The three CaDS extensions (cads-probe, cads-board-bridge, cads-tutor) are
-# built by their own streams into extensions/*/dist/*.vsix. .dockerignore
+# The CaDS extensions (cads-probe, cads-board-bridge, cads-tutor, cads-logout)
+# are built by their own streams into extensions/*/dist/*.vsix. .dockerignore
 # admits only those .vsix files into the build context; an empty directory is
 # fine (the image still builds, just without them).
 COPY --chown=coder:coder extensions/ /tmp/cads-extensions/
