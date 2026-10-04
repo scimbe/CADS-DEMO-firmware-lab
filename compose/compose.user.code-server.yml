@@ -1,0 +1,81 @@
+# Per-student code-server session for the CaDS Firmware Lab - the overlay the launcher starts.
+#
+# trace: AUF-20261004-003
+#
+# Not a stack: this file describes exactly ONE student container and is instantiated once per
+# session by launcher/app.py:
+#
+#   docker compose --file compose/compose.user.code-server.yml --project-name fl-<slug> \
+#          up --detach --no-build            (env: FL_SLUG, FL_IMAGE_TAG, FL_PROFILE_DIR, ...)
+#   docker compose ... --project-name fl-<slug> stop --timeout 15      (logout / admin stop)
+#
+# Names and labels are deliberately the same as the ones fl-broker creates (fl-<slug>,
+# fl-ws-<slug>, cads.firmware-lab=1), so `docker ps`, the operator runbook and the broker's
+# admin view keep working while the launcher is in front of the gate.
+#
+# Rollback: the image reference is FL_IMAGE_REPO:FL_IMAGE_TAG and nothing else.  Deploying the
+# previous tag is `FL_IMAGE_TAG=<old> compose ... up --detach` per session (the launcher reports
+# the live tag and FL_IMAGE_TAG_ROLLBACK on /_broker/healthz); no file in this repository pins a
+# tag, so a rollback needs no code change.  The logout entry comes from the launcher overlay,
+# NOT from the image - which is why this slice ships without an image release.
+services:
+  code-server:
+    # No ":latest" default: an unset tag must fail loudly instead of silently rolling a session
+    # forward onto an untested image.
+    image: ${FL_IMAGE_REPO:-ghcr.io/scimbe/cads-firmware-lab}:${FL_IMAGE_TAG:?FL_IMAGE_TAG is required}
+    container_name: fl-${FL_SLUG:?FL_SLUG is required}
+    # NEVER restart: logout means "this container stays down until the student returns".  With
+    # `unless-stopped` a crash loop (or a daemon restart) would resurrect a session that the
+    # student just signed out of, and the gate would hand it straight back on the next visit.
+    restart: "no"
+    labels:
+      cads.firmware-lab: "1"
+      cads.slug: ${FL_SLUG}
+      cads.email-hash: ${FL_EMAIL_HASH:-}
+      cads.image-tag: ${FL_IMAGE_TAG}
+      # Marks the session as served through the launcher overlay (visible logout entry
+      # #cads-logout-link); a container without it predates this slice.
+      cads.logout: overlay
+    # Published on loopback with an ephemeral port: only the launcher (host process) dials it,
+    # the student always comes through the gate.
+    ports:
+      - "${FL_PUBLISH_HOST:-127.0.0.1}:0:8080"
+    volumes:
+      # Course work survives logout and image rollouts.
+      - workspace:/home/coder/workspace
+      # code-server profile (settings, state, extension storage) as a bind mount, so the
+      # launcher can snapshot it on logout without entering the container - and so the snapshot
+      # still works when the container is already stopped.
+      - ${FL_PROFILE_DIR:?FL_PROFILE_DIR is required}:/home/coder/.local/share/code-server
+    environment:
+      # Values are read from the launcher's environment (never passed on an argument list).
+      - TUTOR_LLM_BASE_URL
+      - TUTOR_LLM_API_KEY
+      - TUTOR_LLM_MODEL
+    # --auth none is correct here: the gate (forwardAuth against the edge /gate/check) is the
+    # only way in, and the logout entry injected by the launcher ends that gate session.
+    command:
+      - --auth
+      - none
+      - --bind-addr
+      - 0.0.0.0:8080
+      - --disable-workspace-trust
+      - ${FL_WORKSPACE_DIR:-/home/coder/workspace/cads-zero}
+    healthcheck:
+      # Same endpoint the launcher polls before it hands the session to the gate.
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 20s
+    mem_limit: ${FL_MEM:-2g}
+    cpus: ${FL_CPUS:-2}
+    pids_limit: ${FL_PIDS_LIMIT:-2048}
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  workspace:
+    # Explicit name: compose would otherwise prefix the project (fl-<slug>_workspace) and the
+    # existing fl-ws-<slug> volumes of running courses would be orphaned.
+    name: fl-ws-${FL_SLUG}
