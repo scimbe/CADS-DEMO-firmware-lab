@@ -19,6 +19,9 @@
 //             page script shows its own "Abmelden" button and it logs out.
 //
 // At least one of the three must be set. Further env:
+//   CADS_LOGOUT_EXPECT_VIA  host path the portal container was started with as
+//                           CADS_LOGOUT_URL (the launcher's /start/logout); the stub
+//                           redirects it to /logout and the test checks it was used
 //   CADS_LOGOUT_EDIT_FILE   file in the opened workspace to edit (default README.md)
 //   CADS_LOGOUT_READ_CMD    shell command printing that file from disk, to prove it
 //                           was saved (e.g. "docker exec <name> cat <path>"); unset:
@@ -42,6 +45,7 @@ const PASSWORD = process.env.CADS_LAB_PASSWORD;
 const EDIT_FILE = process.env.CADS_LOGOUT_EDIT_FILE ?? "README.md";
 const READ_CMD = process.env.CADS_LOGOUT_READ_CMD;
 const OUT = process.env.E2E_OUT ?? "e2e/out";
+const VIA = process.env.CADS_LOGOUT_EXPECT_VIA;
 const PREFIX = "/u/e2e";
 const ITEM = '[id="cads.cads-logout.abmelden"]';
 const FALLBACK = "#cads-logout-fallback";
@@ -85,7 +89,16 @@ function startPortalStub(upstream) {
   const port = Number(target.port || 80);
   const strip = (url) => (url.startsWith(`${PREFIX}/`) ? url.slice(PREFIX.length) : null);
   const server = http.createServer((req, res) => {
+    // The launcher's route (praktikum-creator #191): stops the session, then
+    // redirects to the host's /logout. The overlay points CADS_LOGOUT_URL here.
+    if (req.url === "/start/logout") {
+      server.hits.push(req.url);
+      res.writeHead(302, { location: "/logout" });
+      res.end();
+      return;
+    }
     if (req.url === "/logout") {
+      server.hits.push(req.url);
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       res.end(`<!doctype html><title>abgemeldet</title><p id="stub">${STUB_TEXT}</p>`);
       return;
@@ -99,7 +112,8 @@ function startPortalStub(upstream) {
     const proxied = http.request(
       { host: target.hostname, port, method: req.method, path, headers: req.headers },
       (upstreamRes) => {
-        res.writeHead(upstreamRes.statusCode ?? 502, upstreamRes.headers);
+        // The portal's praktikum-nocache middleware puts this on every response.
+        res.writeHead(upstreamRes.statusCode ?? 502, { ...upstreamRes.headers, "cache-control": "no-store" });
         upstreamRes.pipe(res);
       },
     );
@@ -109,6 +123,7 @@ function startPortalStub(upstream) {
     });
     req.pipe(proxied);
   });
+  server.hits = [];
   server.on("upgrade", (req, socket, head) => {
     const path = strip(req.url ?? "");
     if (path === null) return socket.destroy();
@@ -220,6 +235,9 @@ try {
     await confirmDialog(page, "Abmelden");
     await page.waitForURL(`${host}/logout`, { timeout: 30_000 });
     check((await page.locator("#stub").innerText()) === STUB_TEXT, `portal: the tab itself is on ${host}/logout (host root, not ${PREFIX}/logout)`);
+    if (VIA) {
+      check(stub.hits.join(" -> ") === `${VIA} -> /logout`, `portal: the tab went through ${VIA} on the host first (${stub.hits.join(" -> ")})`);
+    }
     check(context.pages().length === 1, "portal: no second tab was opened");
     check(dialogs.length === 0, `portal: no "leave site?" prompt (${dialogs.join(" | ") || "none"})`);
     await page.screenshot({ path: join(OUT, "logout-03-portal-logout.png") });
