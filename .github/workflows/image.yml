@@ -25,6 +25,8 @@ on:
       - tests/logout/**
       - e2e/git-identity-smoke.sh
       - tests/git-identity/**
+      - e2e/entrypoint-smoke.sh
+      - tests/entrypoint/**
       - .github/workflows/image.yml
   workflow_dispatch:
     inputs:
@@ -226,6 +228,8 @@ jobs:
         run: node --test tests/logout/*.test.mjs
       - name: git identity entrypoint script
         run: node --test tests/git-identity/*.test.mjs
+      - name: start-script runner
+        run: node --test tests/entrypoint/*.test.mjs
       - name: cads-logout extension
         working-directory: extensions/cads-logout
         run: npm ci && npm run typecheck && npm test
@@ -336,3 +340,8 @@ jobs:
       - name: Commit without a manual step
         shell: bash
         run: e2e/git-identity-smoke.sh "$IMAGE:${GITHUB_REF_NAME//\//-}-${GITHUB_SHA::7}"
+      # The portal's case: a script bind-mounted from a noexec tmpfs must run,
+      # in sorted order, and a failing script must show up in the log.
+      - name: Start scripts from a noexec bind mount
+        shell: bash
+        run: e2e/entrypoint-smoke.sh "$IMAGE:${GITHUB_REF_NAME//\//-}-${GITHUB_SHA::7}"

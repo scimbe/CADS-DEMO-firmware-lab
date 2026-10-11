@@ -270,6 +270,14 @@ COPY --from=seed --chown=coder:coder /home/coder/workspace/cads-zero /opt/cads-s
 COPY --from=seed --chown=coder:coder /home/coder/workspace/SEED_COMMIT /opt/cads-seed/SEED_COMMIT
 COPY --chown=coder:coder image/vscode-templates/ /opt/cads-seed/vscode-templates/
 COPY --chmod=0755 image/entrypoint.d/ /entrypoint.d/
+# The base image's entrypoint runs `find "$ENTRYPOINTD" -type f -executable`:
+# unsorted, silent about failures, and it SKIPS a script bind-mounted from a
+# noexec file system (the portal's 15-user-repo.sh). ENTRYPOINTD therefore
+# points at a directory holding only our runner, which runs /entrypoint.d/* in
+# sorted order and logs one line per script (docs/ENTRYPOINT.md). The base
+# entrypoint itself stays as it is.
+COPY --chmod=0755 image/entrypoint/run-entrypoint-d.sh /usr/local/lib/cads-entrypoint/run-entrypoint-d
+ENV ENTRYPOINTD=/usr/local/lib/cads-entrypoint
 
 # Course packs for cads-tutor (SPEC.md §3.3: /opt/cads-tutor/courses/*).
 # .dockerignore keeps the *_example* fixtures out; courses/.gitkeep keeps the

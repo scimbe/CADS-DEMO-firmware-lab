@@ -22,16 +22,17 @@ Containerstart aus der Umgebung (`image/entrypoint.d/30-git-identity.sh`).
   Steuerzeichen gilt als nicht gegeben.
 - **Das Log nennt weder Namen noch Adresse**, nur `[cads-git-identity] git-Identitaet gesetzt` bzw.
   `… unveraendert`.
-- Die Reihenfolge der Skripte in `/entrypoint.d` ist nicht garantiert (`find` sortiert nicht). Fehlt
-  der Workspace noch, ruft das Skript den Seed selbst auf.
+- Die Skripte in `/entrypoint.d` laufen sortiert ([ENTRYPOINT.md](ENTRYPOINT.md)). Darauf verlässt
+  sich das Skript nicht: Fehlt der Workspace noch, ruft es den Seed selbst auf.
 
 ## Verhältnis zum Launcher
 
 Der Launcher hängt ein eigenes Skript als `/entrypoint.d/15-user-repo.sh` ein (praktikum-creator,
 `launcher/entrypoint.d/15-user-repo.sh`). Es verbindet den Workspace mit dem Repository der Person,
 trägt für den Zugang riisc `git-credential-oauth -device` als `credential.helper` ein und setzt die
-Identität nach derselben Regel. Greift dieses Skript in einem Container nicht, fehlte bisher beides;
-die Identität setzt das Image jetzt unabhängig davon. Den `credential.helper` setzt weiterhin nur der
+Identität nach derselben Regel. Bis 2026-10-11 wurde es im Portal still übersprungen (Bind-Mount von
+einem `noexec`-Dateisystem, siehe [ENTRYPOINT.md](ENTRYPOINT.md)); die Identität setzt das Image
+seither auch unabhängig davon. Den `credential.helper` setzt weiterhin nur der
 Launcher (siehe Kommentar zu `git-credential-oauth` im `Dockerfile`).
 
 ## Tests

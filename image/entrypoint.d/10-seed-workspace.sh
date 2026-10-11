@@ -2,8 +2,9 @@
 # CaDS Firmware Lab - seed the student workspace (SPEC.md §4).
 #
 # Runs on every container start, before code-server, as the `coder` user:
-# /usr/bin/entrypoint.sh executes every executable in $ENTRYPOINTD via
-# `find -exec` under `set -e`, so this script must ALWAYS exit 0 - a failure
+# image/entrypoint/run-entrypoint-d.sh runs every script in /entrypoint.d in
+# sorted order and reports a non-zero exit in the log; this script must still
+# ALWAYS exit 0 - a failure
 # here must degrade to "empty workspace + log line", never to "no IDE".
 #
 #  1. Copy /opt/cads-seed/cads-zero to $CADS_WORKSPACE only if the workspace

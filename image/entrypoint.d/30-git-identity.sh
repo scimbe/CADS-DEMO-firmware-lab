@@ -22,12 +22,12 @@
 # change nothing. The values are passed to git as arguments (no eval, no config
 # file editing), so spaces, umlauts and quotes need no escaping here.
 #
-# Order: /usr/bin/entrypoint.sh runs /entrypoint.d/* through `find`, which does
-# not sort. If the workspace is not there yet, this script therefore runs the
-# seed itself (idempotent) instead of relying on 10-seed-workspace.sh having run.
-# The launcher's own 15-user-repo.sh (bind-mounted by praktikum-creator) applies
-# the same rule to the repository config; whichever runs second finds the keys
-# set and leaves them.
+# Order: image/entrypoint/run-entrypoint-d.sh runs /entrypoint.d/* sorted, so
+# this script comes after 10-seed-workspace.sh and after the launcher's
+# 15-user-repo.sh (bind-mounted by praktikum-creator). It does not depend on
+# that: if the workspace is not there yet it runs the seed itself (idempotent).
+# 15-user-repo.sh applies the same rule to the repository config; whichever
+# runs second finds the keys set and leaves them.
 #
 # The log says only whether something was set - never the name or the address.
 
