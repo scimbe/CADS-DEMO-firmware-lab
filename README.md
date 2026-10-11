@@ -95,6 +95,7 @@ deviation from the spec: [`docs/IMAGE-NOTES.md`](docs/IMAGE-NOTES.md).
 
 - Shims: `python3 -m unittest discover -s tests/shims -v` (mock HTTP bridge, no Docker).
 - Logout: `node --test tests/logout/*.test.mjs` and `node e2e/logout-smoke.mjs` (both modes, see [`docs/LOGOUT.md`](docs/LOGOUT.md)).
+- git identity: `node --test tests/git-identity/*.test.mjs` and `e2e/git-identity-smoke.sh <image>` (see [`docs/GIT-IDENTITY.md`](docs/GIT-IDENTITY.md)).
 - Browser smoke test against a running container:
   `CADS_LAB_PASSWORD=… node e2e/image-smoke.mjs` (login, workspace, `CaDS: Build`, `st-info --probe`).
 

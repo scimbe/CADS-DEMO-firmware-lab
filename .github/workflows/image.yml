@@ -23,6 +23,8 @@ on:
       - courses/**
       - e2e/logout-smoke.mjs
       - tests/logout/**
+      - e2e/git-identity-smoke.sh
+      - tests/git-identity/**
       - .github/workflows/image.yml
   workflow_dispatch:
     inputs:
@@ -222,6 +224,8 @@ jobs:
           node-version: 22
       - name: Page script, installer, entrypoint config
         run: node --test tests/logout/*.test.mjs
+      - name: git identity entrypoint script
+        run: node --test tests/git-identity/*.test.mjs
       - name: cads-logout extension
         working-directory: extensions/cads-logout
         run: npm ci && npm run typecheck && npm test
@@ -290,3 +294,23 @@ jobs:
           path: e2e/out/
           if-no-files-found: ignore
           retention-days: 7
+
+  # 5. git identity (docs/GIT-IDENTITY.md): with CADS_GIT_NAME/CADS_GIT_EMAIL a
+  #    commit works in the built image without a manual step, the identity
+  #    survives a restart on the volume, and without the variables nothing changes.
+  git-identity-smoke:
+    needs: manifest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Commit without a manual step
+        shell: bash
+        run: e2e/git-identity-smoke.sh "$IMAGE:${GITHUB_REF_NAME//\//-}-${GITHUB_SHA::7}"
