@@ -27,6 +27,8 @@ on:
       - tests/git-identity/**
       - e2e/entrypoint-smoke.sh
       - tests/entrypoint/**
+      - tests/ci/**
+      - .github/scripts/**
       - .github/workflows/image.yml
   workflow_dispatch:
     inputs:
@@ -34,6 +36,12 @@ on:
         description: firmware branch or 40-hex commit to seed (default praktikum/start, see Dockerfile)
         required: false
         default: ""
+
+# Runs of one ref queue up: the moving tag <branch> is written by one run at a
+# time, in push order. Nothing is cancelled, a half-pushed manifest helps nobody.
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   IMAGE: ghcr.io/scimbe/cads-firmware-lab
@@ -138,6 +146,8 @@ jobs:
           build-args: |
             CADS_ZERO_REF=${{ needs.seed.outputs.ref }}
             CADS_SEED_COMMIT=${{ needs.seed.outputs.commit }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=${{ matrix.arch }}
           cache-to: type=gha,scope=${{ matrix.arch }},mode=max
@@ -163,6 +173,7 @@ jobs:
       contents: read
       packages: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: /tmp/digests
@@ -187,6 +198,13 @@ jobs:
           cd /tmp/digests
           docker buildx imagetools create "${args[@]}" $(printf "$IMAGE@sha256:%s " *)
           echo "tags: ${tags[*]}"
+      # <branch> must point at what this run built, and the image must name its commit.
+      - name: Check that the branch tag is this build
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="${GITHUB_REF_NAME//\//-}"
+          .github/scripts/check-image-tags.sh "$IMAGE:$branch-${GITHUB_SHA::7}" "$IMAGE:$branch" "$GITHUB_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Inspect
         run: |
           docker buildx imagetools inspect "$IMAGE:${GITHUB_REF_NAME//\//-}-${GITHUB_SHA::7}"
@@ -230,6 +248,8 @@ jobs:
         run: node --test tests/git-identity/*.test.mjs
       - name: start-script runner
         run: node --test tests/entrypoint/*.test.mjs
+      - name: image workflow and tag check
+        run: node --test tests/ci/*.test.mjs
       - name: cads-logout extension
         working-directory: extensions/cads-logout
         run: npm ci && npm run typecheck && npm test
