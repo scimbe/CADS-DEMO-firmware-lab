@@ -9,10 +9,15 @@
 #   - github.com gets the credential helpers "cache" and "oauth -device" in the
 #     global git config (git-credential-oauth ships in the image);
 #   - user.name / user.email go into the workspace repository if unset there.
+#   - CADS_USER_REPO_ERLEDIGT=1 (announced for the launcher: it will call the
+#     script itself through `sh` and then set this variable): exit 0 at once, so
+#     that a second call from the image's runner does nothing.
 # e2e/entrypoint-smoke.sh takes the real script instead when CADS_USER_REPO_SCRIPT
 # points at it.
 
 set -u
+
+[ "${CADS_USER_REPO_ERLEDIGT:-}" = "1" ] && exit 0
 
 WS="${CADS_WORKSPACE:-/home/coder/workspace/cads-zero}"
 

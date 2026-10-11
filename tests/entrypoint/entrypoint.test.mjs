@@ -141,7 +141,7 @@ test('names with spaces work', (t) => {
 
 // ---- the case from the lab: a mounted 15-* next to the image's 30-git-identity.sh ------------
 
-test('mounted 15-* (noexec) and 30-git-identity.sh together: helper and identity are set, in order', (t) => {
+function lab(t, extra = {}) {
   const b = box(t);
   const home = join(b.dir, 'home');
   const ws = join(b.dir, 'ws');
@@ -164,6 +164,7 @@ test('mounted 15-* (noexec) and 30-git-identity.sh together: helper and identity
     GIT_CONFIG_COUNT: '0',
     GIT_CONFIG_KEY_0: 'credential.helper',
     GIT_CONFIG_VALUE_0: '!f() { exit 0; }; f',
+    ...extra,
   };
   execFileSync('git', ['init', '-q', ws], { env });
   copyFileSync(STANDIN, join(b.d, '15-user-repo.sh'));
@@ -172,15 +173,32 @@ test('mounted 15-* (noexec) and 30-git-identity.sh together: helper and identity
   chmodSync(join(b.d, '30-git-identity.sh'), 0o755);
 
   const r = b.run(env);
-  assert.deepEqual(lines(r), ['entrypoint: 15-user-repo.sh ok', 'entrypoint: 30-git-identity.sh ok']);
   const git = (...args) => spawnSync('git', args, { cwd: ws, env, encoding: 'utf8' }).stdout.trim();
+  const helpers = () =>
+    spawnSync('git', ['config', '--global', '--get-all', 'credential.https://github.com.helper'], { env, encoding: 'utf8' }).stdout;
+  return { r, git, helpers };
+}
+
+test('mounted 15-* (noexec) and 30-git-identity.sh together: helper and identity are set, in order', (t) => {
+  const { r, git, helpers } = lab(t);
+  assert.deepEqual(lines(r), ['entrypoint: 15-user-repo.sh ok', 'entrypoint: 30-git-identity.sh ok']);
   // the leading empty entry resets helpers inherited from other config levels
-  assert.equal(
-    spawnSync('git', ['config', '--global', '--get-all', 'credential.https://github.com.helper'], { env, encoding: 'utf8' }).stdout,
-    '\ncache --timeout=28800\noauth -device\n',
-  );
+  assert.equal(helpers(), '\ncache --timeout=28800\noauth -device\n');
   assert.equal(git('config', '--local', '--get', 'user.name'), 'Jürgen "Jay" Müller');
   assert.equal(git('config', '--local', '--get', 'user.email'), 'juergen@example.org');
   assert.equal(git('config', '--global', '--get', 'user.name'), 'Jürgen "Jay" Müller');
   assert.ok(!r.stdout.includes('juergen@'), 'no address in the log');
+});
+
+// Announced for the launcher: it will run 15-user-repo.sh itself (through `sh`)
+// and then set CADS_USER_REPO_ERLEDIGT=1; the script then returns at once. The
+// runner may call it a second time - that call must not do the work again.
+test('CADS_USER_REPO_ERLEDIGT=1: the runner still calls 15-*, but the script does nothing a second time', (t) => {
+  const { r, git, helpers } = lab(t, { CADS_USER_REPO_ERLEDIGT: '1' });
+  assert.deepEqual(lines(r), ['entrypoint: 15-user-repo.sh ok', 'entrypoint: 30-git-identity.sh ok']);
+  assert.ok(!r.stdout.includes('[cads-git]'), 'no second run of the script body');
+  assert.equal(helpers(), '', 'the helper is the launcher\'s business in this case - not set here');
+  // the image's own step is independent of the launcher's script
+  assert.equal(git('config', '--local', '--get', 'user.name'), 'Jürgen "Jay" Müller');
+  assert.equal(git('config', '--local', '--get', 'user.email'), 'juergen@example.org');
 });

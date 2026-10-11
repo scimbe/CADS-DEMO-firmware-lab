@@ -47,6 +47,14 @@ Portal (2026-10-11):
   unverändert und nicht Gegenstand dieser Änderung. Was jemand per `sudo` in `/entrypoint.d` ablegt,
   liefe beim nächsten Start desselben Containers – wieder nur als `coder`.
 
+## Zusammenspiel mit dem Launcher
+
+Der Launcher hängt `15-user-repo.sh` weiter unter `/entrypoint.d/15-user-repo.sh` ein. Angekündigt
+ist, dass er das Skript künftig zusätzlich selbst über `sh` aufruft und danach
+`CADS_USER_REPO_ERLEDIGT=1` setzt; das Skript beendet sich dann sofort mit 0. Der Läufer ruft es in
+jedem Fall auf: Ist die Variable gesetzt, passiert beim zweiten Aufruf nichts (`… ok` im Log); ist
+sie nicht gesetzt, läuft das Skript hier. Beide Fälle prüfen die Tests.
+
 ## Eigene Skripte
 
 - Name `NN-zweck.sh`, die Zahl bestimmt die Reihenfolge.
