@@ -3,7 +3,7 @@
 #
 # The base image's /usr/bin/entrypoint.sh (codercom/code-server) runs
 #   find "$ENTRYPOINTD" -type f -executable -print -exec {} \;
-# which has three properties that cost a day in the lab (2026-10-11):
+# which has three properties that cost a day in the lab:
 #   - `-executable` asks access(X_OK). A script bind-mounted from a noexec file
 #     system (the portal mounts its 15-user-repo.sh from a tmpfs under /run) is
 #     SKIPPED, silently, although its mode is 0755.
@@ -23,7 +23,10 @@
 #   - one line per script: "entrypoint: <name> ok" or "entrypoint: <name> FEHLER
 #     rc=<n>" - names and exit codes only, never content;
 #   - a failure never stops the start: code-server comes up, the log says why
-#     something is missing. This file always exits 0.
+#     something is missing. This file always exits 0;
+#   - nothing in the directory is passed over without a line: a dangling
+#     symlink is a FEHLER, any other entry that is not a regular file (a FIFO,
+#     a name that vanished) is "uebersprungen" with the reason.
 #
 # Runs as the container user (coder), like the scripts did before - no root.
 
@@ -54,7 +57,20 @@ run_one() {
         log "$name FEHLER: ist ein Verzeichnis, keine Datei (Bind-Mount-Quelle fehlt?)"
         return 0
     fi
-    [ -f "$path" ] || return 0
+    if [ -L "$path" ] && [ ! -e "$path" ]; then
+        # A bind mount or a link whose target is gone: the script was meant to
+        # run and cannot.
+        log "$name FEHLER: Verweis ins Leere (Ziel des Symlinks fehlt)"
+        return 0
+    fi
+    if [ ! -f "$path" ]; then
+        if [ -e "$path" ]; then
+            log "$name uebersprungen (keine regulaere Datei)"
+        else
+            log "$name uebersprungen (nicht mehr vorhanden)"
+        fi
+        return 0
+    fi
     if [ -x "$path" ]; then
         "$path" </dev/null
         rc=$?
@@ -78,21 +94,25 @@ run_one() {
     return 0
 }
 
-# One name per line, sorted bytewise. A name with a line break is not a start
-# script anybody wrote on purpose; it falls apart into names that do not exist
-# and is ignored by the -f/-d tests above.
+# One name per line, sorted bytewise (ls alone sorts by the locale). A name with
+# a line break is not a start script anybody wrote on purpose; it falls apart
+# into names that do not exist and is reported as "nicht mehr vorhanden".
 names="$(ls -1A "$DIR" 2>/dev/null | LC_ALL=C sort)"
 if [ -z "$names" ]; then
     log "$DIR ist leer - keine Startskripte"
     exit 0
 fi
 
+# The list is split on line breaks only, and with globbing off: a name such as
+# "20-*.sh" must not expand against the current directory.
 old_ifs="$IFS"
 IFS='
 '
+set -f
 for name in $names; do
     IFS="$old_ifs"
     run_one "$DIR/$name"
 done
+set +f
 IFS="$old_ifs"
 exit 0

@@ -3,7 +3,7 @@
 #
 #   e2e/entrypoint-smoke.sh <image ref>
 #
-# Rebuilds the case measured in the portal on 2026-10-11: the launcher bind-mounts
+# Rebuilds the case measured in the portal: the launcher bind-mounts
 # its script from a tmpfs with `noexec` to /entrypoint.d/15-user-repo.sh:ro. The
 # base image's `find -executable` skipped it silently, so neither the git
 # identity nor the credential helper was ever set.
@@ -20,8 +20,11 @@
 #     helper and the identity are set afterwards, 30-git-identity.sh agrees with
 #     the mounted script, and a commit works;
 #   - /entrypoint.d belongs to root and the container user cannot write to it;
-#   - with CADS_USER_REPO_ERLEDIGT=1 (announced: the launcher runs the script
-#     itself and sets this) the runner's call of the script does nothing again.
+#   - the launcher's own start: a preamble runs the script through `sh`, writes
+#     the marker /tmp/.cads-user-repo-erledigt with the start time of PID 1 and
+#     then execs the image's entrypoint. The runner's call of the script must do
+#     nothing again (the body ran exactly once), use the marker up, and a call by
+#     hand afterwards must run again.
 #
 # The 15-* script is tests/entrypoint/fixtures/15-user-repo-standin.sh; set
 # CADS_USER_REPO_SCRIPT to the real launcher/entrypoint.d/15-user-repo.sh of
@@ -128,17 +131,23 @@ fi
 runner="$(docker exec "$CONTAINER" sh -c 'stat -c "%U %a" "$ENTRYPOINTD" "$ENTRYPOINTD"/* | tr "\n" ";"')"
 if [ "$runner" = "root 755;root 755;" ]; then ok "the runner and its directory are root 755"; else bad "runner directory: [$runner]"; fi
 
-# ---- the launcher already ran the script itself (announced: CADS_USER_REPO_ERLEDIGT=1) -------
-# The runner calls the mounted script again; the script must return at once and
-# not do its work a second time. The image's own steps are unaffected.
+# ---- the launcher ran the script itself before the image's start (marker contract) ---------
+# Stand-in for the launcher's preamble (behaviour only, not its code): run the
+# mounted script through `sh`, write the start time of PID 1 to the marker - also
+# when the script failed - and exec the image's own start command. The runner
+# then calls the script a second time; that call must do nothing.
 docker rm -f "$CONTAINER" >/dev/null
+mapfile -t start_cmd < <(docker image inspect -f '{{range .Config.Entrypoint}}{{println .}}{{end}}{{range .Config.Cmd}}{{println .}}{{end}}' "$IMAGE" | sed '/^$/d')
+# shellcheck disable=SC2016  # the preamble is expanded inside the container
+preamble='sh /entrypoint.d/15-user-repo.sh; echo "[smoke-vorspann] 15-user-repo.sh rc=$?"
+sed -n "s/^.*) //p" /proc/1/stat | cut -d" " -f20 > /tmp/.cads-user-repo-erledigt
+exec "$@"'
 docker run -d --name "$CONTAINER" \
     -v "$MNT/15-user-repo.sh:/entrypoint.d/15-user-repo.sh:ro" \
-    -e CADS_USER_REPO_ERLEDIGT=1 \
     -e CADS_GIT_MODE=github-device \
     -e "CADS_GIT_NAME=$NAME" -e "CADS_GIT_EMAIL=$EMAIL" \
     -e GIT_CONFIG_COUNT=0 \
-    "$IMAGE" >/dev/null
+    --entrypoint sh "$IMAGE" -c "$preamble" vorspann "${start_cmd[@]}" >/dev/null
 for i in $(seq 1 60); do
     docker exec "$CONTAINER" curl -fsS -o /dev/null http://127.0.0.1:8080/healthz 2>/dev/null && break
     sleep 2
@@ -150,15 +159,25 @@ entrypoint: 20-logout-config.sh ok
 entrypoint: 30-git-identity.sh ok'
 got2="$(printf '%s\n' "$logs2" | grep '^entrypoint: ' || true)"
 if [ "$got2" = "$want2" ]; then
-    ok "ERLEDIGT=1: the runner calls 15-user-repo.sh and logs it as ok"
+    ok "marker: the runner calls 15-user-repo.sh and logs it as ok"
 else
-    bad "ERLEDIGT=1: entrypoint lines differ"; echo "--- expected"; echo "$want2"; echo "--- got"; echo "$got2"
+    bad "marker: entrypoint lines differ"; echo "--- expected"; echo "$want2"; echo "--- got"; echo "$got2"
 fi
-case "$logs2" in *"[cads-git]"*) bad "ERLEDIGT=1: the script body ran a second time ([cads-git] line)" ;; *) ok "ERLEDIGT=1: the script body did not run again (no [cads-git] line)" ;; esac
+case "$logs2" in *"[smoke-vorspann] 15-user-repo.sh rc=0"*) ok "marker: the preamble ran the script" ;; *) bad "marker: the preamble did not run the script" ;; esac
+runs="$(printf '%s\n' "$logs2" | grep -c '^\[cads-git\]' || true)"
+if [ "$runs" = 1 ]; then ok "marker: the script body ran exactly once (preamble), not again in the runner"; else bad "marker: [cads-git] lines: $runs (want 1)"; fi
+case "$logs2" in *"[cads-start]"*) ok "marker: the runner's call says why it does nothing ([cads-start] ...)" ;; *) bad "marker: no [cads-start] line from the second call" ;; esac
+if docker exec "$CONTAINER" test -e /tmp/.cads-user-repo-erledigt; then bad "marker: still there - not used up"; else ok "marker: used up by the runner's call"; fi
 helper2="$(docker exec "$CONTAINER" git config --global --get-all credential.https://github.com.helper || true)"
-if [ -z "$helper2" ]; then ok "ERLEDIGT=1: no credential helper written by the second call"; else bad "ERLEDIGT=1: helper was written: [$helper2]"; fi
+if [ "$helper2" = "$(printf '\ncache --timeout=28800\noauth -device')" ]; then ok "marker: credential helper set once, no duplicate entries"; else bad "marker: helper entries: [$helper2]"; fi
 ident2="$(docker exec "$CONTAINER" git -C "$WS" config --local --get user.name)|$(docker exec "$CONTAINER" git -C "$WS" config --local --get user.email)"
-if [ "$ident2" = "$NAME|$EMAIL" ]; then ok "ERLEDIGT=1: 30-git-identity.sh still sets the identity"; else bad "ERLEDIGT=1: identity [$ident2]"; fi
+if [ "$ident2" = "$NAME|$EMAIL" ]; then ok "marker: identity is set"; else bad "marker: identity [$ident2]"; fi
+if docker exec "$CONTAINER" sh /entrypoint.d/15-user-repo.sh 2>&1 | grep -q '^\[cads-git\]'; then
+    ok "marker: a later call by hand runs again"
+else
+    bad "marker: a later call by hand did nothing"
+fi
+case "$logs2" in *"$EMAIL"*) bad "marker: the log contains the e-mail address" ;; *) ok "marker: the log does not contain the e-mail address" ;; esac
 
 if [ "$fails" -gt 0 ]; then echo "$fails check(s) failed"; echo "--- container log"; echo "$logs" | tail -40; echo "--- second container"; echo "$logs2" | tail -30; exit 1; fi
 echo "entrypoint smoke test passed"
