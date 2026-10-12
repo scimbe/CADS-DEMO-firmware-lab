@@ -168,14 +168,27 @@ export class BoardController {
     return this.getStatus();
   }
 
+  /** Connect: chooser if needed (user gesture), then open the serial console if a port is known.
+   * navigator.serial.requestPort() needs its own transient user activation, which the awaited USB
+   * chooser has used up. So when both are missing only the USB chooser is shown here; the caller
+   * asks for the serial port in a second step (a click) while `needsSerialGrant()` holds.
+   */
   async connect(opts?: { usb?: boolean; serial?: boolean }): Promise<BoardStatus> {
     let s = await this.probe.reconnect();
-    if ((opts?.usb !== false && s.usb !== 'connected') || (opts?.serial !== false && !s.serialPortKnown)) {
-      s = await this.probe.requestDevices({ usb: opts?.usb !== false && s.usb !== 'connected', serial: opts?.serial !== false && !s.serialPortKnown });
+    const needUsb = opts?.usb !== false && s.usb !== 'connected';
+    const needSerial = opts?.serial !== false && !s.serialPortKnown;
+    if (needUsb || needSerial) {
+      s = await this.probe.requestDevices({ usb: needUsb, serial: needSerial && !needUsb });
     }
     this.applyProbeStatus(s);
     if (s.serialPortKnown && s.serial !== 'open') await this.openSerial();
     return this.getStatus();
+  }
+
+  /** True when the board is attached but the browser has not yet granted its serial port. */
+  needsSerialGrant(): boolean {
+    const s = this.getStatus();
+    return s.connected && !s.serialOpen && !s.probe?.serialPortKnown;
   }
 
   async openSerial(): Promise<boolean> {

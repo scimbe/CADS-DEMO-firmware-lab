@@ -60,6 +60,10 @@
     "launch": { "statusBarVisibility": "hidden" },
     "debug": { "statusBarVisibility": "hidden" }
   },
+  // The GDB bridge listens on 3333; the auto-forward toast "Your application running
+  // on port 3333 is available" is unexplained noise for students.
+  "remote.autoForwardPorts": false,
+  "remote.portsAttributes": { "3333": { "onAutoForward": "silent" } },
   "terminal.integrated.defaultProfile.linux": "bash",
   "git.openRepositoryInParentFolders": "never",
   "files.autoSave": "off"

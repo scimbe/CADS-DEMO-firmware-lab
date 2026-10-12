@@ -115,3 +115,44 @@ describe('PB-02: halted events do not own board state on their own', () => {
     }
   });
 });
+
+describe('connect: serial port needs its own user gesture', () => {
+  /** Choosers grant what is asked for; records every requestDevices call. */
+  class GrantingProbe extends FakeProbe {
+    requests: { usb?: boolean; serial?: boolean }[] = [];
+    constructor() {
+      super();
+      this.statusToReport = { usb: 'absent', serial: 'absent', core: 'unknown' };
+    }
+    override async op(): Promise<never> {
+      this.statusToReport = { ...this.statusToReport, serial: 'open' };
+      return { ok: true } as never;
+    }
+    override async requestDevices(opts?: { usb?: boolean; serial?: boolean }): Promise<ProbeStatus> {
+      this.requests.push({ ...opts });
+      if (opts?.usb) this.statusToReport = { ...this.statusToReport, usb: 'connected', core: 'running' };
+      if (opts?.serial) this.statusToReport = { ...this.statusToReport, serialPortKnown: true };
+      return this.statusToReport;
+    }
+  }
+
+  it('asks for the USB device alone when both grants are missing, then needs a serial grant', async () => {
+    const probe = new GrantingProbe();
+    const board = new BoardController(probe, silentLogger());
+    const s = await board.connect();
+    assert.deepEqual(probe.requests, [{ usb: true, serial: false }]);
+    assert.equal(s.connected, true);
+    assert.equal(s.serialOpen, false);
+    assert.equal(board.needsSerialGrant(), true);
+  });
+
+  it('the second step requests only the serial port and opens the console', async () => {
+    const probe = new GrantingProbe();
+    const board = new BoardController(probe, silentLogger());
+    await board.connect();
+    const s = await board.connect({ usb: false, serial: true });
+    assert.deepEqual(probe.requests[1], { usb: false, serial: true });
+    assert.equal(s.serialOpen, true);
+    assert.equal(board.needsSerialGrant(), false);
+  });
+});
