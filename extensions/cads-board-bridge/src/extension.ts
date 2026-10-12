@@ -101,6 +101,13 @@ export function activate(context: vscode.ExtensionContext): BoardBridgeApi {
   board.statusChanged.on(renderStatus);
   renderStatus(board.getStatus());
 
+  // ---- serial permission (second user gesture) ---------------------------------------------
+  const SERIAL_GRANT = 'Konsole: Serial-Port freigeben';
+  const offerSerialGrant = async (): Promise<void> => {
+    const choice = await vscode.window.showInformationMessage('Das Board ist verbunden. Für die Konsole fehlt noch die Freigabe der seriellen Schnittstelle.', SERIAL_GRANT);
+    if (choice === SERIAL_GRANT) await board.connect({ usb: false, serial: true });
+  };
+
   // ---- terminal --------------------------------------------------------------------------
   let terminal: vscode.Terminal | undefined;
   const openConsole = (): vscode.Terminal => {
@@ -119,7 +126,9 @@ export function activate(context: vscode.ExtensionContext): BoardBridgeApi {
         sub = board.serialData.on((d) => writeEmitter.fire(d.toString('latin1').replace(/(?<!\r)\n/g, '\r\n')));
         if (!board.getStatus().serialOpen) {
           void board.openSerial().then((ok) => {
-            if (!ok) writeEmitter.fire('\x1b[33m[Konsole nicht offen – Board verbinden (Statusleiste) und Serial-Port freigeben]\x1b[0m\r\n');
+            if (ok) return;
+            writeEmitter.fire('\x1b[33m[Konsole nicht offen – Board verbinden (Statusleiste) und Serial-Port freigeben]\x1b[0m\r\n');
+            if (board.needsSerialGrant()) void offerSerialGrant();
           });
         }
       },
@@ -228,6 +237,7 @@ export function activate(context: vscode.ExtensionContext): BoardBridgeApi {
     if (!board.getStatus().connected) {
       const s = await board.connect();
       if (!s.connected) return { ok: false, error: 'board not connected' };
+      if (board.needsSerialGrant()) void offerSerialGrant();
     }
     return vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `CaDS: Flash ${path.basename(target)}`, cancellable: false }, async (progress) => {
       let lastPct = 0;
@@ -260,7 +270,7 @@ export function activate(context: vscode.ExtensionContext): BoardBridgeApi {
         if (pick === 'Erneut verbinden') await vscode.commands.executeCommand('cads.board.connect');
         else if (pick === 'Log anzeigen') await vscode.commands.executeCommand('cads.board.showPanel');
         log.warn(`connect refused (${s.probe?.blockReason ?? 'unknown'}): ${s.probe?.lastError ?? '-'}`);
-      }
+      } else if (board.needsSerialGrant()) void offerSerialGrant();
       return s;
     }),
     vscode.commands.registerCommand('cads.board.disconnect', () => board.disconnect()),
@@ -337,6 +347,7 @@ export function activate(context: vscode.ExtensionContext): BoardBridgeApi {
               void vscode.window.showErrorMessage(`Board konnte nicht verbunden werden${s.probe?.lastError ? `: ${s.probe.lastError}` : ''}`);
               return undefined;
             }
+            if (board.needsSerialGrant()) void offerSerialGrant();
           }
           return config;
         },
