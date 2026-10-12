@@ -19,14 +19,20 @@ setzt `ENTRYPOINTD=/usr/local/lib/cads-entrypoint`; dort liegt nur der eigene L�
   nur Name und Rückgabewert, nie Inhalte;
 - **ein Fehler hält den Start nicht auf:** code-server kommt hoch, das Log sagt, was fehlt;
 - liegt statt einer Datei ein Verzeichnis vor (das legt Docker an, wenn die Quelle eines
-  Datei-Bind-Mounts fehlt), steht das als `FEHLER` im Log.
+  Datei-Bind-Mounts fehlt), steht das als `FEHLER` im Log; ebenso ein Symlink, dessen Ziel fehlt
+  (`FEHLER: Verweis ins Leere`);
+- **nichts wird still übergangen:** andere Einträge, die keine reguläre Datei sind (etwa eine FIFO),
+  erscheinen als `uebersprungen (keine regulaere Datei)`;
+- Namen werden zeilenweise und **ohne Glob-Expansion** gelesen (`set -f`): ein Name wie `20-*.sh`
+  bleibt dieser Name;
+- sortiert wird **byteweise** (`LC_ALL=C sort`), unabhängig von der Locale, nach der `ls` sortiert.
 
 Die Skripte laufen wie bisher als Benutzer des Containers (`coder`), nicht als root.
 
 ## Warum nicht der Mechanismus des Basis-Images
 
 Das Basis-Image ruft `find "$ENTRYPOINTD" -type f -executable -print -exec {} \;` auf. Befund im
-Portal (2026-10-11):
+Portal:
 
 - `-executable` fragt `access(X_OK)`. Das Portal hängt `15-user-repo.sh` von einem tmpfs unter `/run`
   ein, das mit `noexec` eingehängt ist. Die Datei hat Modus 0755, gilt aber als nicht ausführbar und
@@ -49,11 +55,25 @@ Portal (2026-10-11):
 
 ## Zusammenspiel mit dem Launcher
 
-Der Launcher hängt `15-user-repo.sh` weiter unter `/entrypoint.d/15-user-repo.sh` ein. Angekündigt
-ist, dass er das Skript künftig zusätzlich selbst über `sh` aufruft und danach
-`CADS_USER_REPO_ERLEDIGT=1` setzt; das Skript beendet sich dann sofort mit 0. Der Läufer ruft es in
-jedem Fall auf: Ist die Variable gesetzt, passiert beim zweiten Aufruf nichts (`… ok` im Log); ist
-sie nicht gesetzt, läuft das Skript hier. Beide Fälle prüfen die Tests.
+Der Launcher hängt `15-user-repo.sh` weiter unter `/entrypoint.d/15-user-repo.sh` ein und ruft das
+Skript außerdem **selbst über `sh` auf, bevor der Start des Images beginnt**. Danach schreibt er die
+Markerdatei `/tmp/.cads-user-repo-erledigt` mit der Startzeit von Prozess 1 (Feld 22 aus
+`/proc/1/stat`) – auch dann, wenn das Skript mit einem Rückgabewert ≠ 0 endete.
+
+Der Läufer ruft das Skript in jedem Fall noch einmal auf. Das Skript wertet den Marker so aus:
+
+- **Marker mit der Startzeit dieses Starts:** Der Aufruf tut nichts, endet mit 0 (`… ok` im Log
+  des Läufers) und nennt den Grund in einer eigenen Zeile `[cads-start] …`. Der Marker ist damit
+  verbraucht.
+- **Jeder weitere Aufruf** – etwa von Hand im Terminal – läuft wieder vollständig.
+- **Marker eines früheren Starts** desselben Containers (andere Startzeit) oder ein leerer Marker
+  zählt nicht und wird entfernt; das Skript läuft.
+- **Ohne Marker** läuft das Skript beim Aufruf durch den Läufer wie bisher.
+
+Die Attrappe in `tests/entrypoint/fixtures/` bildet nur dieses Verhalten nach; die Tests prüfen alle
+vier Fälle, der Smoke-Test zusätzlich den Vorspann des Launchers gegen das gebaute Image. Auf Systemen
+ohne `/proc/1/stat` (macOS) passt kein Marker; die beiden Tests, die einen passenden Marker brauchen,
+werden dort übersprungen, die übrigen laufen.
 
 ## Eigene Skripte
 
@@ -67,8 +87,12 @@ sie nicht gesetzt, läuft das Skript hier. Beide Fälle prüfen die Tests.
 
 | Was | Aufruf | Braucht |
 |---|---|---|
-| Läufer: Reihenfolge, nicht ausführbare `*.sh`, Fehlerzeile, Verzeichnis statt Datei | `node --test tests/entrypoint/*.test.mjs` | node, sh, bash, git |
-| Gebautes Image: Skript von einem `noexec`-tmpfs eingehängt, Portal-Variablen | `e2e/entrypoint-smoke.sh <image>` | docker, sudo |
+| Läufer: Reihenfolge (byteweise), nicht ausführbare `*.sh`, Fehlerzeilen, Verzeichnis/Symlink/FIFO, Glob-Namen, kein stdin, Marker-Vertrag | `node --test tests/entrypoint/*.test.mjs` | node, sh, bash, git |
+| Gebautes Image: Skript von einem `noexec`-tmpfs eingehängt, Portal-Variablen, Vorspann des Launchers mit Marker | `e2e/entrypoint-smoke.sh <image>` | docker, sudo (Linux) |
+
+Einige Tests der Läufer-Datei laufen zusätzlich gegen eine **Mutante**, eine Kopie des Läufers ohne
+die jeweilige Absicherung (`sort`, `set -f`, `</dev/null`): Sie muss sich anders verhalten, sonst
+prüft der Test nichts.
 
 Der Smoke-Test nimmt für `15-user-repo.sh` eine Attrappe (`tests/entrypoint/fixtures/`). Das echte
 Skript liegt im privaten Repository praktikum-creator und wird nicht hierher kopiert;

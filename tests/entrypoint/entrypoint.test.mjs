@@ -7,7 +7,7 @@
 // noexec bind mount is covered by e2e/entrypoint-smoke.sh against the image.
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { test } from 'node:test';
@@ -28,8 +28,8 @@ function box(t) {
     writeFileSync(join(d, name), body);
     chmodSync(join(d, name), mode);
   };
-  const run = (env = {}, opts = {}) =>
-    spawnSync('sh', [RUNNER], {
+  const run = (env = {}, opts = {}, runner = RUNNER) =>
+    spawnSync('sh', [runner], {
       env: { PATH: process.env.PATH, HOME: dir, CADS_ENTRYPOINT_DIR: d, TRACE: trace, ...env },
       encoding: 'utf8',
       ...opts,
@@ -117,13 +117,94 @@ test('executable files without .sh still run (as before); other non-executables 
   assert.ok(lines(r).includes('entrypoint: README.txt uebersprungen (nicht ausfuehrbar, kein .sh)'));
 });
 
-test('scripts do not inherit the runner\'s stdin and cannot eat the list of scripts', (t) => {
+// A mutant is a copy of the runner with one safeguard removed. Each test below
+// runs the mutant as well: if the mutant passed too, the test would not guard
+// anything.
+function mutant(t, from, to) {
+  const src = readFileSync(RUNNER, 'utf8');
+  assert.ok(src.includes(from), `mutation target not found: ${from}`);
+  const dir = mkdtempSync(join(tmpdir(), 'cads-mutant-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const file = join(dir, 'run-entrypoint-d.sh');
+  writeFileSync(file, src.split(from).join(to));
+  return file;
+}
+
+test('scripts get no stdin: what is piped into the runner never reaches a script', (t) => {
   const b = box(t);
-  b.add('10-reads.sh', '#!/bin/sh\ncat >/dev/null\necho 10 >> "$TRACE"\n');
+  b.add('10-reads.sh', '#!/bin/sh\n{ echo "stdin=[$(cat)]"; } >> "$TRACE"\n');
   b.add('20-after.sh', mark('20'));
-  const r = b.run({}, { input: 'x\n', timeout: 20000 });
+  const r = b.run({}, { input: 'GEHEIM-AUF-STDIN\n', timeout: 20000 });
   assert.equal(r.status, 0);
-  assert.deepEqual(b.traced(), ['10', '20']);
+  assert.deepEqual(b.traced(), ['stdin=[]', '20']);
+  // without "</dev/null" the script reads the runner's stdin
+  b.add('10-reads.sh', '#!/bin/sh\n{ echo "stdin=[$(cat)]"; } >> "$TRACE"\n');
+  rmSync(join(b.dir, 'trace'), { force: true });
+  b.run({}, { input: 'GEHEIM-AUF-STDIN\n', timeout: 20000 }, mutant(t, ' </dev/null', ''));
+  assert.deepEqual(b.traced(), ['stdin=[GEHEIM-AUF-STDIN]', '20'], 'mutant must differ, else this test guards nothing');
+});
+
+test('sorting is bytewise, not by the locale ls uses', (t) => {
+  const b = box(t);
+  const names = ['10_c.sh', '10-a.sh', '10-B.sh', '10-1.sh'];
+  for (const name of names) b.add(name, mark(name));
+  const bytewise = [...names].sort((x, y) => (Buffer.compare(Buffer.from(x), Buffer.from(y))));
+  const env = { LC_ALL: 'en_US.UTF-8' };
+  const r = b.run(env);
+  assert.deepEqual(b.traced(), bytewise);
+  assert.deepEqual(lines(r), bytewise.map((n) => `entrypoint: ${n} ok`));
+  // Mutant without the explicit sort: it differs only where ls sorts by locale.
+  const lsOrder = spawnSync('ls', ['-1A', b.d], { env: { PATH: process.env.PATH, ...env }, encoding: 'utf8' }).stdout.trim().split('\n');
+  if (JSON.stringify(lsOrder) === JSON.stringify(bytewise)) {
+    t.diagnostic('ls sorts bytewise in en_US.UTF-8 here (e.g. macOS or locale missing) - mutant check skipped');
+    return;
+  }
+  rmSync(join(b.dir, 'trace'), { force: true });
+  b.run(env, {}, mutant(t, ' | LC_ALL=C sort', ''));
+  assert.notDeepEqual(b.traced(), bytewise, 'mutant without sort must differ, else this test guards nothing');
+});
+
+test('the last script failing is still reported, and the runner still exits 0', (t) => {
+  const b = box(t);
+  b.add('10-a.sh', mark('10-a.sh'));
+  b.add('90-letztes.sh', '#!/bin/sh\nexit 5\n');
+  const r = b.run();
+  assert.equal(r.status, 0);
+  assert.deepEqual(lines(r), ['entrypoint: 10-a.sh ok', 'entrypoint: 90-letztes.sh FEHLER rc=5']);
+});
+
+test('a name with glob characters runs as itself and does not expand in the working directory', (t) => {
+  const b = box(t);
+  const cwd = join(b.dir, 'cwd');
+  mkdirSync(cwd);
+  writeFileSync(join(cwd, '20-fremd.sh'), 'kein Startskript\n');
+  b.add('20-*.sh', mark('stern'));
+  const r = b.run({}, { cwd });
+  assert.deepEqual(b.traced(), ['stern']);
+  assert.deepEqual(lines(r), ['entrypoint: 20-*.sh ok']);
+  rmSync(join(b.dir, 'trace'), { force: true });
+  const m = b.run({}, { cwd }, mutant(t, '\nset -f\n', '\n'));
+  assert.notDeepEqual(lines(m), ['entrypoint: 20-*.sh ok'], 'mutant without set -f must differ');
+});
+
+test('a dangling symlink is reported as FEHLER, not skipped silently', (t) => {
+  const b = box(t);
+  symlinkSync(join(b.dir, 'gibt-es-nicht.sh'), join(b.d, '15-user-repo.sh'));
+  b.add('30-c.sh', mark('30-c.sh'));
+  const r = b.run();
+  assert.equal(r.status, 0);
+  assert.deepEqual(lines(r), ['entrypoint: 15-user-repo.sh FEHLER: Verweis ins Leere (Ziel des Symlinks fehlt)', 'entrypoint: 30-c.sh ok']);
+  assert.deepEqual(b.traced(), ['30-c.sh']);
+});
+
+test('an entry that is not a regular file gets its own line (guard case)', (t) => {
+  const b = box(t);
+  const fifo = join(b.d, '12-fifo.sh');
+  if (spawnSync('mkfifo', [fifo]).status !== 0) return t.skip('mkfifo not available');
+  b.add('30-c.sh', mark('30-c.sh'));
+  const r = b.run({}, { timeout: 20000 });
+  assert.equal(r.status, 0, 'the runner must not block on the FIFO');
+  assert.deepEqual(lines(r), ['entrypoint: 12-fifo.sh uebersprungen (keine regulaere Datei)', 'entrypoint: 30-c.sh ok']);
 });
 
 test('a missing or empty directory is not an error', (t) => {
@@ -141,7 +222,7 @@ test('names with spaces work', (t) => {
 
 // ---- the case from the lab: a mounted 15-* next to the image's 30-git-identity.sh ------------
 
-function lab(t, extra = {}) {
+function lab(t, extra = {}, prepare = () => {}) {
   const b = box(t);
   const home = join(b.dir, 'home');
   const ws = join(b.dir, 'ws');
@@ -172,11 +253,12 @@ function lab(t, extra = {}) {
   copyFileSync(IDENTITY, join(b.d, '30-git-identity.sh'));
   chmodSync(join(b.d, '30-git-identity.sh'), 0o755);
 
+  prepare(b);
   const r = b.run(env);
   const git = (...args) => spawnSync('git', args, { cwd: ws, env, encoding: 'utf8' }).stdout.trim();
   const helpers = () =>
     spawnSync('git', ['config', '--global', '--get-all', 'credential.https://github.com.helper'], { env, encoding: 'utf8' }).stdout;
-  return { r, git, helpers };
+  return { r, git, helpers, b, env, ws };
 }
 
 test('mounted 15-* (noexec) and 30-git-identity.sh together: helper and identity are set, in order', (t) => {
@@ -190,15 +272,62 @@ test('mounted 15-* (noexec) and 30-git-identity.sh together: helper and identity
   assert.ok(!r.stdout.includes('juergen@'), 'no address in the log');
 });
 
-// Announced for the launcher: it will run 15-user-repo.sh itself (through `sh`)
-// and then set CADS_USER_REPO_ERLEDIGT=1; the script then returns at once. The
-// runner may call it a second time - that call must not do the work again.
-test('CADS_USER_REPO_ERLEDIGT=1: the runner still calls 15-*, but the script does nothing a second time', (t) => {
-  const { r, git, helpers } = lab(t, { CADS_USER_REPO_ERLEDIGT: '1' });
+// The launcher runs 15-user-repo.sh itself (through `sh`) before the image's
+// start and then writes /tmp/.cads-user-repo-erledigt with the start time of
+// PID 1 - also when the script failed. The runner calls the script again; with
+// a marker of THIS start that one call does nothing and uses the marker up.
+// The start time comes from /proc/1/stat, which macOS does not have: the tests
+// that need a matching marker are skipped there, the others run everywhere.
+function pid1Start() {
+  try {
+    return readFileSync('/proc/1/stat', 'utf8').split(') ').pop().split(' ')[19];
+  } catch {
+    return null;
+  }
+}
+const NO_PROC = pid1Start() === null && 'no /proc/1/stat on this system (macOS): no marker can match';
+
+function withMarker(t, content) {
+  const marker = join(mkdtempSync(join(tmpdir(), 'cads-marker-')), '.cads-user-repo-erledigt');
+  t.after(() => rmSync(dirname(marker), { recursive: true, force: true }));
+  return { marker, prepare: () => writeFileSync(marker, `${content}\n`) };
+}
+
+test('marker of this start: the runner still calls 15-*, the script does nothing and uses the marker up', { skip: NO_PROC }, (t) => {
+  const { marker, prepare } = withMarker(t, pid1Start());
+  const { r, git, helpers } = lab(t, { CADS_USER_REPO_MARKER: marker }, prepare);
   assert.deepEqual(lines(r), ['entrypoint: 15-user-repo.sh ok', 'entrypoint: 30-git-identity.sh ok']);
   assert.ok(!r.stdout.includes('[cads-git]'), 'no second run of the script body');
+  assert.match(r.stderr, /\[cads-start\] .* this call does nothing/);
   assert.equal(helpers(), '', 'the helper is the launcher\'s business in this case - not set here');
+  assert.ok(!existsSync(marker), 'the marker is used up');
   // the image's own step is independent of the launcher's script
   assert.equal(git('config', '--local', '--get', 'user.name'), 'Jürgen "Jay" Müller');
   assert.equal(git('config', '--local', '--get', 'user.email'), 'juergen@example.org');
+});
+
+test('after the marker is used up, the next call (by hand in a terminal) runs again', { skip: NO_PROC }, (t) => {
+  const { marker, prepare } = withMarker(t, pid1Start());
+  const { b, env, helpers } = lab(t, { CADS_USER_REPO_MARKER: marker }, prepare);
+  assert.equal(helpers(), '');
+  const again = spawnSync('sh', [join(b.d, '15-user-repo.sh')], { env: { ...env, CADS_USER_REPO_MARKER: marker }, encoding: 'utf8' });
+  assert.equal(again.status, 0);
+  assert.match(again.stdout, /\[cads-git\]/);
+  assert.equal(helpers(), '\ncache --timeout=28800\noauth -device\n');
+});
+
+test('a marker of an earlier start (other start time) does not count and is removed', (t) => {
+  const { marker, prepare } = withMarker(t, 'start-von-frueher');
+  const { r, helpers } = lab(t, { CADS_USER_REPO_MARKER: marker }, prepare);
+  assert.deepEqual(lines(r), ['entrypoint: 15-user-repo.sh ok', 'entrypoint: 30-git-identity.sh ok']);
+  assert.match(r.stdout, /\[cads-git\]/, 'the script body ran');
+  assert.equal(helpers(), '\ncache --timeout=28800\noauth -device\n');
+  assert.ok(!existsSync(marker));
+});
+
+test('an empty marker does not count either', (t) => {
+  const { marker, prepare } = withMarker(t, '');
+  const { r } = lab(t, { CADS_USER_REPO_MARKER: marker }, prepare);
+  assert.match(r.stdout, /\[cads-git\]/);
+  assert.ok(!existsSync(marker));
 });
