@@ -22,7 +22,7 @@ tasks:
     title: The UDP send path is linked into the image
     check: { type: symbolInElf, elf: "build/itsboard/cads-zero.elf", symbol: "cads_net_udp_send" }
 socratic:
-  - { trigger: "task:add-send:failed", question: { en: "The tutorial names an exact place for the new call. Which loop does it sit right after, and what is the first statement that follows that loop today?", de: "Das Tutorial nennt einen genauen Ort für den neuen Aufruf. Direkt hinter welcher Schleife sitzt er, und welche Anweisung folgt heute auf diese Schleife?" }, hints: [ { en: "Open apps/bringup/explorer_ping_demo.c and find the link-wait loop that polls until status.link_up.", de: "Öffne apps/bringup/explorer_ping_demo.c und finde die Link-Warteschleife, die pollt, bis status.link_up gilt." }, { en: "Insert the call after that loop and before 'char target_text[16];' - not inside the loop, and not before cads_net_init().", de: "Füge den Aufruf hinter dieser Schleife und vor 'char target_text[16];' ein - nicht in der Schleife und nicht vor cads_net_init()." }, { en: "cads_net_udp_send(laptop_ip, 41234u, hello_payload, sizeof(hello_payload) - 1u); with laptop_ip built as (192u<<24)|(168u<<16)|(33u<<8)|10u.", de: "cads_net_udp_send(laptop_ip, 41234u, hello_payload, sizeof(hello_payload) - 1u); mit laptop_ip als (192u<<24)|(168u<<16)|(33u<<8)|10u." } ] }
+  - { trigger: "task:add-send:failed", question: { en: "The tutorial names an exact place for the new call. Which loop does it sit right after, and what is the first statement that follows that loop today?", de: "Das Tutorial nennt einen genauen Ort für den neuen Aufruf. Direkt hinter welcher Schleife sitzt er, und welche Anweisung folgt heute auf diese Schleife?" }, hints: [ { en: "Open apps/bringup/explorer_ping_demo.c and find the link-wait loop that polls until status.link_up.", de: "Öffne apps/bringup/explorer_ping_demo.c und finde die Link-Warteschleife, die pollt, bis status.link_up gilt." }, { en: "Insert the call after that loop and before 'char target_text[16];' - not inside the loop, and not before cads_net_init().", de: "Füge den Aufruf hinter dieser Schleife und vor 'char target_text[16];' ein - nicht in der Schleife und nicht vor cads_net_init()." }, { en: "cads_net_udp_send(laptop_ip, 41234u, hello_payload, sizeof(hello_payload) - 1u); with laptop_ip built as (CADS_DEFAULT_NET_IP & CADS_DEFAULT_NET_NETMASK) | 10u.", de: "cads_net_udp_send(laptop_ip, 41234u, hello_payload, sizeof(hello_payload) - 1u); mit laptop_ip als (CADS_DEFAULT_NET_IP & CADS_DEFAULT_NET_NETMASK) | 10u." } ] }
 ---
 ## Learning goal
 
@@ -45,7 +45,7 @@ Open `apps/bringup/explorer_ping_demo.c`. After `cads_net_init()` comes the link
 
 ```c
     /* lwip-udp-hello: one UDP datagram to the laptop */
-    uint32_t laptop_ip = (192u << 24) | (168u << 16) | (33u << 8) | 10u; /* 192.168.33.10 */
+    uint32_t laptop_ip = (CADS_DEFAULT_NET_IP & CADS_DEFAULT_NET_NETMASK) | 10u; /* the .10 from the ifconfig step */
     static const uint8_t hello_payload[] = "hello from cads-zero\n";
     cads_net_udp_send(laptop_ip, 41234u, hello_payload, sizeof(hello_payload) - 1u);
 ```
@@ -54,17 +54,17 @@ That is the whole lesson: build the address as a host-order integer, hand lwIP a
 
 ## Wiring the laptop
 
-The board is static at `192.168.33.99/24`, so give your laptop any free address in that `/24` on the interface cabled to the board (on macOS: `sudo ifconfig en0 alias 192.168.33.10 255.255.255.0`), then listen with `nc -ul 41234`. Port 41234 is arbitrary; it just stays clear of 37008, which the Marauder relay already uses.
+The board is static at the `net.ip`/`net.netmask` of `firmware.conf`, so give your laptop any free address in that subnet on the interface cabled to the board (on macOS: `sudo ifconfig en0 alias "$(scripts/cads_firmware_conf.py peer 10)" "$(scripts/cads_firmware_conf.py get net.netmask)"`), then listen with `nc -ul 41234`. Port 41234 is arbitrary; it just stays clear of 37008, which the Marauder relay already uses.
 
 ## Fire and check
 
 Build for both targets — the host build links a stub that never sends, which is expected, not a bug. Flash, leave the app tree with `scripts/board_key.py quit`, then run the existing ping command with target and count as **one quoted argument**:
 
 ```
-scripts/board_cmd.py P "c0a8210a 1" --timeout 5
+scripts/board_cmd.py P "$(scripts/cads_firmware_conf.py peer-hex 10) 1" --timeout 5
 ```
 
-`c0a8210a` is `192.168.33.10` in hex. The hello leaves once the link-wait loop breaks, before the ping loop even starts, so it goes out whether or not your laptop answers ICMP. `nc` should print `hello from cads-zero`. If nothing arrives, the tutorial's troubleshooting table covers every case — none of them is a board-side bug to chase over SWD.
+`peer-hex 10` prints the laptop address from above as eight hex digits. The hello leaves once the link-wait loop breaks, before the ping loop even starts, so it goes out whether or not your laptop answers ICMP. `nc` should print `hello from cads-zero`. If nothing arrives, the tutorial's troubleshooting table covers every case — none of them is a board-side bug to chase over SWD.
 
 ## Your task
 

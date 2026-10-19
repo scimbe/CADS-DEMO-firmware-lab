@@ -122,7 +122,9 @@ RUN set -eu; \
 FROM base AS seed
 
 ARG CADS_ZERO_REPO=https://github.com/scimbe/cads-zero.git
-ARG CADS_ZERO_REF=e882fabd347c0b5ca04a7668b50be1d005924cb9
+# PLACEHOLDER (draft): head of scimbe/cads-zero PR #118 (firmware.conf). Replace
+# with the merge commit once that PR is merged.
+ARG CADS_ZERO_REF=bdee1de87641ad940437f90498b4ebe50591cfcb
 # 1 = skip the host (SDL2/ctest) smoke test at image build time.
 ARG CADS_SKIP_HOST_BUILD=0
 # 1 = keep build/host in the seed (faster first "Host tests" run, bigger image).
@@ -155,9 +157,21 @@ RUN --mount=type=secret,id=gh_token,uid=1000,required=false \
     git submodule status; \
     du -sh . .git
 
+# Lab-wide build-default overlay (image/firmware-lab.conf, see the file). Lives
+# in the workspace (untracked) so the CMake cache path stays valid at runtime and
+# students can edit it. An overlay with active keys needs a cads-zero ref that
+# has firmware.conf - otherwise it would be silently ignored, so fail instead.
+COPY --chown=coder:coder image/firmware-lab.conf /home/coder/workspace/cads-zero/firmware.lab.conf
+RUN set -eu; cd /home/coder/workspace/cads-zero; \
+    echo "/firmware.lab.conf" >> .git/info/exclude; \
+    if grep -qE '^[[:space:]]*[a-z_]+\.[a-z_]+[[:space:]]*=' firmware.lab.conf && [ ! -f firmware.conf ]; then \
+        echo "error: firmware.lab.conf sets keys but CADS_ZERO_REF has no firmware.conf" >&2; exit 1; \
+    fi
+
 # Firmware build = the image's own smoke test. Must produce cads-zero.bin.
 RUN set -eu; cd /home/coder/workspace/cads-zero; \
-    cmake --preset itsboard; \
+    FWCONF=""; [ -f firmware.conf ] && FWCONF="-DCADS_FIRMWARE_CONF=/home/coder/workspace/cads-zero/firmware.lab.conf"; \
+    cmake --preset itsboard ${FWCONF}; \
     cmake --build build/itsboard; \
     ls -l build/itsboard/cads-zero.elf build/itsboard/cads-zero.bin build/itsboard/cads-zero.hex; \
     test -s build/itsboard/compile_commands.json; \
@@ -174,7 +188,8 @@ RUN set -eu; cd /home/coder/workspace/cads-zero; \
 RUN set -eu; cd /home/coder/workspace/cads-zero; \
     if [ "${CADS_SKIP_HOST_BUILD}" = "1" ]; then echo "host build skipped (CADS_SKIP_HOST_BUILD=1)"; exit 0; fi; \
     export SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy; \
-    cmake --preset host; \
+    FWCONF=""; [ -f firmware.conf ] && FWCONF="-DCADS_FIRMWARE_CONF=/home/coder/workspace/cads-zero/firmware.lab.conf"; \
+    cmake --preset host ${FWCONF}; \
     cmake --build build/host; \
     ctest --test-dir build/host --output-on-failure -E '^golden_'; \
     ctest --test-dir build/host -R '^golden_' || echo "note: golden-image tests differ on this SDL build (expected, see Dockerfile)"; \

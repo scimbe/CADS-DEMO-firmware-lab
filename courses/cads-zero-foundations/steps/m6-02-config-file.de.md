@@ -27,7 +27,7 @@ Lies die eine Datei, über die ein laufendes Board konfiguriert wird, und verste
 
 ## Eine Textdatei auf dem Volume
 
-`/config.txt` ist eine einfache `key = value`-Datei im littlefs-Volume. Die Firmware liest sie beim Booten; fehlt sie, schreibt sie die eingebauten Defaults, damit die Datei immer zum Bearbeiten existiert. `#` beginnt einen Kommentar, Leerzeilen werden ignoriert, Leerraum wird abgeschnitten. Die Basisversion (`docs/reference/config-file.md`):
+`/config.txt` ist eine einfache `key = value`-Datei im littlefs-Volume. Die Firmware liest sie beim Booten; fehlt sie, schreibt sie jeden Schlüssel auskommentiert mit seinem Build-Default (`firmware.conf`), damit die Datei immer zum Bearbeiten existiert und nur unkommentierte Zeilen etwas überschreiben. `#` beginnt einen Kommentar, Leerzeilen werden ignoriert, Leerraum wird abgeschnitten. Die Basisversion (`docs/reference/config-file.md`):
 
 ```ini
 # boot
@@ -39,9 +39,9 @@ display.fast_clock = 0
 
 # network
 net.dhcp = 0
-net.ip = 192.168.33.99
-net.netmask = 255.255.255.0
-net.gateway = 192.168.33.1
+net.ip = <net.ip from firmware.conf>
+net.netmask = <net.netmask from firmware.conf>
+net.gateway = <net.gateway from firmware.conf>
 net.mac_random = 0
 ```
 

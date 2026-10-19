@@ -27,7 +27,7 @@ Read the one file a running board is configured by, and understand how you can e
 
 ## One text file on the volume
 
-`/config.txt` is a plain `key = value` file inside the littlefs volume. The firmware reads it at boot; if it is missing, it writes the built-in defaults so the file always exists to edit. `#` starts a comment, blank lines are ignored, whitespace is trimmed. The base version (`docs/reference/config-file.md`):
+`/config.txt` is a plain `key = value` file inside the littlefs volume. The firmware reads it at boot; if it is missing, it writes every key commented out with its build default (`firmware.conf`), so the file always exists to edit and only uncommented lines override anything. `#` starts a comment, blank lines are ignored, whitespace is trimmed. The base version (`docs/reference/config-file.md`):
 
 ```ini
 # boot
@@ -39,9 +39,9 @@ display.fast_clock = 0
 
 # network
 net.dhcp = 0
-net.ip = 192.168.33.99
-net.netmask = 255.255.255.0
-net.gateway = 192.168.33.1
+net.ip = <net.ip from firmware.conf>
+net.netmask = <net.netmask from firmware.conf>
+net.gateway = <net.gateway from firmware.conf>
 net.mac_random = 0
 ```
 

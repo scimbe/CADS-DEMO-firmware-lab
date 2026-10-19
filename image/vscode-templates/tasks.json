@@ -58,6 +58,14 @@
       "command": "python3 scripts/check_ram_budget.py build/itsboard/cads-zero.elf",
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "CaDS: Build defaults",
+      "detail": "Where the board's built-in IP/netmask/gateway come from: firmware.conf (cads-zero) + lab overlay firmware.lab.conf",
+      "type": "shell",
+      "command": "echo 'Build defaults: firmware.conf, overridden by the lab overlay firmware.lab.conf (edit it, then run CaDS: Build).'; for k in net.ip net.netmask net.gateway; do printf '%s = ' $k; python3 scripts/cads_firmware_conf.py --overlay firmware.lab.conf get $k; done",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" }
     }
   ]
 }

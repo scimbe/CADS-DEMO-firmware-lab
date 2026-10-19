@@ -43,12 +43,12 @@ The lab's Ethernet exercises in M7 assume the default static addressing. Practis
 
 ```ini
 net.dhcp = 0
-net.ip = 192.168.33.99
-net.netmask = 255.255.255.0
-net.gateway = 192.168.33.1
+net.ip = <net.ip from firmware.conf>
+net.netmask = <net.netmask from firmware.conf>
+net.gateway = <net.gateway from firmware.conf>
 ```
 
-Change `net.ip` to another free address in the same `/24` (or, if you prefer a visible change, set `display.brightness = 40`), push, reload. The address is applied to the netif immediately if the link is up, otherwise the next time it comes up. Restore `192.168.33.99` afterwards so M7 matches the tutorial.
+Change `net.ip` to another free address in the same subnet (or, if you prefer a visible change, set `display.brightness = 40`), push, reload. The address is applied to the netif immediately if the link is up, otherwise the next time it comes up. Comment the line out again afterwards (back to the build default from `firmware.conf`) so M7 matches the tutorial.
 
 ## What "live" covers, precisely
 
