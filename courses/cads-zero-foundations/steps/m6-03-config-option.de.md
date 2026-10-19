@@ -43,12 +43,12 @@ Die Ethernet-Übungen des Labors in M7 setzen die voreingestellte statische Adre
 
 ```ini
 net.dhcp = 0
-net.ip = 192.168.33.99
-net.netmask = 255.255.255.0
-net.gateway = 192.168.33.1
+net.ip = <net.ip from firmware.conf>
+net.netmask = <net.netmask from firmware.conf>
+net.gateway = <net.gateway from firmware.conf>
 ```
 
-Ändere `net.ip` auf eine andere freie Adresse im selben `/24` (oder, wenn du eine sichtbare Änderung bevorzugst, setze `display.brightness = 40`), pushe, lade neu. Die Adresse wird dem netif sofort zugewiesen, wenn der Link aktiv ist, sonst beim nächsten Link-up. Stelle anschließend `192.168.33.99` wieder her, damit M7 zum Tutorial passt.
+Ändere `net.ip` auf eine andere freie Adresse im selben Subnetz (oder, wenn du eine sichtbare Änderung bevorzugst, setze `display.brightness = 40`), pushe, lade neu. Die Adresse wird dem netif sofort zugewiesen, wenn der Link aktiv ist, sonst beim nächsten Link-up. Kommentiere die Zeile anschließend wieder aus (zurück zum Build-Default aus `firmware.conf`), damit M7 zum Tutorial passt.
 
 ## Was „live" genau umfasst
 

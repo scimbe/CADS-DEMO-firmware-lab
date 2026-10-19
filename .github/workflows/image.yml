@@ -40,6 +40,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: No hard-coded board defaults
+        run: python3 scripts/check-hardcoded-defaults.py
       - uses: actions/setup-node@v4
         with:
           node-version: 22
