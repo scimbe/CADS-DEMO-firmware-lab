@@ -122,7 +122,7 @@ RUN set -eu; \
     arm-none-eabi-gdb --batch -ex 'show version' | head -1
 
 ############################################################################
-# seed: clone the lab firmware (shallow, with submodules) and build it once.
+# seed: clone the lab firmware (full history, shallow submodules) and build it once.
 # Done at the *runtime* path so CMakeCache/compile_commands carry the right
 # absolute paths after the seed is copied into the student workspace.
 #
@@ -147,12 +147,17 @@ ARG CADS_KEEP_HOST_BUILD=0
 USER coder
 WORKDIR /home/coder/workspace
 
+# Full history of the firmware itself (not --depth 1): students push this
+# branch into their own GitLab project, and a shallow branch is refused there
+# with "shallow update not allowed". Costs ~0.7 MiB (praktikum/start: 360
+# commits, 33.1 MiB pack vs. 32.4 MiB at depth 1). Submodules stay shallow -
+# they are never pushed.
 RUN set -eu; \
     git init -q cads-zero; \
     cd cads-zero; \
     git remote add origin "${CADS_ZERO_REPO}"; \
     if printf '%s' "${CADS_ZERO_REF}" | grep -Eq '^[0-9a-f]{40}$'; then \
-        git fetch --depth 1 origin "${CADS_ZERO_REF}"; \
+        git fetch origin "${CADS_ZERO_REF}"; \
         git checkout -q -b cads-seed FETCH_HEAD; \
     elif [ -n "${CADS_SEED_COMMIT}" ]; then \
         # CI resolved the branch to one commit for all architectures: fetch
@@ -160,11 +165,11 @@ RUN set -eu; \
         # origin/<ref> point at it, so later fetches/pulls see a normal,
         # fast-forwardable history. This is also what makes the build cache
         # miss when the branch moves - the RUN text alone does not change.
-        git fetch --depth 1 origin "${CADS_SEED_COMMIT}"; \
+        git fetch origin "${CADS_SEED_COMMIT}"; \
         git update-ref "refs/remotes/origin/${CADS_ZERO_REF}" "${CADS_SEED_COMMIT}"; \
         git checkout -q -b "${CADS_ZERO_REF}" --track "origin/${CADS_ZERO_REF}"; \
     else \
-        git fetch --depth 1 origin "+refs/heads/${CADS_ZERO_REF}:refs/remotes/origin/${CADS_ZERO_REF}"; \
+        git fetch origin "+refs/heads/${CADS_ZERO_REF}:refs/remotes/origin/${CADS_ZERO_REF}"; \
         git checkout -q -b "${CADS_ZERO_REF}" --track "origin/${CADS_ZERO_REF}"; \
     fi; \
     seed="$(git rev-parse HEAD)"; \
@@ -180,6 +185,7 @@ RUN set -eu; \
     # modules/net/CMakeLists.txt patches lib/lwip at configure time (by design);
     # don't show that as " m lib/lwip" in every student's git status.
     git config submodule.lib/lwip.ignore dirty; \
+    test "$(git rev-parse --is-shallow-repository)" = false; \
     git log --oneline -1; \
     git submodule status; \
     du -sh . .git
