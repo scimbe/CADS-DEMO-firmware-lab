@@ -27,6 +27,7 @@ on:
       - tests/git-identity/**
       - e2e/entrypoint-smoke.sh
       - tests/entrypoint/**
+      - tests/jobs/**
       - tests/ci/**
       - .github/scripts/**
       - .github/workflows/image.yml
@@ -248,6 +249,8 @@ jobs:
         run: node --test tests/git-identity/*.test.mjs
       - name: start-script runner
         run: node --test tests/entrypoint/*.test.mjs
+      - name: build job count (cads-jobs)
+        run: node --test tests/jobs/*.test.mjs && sh image/bin/cads-jobs --selbsttest
       - name: image workflow and tag check
         run: node --test tests/ci/*.test.mjs
       - name: cads-logout extension

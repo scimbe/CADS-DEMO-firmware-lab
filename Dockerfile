@@ -263,6 +263,9 @@ RUN set -eu; \
 # st-flash / st-info shims (SPEC.md §3.2) - first on PATH.
 COPY --chmod=0755 image/shims/st-flash image/shims/st-info /usr/local/bin/
 COPY --chmod=0644 image/shims/cads_shim_common.py /usr/local/bin/
+# Parallel build jobs from the container's CPU quota (the build tasks call it;
+# nproc here reports the host's cores).
+COPY --chmod=0755 image/bin/cads-jobs /usr/local/bin/
 
 # Workspace seed + the container-specific .vscode/.clangd templates the
 # entrypoint script writes into the workspace on every start.

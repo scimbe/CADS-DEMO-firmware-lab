@@ -2,6 +2,8 @@
   // CaDS Firmware Lab - container variant (written by /entrypoint.d/10-seed-workspace.sh
   // on every start; edits here are overwritten, put personal tasks elsewhere).
   // st-flash is the lab shim talking to the board connected in the browser.
+  // -j "$(cads-jobs)": as many build jobs as the container's CPU quota allows
+  // (nproc here reports the host's cores, see image/bin/cads-jobs).
   "version": "2.0.0",
   "options": {
     "cwd": "${workspaceFolder}"
@@ -9,9 +11,9 @@
   "tasks": [
     {
       "label": "CaDS: Build",
-      "detail": "cmake --preset itsboard && cmake --build build/itsboard  (ARM GNU 13.3.rel1)",
+      "detail": "cmake --preset itsboard && cmake --build build/itsboard -j $(cads-jobs)  (ARM GNU 13.3.rel1; cads-jobs = CPU-Anteil dieses Containers, nicht die Kerne des Servers)",
       "type": "shell",
-      "command": "cmake --preset itsboard && cmake --build build/itsboard",
+      "command": "cmake --preset itsboard && cmake --build build/itsboard -j \"$(cads-jobs)\"",
       "group": { "kind": "build", "isDefault": true },
       "problemMatcher": ["$gcc"],
       "presentation": { "clear": true, "reveal": "always", "panel": "shared" }
@@ -35,7 +37,7 @@
       "label": "CaDS: Host tests (Rahmen)",
       "detail": "ctest -LE '^rnlab-L'  - simulator + unit tests of the framework, green on praktikum/start; lesson tests: next task",
       "type": "shell",
-      "command": "cmake --preset host && cmake --build build/host && ctest --test-dir build/host --output-on-failure -LE '^rnlab-L'",
+      "command": "cmake --preset host && cmake --build build/host -j \"$(cads-jobs)\" && ctest --test-dir build/host --output-on-failure -LE '^rnlab-L'",
       "options": { "env": { "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy" } },
       "group": { "kind": "test", "isDefault": true },
       "problemMatcher": ["$gcc"],
@@ -45,7 +47,7 @@
       "label": "CaDS: Lektionstests",
       "detail": "ctest -L '^rnlab-LNN$'  - the tests of ONE lesson (red until its TODOs are done)",
       "type": "shell",
-      "command": "cmake --preset host && cmake --build build/host && ctest --test-dir build/host --output-on-failure -L '^rnlab-L${input:cadsLesson}$'",
+      "command": "cmake --preset host && cmake --build build/host -j \"$(cads-jobs)\" && ctest --test-dir build/host --output-on-failure -L '^rnlab-L${input:cadsLesson}$'",
       "options": { "env": { "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy" } },
       "group": "test",
       "problemMatcher": ["$gcc"],
@@ -55,7 +57,7 @@
       "label": "CaDS: Lektionstests inkl. Vertiefung",
       "detail": "ctest -L '^rnlab-LNN(-vertiefung)?$'  - the lesson plus its optional deep-dive tests",
       "type": "shell",
-      "command": "cmake --preset host && cmake --build build/host && ctest --test-dir build/host --output-on-failure -L '^rnlab-L${input:cadsLesson}(-vertiefung)?$'",
+      "command": "cmake --preset host && cmake --build build/host -j \"$(cads-jobs)\" && ctest --test-dir build/host --output-on-failure -L '^rnlab-L${input:cadsLesson}(-vertiefung)?$'",
       "options": { "env": { "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy" } },
       "group": "test",
       "problemMatcher": ["$gcc"],
@@ -67,7 +69,7 @@
       "label": "CaDS: Host tests",
       "hide": true,
       "type": "shell",
-      "command": "cmake --preset host && cmake --build build/host && ctest --test-dir build/host --output-on-failure -LE '^rnlab-L'",
+      "command": "cmake --preset host && cmake --build build/host -j \"$(cads-jobs)\" && ctest --test-dir build/host --output-on-failure -LE '^rnlab-L'",
       "options": { "env": { "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy" } },
       "problemMatcher": ["$gcc"],
       "presentation": { "clear": true, "reveal": "always", "panel": "shared" }
@@ -76,7 +78,7 @@
       "label": "CaDS: Golden images (informativ)",
       "detail": "ctest -R '^golden_'  - pixel comparison against targets/sim/golden/*.png; differs by SDL build (+1 on anti-aliased edges here), see docs/IMAGE-NOTES.md",
       "type": "shell",
-      "command": "cmake --preset host && cmake --build build/host && ctest --test-dir build/host --output-on-failure -R '^golden_'; echo; echo 'Hinweis: Abweichungen um +1 an Kantenpixeln kommen von der SDL2-Version im Container, nicht vom Code (cads-zero docs/ROADMAP.md, 2026-09-01).'",
+      "command": "cmake --preset host && cmake --build build/host -j \"$(cads-jobs)\" && ctest --test-dir build/host --output-on-failure -R '^golden_'; echo; echo 'Hinweis: Abweichungen um +1 an Kantenpixeln kommen von der SDL2-Version im Container, nicht vom Code (cads-zero docs/ROADMAP.md, 2026-09-01).'",
       "options": { "env": { "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy" } },
       "group": "test",
       "problemMatcher": [],
