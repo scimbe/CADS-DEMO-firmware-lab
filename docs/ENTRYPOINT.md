@@ -1,7 +1,7 @@
 # Startskripte des Firmware-Labors (`/entrypoint.d`)
 
 Vor code-server laufen die Skripte in `/entrypoint.d`: die des Images (`10-seed-workspace.sh`,
-`20-logout-config.sh`, `30-git-identity.sh`) und solche, die ein Betreiber einhängt – das Portal
+`20-logout-config.sh`, `30-git-identity.sh`, `35-git-credential-cache.sh`) und solche, die ein Betreiber einhängt – das Portal
 hängt `15-user-repo.sh` per Bind-Mount ein.
 
 ## Ablauf
