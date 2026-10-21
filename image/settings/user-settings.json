@@ -66,5 +66,12 @@
   "remote.portsAttributes": { "3333": { "onAutoForward": "silent" } },
   "terminal.integrated.defaultProfile.linux": "bash",
   "git.openRepositoryInParentFolders": "never",
+  // git in the terminal asks for user name and password (or token) in the
+  // terminal itself. With the default (true) the Git extension sets
+  // GIT_ASKPASS for every terminal and the question appears as a small input
+  // box at the top of the window: `git fetch` on an HTTPS remote that needs a
+  // login then sits silently behind a blinking cursor (reproduced in the lab).
+  // The Source Control view keeps its own prompt (git.useIntegratedAskPass).
+  "git.terminalAuthentication": false,
   "files.autoSave": "off"
 }

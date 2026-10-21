@@ -29,6 +29,7 @@ on:
       - tests/entrypoint/**
       - tests/jobs/**
       - tests/ci/**
+      - tests/settings/**
       - .github/scripts/**
       - .github/workflows/image.yml
   workflow_dispatch:
@@ -253,6 +254,8 @@ jobs:
         run: node --test tests/jobs/*.test.mjs && sh image/bin/cads-jobs --selbsttest
       - name: image workflow and tag check
         run: node --test tests/ci/*.test.mjs
+      - name: git login prompt in the terminal (user settings)
+        run: node --test tests/settings/*.test.mjs
       - name: cads-logout extension
         working-directory: extensions/cads-logout
         run: npm ci && npm run typecheck && npm test
