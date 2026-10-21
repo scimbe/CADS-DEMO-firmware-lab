@@ -12,7 +12,7 @@
 #   - precondition: in the container `test -x` on the mounted script fails
 #     (otherwise this test would not be testing the defect);
 #   - the mounted script runs anyway, and all scripts run in sorted order
-#     (10-, 15-, 20-, 25-, 30-), each with one "entrypoint: <name> ..." line;
+#     (10-, 15-, 20-, 25-, 30-, 35-), each with one "entrypoint: <name> ..." line;
 #   - a script that fails on purpose is logged as "FEHLER rc=7" and code-server
 #     still starts;
 #   - with the portal's variables for the access "riisc" (CADS_GIT_MODE=
@@ -96,10 +96,11 @@ want='entrypoint: 10-seed-workspace.sh ok
 entrypoint: 15-user-repo.sh ok
 entrypoint: 20-logout-config.sh ok
 entrypoint: 25-smoke-fehler.sh FEHLER rc=7
-entrypoint: 30-git-identity.sh ok'
+entrypoint: 30-git-identity.sh ok
+entrypoint: 35-git-credential-cache.sh ok'
 got="$(printf '%s\n' "$logs" | grep '^entrypoint: ' || true)"
 if [ "$got" = "$want" ]; then
-    ok "all five scripts ran in sorted order; the failing one is logged as FEHLER rc=7"
+    ok "all six scripts ran in sorted order; the failing one is logged as FEHLER rc=7"
 else
     bad "entrypoint lines differ"; echo "--- expected"; echo "$want"; echo "--- got"; echo "$got"
 fi
@@ -111,6 +112,8 @@ helper="$(docker exec "$CONTAINER" git config --global --get-all credential.http
 case "$helper" in *"oauth -device"*) ok "credential helper for github.com is set (oauth -device)" ;; *) bad "credential helper not set: [$helper]" ;; esac
 ident="$(docker exec "$CONTAINER" git -C "$WS" config --local --get user.name)|$(docker exec "$CONTAINER" git -C "$WS" config --local --get user.email)"
 if [ "$ident" = "$NAME|$EMAIL" ]; then ok "identity is in the workspace repository"; else bad "identity in the repository: [$ident]"; fi
+cache="$(docker exec "$CONTAINER" git config --global --get-all credential.helper || true)"
+if [ "$cache" = "cache --timeout=28800" ]; then ok "35-git-credential-cache.sh: logins stay in memory for the session"; else bad "session credential helper: [$cache]"; fi
 gident="$(docker exec "$CONTAINER" git config --global --get user.name)|$(docker exec "$CONTAINER" git config --global --get user.email)"
 if [ "$gident" = "$NAME|$EMAIL" ]; then ok "30-git-identity.sh added the session default and left the repository values alone"; else bad "global identity: [$gident]"; fi
 if docker exec "$CONTAINER" git -C "$WS" commit -q --allow-empty -m "smoke" >/dev/null 2>&1 \
@@ -156,7 +159,8 @@ logs2="$(docker logs "$CONTAINER" 2>&1)"
 want2='entrypoint: 10-seed-workspace.sh ok
 entrypoint: 15-user-repo.sh ok
 entrypoint: 20-logout-config.sh ok
-entrypoint: 30-git-identity.sh ok'
+entrypoint: 30-git-identity.sh ok
+entrypoint: 35-git-credential-cache.sh ok'
 got2="$(printf '%s\n' "$logs2" | grep '^entrypoint: ' || true)"
 if [ "$got2" = "$want2" ]; then
     ok "marker: the runner calls 15-user-repo.sh and logs it as ok"
