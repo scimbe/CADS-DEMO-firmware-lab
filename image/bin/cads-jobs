@@ -1,0 +1,86 @@
+#!/bin/sh
+# cads-jobs - how many parallel build jobs fit this container.
+#
+# `nproc` inside the container reports the HOST's cores; ninja then starts
+# about nproc+2 jobs, the container's CPU quota throttles them (cpu.stat
+# nr_throttled grows) and the IDE in the same container stutters. The number
+# that fits is the quota the container really has:
+#
+#   cgroup v2  /sys/fs/cgroup/cpu.max            "<quota> <period>" or "max <period>"
+#   cgroup v1  /sys/fs/cgroup/cpu/cpu.cfs_quota_us and cpu.cfs_period_us  (quota -1 = no limit)
+#
+# jobs = ceil(quota / period), at least 1 and at most nproc. No limit, a missing
+# file or anything unreadable -> nproc. Prints one number, always exits 0.
+#
+#   cmake --build build/itsboard -j "$(cads-jobs)"
+#   cads-jobs --selbsttest        checks the arithmetic with fixed example values
+#
+# Tests point the paths elsewhere: CADS_JOBS_CPU_MAX, CADS_JOBS_V1_QUOTA,
+# CADS_JOBS_V1_PERIOD, CADS_JOBS_NPROC.
+
+set -u
+
+CPU_MAX="${CADS_JOBS_CPU_MAX:-/sys/fs/cgroup/cpu.max}"
+V1_QUOTA="${CADS_JOBS_V1_QUOTA:-/sys/fs/cgroup/cpu/cpu.cfs_quota_us}"
+V1_PERIOD="${CADS_JOBS_V1_PERIOD:-/sys/fs/cgroup/cpu/cpu.cfs_period_us}"
+
+host_cpus() {
+    n="${CADS_JOBS_NPROC:-$(nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null)}"
+    case "$n" in '' | *[!0-9]* | 0) n=1 ;; esac
+    echo "$n"
+}
+
+# jobs_for QUOTA PERIOD CPUS -> number on stdout, or status 1 when QUOTA/PERIOD
+# set no usable limit ("max", -1, empty, not a number, period 0).
+jobs_for() {
+    case "${1:-}" in '' | *[!0-9]*) return 1 ;; esac
+    case "${2:-}" in '' | *[!0-9]*) return 1 ;; esac
+    [ "$2" -gt 0 ] && [ "$1" -gt 0 ] || return 1
+    j=$(( ($1 + $2 - 1) / $2 ))
+    [ "$j" -ge 1 ] || j=1
+    [ "$j" -le "$3" ] || j="$3"
+    echo "$j"
+}
+
+# Splits "<quota> <period>" (cpu.max) into words without globbing.
+jobs_for_line() {
+    set -f
+    # shellcheck disable=SC2086
+    set -- $1
+    set +f
+    [ $# -eq 2 ] || return 1
+    jobs_for "$1" "$2" "$cpus"
+}
+
+selbsttest() {
+    cpus=40
+    fails=0
+    for ex in "300000 100000=3" "150000 100000=2" "50000 100000=1" "100000 100000=1" \
+                "8000000 100000=40" "max 100000=" "=" "kaputt=" "-1 100000=" "100000 0=" "100000=" "1 2 3="; do
+        line="${ex%=*}" want="${ex##*=}"
+        got="$(jobs_for_line "$line")" || got=""
+        if [ "$got" = "$want" ]; then
+            echo "ok   '$line' -> ${got:-nproc}"
+        else
+            echo "FAIL '$line' -> '${got}' (erwartet '${want:-nproc}')"
+            fails=$((fails + 1))
+        fi
+    done
+    [ "$fails" -eq 0 ] && echo "selbsttest ok" || echo "selbsttest: $fails Fehler"
+    [ "$fails" -eq 0 ]
+}
+
+cpus="$(host_cpus)"
+
+if [ "${1:-}" = "--selbsttest" ]; then
+    selbsttest
+    exit $?
+fi
+
+if [ -r "$CPU_MAX" ]; then
+    jobs_for_line "$(head -n 1 "$CPU_MAX" 2>/dev/null)" && exit 0
+elif [ -r "$V1_QUOTA" ] && [ -r "$V1_PERIOD" ]; then
+    jobs_for "$(head -n 1 "$V1_QUOTA" 2>/dev/null)" "$(head -n 1 "$V1_PERIOD" 2>/dev/null)" "$cpus" && exit 0
+fi
+echo "$cpus"
+exit 0
