@@ -111,6 +111,9 @@ helper="$(docker exec "$CONTAINER" git config --global --get-all credential.http
 case "$helper" in *"oauth -device"*) ok "credential helper for github.com is set (oauth -device)" ;; *) bad "credential helper not set: [$helper]" ;; esac
 ident="$(docker exec "$CONTAINER" git -C "$WS" config --local --get user.name)|$(docker exec "$CONTAINER" git -C "$WS" config --local --get user.email)"
 if [ "$ident" = "$NAME|$EMAIL" ]; then ok "identity is in the workspace repository"; else bad "identity in the repository: [$ident]"; fi
+# The seeded workspace must be pushable into an own GitLab project: no shallow history.
+shallow="$(docker exec "$CONTAINER" git -C "$WS" rev-parse --is-shallow-repository)"
+if [ "$shallow" = false ]; then ok "the seeded workspace has the full history (not shallow)"; else bad "the seeded workspace is shallow: a push to an own project fails with 'shallow update not allowed'"; fi
 gident="$(docker exec "$CONTAINER" git config --global --get user.name)|$(docker exec "$CONTAINER" git config --global --get user.email)"
 if [ "$gident" = "$NAME|$EMAIL" ]; then ok "30-git-identity.sh added the session default and left the repository values alone"; else bad "global identity: [$gident]"; fi
 if docker exec "$CONTAINER" git -C "$WS" commit -q --allow-empty -m "smoke" >/dev/null 2>&1 \
