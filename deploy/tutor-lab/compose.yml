@@ -71,6 +71,14 @@ services:
       # running container actually has, so an upgrade cannot silently hand the
       # students an empty workspace.
       - workspace:/home/coder/workspace
+      # The tutor's own records: learning events (events.sqlite, events.jsonl)
+      # and the dialog log (dialog.jsonl) in ~/.cads-tutor. Without a mount they
+      # live in the container's writable layer and are gone with the container
+      # at the next `up` that recreates it. A separate volume, so the workspace
+      # volume above is untouched. The first start of a container that did not
+      # have this mount needs a one-off copy; see docs/TUTOR-LAB-DEPLOY.md
+      # section 3a (deploy.sh makes the backup itself).
+      - tutor-data:/home/coder/.cads-tutor
     healthcheck:
       # code-server's own endpoint, reachable without a login. It answers as
       # soon as the HTTP server is up, which is what "the lab is reachable"
@@ -105,3 +113,10 @@ volumes:
     # guessing; deploy.sh reads .env and reports the right name when it is
     # missing (section 2 of docs/TUTOR-LAB-DEPLOY.md).
     name: ${TUTOR_LAB_VOLUME:?set TUTOR_LAB_VOLUME - see docs/TUTOR-LAB-DEPLOY.md section 2; never let a destructive compose command guess this name}
+
+  tutor-data:
+    # Named after the workspace volume (TUTOR_LAB_VOLUME, required above), so
+    # the two always belong together and no second variable has to be added to
+    # existing .env files. Same reason for no default: `down -v` resolves this
+    # name too.
+    name: ${TUTOR_LAB_VOLUME:?set TUTOR_LAB_VOLUME - see docs/TUTOR-LAB-DEPLOY.md section 2}-tutor-data
