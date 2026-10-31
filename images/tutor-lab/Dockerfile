@@ -221,7 +221,13 @@ COPY --chown=coder:coder images/tutor-lab/vscode-templates/ /opt/cads-seed/vscod
 COPY --from=seed --chown=coder:coder /opt/cads-tutor/courses /opt/cads-tutor/courses
 COPY --from=seed --chown=coder:coder /opt/cads-seed /opt/cads-seed
 COPY --from=seed --chown=coder:coder /home/coder/.cargo/registry /home/coder/.cargo/registry
-RUN mkdir -p /home/coder/workspace && chown coder:coder /home/coder/workspace; \
+# /home/coder/.cads-tutor holds the tutor's learning events (events.sqlite,
+# events.jsonl) and dialog log (dialog.jsonl). It is created here, owned by
+# coder, so that a named volume mounted on it is initialised with those
+# permissions on first use; without the directory in the image the volume
+# would be root-owned and the tutor could not write its log.
+RUN mkdir -p /home/coder/workspace /home/coder/.cads-tutor \
+    && chown coder:coder /home/coder/workspace /home/coder/.cads-tutor; \
     ls -d /opt/cads-tutor/courses/*/ 2>/dev/null || echo "no course packs in this image"; \
     ls -d /opt/cads-seed/*/
 
@@ -232,6 +238,17 @@ USER coder
 # Open VSX: rust-analyzer ships the server binary in its platform VSIX
 # (linux-x64 / linux-arm64 are published), ESLint is universal.
 #
+# rust-analyzer is pinned, not "latest". An unpinned install takes the newest
+# *stable* release, and Open VSX had exactly one for a while - 0.3.3097 - with a
+# linux-x64 VSIX but no linux-arm64 one. code-server then silently falls back
+# to the "universal" VSIX, which has no server/ directory, and the arm64 build
+# died on the `test -x .../server/rust-analyzer` below (CI run 41206184106).
+# 0.4.3096 is the oldest version with both linux VSIXes. Open VSX flags the
+# whole 0.4.x line as pre-release; an explicit @version installs it anyway.
+# To move the pin: check both platforms exist first,
+#   curl -s https://open-vsx.org/api/rust-lang/rust-analyzer/linux-arm64/<version>
+ARG RUST_ANALYZER_VERSION=0.4.3096
+
 # even-better-toml is not a nicety: neither code-server nor rust-analyzer
 # contributes a TOML grammar, so without it Cargo.toml opens as "Plain Text" -
 # no colours, no structure - in a course whose very first file is Cargo.toml.
@@ -245,7 +262,7 @@ USER coder
 # list and imply a German workbench that never arrives, so it stays out until a
 # matching version exists. See docs/TUTOR-LAB-NOTES.md.
 RUN set -eu; for ext in \
-        rust-lang.rust-analyzer \
+        rust-lang.rust-analyzer@${RUST_ANALYZER_VERSION} \
         dbaeumer.vscode-eslint \
         tamasfe.even-better-toml \
     ; do code-server --install-extension "$ext"; done; \
