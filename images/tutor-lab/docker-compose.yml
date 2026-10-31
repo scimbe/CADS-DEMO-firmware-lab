@@ -42,6 +42,9 @@ services:
       # Both starter workspaces + cads-tutor.code-workspace live here
       # (seeded on first start, never overwritten afterwards).
       - tutor-lab-workspace:/home/coder/workspace
+      # Learning events and dialog log of the tutor (~/.cads-tutor).
+      - tutor-lab-tutor-data:/home/coder/.cads-tutor
 
 volumes:
   tutor-lab-workspace:
+  tutor-lab-tutor-data:

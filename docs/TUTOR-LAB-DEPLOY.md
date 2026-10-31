@@ -89,6 +89,47 @@ springt es **selbsttätig** auf den Stand zurück, der vorher lief; das Ziel daf
 liest es vorher aus dem laufenden Behälter aus. Der Aufruf ist wiederholbar:
 zweimal derselbe Stand ändert nichts und prüft nur erneut.
 
+## 3a. Einmalig: Aufzeichnungen des Tutors in den eigenen Datenträger übernehmen
+
+Der Tutor schreibt seine Lernereignisse (`events.sqlite`, `events.jsonl`) und das
+Gesprächsprotokoll (`dialog.jsonl`) nach `/home/coder/.cads-tutor`. Dafür gibt es
+den eigenen Datenträger `<TUTOR_LAB_VOLUME>-tutor-data` (bei
+`TUTOR_LAB_VOLUME=tutor-lab-workspace` also `tutor-lab-workspace-tutor-data`).
+Der Arbeitsbereich-Datenträger bleibt unberührt, und `.env` braucht keinen neuen Wert.
+
+Ein Behälter, der vor dieser Änderung gestartet wurde, hat dieses Verzeichnis nur
+in seiner beschreibbaren Schicht. `docker compose up` ersetzt den Behälter und
+damit diese Schicht. Deshalb gilt beim ersten `./deploy.sh` danach:
+
+1. `./deploy.sh` erkennt den fehlenden Einhängepunkt, warnt und kopiert das
+   Verzeichnis vor allem anderen nach `tutor-data-backup-<Datum>/` neben dem
+   Skript. Der laufende Behälter wird dabei nur gelesen. Gelingt die Kopie nicht,
+   bricht das Skript ab, bevor etwas geändert ist.
+2. Nach erfolgreicher Auslieferung steht der Befehl zum Einspielen in der
+   Ausgabe. Der Tutor hält `events.sqlite` offen, solange er läuft; deshalb
+   wird der Behälter dafür kurz angehalten:
+
+   ```bash
+   docker stop tutor-lab
+   docker cp -a tutor-data-backup-<Datum>/. tutor-lab:/home/coder/.cads-tutor/
+   docker start tutor-lab
+   ```
+
+   `-a` erhält Besitzer und Gruppe (`coder`); ohne `-a` gehörten die Dateien root
+   und der Tutor könnte nicht mehr schreiben.
+3. Prüfen:
+
+   ```bash
+   docker exec tutor-lab ls -ln /home/coder/.cads-tutor
+   ```
+
+   Die drei Dateien müssen mit UID 1000 erscheinen. Danach kann
+   `tutor-data-backup-<Datum>/` gelöscht werden.
+
+Alle weiteren Auslieferungen brauchen diesen Schritt nicht mehr: der Datenträger
+überlebt das Ersetzen des Behälters. Wer den Behälter ohne `deploy.sh`
+ersetzt, kopiert vorher selbst: `docker cp -a tutor-lab:/home/coder/.cads-tutor .`
+
 ## 4. Was Sie sehen müssen
 
 Am Ende von `./deploy.sh`:
@@ -227,6 +268,8 @@ docker image rm ghcr.io/scimbe/cads-tutor-lab:<alter Stand>
 
 ## Was diese Auslieferung nicht ändert
 
+- **Aufzeichnungen des Tutors bleiben** im Datenträger `<TUTOR_LAB_VOLUME>-tutor-data`
+  (Abschnitt 3a); `docker compose down -v` löscht ihn ebenso wie den Arbeitsbereich.
 - **Studierendenarbeiten bleiben.** Ein neuer Stand erneuert nur die Dateien,
   die das Abbild selbst verwaltet (die `.vscode/settings.json` mit Markierungszeile);
   eigene Dateien und eigene Bearbeitungen bleiben unberührt.

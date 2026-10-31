@@ -172,6 +172,34 @@ if [ -n "$PREV_VOLUME" ] && [ "$PREV_VOLUME" != "$WANT_VOLUME" ]; then
 fi
 [ -n "$PREV_VOLUME" ] && say "workspace volume unchanged: $PREV_VOLUME"
 
+# The tutor's records (~/.cads-tutor: events.sqlite, events.jsonl, dialog.jsonl)
+# sit in their own volume, ${workspace volume}-tutor-data. A container that was
+# started before that mount existed keeps them in its writable layer, and
+# `compose up` below recreates the container - and with it that layer. So when
+# the running container has no mount there, copy the directory out first.
+# This is read-only against the running container; restoring it into the new
+# volume is a deliberate manual step (docs/TUTOR-LAB-DEPLOY.md section 3a),
+# because the tutor holds events.sqlite open while it runs.
+DATA_DEST="/home/coder/.cads-tutor"
+TUTOR_DATA_BACKUP=""
+if [ -n "$PREV_REF" ]; then
+    PREV_DATA_VOLUME="$(docker inspect "$CONTAINER" \
+        --format '{{range .Mounts}}{{if eq .Destination "'"$DATA_DEST"'"}}{{.Name}}{{end}}{{end}}')"
+    if [ -z "$PREV_DATA_VOLUME" ]; then
+        TUTOR_DATA_BACKUP="$HERE/tutor-data-backup-$(date +%Y%m%d-%H%M%S)"
+        warn "the running container keeps $DATA_DEST in its writable layer; recreating it would delete the learning events and dialog log"
+        if [ "$DRY_RUN" = 1 ]; then
+            say "dry run: would copy $DATA_DEST to $TUTOR_DATA_BACKUP"
+        elif docker cp -a "$CONTAINER:$DATA_DEST" "$TUTOR_DATA_BACKUP" 2>/dev/null; then
+            say "backed up $DATA_DEST to $TUTOR_DATA_BACKUP ($(find "$TUTOR_DATA_BACKUP" -type f | wc -l | tr -d ' ') files)"
+        else
+            die "could not copy $DATA_DEST out of $CONTAINER - nothing was changed. If the directory does not exist yet there is nothing to keep: create it with  docker exec $CONTAINER mkdir -p $DATA_DEST  and run again."
+        fi
+    else
+        say "tutor data volume unchanged: $PREV_DATA_VOLUME"
+    fi
+fi
+
 # The compose project the running container belongs to. A different one makes
 # compose treat the running container as a stranger and refuse the name.
 if [ -n "$PREV_REF" ]; then
@@ -261,6 +289,11 @@ fi
 if [ "$DEPLOY_OK" = 1 ]; then
     echo
     say "deployed $TARGET_REF on $URL"
+    if [ -n "$TUTOR_DATA_BACKUP" ] && [ "$DRY_RUN" = 0 ]; then
+        say "the tutor's old records are in $TUTOR_DATA_BACKUP, not yet in the new volume."
+        say "restore them once (docs/TUTOR-LAB-DEPLOY.md section 3a):"
+        say "    docker stop $CONTAINER && docker cp -a $TUTOR_DATA_BACKUP/. $CONTAINER:$DATA_DEST/ && docker start $CONTAINER"
+    fi
     say "entry links (publish these two, not the bare host):"
     docker inspect "$CONTAINER" --format '{{range $k, $v := .Config.Labels}}{{$k}}={{$v}}{{"\n"}}{{end}}' 2>/dev/null \
         | grep '^cads\.tutor-lab\.entry\.' | sed 's/^cads.tutor-lab.entry./    /; s/=/: <host>/'
